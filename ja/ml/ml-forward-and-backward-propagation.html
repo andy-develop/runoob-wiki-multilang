@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>順伝播と逆伝播 | 菜鸟教程</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<link href="../manifest.webmanifest.html" rel="manifest"/>
+<meta content="#10151c" name="theme-color"/>
+<link href="../pwa/icon-192.png.html" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="application-name"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="../ml/ml-forward-and-backward-propagation.html" rel="canonical"/>
+<meta content="前向传播与反向传播" name="keywords"/>
+<meta content="前向传播与反向传播 在深度学习中，前向传播与反向传播是支撑其运转的两大核心支柱。它们如同一个硬币的两面，共同构成了神经网络从学习到应用的完整闭环，透彻理解这两个过程，是打开深度学习大门的第一把钥匙。本文将带你一步步拆解这两个看似复杂的概念，用清晰的逻辑和生动的比喻，让你不仅知其然，更知其所以然。  什么是前向传播与反向传播？ 在深入细节之前，让我们先建立一个宏观的认知。 想象一下，你正在教一个孩子识别猫和狗。你给他看一张图片（输入），他.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div>
+<!-- 导航栏 -->
+<style>
+/* 主题切换按钮 */
+/* ===== 主题变量（核心）===== */
+:root {
+  --theme-bg: #ffffff;
+  --theme-border: #e5e7eb;
+  --theme-icon: #333;
+  --theme-hover: #f3f4f6;
+}
+
+.dark {
+  --theme-bg: #1f2937;
+  --theme-border: #374151;
+  --theme-icon: #e5e7eb;
+  --theme-hover: #374151;
+}
+
+/* ===== 按钮容器 ===== */
+.nav-theme-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== 按钮本体 ===== */
+.nav-theme-toggle button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  border-radius: 6px;
+  border: 1px solid var(--theme-border);
+
+  background: var(--theme-bg);
+  color: var(--theme-icon);
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* ===== 图标大小 ===== */
+.nav-theme-toggle i {
+  font-size: 14px;
+}
+
+/* ===== hover 效果 ===== */
+.nav-theme-toggle button:hover {
+  background: var(--theme-hover);
+  transform: translateY(-1px);
+}
+
+/* ===== 点击反馈 ===== */
+.nav-theme-toggle button:active {
+  transform: scale(0.95);
+}
+
+/* ===== 当前激活态（可选）===== */
+.nav-theme-toggle button.active {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+</style>
+<!-- 导航栏 -->
+<nav aria-label="主导航" class="container navigation">
+<div class="row">
+<div class="col nav">
+<!-- PC 导航 -->
+<ul class="pc-nav" id="runoob-detail-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../js/js-tutorial.html">JavaScript</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a data-id="vue" href="#">Vue</a></li>
+<li><a href="../react/react-tutorial.html">React</a></li>
+<li><a href="../python3/python3-tutorial.html">Python3</a></li>
+<li><a href="../java/java-tutorial.html">Java</a></li>
+<li><a href="../cprogramming/c-tutorial.html">C</a></li>
+<li><a href="../cplusplus/cpp-tutorial.html">C++</a></li>
+<li><a href="../csharp/csharp-tutorial.html">C#</a></li>
+<li><a data-id="aiNav" href="#">AI</a></li>
+<li><a href="../go/go-tutorial.html">Go</a></li>
+<li><a href="../sql/sql-tutorial.html">SQL</a></li>
+<li><a href="../linux/linux-tutorial.html">Linux</a></li>
+<li><a href="../vscode/vscode-tutorial.html">VS Code</a></li>
+<li><a data-id="bootstrap" href="#">Bootstrap</a></li>
+<li><a href="../git/git-tutorial.html">Git</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<!-- 主题切换按钮，固定在最右侧 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+<!-- 移动端导航 -->
+<ul class="mobile-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a href="../js/js-tutorial.html">JS</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<li><a class="search-reveal" href="#">搜索</a></li>
+<!-- 移动端主题切换 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon-mobile" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun-mobile" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<!-- 二级导航 -->
+<!--  内容  -->
+<div class="container main">
+<!-- 中间 -->
+<div class="row">
+<div class="runoob-col-md2">
+<div class="left-column">
+<div class="tab" style="overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
+<i aria-hidden="true" class="fa fa-list"></i>
+<span>机器学习</span>
+</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+<a data-p="par" href="../ml/ml-tutorial.html" target="_top" title="机器学习教程">
+			机器学习教程			</a>
+<a data-p="par" href="../ml/ml-intro.html" target="_top" title="机器学习简介">
+			机器学习简介			</a>
+<a href="../ml/ml-how-to-learn.html" target="_top">机器学习学习路线</a>
+<a href="../ml/ml-project-lifecycle.html" target="_top">机器学习生命周期</a>
+<a data-p="par" href="../ml/ml-hw.html" target="_top" title="机器学习如何工作">
+			机器学习如何工作			</a>
+<a data-p="par" href="../ml/ml-basics.html" target="_top" title="机器学习基础术语">
+			机器学习基础术语			</a>
+<a data-p="par" href="../ml/ml-python.html" target="_top" title="Python 入门机器学习">
+			Python 入门机器学习			</a>
+<a href="../ml/ml-python-libs.html" target="_top">Python 机器学习库</a>
+<a href="../ml/ml-datatype.html" target="_top">常用数据类型</a>
+<a href="../ml/ml-applications.html" target="_top">机器学习应用</a>
+<br/>
+<h2 class="left"><span class="left_h2">数据处理与统计</span></h2>
+<a href="../ml/ml-data-understanding.html" target="_top">数据理解</a>
+<a href="../ml/ml-data-cleaning.html" target="_top">数据清洗</a>
+<a href="../ml/ml-feature-engineering.html" target="_top">特征工程</a>
+<a href="../ml/ml-data-visualizations.html" target="_top">数据可视化</a>
+<a href="../ml/ml-training-and-test-set-splitting.html" target="_top">训练集测试集划分</a>
+<a href="../ml/ml-foundations-of-statistics.html" target="_top"> 统计学基础</a>
+<a href="../ml/ml-probabilistic-thinking.html" target="_top"> 概率思维</a>
+<a href="../ml/ml-loss-function-and-gradient.html" target="_top">损失函数与梯度</a>
+<a href="../ml/ml-overfitting-underfitting-bias-and-variance.html" target="_top">过拟合、欠拟合、偏差与方差</a>
+<br/>
+<h2 class="left"><span class="left_h2">监督学习</span></h2>
+<a data-p="par" href="../ml/ml-algorithms.html" target="_top" title="机器学习算法">
+			机器学习算法			</a>
+<a data-p="par" href="../ml/ml-linear-regression.html" target="_top" title="线性回归 (Linear Regression)">
+			线性回归			</a>
+<a href="../ml/ml-multiple-linear-regression.html" target="_top">多元线性回归</a>
+<a href="../ml/ml-multinomial-regression.html" target="_top">多项式回归</a> <a data-p="par" href="../ml/ml-logistic-regression.html" target="_top" title="逻辑回归（Logistic Regression）">
+			逻辑回归			</a>
+<a href="../ml/ml-regression-model-evaluation.html" target="_top">回归模型评估</a> <a data-p="par" href="../ml/ml-decision-tree.html" target="_top" title="决策树（Decision Tree）">
+			决策树			</a>
+<a data-p="par" href="../ml/ml-svm.html" target="_top" title="支持向量机">
+			支持向量机			</a>
+<a data-p="par" href="../ml/ml-knn.html" target="_top" title="K 近邻算法">
+			K 近邻算法			</a>
+<a data-p="par" href="../ml/ml-ensemble-learning.html" target="_top" title="集成学习">
+			集成学习			</a>
+<a data-p="par" href="../ml/ml-naive-bayes.html" target="_top" title="朴素贝叶斯">
+			朴素贝叶斯			</a>
+<a data-p="par" href="../ml/ml-random-forest.html" target="_top" title="随机森林">
+			随机森林			</a>
+<a data-p="par" href="../ml/ml-classification-metrics.html" target="_top" title="分类指标">
+			分类指标			</a>
+<br/><h2 class="left"><span class="left_h2">无监督学习</span></h2> <a data-p="par" href="../ml/ml-cluster-analysis.html" target="_top" title="无监督学习 – 聚类">
+			聚类			</a>
+<a data-p="par" href="../ml/ml-dimensionality-reduction.html" target="_top" title="无监督学习 – 降维">
+			降维			</a>
+<br/><h2 class="left"><span class="left_h2">强化学习</span></h2> <a data-p="par" href="../ml/ml-basic-framework-of-reinforcement-learning.html" target="_top" title="强化学习基本框架">
+			强化学习基本框架			</a>
+<a data-p="par" href="../ml/ml-exploration-exploitation.html" target="_top" title="强化学习探索vs开采">
+			强化学习探索vs开采			</a>
+<a data-p="par" href="../ml/ml-qlearning-sarsa.html" target="_top" title="强化学习 Q-learning 与 SARSA">
+			强化学习 Q-learning 与 SARSA			</a>
+<a data-p="par" href="../ml/ml-deep-reinforcement-learning.html" target="_top" title="深度强化学习">
+			深度强化学习			</a>
+<br/><h2 class="left"><span class="left_h2">深度学习</span></h2> <a data-p="par" href="../ml/ml-structure-of-neural-networks.html" target="_top" title="神经网络的基本结构">
+			神经网络的基本结构			</a>
+<a data-p="par" href="../ml/ml-forward-and-backward-propagation.html" target="_top" title="前向传播与反向传播">
+			前向传播与反向传播			</a>
+<a data-p="par" href="../ml/ml-deep-learning-traditional-machine-learning.html" target="_top" title="深度学习vs传统机器学习">
+			深度学习vs传统机器学习			</a>
+<a data-p="par" href="../ml/ml-common-network-types.html" target="_top" title="常见网络类型">
+			常见网络类型			</a>
+<br/><h2 class="left"><span class="left_h2">模型优化与工程</span></h2> <a data-p="par" href="../ml/ml-cross-validation.html" target="_top" title="交叉验证">
+			交叉验证			</a>
+<a data-p="par" href="../ml/ml-model-optimization-regularization.html" target="_top" title="正则化">
+			正则化			</a>
+<a data-p="par" href="../ml/ml-model-optimization-data-leakage.html" target="_top" title="数据泄漏">
+			数据泄漏			</a>
+<a data-p="par" href="../ml/ml-model-optimization-integrated-approaches.html" target="_top" title="集成方法">
+			集成方法			</a>
+<a data-p="par" href="../ml/ml-hyperparameter-search.html" target="_top" title="超参搜索">
+			超参搜索			</a>
+<a data-p="par" href="../ml/ml-model-optimization-mlops.html" target="_top" title="MLOps 概念">
+			MLOps 概念			</a>
+<a data-p="par" href="../ml/ml-model-optimization-common-problems.html" target="_top" title="常见问题排查">
+			常见问题排查			</a>
+<br/><h2 class="left"><span class="left_h2">机器学习的限制与边界</span></h2> <a data-p="par" href="../ml/ml-interpretability-problem.html" target="_top" title="可解释性问题">
+			可解释性问题			</a>
+<a data-p="par" href="../ml/ml-hypothesis-limitations.html" target="_top" title="假设限制">
+			假设限制			</a>
+<a data-p="par" href="../ml/ml-data-bias.html" target="_top" title="数据偏差">
+			数据偏差			</a>
+<a data-p="par" href="../ml/ml-cost-of-models.html" target="_top" title="模型的现实成本">
+			模型的现实成本			</a>
+<br/><h2 class="left"><span class="left_h2">实战案例</span></h2> <a data-p="par" href="../ml/ml-titanic-survival-prediction.html" target="_top" title="泰坦尼克号生存预测">
+			泰坦尼克号生存预测			</a>
+<a data-p="par" href="../ml/ml-house-price-prediction.html" target="_top" title="机器学习 – 房价预测">
+			房价预测			</a>
+<a data-p="par" href="../ml/ml-customer-segmentation.html" target="_top" title="机器学习 – 客户分群">
+			机器学习 - 客户分群			</a>
+<a data-p="par" href="../ml/ml-pca-visualization-case.html" target="_top" title="机器学习 – PCA 可视化案例">
+			PCA 可视化			</a>
+<a data-p="par" href="../ml/ml-reinforcement-learning.html" target="_top" title="机器学习 – 强化学习示例">
+			强化学习示例			</a>
+</div>
+</div>
+</div>
+</div> <div class="col middle-column">
+<div class="article">
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../ml/ml-structure-of-neural-networks.html" rel="prev">ニューラルネットワークの基本構造</a> </div>
+<div class="next-design-link"><a href="../ml/ml-deep-learning-traditional-machine-learning.html" rel="next">深層学習 vs 従来の機械学習</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="article-body">
+<div class="article-intro" id="content">
+<h1>順伝播と逆伝播</h1>
+<p>深層学習において、順伝播と逆伝播はその動作を支える二大核心的な柱です。それらはまるで一枚のコインの表裏のように、ニューラルネットワークの学習から応用までの完全なサイクルを構成しています。この二つのプロセスを深く理解することは、深層学習の扉を開く最初の鍵です。</p><p>この記事では、一見複雑に見えるこれらの概念を段階的に分解し、明確な論理と生き生きとした比喩を用いて、単に「何がそうなるか」だけでなく「なぜそうなるのか」まで理解できるようにします。</p>
+<hr/>
+<h2>順伝播と逆伝播とは？</h2>
+<p>詳細に入る前に、まず全体像を把握しましょう。</p>
+<p>想像してみてください。あなたが子どもに猫と犬の見分け方を教えているとします。その子に画像（<strong>入力</strong>）を見せます。彼は自分の頭の中にある知識（<strong>ネットワークのパラメータ</strong>、すなわち重みとバイアス）に基づいて判断し、これは猫だとあなたに伝えます（<strong>出力</strong>）。この「画像を見る → 脳が処理する → 答えを出す」というプロセスが、<strong>順伝播</strong>。</p>
+<p>です。しかし、子どもの判断は間違うかもしれません。あなたは「違うよ、これは犬だよ」と教えます。この正しい答えと子どもの答えの差が、<strong>誤差</strong>です。子どもはこの誤差に基づいて振り返って考える必要があります。「私の脳の中のどの知識（パラメータ）が今回の誤判断を引き起こしたのだろう？次回は正しく認識できるように、それらをどう調整すればよいのだろう？」と。この誤差に基づいて、後ろから前へ知識を調整していくプロセスが、<strong>逆伝播</strong>。</p>
+<p>です。ニューラルネットワークでは：</p>
+<ul>
+<li><strong>順伝播</strong>：データが入力層から隠れ層を経て最終的に出力層に到達し、予測結果を生成するプロセスです。これは<strong>推論</strong>プロセスです。</li>
+<li><strong>逆伝播</strong>：順伝播で生成された予測結果と真の値との間の誤差に基づいて、出力層から逆方向に各パラメータ（重みとバイアス）が総誤差に与える「貢献」の大きさ（すなわち勾配）を層ごとに計算し、それに基づいてパラメータを更新します。これは<strong>学習</strong>プロセスです。</li>
+</ul>
+<p><img decoding="async" src="../wp-content/uploads/2025/12/1742401020360-1024x576.png"/></p>
+<p>それらの関係は、単純な学習ループの図で表せます：</p>
+<p><img decoding="async" src="../wp-content/uploads/2025/12/ml-forward-and-backward-propagation-runoob.png" style="max-width:360px;"/></p>
+<hr/>
+<h2>順伝播：ニューラルネットワークの推論の道</h2>
+<p>順伝播は、ニューラルネットワークが予測を行うための前向きの経路です。最も単純な3層ニューラルネットワーク（入力層、1つの隠れ層、出力層）を通して理解しましょう。</p>
+<h3>中核となる概念と計算</h3>
+<p>住宅価格を予測することを考えます。入力は住宅面積<code>x</code>です。私たちのミニネットワークの構造は次のとおりです：</p>
+<ul>
+<li><strong>入力層</strong>：1つのニューロンが受け取ります<code>x</code>。</li>
+<li><strong>隠れ層</strong>：1つのニューロンが重み<code>w1</code>とバイアス<code>b1</code>。</li>
+<li><strong>出力層</strong>：1つのニューロンが重み<code>w2</code>とバイアス<code>b2</code>を持ち、予測住宅価格を出力します<code>y_pred</code>。</li>
+</ul>
+<p>順伝播の計算は2つのステップに分けられます：</p>
+<p><strong>1、隠れ層の計算</strong>：入力<code>x</code>と重み<code>w1</code>、バイアス<code>b1</code>を組み合わせ、次に活性化関数（例：Sigmoid、<code>σ</code>と表記）を適用し、隠れ層の出力を生成します<code>a1</code>。</p>
+<pre>z1 = w1 * x + b1
+a1 = σ(z1) = 1 / (1 + exp(-z1))
+</pre>
+<ul>
+<li><code>z1</code>は線形変換の結果です。</li>
+<li><code>a1</code>は非線形活性化後の出力であり、これによりネットワークは複雑なパターンを学習する能力を得ます。</li>
+</ul>
+
+<p><strong>2、出力層の計算</strong>：隠れ層の出力<code>a1</code>を入力として、出力層の重み<code>w2</code>、バイアス<code>b2</code>と組み合わせ、最終予測<code>y_pred</code>を生成します。ここでは簡略化のため、出力層では活性化関数を使用しない（つまり線形出力）と仮定します。</p>
+<pre>y_pred = w2 * a1 + b2
+</pre>
+<p><strong>コード例：順伝播の手動実装</strong></p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: Green;font-weight:bold;">import</span> numpy <span style="color: Green;font-weight:bold;">as</span> np<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> sigmoid<span style="color: Olive;">(</span>x<span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""Sigmoid激活函数"""</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> <span style="color: Maroon;">1</span> / <span style="color: Olive;">(</span><span style="color: Maroon;">1</span> + np.<span style="color: #05a;">exp</span><span style="color: Olive;">(</span>-x<span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 初始化网络参数（通常随机初始化，这里为演示指定值）</span><br/>
+w1<span style="color: Gray;">,</span> b1 <span style="color: Gray;">=</span> <span style="color: Maroon;">2.0</span><span style="color: Gray;">,</span> -<span style="color: Maroon;">1.0</span>  <span style="color: #a50"># 隐藏层参数</span><br/>
+w2<span style="color: Gray;">,</span> b2 <span style="color: Gray;">=</span> <span style="color: Maroon;">1.5</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.5</span>   <span style="color: #a50"># 输出层参数</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> forward_pass<span style="color: Olive;">(</span>x<span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""执行一次前向传播"""</span><br/>
+    <span style="color: #a50"># 隐藏层计算</span><br/>
+    z1 <span style="color: Gray;">=</span> w1 * x + b1<br/>
+    a1 <span style="color: Gray;">=</span> sigmoid<span style="color: Olive;">(</span>z1<span style="color: Olive;">)</span>  <span style="color: #a50"># 应用激活函数</span><br/>
+    <br/>
+    <span style="color: #a50"># 输出层计算</span><br/>
+    y_pred <span style="color: Gray;">=</span> w2 * a1 + b2  <span style="color: #a50"># 线性输出</span><br/>
+    <br/>
+    <span style="color: #a50"># 返回中间结果和最终预测，便于后续理解</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> <span style="color: Olive;">{</span><span style="color: #a11;">'z1'</span>: z1<span style="color: Gray;">,</span> <span style="color: #a11;">'a1'</span>: a1<span style="color: Gray;">,</span> <span style="color: #a11;">'y_pred'</span>: y_pred<span style="color: Olive;">}</span><br/>
+<br/>
+<span style="color: #a50"># 假设房屋面积为 3（单位：百平方米）</span><br/>
+x_input <span style="color: Gray;">=</span> <span style="color: Maroon;">3.0</span><br/>
+result <span style="color: Gray;">=</span> forward_pass<span style="color: Olive;">(</span>x_input<span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"输入 x = {x_input}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"隐藏层线性输出 z1 = w1*x + b1 = {result['z1']:.4f}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"隐藏层激活输出 a1 = sigmoid(z1) = {result['a1']:.4f}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"最终预测房价 y_pred = w2*a1 + b2 = {result['y_pred']:.4f}"</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<p><strong>出力例：</strong></p>
+<pre>输入 x = 3.0
+隐藏层线性输出 z1 = w1*x + b1 = 5.0000
+隐藏层激活输出 a1 = sigmoid(z1) = 0.9933
+最终预测房价 y_pred = w2*a1 + b2 = 1.9899
+</pre>
+<p>この<code>y_pred</code>が面積3の住宅に対するネットワークの予測価格です。しかし、明らかにこの予測値（適当に設定したパラメータに基づく）は、実際の住宅価格とかけ離れている可能性が高いです。この差をどう測り、どう改善するのでしょうか？それには<strong>損失関数</strong>と次の<strong>逆伝播</strong>。</p>
+<hr/>
+<h2>損失関数：良し悪しを測るものさし</h2>
+<p>逆伝播を始める前に、まず予測値<code>y_pred</code>と真の値<code>y_true</code>の間の差を定量化する必要があります。これが損失関数の役割です。</p>
+<p><strong>よく使われる損失関数</strong>：</p>
+<ul>
+<li><strong>平均二乗誤差</strong>：回帰問題（住宅価格や気温の予測など）に適しています。<code>Loss = (1/N) * Σ (y_true - y_pred)^2</code></li>
+<li><strong>交差エントロピー損失</strong>：分類問題（画像分類やスパムメール判定など）に適しています。</li>
+</ul>
+<p>平均二乗誤差を例にとると、単一サンプルに対して：</p>
+<pre>Loss = (y_true - y_pred)^2
+</pre>
+<p>私たちの目標は、<code>w1, b1, w2, b2</code>を調整して、この<code>Loss</code>の値をできるだけ小さくすることです。</p>
+<hr/>
+<h2>逆伝播：ニューラルネットワークの学習エンジン</h2>
+<p>逆伝播は深層学習の学習アルゴリズムの中核です。その本質は<strong>連鎖律</strong>のニューラルネットワークにおける効率的な応用です。目標は損失関数<code>L</code>の各パラメータ（<code>w1, b1, w2, b2</code>）に対する<strong>偏導関数（勾配）</strong>、すなわち<code>∂L/∂w1</code>, <code>∂L/∂b1</code>などを計算することです。これらの勾配は、損失を小さくするために、各パラメータをどの方向に、どの程度の大きさで調整すべきかを示します。</p>
+<h3>勾配を理解する：山を下る方向と歩幅</h3>
+<p>目隠しをして山の上に立っていると想像してください（<strong>損失曲面</strong>）。目標は谷の最も低い点（<strong>最小損失</strong>）を見つけることです。一歩踏み出す前に、足で周囲の最も急な下り坂の方向を感じ取る必要があります。この最も急な下り坂の方向が<strong>勾配</strong>です。逆伝播は、足元の各点（各パラメータ群に対応）の勾配を正確に計算するのを助けます。</p>
+<h3>逆伝播の計算手順（連鎖律）</h3>
+<p>先ほどのミニネットワークを引き続き使い、真の住宅価格<code>y_true = 2.5</code>とし、損失関数を平均二乗誤差<code>L = (y_true - y_pred)^2</code>。</p>
+<p>とします。逆伝播は出力層から始まり、<strong>逆方向に</strong>層ごとに勾配を計算します：</p>
+<p><strong>出力層のパラメータの勾配を計算する</strong></p>
+<ul>
+<li>損失<code>L</code>の予測値に対する<code>y_pred</code>勾配：<code>∂L/∂y_pred = -2 * (y_true - y_pred)</code></li>
+<li>なぜなら<code>y_pred = w2 * a1 + b2</code>、したがって：<code>∂L/∂w2 = (∂L/∂y_pred) * (∂y_pred/∂w2) = (∂L/∂y_pred) * a1</code>
+<code>∂L/∂b2 = (∂L/∂y_pred) * (∂y_pred/∂b2) = (∂L/∂y_pred) * 1</code></li>
+</ul>
+<p><strong>隠れ層のパラメータの勾配を計算する</strong></p>
+<ul>
+<li>まず、損失<code>L</code>の隠れ層出力<code>a1</code>に対する勾配が必要です。<code>a1</code>を介して<code>y_pred</code>影響します。<code>L</code>：
+<code>∂L/∂a1 = (∂L/∂y_pred) * (∂y_pred/∂a1) = (∂L/∂y_pred) * w2</code></li>
+<li>次に、<code>a1 = σ(z1)</code>、シグモイド関数の導関数<code>σ'(z) = σ(z)*(1-σ(z))</code>。</li>
+<li>最後に計算するのは、<code>L</code>隠れ層パラメータ<code>w1</code>, <code>b1</code>に対する勾配です：<code>∂L/∂w1 = (∂L/∂a1) * (∂a1/∂z1) * (∂z1/∂w1) = (∂L/∂a1) * σ'(z1) * x</code>
+<code>∂L/∂b1 = (∂L/∂a1) * (∂a1/∂z1) * (∂z1/∂b1) = (∂L/∂a1) * σ'(z1) * 1</code></li>
+</ul>
+<p><strong>コード例：逆伝播の手動実装</strong></p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: #a50"># 接续前向传播的代码和结果</span><br/>
+y_true <span style="color: Gray;">=</span> <span style="color: Maroon;">2.5</span><br/>
+y_pred <span style="color: Gray;">=</span> result<span style="color: Olive;">[</span><span style="color: #a11;">'y_pred'</span><span style="color: Olive;">]</span><br/>
+a1 <span style="color: Gray;">=</span> result<span style="color: Olive;">[</span><span style="color: #a11;">'a1'</span><span style="color: Olive;">]</span><br/>
+z1 <span style="color: Gray;">=</span> result<span style="color: Olive;">[</span><span style="color: #a11;">'z1'</span><span style="color: Olive;">]</span><br/>
+x <span style="color: Gray;">=</span> x_input<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"真实值 y_true = {y_true}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"预测值 y_pred = {y_pred:.4f}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"初始损失 Loss = {(y_true - y_pred)**2:.4f}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>"--- 开始反向传播计算梯度 ---"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 1. 计算损失对y_pred的梯度</span><br/>
+dL_dy_pred <span style="color: Gray;">=</span> -<span style="color: Maroon;">2</span> * <span style="color: Olive;">(</span>y_true - y_pred<span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"梯度 ∂L/∂y_pred = -2*(y_true - y_pred) = {dL_dy_pred:.4f}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 2. 计算输出层参数 w2, b2 的梯度</span><br/>
+dL_dw2 <span style="color: Gray;">=</span> dL_dy_pred * a1<br/>
+dL_db2 <span style="color: Gray;">=</span> dL_dy_pred * <span style="color: Maroon;">1</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"勾配 ∂L/∂w2 = (∂L/∂y_pred) * a1 = {dL_dw2:.4f}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"勾配 ∂L/∂b2 = (∂L/∂y_pred) * 1 = {dL_db2:.4f}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 3. 隠れ層出力a1に対する損失の勾配を計算</span><br/>
+dL_da1 <span style="color: Gray;">=</span> dL_dy_pred * w2<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"勾配 ∂L/∂a1 = (∂L/∂y_pred) * w2 = {dL_da1:.4f}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 4. z1におけるSigmoid関数の導関数の値を計算</span><br/>
+<span style="color: Green;font-weight:bold;">def</span> sigmoid_derivative<span style="color: Olive;">(</span>x<span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""Sigmoid関数の導関数"""</span><br/>
+    s <span style="color: Gray;">=</span> sigmoid<span style="color: Olive;">(</span>x<span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> s * <span style="color: Olive;">(</span><span style="color: Maroon;">1</span> - s<span style="color: Olive;">)</span><br/>
+<br/>
+sigma_prime_z1 <span style="color: Gray;">=</span> sigmoid_derivative<span style="color: Olive;">(</span>z1<span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Sigmoid導関数 σ'(z1) = σ(z1)*(1-σ(z1)) = {sigma_prime_z1:.4f}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 5. 隠れ層パラメータ w1, b1 の勾配を計算</span><br/>
+dL_dw1 <span style="color: Gray;">=</span> dL_da1 * sigma_prime_z1 * x<br/>
+dL_db1 <span style="color: Gray;">=</span> dL_da1 * sigma_prime_z1 * <span style="color: Maroon;">1</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"勾配 ∂L/∂w1 = (∂L/∂a1) * σ'(z1) * x = {dL_dw1:.4f}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"勾配 ∂L/∂b1 = (∂L/∂a1) * σ'(z1) * 1 = {dL_db1:.4f}"</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<p><strong>出力例：</strong></p>
+<pre>真实值 y_true = 2.5
+预测值 y_pred = 1.9899
+初始损失 Loss = 0.2602
+
+--- 开始反向传播计算梯度 ---
+梯度 ∂L/∂y_pred = -2*(y_true - y_pred) = -1.0202
+梯度 ∂L/∂w2 = (∂L/∂y_pred) * a1 = -1.0134
+梯度 ∂L/∂b2 = (∂L/∂y_pred) * 1 = -1.0202
+梯度 ∂L/∂a1 = (∂L/∂y_pred) * w2 = -1.5303
+Sigmoid导数 σ'(z1) = σ(z1)*(1-σ(z1)) = 0.0066
+梯度 ∂L/∂w1 = (∂L/∂a1) * σ&amp;#39;(z1) * x = -0.0304
+梯度 ∂L/∂b1 = (∂L/∂a1) * σ&amp;#39;(z1) * 1 = -0.0101
+</pre>
+<p>これで、すべてのパラメータの勾配が得られました。これらの負の値は、もし<strong>これらのパラメータの値を増加させると、</strong>損失は<strong>増大することを意味します</strong>（勾配の方向は上昇方向であるため）。損失を減らすには、私たちは<strong>勾配の逆方向に沿って</strong>パラメータを調整する必要があります。</p>
+<hr/>
+<h2>パラメータ更新：勾配降下法</h2>
+<p>勾配を得た後、私たちは<strong>勾配降下法</strong>アルゴリズムを使用してパラメータを更新します：</p>
+<pre>参数 = 参数 - 学习率 * 该参数的梯度
+</pre>
+<p>ここで、<strong>学習率</strong>は非常に重要なハイパーパラメータであり、各パラメータ更新のステップ幅を制御します。ステップ幅が小さすぎると学習が遅く、大きすぎると収束しないか発散する可能性があります。</p>
+<p><strong>コード例：勾配降下法を適用してパラメータを更新する</strong></p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+learning_rate <span style="color: Gray;">=</span> <span style="color: Maroon;">0.1</span><br/>
+<br/>
+<span style="color: #a50"># パラメータを更新</span><br/>
+w1_new <span style="color: Gray;">=</span> w1 - learning_rate * dL_dw1<br/>
+b1_new <span style="color: Gray;">=</span> b1 - learning_rate * dL_db1<br/>
+w2_new <span style="color: Gray;">=</span> w2 - learning_rate * dL_dw2<br/>
+b2_new <span style="color: Gray;">=</span> b2 - learning_rate * dL_db2<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"--- 更新後のパラメータ ---"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"w1: {w1:.4f} -&gt; {w1_new:.4f}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"b1: {b1:.4f} -&gt; {b1_new:.4f}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"w2: {w2:.4f} -&gt; {w2_new:.4f}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"b2: {b2:.4f} -&gt; {b2_new:.4f}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 新しいパラメータで順伝播を1回行い、損失が減少したかどうかを確認</span><br/>
+<span style="color: Green;font-weight:bold;">def</span> forward_pass_with_params<span style="color: Olive;">(</span>x<span style="color: Gray;">,</span> w1<span style="color: Gray;">,</span> b1<span style="color: Gray;">,</span> w2<span style="color: Gray;">,</span> b2<span style="color: Olive;">)</span>:<br/>
+    z1 <span style="color: Gray;">=</span> w1 * x + b1<br/>
+    a1 <span style="color: Gray;">=</span> sigmoid<span style="color: Olive;">(</span>z1<span style="color: Olive;">)</span><br/>
+    y_pred <span style="color: Gray;">=</span> w2 * a1 + b2<br/>
+    <span style="color: Green;font-weight:bold;">return</span> y_pred<br/>
+<br/>
+y_pred_new <span style="color: Gray;">=</span> forward_pass_with_params<span style="color: Olive;">(</span>x_input<span style="color: Gray;">,</span> w1_new<span style="color: Gray;">,</span> b1_new<span style="color: Gray;">,</span> w2_new<span style="color: Gray;">,</span> b2_new<span style="color: Olive;">)</span><br/>
+loss_new <span style="color: Gray;">=</span> <span style="color: Olive;">(</span>y_true - y_pred_new<span style="color: Olive;">)</span>**<span style="color: Maroon;">2</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>新しいパラメータで予測: y_pred_new = {y_pred_new:.4f}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"更新後の損失 New Loss = {loss_new:.4f}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"損失の変化: {loss_new - (y_true-y_pred)**2:.4f} (負の値は損失の減少を意味します)"</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<p><strong>出力例：</strong></p>
+<pre>--- 更新后的参数 ---
+w1: 2.0000 -&gt; 2.0030
+b1: -1.0000 -&gt; -0.9990
+w2: 1.5000 -&gt; 1.6013
+b2: 0.5000 -&gt; 0.6020
+
+用新参数预测: y_pred_new = 2.1933
+更新后的损失 New Loss = 0.0940
+损失变化: -0.1662 (负值表示损失减小)
+</pre>
+<p>素晴らしい！一度の<strong>順伝播 -&gt; 損失の計算 -&gt; 逆伝播 -&gt; 勾配降下法による更新</strong>という完全なサイクルを経て、私たちの予測値は<code>y_pred</code> 从 <code>1.99</code>より真の値に近づき<code>2.5</code>、損失も<code>0.260</code>減少しました<code>0.094</code>。このサイクルを何千回、何万回と繰り返すことで（大量のデータに対して）、ニューラルネットワークは有効なパラメータを学習し、正確な予測を行うことができます。</p>
+<hr/>
+<h2>実践演習：理解を深める</h2>
+<p>さあ、学んだ知識を定着させるために、実際に手を動かす時です。</p>
+<p><strong>演習 1：ネットワークを拡張する</strong>上記のコードを変更して、隠れ層ニューロンを2個に増やします。初期化する必要があるのは、<code>w1</code>形状が<code>(2,)</code>の配列（2つの重み）、<code>b1</code> 为 <code>(2,)</code>の配列です。それに応じて、順伝播と逆伝播の計算を調整してください。ネットワークの能力の変化を観察しましょう。</p>
+<p><strong>演習 2：活性化関数を変更する</strong>Sigmoid活性化関数をReLU関数に置き換えます（<code>f(x) = max(0, x)</code>）。ReLUの導関数を再導出して実装する必要があります（<code>f'(x) = 1 if x&gt;0 else 0</code>）。異なる活性化関数を使用した場合のトレーニングプロセスの違いを比較してください。</p>
+<p><strong>演習 3：トレーニングループを実装する</strong>完全なトレーニングループを記述し、何らかの単純なデータセット（例えば、自分で構築した<code>y = 2x + 1 + 噪声</code>データ）上で、小さなネットワークを訓練してそれに適合させます。エポック数を設定し、各反復の後に損失を出力し、損失がトレーニングとともに継続して減少するかどうかを観察してください。</p>
+<p><strong>演習 4：学習率の影響を理解する</strong>演習3に基づいて、さまざまな<code>learning_rate</code>学習率（例：0.01, 0.1, 0.5, 1.0）を試してみてください。学習率が大きすぎる場合や小さすぎる場合の損失曲線の変化（振動するか、発散するか、収束が遅いか）を観察し、学習率がステップ幅として重要であることを深く理解してください。</p>
+<hr/>
+<h2>まとめ</h2>
+<p>順伝播と逆伝播は、ニューラルネットワーク学習の中核となるダイナミクスです：</p>
+<ol>
+<li><strong>順伝播は</strong>是<strong>推論経路であり、</strong>現在のパラメータを使用して入力を出力にマッピングし、現在のパフォーマンスのスコア（損失）を計算します。</li>
+<li><strong>逆伝播は</strong>是<strong>学習アルゴリズムであり、</strong>連鎖律を利用して、ネットワーク内の各パラメータに対する損失関数の勾配を効率的に計算し、パラメータ最適化の方向を示します。</li>
+<li><strong>勾配降下法は</strong>是<strong>最適化戦略であり、</strong>逆伝播によって提供された勾配に基づき、学習率をステップ幅としてパラメータを実際に更新し、ネットワークのパフォーマンスを段階的に改善します。</li>
+</ol>
+その他の拡張
+</div>
+</div>
+<div class="archive-list" style="display:none;font-size: 14px;line-height: 1.8;margin-top: 20px;padding: 10px;">
+<div class="archive-list-item">
+<div class="post-intro" id="ai-info" style="width: 100%;">AI 思考中...</div>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../ml/ml-structure-of-neural-networks.html" rel="prev">ニューラルネットワークの基本構造</a> </div>
+<div class="next-design-link"><a href="../ml/ml-deep-learning-traditional-machine-learning.html" rel="next">ディープラーニング vs 従来の機械学習</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="sidebar-box">
+</div>
+ノート一覧
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>クリックしてノートを共有</h3>
+&lt;p style="font-size:14px;"&gt;ノートは本記事の内容を拡張したものである必要があります！&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;記事の投稿は、こちらをクリックしてください&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; ノートを共有する前に&lt;a href=";.html" class="runoob-pop"&gt;ログイン&lt;/a&gt;が必要です！&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=";.html" id="cancel-comment-reply-link">キャンセル</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="28999"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>ノートを共有</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">ニックネーム</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">ニックネーム (必須)</span></li>
+<li class="form-inline"><label class="hide" for="email">メール</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">メール (必須)</span></li>
+<li class="form-inline"><label class="hide" for="url">引用アドレス</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">引用アドレス</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  28999;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 28999, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":28999},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+</div>
+</div>
+<!-- 右边栏 -->
+<div class="fivecol last right-column">
+<style>
+.sidebar-tree .double-li {
+    width:300px;
+}
+.sidebar-tree .double-li li {
+    width: 44%;
+    line-height: 1.5em;
+    border-bottom: 1px solid #ccc;
+    float: left;
+    display: inline;
+}
+</style>
+<div class="sidebar-box re-box re-box-large">
+<div class="sidebar-box recommend-here" style="margin: 0 auto;">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;"> <i aria-hidden="true" class="fa fa-list"></i> 分类导航</a>
+</div>
+<div class="sidebar-box sidebar-cate">
+<div class="sidebar-tree">
+<ul><li style="margin: 0;"><a class="tit" href="#"> Python / 数据科学</a><ul class="double-li"><li><a href="../python3/python3-tutorial.html" title="Python 教程">Python 教程</a></li><li><a href="../python/python-tutorial.html" title="Python2.x 教程">Python2.x 教程</a></li><li><a href="../fastapi/fastapi-tutorial.html" title="FastAPI 教程">FastAPI 教程</a></li><li><a href="../flask/flask-tutorial.html" title="Flask 教程">Flask 教程</a></li><li><a href="../django/django-tutorial.html" title="Django 教程">Django 教程</a></li><li><a href="../numpy/numpy-tutorial.html" title="NumPy 教程">NumPy 教程</a></li><li><a href="../pandas/pandas-tutorial.html" title="Pandas 教程">Pandas 教程</a></li><li><a href="../scipy/scipy-tutorial.html" title="SciPy 教程">SciPy 教程</a></li><li><a href="../matplotlib/matplotlib-tutorial.html" title="Matplotlib 教程">Matplotlib 教程</a></li><li><a href="../dash/dash-tutorial.html" title="Dash 教程">Dash 教程</a></li><li><a href="../jupyter-notebook/jupyter-notebook-tutorial.html" title="Jupyter Notebook 教程">Jupyter Notebook 教程</a></li><li><a href="../pillow/pillow-tutorial.html" title="Pillow 教程">Pillow 教程</a></li><li><a href="../qt/qt-tutorial.html" title="量化交易">量化交易</a></li><li><a href="../r/r-tutorial.html" title="R 教程">R 教程</a></li><li><a href="../julia/julia-tutorial.html" title="Julia 教程">Julia 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> AI / 智能开发</a><ul class="double-li"><li><a href="../ai-agent/ai-agent-tutorial.html" title="AI Agent（智能体）">AI Agent（智能体）</a></li><li><a href="../ai/ai-tutorial.html" title="AI（人工智能）">AI（人工智能）</a></li><li><a href="../codex/codex-tutorial.html" title="Codex 教程">Codex 教程</a></li><li><a href="../vibe-coding/vibe-coding-tutorial.html" title="Vibe Coding 教程">Vibe Coding 教程</a></li><li><a href="../claude-code/claude-code-tutorial.html" title="Claude Code">Claude Code</a></li><li><a href="../opencode/opencode-tutorial.html" title="OpenCode">OpenCode</a></li><li><a href="../skills/skills-tutorial.html" title="Skills（技能）">Skills（技能）</a></li><li><a href="../ollama/ollama-tutorial.html" title="Ollama 教程">Ollama 教程</a></li><li><a href="../hermes-agent/hermes-agent-tutorial.html" title="Hermes Agent">Hermes Agent</a></li><li><a href="../deepseek-harness/deepseek-harness-tutorial.html" title="DeepSeek Harness">DeepSeek Harness</a></li><li><a href="../pi-agent/pi-agent-tutorial.html" title="Pi Agent">Pi Agent</a></li><li><a href="../ai-math/ai-math-tutorial.html" title="AI 数学基础">AI 数学基础</a></li><li><a href="../tensorflow/tensorflow-tutorial.html" title="TensorFlow 教程">TensorFlow 教程</a></li><li><a href="../pytorch/pytorch-tutorial.html" title="PyTorch 教程">PyTorch 教程</a></li><li><a href="../sklearn/sklearn-tutorial.html" title="Scikit-learn 教程">Scikit-learn 教程</a></li><li><a href="../ml/ml-tutorial.html" title="机器 教程">机器 教程</a></li><li><a href="../langchain/langchain-tutorial.html" title="LangChain">LangChain</a></li><li><a href="../nlp/nlp-tutorial.html" title="自然语言处理 NLP">自然语言处理 NLP</a></li><li><a href="../opencv/opencv-tutorial.html" title="OpenCV 教程">OpenCV 教程</a></li><li><a href="../selenium/selenium-tutorial.html" title="Selenium 教程">Selenium 教程</a></li><li><a href="../playwright/playwright-tutorial.html" title="Playwright 教程">Playwright 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 前端开发</a><ul class="double-li"><li><a href="../html/html-tutorial.html" title="HTML 教程">HTML 教程</a></li><li><a href="../html/html5-intro.html" title="HTML5 教程">HTML5 教程</a></li><li><a href="../css/css-tutorial.html" title="CSS 教程">CSS 教程</a></li><li><a href="../css3/css3-tutorial.html" title="CSS3 教程">CSS3 教程</a></li><li><a href="../js/js-tutorial.html" title="JavaScript 教程">JavaScript 教程</a></li><li><a href="../htmldom/htmldom-tutorial.html" title="HTML DOM 教程">HTML DOM 教程</a></li><li><a href="../typescript/ts-tutorial.html" title="TypeScript 教程">TypeScript 教程</a></li><li><a href="../ajax/ajax-tutorial.html" title="AJAX 教程">AJAX 教程</a></li><li><a href="../json/json-tutorial.html" title="JSON 教程">JSON 教程</a></li><li><a href="../tailwindcss/tailwindcss-tutorial.html" title="Tailwind CSS 教程">Tailwind CSS 教程</a></li><li><a href="../bootstrap4/bootstrap4-tutorial.html" title="Bootstrap4 教程">Bootstrap4 教程</a></li><li><a href="../bootstrap5/bootstrap5-tutorial.html" title="Bootstrap5 教程">Bootstrap5 教程</a></li><li><a href="../foundation/foundation-tutorial.html" title="Foundation 教程">Foundation 教程</a></li><li><a href="../vue2/vue-tutorial.html" title="Vue.js 教程">Vue.js 教程</a></li><li><a href="../vue3/vue3-tutorial.html" title="Vue3 教程">Vue3 教程</a></li><li><a href="../react/react-tutorial.html" title="React 教程">React 教程</a></li><li><a href="../nextjs/nextjs-tutorial.html" title="Next.js 教程">Next.js 教程</a></li><li><a href="../angularjs/angularjs-tutorial.html" title="AngularJS 教程">AngularJS 教程</a></li><li><a href="../angularjs2/angularjs2-tutorial.html" title="Angular 教程">Angular 教程</a></li><li><a href="../jquery/jquery-tutorial.html" title="jQuery 教程">jQuery 教程</a></li><li><a href="../jqueryui/jqueryui-tutorial.html" title="jQuery UI 教程">jQuery UI 教程</a></li><li><a href="../jeasyui/jqueryeasyui-tutorial.html" title="jQuery EasyUI 教程">jQuery EasyUI 教程</a></li><li><a href="../echarts/echarts-tutorial.html" title="ECharts 教程">ECharts 教程</a></li><li><a href="../chartjs/chartjs-tutorial.html" title="Chart.js 教程">Chart.js 教程</a></li><li><a href="../highcharts/highcharts-tutorial.html" title="Highcharts 教程">Highcharts 教程</a></li><li><a href="../googleapi/google-maps-basic.html" title="Google 地图 教程">Google 地图 教程</a></li><li><a href="../svg/svg-tutorial.html" title="SVG 教程">SVG 教程</a></li><li><a href="../font-awesome/fontawesome-tutorial.html" title="Font Awesome 教程">Font Awesome 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 后端开发</a><ul class="double-li"><li><a href="../nodejs/nodejs-tutorial.html" title="Node.js 教程">Node.js 教程</a></li><li><a href="../electron/electron-tutorial.html" title="Electron 教程">Electron 教程</a></li><li><a href="../php/php-tutorial.html" title="PHP 教程">PHP 教程</a></li><li><a href="../java/java-tutorial.html" title="Java 教程">Java 教程</a></li><li><a href="../go/go-tutorial.html" title="Go 教程">Go 教程</a></li><li><a href="../rust/rust-tutorial.html" title="Rust 教程">Rust 教程</a></li><li><a href="../csharp/csharp-tutorial.html" title="C# 教程">C# 教程</a></li><li><a href="../servlet/servlet-tutorial.html" title="Servlet 教程">Servlet 教程</a></li><li><a href="../jsp/jsp-tutorial.html" title="JSP 教程">JSP 教程</a></li><li><a href="../asp/asp-tutorial.html" title="ASP 教程">ASP 教程</a></li><li><a href="../appml/appml-tutorial.html" title="AppML 教程">AppML 教程</a></li><li><a href="../vbscript/vbscript-tutorial.html" title="VBScript 教程">VBScript 教程</a></li><li><a href="../swagger/swagger-tutorial.html" title="Swagger 教程">Swagger 教程</a></li><li><a href="../restfulapi/restful-api-tutorial.html" title="RESTful API 教程">RESTful API 教程</a></li><li><a href="../docker/docker-tutorial.html" title="Docker 教程">Docker 教程</a></li><li><a href="../linux/linux-tutorial.html" title="Linux 教程">Linux 教程</a></li><li><a href="../w3cnote/zookeeper-tutorial.html" title="ZooKeeper 教程">ZooKeeper 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 数据库</a><ul class="double-li"><li><a href="../sql/sql-tutorial.html" title="SQL 教程">SQL 教程</a></li><li><a href="../mysql/mysql-tutorial.html" title="MySQL 教程">MySQL 教程</a></li><li><a href="../postgresql/postgresql-tutorial.html" title="PostgreSQL 教程">PostgreSQL 教程</a></li><li><a href="../sqlite/sqlite-tutorial.html" title="SQLite 教程">SQLite 教程</a></li><li><a href="../mongodb/mongodb-tutorial.html" title="MongoDB 教程">MongoDB 教程</a></li><li><a href="../redis/redis-tutorial.html" title="Redis 教程">Redis 教程</a></li><li><a href="../memcached/memcached-tutorial.html" title="Memcached 教程">Memcached 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 移动开发</a><ul class="double-li"><li><a href="../w3cnote/android-tutorial-intro.html" title="Android 教程">Android 教程</a></li><li><a href="../flutter/flutter-tutorial.html" title="Flutter 教程">Flutter 教程</a></li><li><a href="../ionic/ionic-tutorial.html" title="Ionic 教程">Ionic 教程</a></li><li><a href="../jquerymobile/jquerymobile-tutorial.html" title="jQuery Mobile 教程">jQuery Mobile 教程</a></li><li><a href="../swift/swift-tutorial.html" title="Swift 教程">Swift 教程</a></li><li><a href="../kotlin/kotlin-tutorial.html" title="Kotlin 教程">Kotlin 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> DevOps / 工程化</a><ul class="double-li"><li><a href="../git/git-tutorial.html" title="Git 教程">Git 教程</a></li><li><a href="../svn/svn-tutorial.html" title="SVN 教程">SVN 教程</a></li><li><a href="../cmake/cmake-tutorial.html" title="CMake 教程">CMake 教程</a></li><li><a href="../maven/maven-tutorial.html" title="Maven 教程">Maven 教程</a></li><li><a href="../vscode/vscode-tutorial.html" title="VS Code 教程">VS Code 教程</a></li><li><a href="../obsidian/obsidian-tutorial.html" title="Obsidian 教程">Obsidian 教程</a></li><li><a href="../pycharm/pycharm-tutorial.html" title="PyCharm 教程">PyCharm 教程</a></li><li><a href="../eclipse/eclipse-tutorial.html" title="Eclipse 教程">Eclipse 教程</a></li><li><a href="../markdown/md-tutorial.html" title="Markdown 教程">Markdown 教程</a></li><li><a href="../latex/latex-tutorial.html" title="LaTeX 教程">LaTeX 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 编程语言</a><ul class="double-li"><li><a href="../c/c-tutorial.html" title="C 教程">C 教程</a></li><li><a href="../cplusplus/cpp-tutorial.html" title="C++ 教程">C++ 教程</a></li><li><a href="../zig/zig-tutorial.html" title="Zig 教程">Zig 教程</a></li><li><a href="../scala/scala-tutorial.html" title="Scala 教程">Scala 教程</a></li><li><a href="../ruby/ruby-tutorial.html" title="Ruby 教程">Ruby 教程</a></li><li><a href="../perl/perl-tutorial.html" title="Perl 教程">Perl 教程</a></li><li><a href="../lua/lua-tutorial.html" title="Lua 教程">Lua 教程</a></li><li><a href="../dart/dart-tutorial.html" title="Dart 教程">Dart 教程</a></li><li><a href="../assembly/assembly-tutorial.html" title="汇编语言 教程">汇编语言 教程</a></li><li><a href="../w3cnote/verilog-tutorial.html" title="Verilog 教程">Verilog 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 计算机基础</a><ul class="double-li"><li><a href="../computer-organization/computer-organization-tutorial.html" title="计算机组成原理">计算机组成原理</a></li><li><a href="../data-structures/data-structures-tutorial.html" title="数据结构与算法">数据结构与算法</a></li><li><a href="../c-dsa/c-dsa-tutorial.html" title="C 语言数据结构与算法">C 语言数据结构与算法</a></li><li><a href="../design-pattern/design-pattern-tutorial.html" title="设计模式">设计模式</a></li><li><a href="../python-design-pattern/python-design-pattern-tutorial.html" title="Python 设计模式">Python 设计模式</a></li><li><a href="../regexp/regexp-tutorial.html" title="正则表达式">正则表达式</a></li><li><a href="../http/http-tutorial.html" title="HTTP 教程">HTTP 教程</a></li><li><a href="../tcpip/tcpip-tutorial.html" title="TCP/IP 教程">TCP/IP 教程</a></li><li><a href="../np/np-tutorial.html" title="网络协议">网络协议</a></li><li><a href="../w3c/w3c-tutorial.html" title="W3C 教程">W3C 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> XML / Web Service</a><ul class="double-li"><li><a href="../xml/xml-tutorial.html" title="XML 教程">XML 教程</a></li><li><a href="../dtd/dtd-tutorial.html" title="DTD 教程">DTD 教程</a></li><li><a href="../dom/dom-tutorial.html" title="XML DOM 教程">XML DOM 教程</a></li><li><a href="../xsl/xsl-tutorial.html" title="XSLT 教程">XSLT 教程</a></li><li><a href="../xpath/xpath-tutorial.html" title="XPath 教程">XPath 教程</a></li><li><a href="../xquery/xquery-tutorial.html" title="XQuery 教程">XQuery 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XLink 教程">XLink 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XPointer 教程">XPointer 教程</a></li><li><a href="../schema/schema-tutorial.html" title="XML Schema 教程">XML Schema 教程</a></li><li><a href="../xslfo/xslfo-tutorial.html" title="XSL-FO 教程">XSL-FO 教程</a></li><li><a href="../webservices/webservices-tutorial.html" title="Web Service 教程">Web Service 教程</a></li><li><a href="../wsdl/wsdl-tutorial.html" title="WSDL 教程">WSDL 教程</a></li><li><a href="../soap/soap-tutorial.html" title="SOAP 教程">SOAP 教程</a></li><li><a href="../rss/rss-tutorial.html" title="RSS 教程">RSS 教程</a></li><li><a href="../rdf/rdf-tutorial.html" title="RDF 教程">RDF 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> .NET</a><ul class="double-li"><li><a href="../aspnet/aspnet-tutorial.html" title="ASP.NET 教程">ASP.NET 教程</a></li><li><a href="../aspnet/mvc-intro.html" title="MVC 教程">MVC 教程</a></li><li><a href="../aspnet/razor-intro.html" title="Razor 教程">Razor 教程</a></li><li><a href="../aspnet/aspnet-intro.html" title="Web Forms 教程">Web Forms 教程</a></li><li><a href="../aspnet/webpages-intro.html" title="Web Pages 教程">Web Pages 教程</a></li><li><a href="../powershell/powershell-tutorial.html" title="PowerShell 教程">PowerShell 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 网站建设</a><ul class="double-li"><li><a href="../web/web-buildingprimer.html" title="网站建设指南">网站建设指南</a></li><li><a href="../browsers/browser-information.html" title="浏览器信息">浏览器信息</a></li><li><a href="../hosting/hosting-tutorial.html" title="网站主机教程">网站主机教程</a></li><li><a href="../quality/quality-tutorial.html" title="网站品质">网站品质</a></li></ul></li></ul> </div>
+</div>
+</div>
+<br/>
+<div class="sidebar-box re-box re-box-large">
+</div>
+</div></div>
+</div>
+<script>
+var aid = 28999;
+function coll() {
+	$.post( '/wp-content/themes/runoob/option/user/userinfo.php', {aid:aid, action:"collarticle", opt:'add'},function( data ) {
+		if(data.error==0) {
+			$("#content").find("h1:first").find("a").attr("href","javascript:void(0);");
+			$("#content").find("h1:first").find("img").attr("src","http://www.runoob.com/wp-content/themes/runoob/assets/img/coll2.png").css({width:32+"px",height:32+"px"});
+		}
+		alert(data.msg);
+	},'json');
+}
+
+(function () {
+    // 1. 仅 HTML 页面
+    if (!document.contentType || !document.contentType.includes('text/html')) return;
+
+    // 2. 容器判断
+    var container = document.querySelector('.article-intro');
+    if (!container) return;
+
+    var h1 = container.querySelector('h1');
+    if (!h1) return;
+
+    // 3. URL 判断
+    var url = window.location.href.toLowerCase();
+    var version = null;
+
+    if (url.includes('/python3/')) {
+        version = 'Python3.x';
+    } else if (url.includes('/python/')) {
+        version = 'Python2.x';
+    }
+
+    if (!version) return;
+
+    // 4. 防重复
+    if (h1.querySelector('.py-version-badge')) return;
+
+    // 5. 创建标签
+    var badge = document.createElement('span');
+    badge.className = 'py-version-badge';
+    badge.innerText = version;
+
+    // 6. 样式（核心：float 实现右上角）
+    badge.style.float = 'right';
+    badge.style.fontSize = '12px';
+    badge.style.padding = '2px 8px';
+    badge.style.borderRadius = '999px';
+
+   // 自适应亮/暗色 + 渐变背景（增强版）
+	badge.style.color = 'inherit';
+
+	// 渐变背景（低透明度，不影响暗黑模式）
+	if (version.includes('3')) {
+		badge.style.background = 'linear-gradient(90deg, rgba(79,172,254,0.15), rgba(0,242,254,0.15))';
+	} else {
+		badge.style.background = 'linear-gradient(90deg, rgba(161,140,209,0.15), rgba(251,194,235,0.15))';
+	}
+
+	// 边框弱化（更精致）
+	badge.style.border = '1px solid rgba(127,127,127,0.3)';
+
+	// 提升可读性
+	badge.style.opacity = '0.95';
+
+    // 微调位置（更贴近“右上角”）
+    badge.style.marginTop = '4px';
+    badge.style.marginLeft = '10px';
+
+    // 7. 插入到 h1 最前面（让 float 生效更稳定）
+    h1.insertBefore(badge, h1.firstChild);
+
+})();
+</script>
+<!-- 反馈对话框开始 -->
+<script src="../wp-content/themes/runoob/assets/js/runoob-article-dir.min.js"></script>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

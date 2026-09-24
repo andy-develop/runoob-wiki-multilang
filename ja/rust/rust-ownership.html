@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Rust の所有権 | 初心者向けチュートリアル</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<link href="../manifest.webmanifest.html" rel="manifest"/>
+<meta content="#10151c" name="theme-color"/>
+<link href="../pwa/icon-192.png.html" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="application-name"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="../rust/rust-ownership.html" rel="canonical"/>
+<meta content="Rust 所有权" name="keywords"/>
+<meta content="Rust 所有权 计算机程序必须在运行时管理它们所使用的内存资源。大多数的编程语言都有管理内存的功能： C/C++ 这样的语言主要通过手动方式管理内存，开发者需要手动的申请和释放内存资源。但为了提高开发效率，只要不影响程序功能的实现，许多开发者没有及时释放内存的习惯。所以手动管理内存的方式常常造成资源浪费。 Java 语言编写的程序在虚拟机（JVM）中运行，JVM 具备自动回收内存资源的功能。但这种方式常常会降低运行时效率，所以 JVM.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div>
+<!-- 导航栏 -->
+<style>
+/* 主题切换按钮 */
+/* ===== 主题变量（核心）===== */
+:root {
+  --theme-bg: #ffffff;
+  --theme-border: #e5e7eb;
+  --theme-icon: #333;
+  --theme-hover: #f3f4f6;
+}
+
+.dark {
+  --theme-bg: #1f2937;
+  --theme-border: #374151;
+  --theme-icon: #e5e7eb;
+  --theme-hover: #374151;
+}
+
+/* ===== 按钮容器 ===== */
+.nav-theme-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== 按钮本体 ===== */
+.nav-theme-toggle button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  border-radius: 6px;
+  border: 1px solid var(--theme-border);
+
+  background: var(--theme-bg);
+  color: var(--theme-icon);
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* ===== 图标大小 ===== */
+.nav-theme-toggle i {
+  font-size: 14px;
+}
+
+/* ===== hover 效果 ===== */
+.nav-theme-toggle button:hover {
+  background: var(--theme-hover);
+  transform: translateY(-1px);
+}
+
+/* ===== 点击反馈 ===== */
+.nav-theme-toggle button:active {
+  transform: scale(0.95);
+}
+
+/* ===== 当前激活态（可选）===== */
+.nav-theme-toggle button.active {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+</style>
+<!-- 导航栏 -->
+<nav aria-label="主导航" class="container navigation">
+<div class="row">
+<div class="col nav">
+<!-- PC 导航 -->
+<ul class="pc-nav" id="runoob-detail-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../js/js-tutorial.html">JavaScript</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a data-id="vue" href="#">Vue</a></li>
+<li><a href="../react/react-tutorial.html">React</a></li>
+<li><a href="../python3/python3-tutorial.html">Python3</a></li>
+<li><a href="../java/java-tutorial.html">Java</a></li>
+<li><a href="../cprogramming/c-tutorial.html">C</a></li>
+<li><a href="../cplusplus/cpp-tutorial.html">C++</a></li>
+<li><a href="../csharp/csharp-tutorial.html">C#</a></li>
+<li><a data-id="aiNav" href="#">AI</a></li>
+<li><a href="../go/go-tutorial.html">Go</a></li>
+<li><a href="../sql/sql-tutorial.html">SQL</a></li>
+<li><a href="../linux/linux-tutorial.html">Linux</a></li>
+<li><a href="../vscode/vscode-tutorial.html">VS Code</a></li>
+<li><a data-id="bootstrap" href="#">Bootstrap</a></li>
+<li><a href="../git/git-tutorial.html">Git</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<!-- 主题切换按钮，固定在最右侧 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+<!-- 移动端导航 -->
+<ul class="mobile-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a href="../js/js-tutorial.html">JS</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<li><a class="search-reveal" href="#">搜索</a></li>
+<!-- 移动端主题切换 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon-mobile" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun-mobile" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<!-- 二级导航 -->
+<!--  内容  -->
+<div class="container main">
+<!-- 中间 -->
+<div class="row">
+<div class="runoob-col-md2">
+<div class="left-column">
+<div class="tab" style="overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
+<i aria-hidden="true" class="fa fa-list"></i>
+<span>Rust 教程</span>
+</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+<a data-p="par" href="../rust/rust-tutorial.html" target="_top" title="Rust 教程">
+			Rust 教程			</a>
+<a href="../rust/rust-intro.html" target="_top" title="Rust 简介">Rust 简介	</a> <a data-p="par" href="../rust/rust-setup.html" target="_top" title="Rust 环境搭建">
+			Rust 环境搭建			</a>
+<a data-p="par" href="../rust/cargo-tutorial.html" target="_top" title="Cargo 教程">
+			Cargo 教程			</a>
+<a data-p="par" href="../rust/rust-println.html" target="_top" title="Rust 输出到命令行">
+			Rust 输出到命令行			</a>
+<a data-p="par" href="../rust/rust-basic-syntax.html" target="_top" title="Rust 基础语法">
+			Rust 基础语法			</a>
+<a href="../rust/rust-operators.html" target="_top" title="Rust 运算符">Rust 运算符</a> <a data-p="par" href="../rust/rust-data-types.html" target="_top" title="Rust 数据类型">
+			Rust 数据类型			</a>
+<a data-p="par" href="../rust/rust-comments.html" target="_top" title="Rust 注释">
+			Rust 注释			</a>
+<a data-p="par" href="../rust/rust-function.html" target="_top" title="Rust 函数">
+			Rust 函数			</a>
+<a data-p="par" href="../rust/rust-conditions.html" target="_top" title="Rust 条件语句">
+			Rust 条件语句			</a>
+<a data-p="par" href="../rust/rust-loop.html" target="_top" title="Rust 循环">
+			Rust 循环			</a>
+<a href="../rust/rust-iter.html" target="_top" title="Rust 迭代器">Rust 迭代器</a>
+<a href="../rust/rust-closure.html" target="_top" title="Rust 闭包">Rust 闭包</a> <a data-p="par" href="../rust/rust-ownership.html" target="_top" title="Rust 所有权">
+			Rust 所有权			</a>
+<a data-p="par" href="../rust/rust-slice.html" target="_top" title="Rust Slice（切片）类型">
+			Rust Slice（切片）类型			</a>
+<a data-p="par" href="../rust/rust-struct.html" target="_top" title="Rust 结构体">
+			Rust 结构体			</a>
+<a data-p="par" href="../rust/rust-enum.html" target="_top" title="Rust 枚举类">
+			Rust 枚举类			</a>
+<a data-p="par" href="../rust/rust-project-management.html" target="_top" title="Rust 组织管理">
+			Rust 组织管理			</a>
+<a data-p="par" href="../rust/rust-error-handle.html" target="_top" title="Rust 错误处理">
+			Rust 错误处理			</a>
+<a data-p="par" href="../rust/rust-generics.html" target="_top" title="Rust 泛型与特性">
+			Rust 泛型与特性			</a>
+<a data-p="par" href="../rust/rust-lifetime.html" target="_top" title="Rust 生命周期">
+			Rust 生命周期			</a>
+<a data-p="par" href="../rust/rust-file-io.html" target="_top" title="Rust 文件与 IO">
+			Rust 文件与 IO			</a>
+<a data-p="par" href="../rust/rust-collection-string.html" target="_top" title="Rust 集合与字符串">
+			Rust 集合与字符串			</a>
+<a data-p="par" href="../rust/rust-object.html" target="_top" title="Rust 面向对象">
+			Rust 面向对象			</a>
+<a data-p="par" href="../rust/rust-concurrency.html" target="_top" title="Rust 并发编程">
+			Rust 并发编程			</a>
+<a data-p="par" href="../rust/rust-macros.html" target="_top" title="Rust 宏">
+			Rust 宏			</a>
+<a data-p="par" href="../rust/rust-smart-pointers.html" target="_top" title="Rust 智能指针">
+			Rust 智能指针			</a>
+<a data-p="par" href="../rust/rust-async-await.html" target="_top" title="Rust 异步编程 async/await">
+			Rust 异步编程			</a>
+</div>
+</div>
+</div>
+</div> <div class="col middle-column">
+<div class="article">
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../rust/rust-loop.html" rel="prev">Rust のループ</a> </div>
+<div class="next-design-link"><a href="../rust/rust-slice.html" rel="next">Rust のスライス（Slice）型</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="article-body">
+<div class="article-intro" id="content">
+<h1>Rust の所有権</h1><p>コンピュータプログラムは実行時に、使用するメモリリソースを管理しなければなりません。</p><p>ほとんどのプログラミング言語にはメモリを管理する機能があります：</p>
+<p>C/C++ のような言語は主に手動でメモリを管理します。開発者はメモリリソースを手動で割り当て、解放する必要があります。しかし開発効率を高めるために、プログラムの機能に影響がなければ、多くの開発者はメモリをすぐに解放する習慣がありません。そのため、手動によるメモリ管理はしばしばリソースの無駄を引き起こします。</p>
+<p>Java 言語で書かれたプログラムは仮想マシン（JVM）上で実行され、JVM にはメモリリソースを自動的に回収する機能があります。しかしこの方法はしばしば実行時効率を低下させるため、JVM は可能な限りリソースを回収しません。そのためプログラムは大きなメモリリソースを占有することになります。</p><p>所有権はほとんどの開発者にとって新しい概念です。これは Rust 言語がメモリを効率的に使用するために設計された構文メカニズムです。所有権の概念は、Rust がコンパイル段階でメモリリソースの有用性をより効率的に分析し、メモリ管理を実現するために生まれた概念です。</p>
+<h3>所有権の規則</h3><p>所有権には次の3つの規則があります：</p>
+<ul><li>Rust のすべての値には変数があり、それをその所有者と呼びます。</li><li>一度に持てる所有者は1人だけです。</li><li>所有者がプログラムの実行スコープにいないとき、その値は削除されます。</li></ul>
+<p>この3つの規則は所有権の概念の基礎です。</p><p>次に、所有権の概念に関連する概念を紹介します。</p>
+<h3>変数スコープ</h3>
+<p>次のプログラムを使って変数のスコープの概念を説明します：</p><pre>
+{
+    // 在声明以前，变量 s 无效
+    let s = "runoob";
+    // 这里是变量 s 的可用范围
+}
+// 变量范围已经结束，变量 s 无效</pre><p>変数のスコープは変数の属性の1つで、変数の有効範囲を表します。デフォルトでは変数の宣言から始まり、変数が存在するスコープが終わるまで有効です。</p>
+<hr/>
+<h2>メモリと割り当て</h2><p>変数を定義して値を代入すると、その変数の値はメモリ内に存在します。これはよくあることです。しかし、保存するデータの長さが不明な場合（ユーザーが入力した文字列など）、定義時にデータの長さを確定できないため、コンパイル段階でプログラムに固定長のメモリ空間を割り当てさせてデータを保存することもできません。（可能な限り大きな空間を割り当てれば解決できると言う人もいますが、この方法はあまりスマートではありません）。そこで、プログラムの実行時にプログラム自身がメモリを割り当てて使用する仕組み（ヒープ）が必要になります。この章で述べるすべての「メモリリソース」は、ヒープが占めるメモリ空間を指します。</p>
+<p>割り当てがあれば解放もあります。プログラムは特定のメモリリソースを永続的に占有することはできません。したがって、リソースが無駄になるかどうかを決める重要な要素は、リソースが適時に解放されるかどうかです。</p><p>文字列のサンプルプログラムを C 言語で同等に書くと次のようになります：</p>
+<div class="example"> <div class="example_code">
+<span style="color: #000;">{</span><br/>
+    <span style="color: #993333;">char</span> <span style="color: #339933;">*</span>s <span style="color: #339933;">=</span> strdup<span style="color: #000;">(</span><span style="color: #a11;">"runoob"</span><span style="color: #000;">)</span><span style="color: #339933;">;</span><br/>
+    <span style="color: #000066;">free</span><span style="color: #000;">(</span>s<span style="color: #000;">)</span><span style="color: #339933;">;</span> <span style="color: #666666; font-style: italic;">// s のリソースを解放</span><br/>
+<span style="color: #000;">}</span><br/>
+</div></div>
+<p>明らかに、Rust では文字列 s のリソースを解放するために free 関数を呼び出していません（C 言語では正しくない書き方だと分かっています。"runoob" はヒープにないためです。ここではヒープにあると仮定します）。Rust が解放の手順を明示しないのは、変数のスコープが終了するときに、Rust コンパイラがリソース解放関数を呼び出す手順を自動的に追加するためです。</p><p>この仕組みは一見とても単純です。プログラマが適切な場所にリソース解放関数の呼び出しを追加するのを助けるだけです。しかし、この単純な仕組みは、プログラマーを史上最も悩ませてきたプログラミング問題を効果的に解決できます。</p>
+<hr/>
+<h2>変数とデータのやり取りの方法</h2>
+<p>変数とデータのやり取りの方法には、主にムーブ（Move）とクローン（Clone）の2つがあります：</p>
+<h3>ムーブ</h3><p>複数の変数は Rust では異なる方法で同じデータとやり取りできます：</p><pre>
+let x = 5;
+let y = x;</pre><p>このプログラムは値 5 を変数 x に束縛し、次に x の値をコピーして変数 y に代入します。これでスタックには2つの値 5 が存在します。この場合のデータは「基本データ」型のデータであり、ヒープに保存する必要はありません。スタック上にあるデータの「ムーブ」方法は直接コピーであり、これには長い時間や多くのストレージスペースはかかりません。「基本データ」型には次のものがあります：</p>
+<ul><li>すべての整数型。例：i32、u32、i64 など。</li><li>ブール型 bool。値は true または false。</li><li>すべての浮動小数点型、f32 と f64。</li><li>文字型 char。</li><li>上記の型のデータのみを含むタプル（Tuples）。</li></ul><p>しかし、やり取りするデータがヒープ内にある場合は別の状況になります：</p><pre>
+let s1 = String::from("hello");
+let s2 = s1;</pre><p>最初のステップでは、値 "hello" を持つ String オブジェクトを生成します。この "hello" は長さが不明なデータのようなものと考えられ、ヒープに保存する必要があります。</p><p>2番目のステップの状況は少し異なります（<strong>これは完全に本当ではありません。比較の参考のためだけです</strong>）： </p>
+<p><img decoding="async" src="../wp-content/uploads/2020/04/rust-ownership1.png"/></p>
+<p>図のように、2つの String オブジェクトがスタックにあり、各 String オブジェクトにはヒープ内の "hello" 文字列を指すポインタがあります。s2 に代入するとき、スタック上のデータだけがコピーされ、ヒープ内の文字列は元のままです。</p><p>先ほど説明したように、変数がスコープを外れると、Rust は自動的にリソース解放関数を呼び出し、その変数のヒープメモリをクリーンアップします。しかし、s1 と s2 の両方が解放されると、ヒープ領域の "hello" が2回解放されることになり、これはシステムに許可されません。安全性を確保するため、s2 に代入する時点で s1 はすでに無効になっています。そうです、s1 の値を s2 に代入した後、s1 はそれ以上使用できません。次のプログラムは間違いです：</p>
+<pre>let s1 = String::from("hello");
+let s2 = s1; 
+println!("{}, world!", s1); // 错误！s1 已经失效
+</pre>
+<p>したがって、実際の状況は次のとおりです：</p>
+<p><img decoding="async" src="../wp-content/uploads/2020/04/rust-ownership2.png"/></p>
+<p>s1 は名ばかりで実質的には存在しません。</p>
+<hr/>
+<h2>クローン</h2><p>Rust はプログラムの実行コストを可能な限り低く抑えようとするため、デフォルトでは長さが大きいデータはヒープに保存され、ムーブ方式でデータのやり取りを行います。しかし、データを単純に複製して他の用途に使う必要がある場合は、データの2つ目のやり取り方法であるクローンを使用できます。</p><div class="example"><h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: #708;">fn</span> main<span style="">(</span><span style="">)</span> <span style="">{</span><br/>
+    <span style="color: #708;">let</span> s1 <span style="">=</span> String<span style="">::</span><span style="color: #164;">from</span><span style="">(</span><span style="color: #a11;">"hello"</span><span style="">)</span><span style="">;</span><br/>
+    <span style="color: #708;">let</span> s2 <span style="">=</span> s1.clone<span style="">(</span><span style="">)</span><span style="">;</span><br/>
+    println<span style="">!</span><span style="">(</span><span style="color: #a11;">"s1 = {}, s2 = {}"</span><span style="">,</span> s1<span style="">,</span> s2<span style="">)</span><span style="">;</span><br/>
+<span style="">}</span><br/>
+</div></div>
+<p>実行結果：</p><pre>
+s1 = hello, s2 = hello</pre><p>ここでは実際にヒープ内の "hello" を複製しているため、s1 と s2 はそれぞれ別の値に束縛され、解放時にも2つのリソースとして扱われます。</p><p>もちろん、クローンは複製が必要な場合にのみ使用します。データの複製にはより多くの時間がかかるからです。</p>
+<hr/>
+<h2>関数に関する所有権の仕組み</h2><p>変数にとってこれは最も複雑なケースです。</p><p>変数を関数の引数として他の関数に渡す場合、所有権を安全に扱うにはどうすればよいでしょうか？</p><p>次のプログラムは、この場合の所有権の仕組みの動作原理を示しています：</p>
+<div class="example"><h2 class="example">例</h2> <div class="example_code">
+<span style="color: #708;">fn</span> main<span style="">(</span><span style="">)</span> <span style="">{</span><br/>
+    <span style="color: #708;">let</span> s <span style="">=</span> String<span style="">::</span><span style="color: #164;">from</span><span style="">(</span><span style="color: #a11;">"hello"</span><span style="">)</span><span style="">;</span><br/>
+    <span style="color: #a50; font-style: italic;">// s は有効として宣言される</span><br/>
+<br/>
+    takes_ownership<span style="">(</span>s<span style="">)</span><span style="">;</span><br/>
+    <span style="color: #a50; font-style: italic;">// s の値が引数として関数に渡される</span><br/>
+    <span style="color: #a50; font-style: italic;">// したがって s はムーブされたとみなされ、ここからは無効</span><br/>
+<br/>
+    <span style="color: #708;">let</span> x <span style="">=</span> <span style="color: #0000dd;">5</span><span style="">;</span><br/>
+    <span style="color: #a50; font-style: italic;">// x は有効として宣言される</span><br/>
+<br/>
+    makes_copy<span style="">(</span>x<span style="">)</span><span style="">;</span><br/>
+    <span style="color: #a50; font-style: italic;">// x の値が引数として関数に渡される</span><br/>
+    <span style="color: #a50; font-style: italic;">// しかし x は基本型なので、まだ有効</span><br/>
+    <span style="color: #a50; font-style: italic;">// ここではまだ x を使用できるが、s は使用できない</span><br/>
+<br/>
+<span style="">}</span> <span style="color: #a50; font-style: italic;">// 関数が終了すると、x は無効になり、次に s も無効になる。ただし s はムーブ済みなので、解放する必要はない</span><br/>
+<br/>
+<br/>
+<span style="color: #708;">fn</span> takes_ownership<span style="">(</span>some_string<span style="">:</span> String<span style="">)</span> <span style="">{</span> <br/>
+    <span style="color: #a50; font-style: italic;">// String 引数 some_string が渡され、有効</span><br/>
+    println<span style="">!</span><span style="">(</span><span style="color: #a11;">"{}"</span><span style="">,</span> some_string<span style="">)</span><span style="">;</span><br/>
+<span style="">}</span> <span style="color: #a50; font-style: italic;">// 関数が終了すると、引数 some_string はここで解放される</span><br/>
+<br/>
+<span style="color: #708;">fn</span> makes_copy<span style="">(</span>some_integer<span style="">:</span> <span style="color: #05a;">i32</span><span style="">)</span> <span style="">{</span> <br/>
+    <span style="color: #a50; font-style: italic;">// i32 引数 some_integer が渡され、有効</span><br/>
+    println<span style="">!</span><span style="">(</span><span style="color: #a11;">"{}"</span><span style="">,</span> some_integer<span style="">)</span><span style="">;</span><br/>
+<span style="">}</span> <span style="color: #a50; font-style: italic;">// 関数が終了すると、引数 some_integer は基本型なので、解放の必要はない</span><br/>
+</div></div>
+<p>変数を関数の引数として渡す場合、それはムーブと同じ効果になります。</p><h3>関数の戻り値における所有権の仕組み</h3>
+<div class="example"><h2 class="example">例</h2> <div class="example_code">
+<span style="color: #708;">fn</span> main<span style="">(</span><span style="">)</span> <span style="">{</span><br/>
+    <span style="color: #708;">let</span> s1 <span style="">=</span> gives_ownership<span style="">(</span><span style="">)</span><span style="">;</span><br/>
+    <span style="color: #a50; font-style: italic;">// gives_ownership はその戻り値を s1 にムーブする</span><br/>
+<br/>
+    <span style="color: #708;">let</span> s2 <span style="">=</span> String<span style="">::</span><span style="color: #164;">from</span><span style="">(</span><span style="color: #a11;">"hello"</span><span style="">)</span><span style="">;</span><br/>
+    <span style="color: #a50; font-style: italic;">// s2 は有効として宣言される</span><br/>
+<br/>
+    <span style="color: #708;">let</span> s3 <span style="">=</span> takes_and_gives_back<span style="">(</span>s2<span style="">)</span><span style="">;</span><br/>
+    <span style="color: #a50; font-style: italic;">// s2 は引数としてムーブされ、s3 が戻り値の所有権を獲得する</span><br/>
+<span style="">}</span> <span style="color: #a50; font-style: italic;">// s3 は無効になり解放される。s2 はムーブされ、s1 は無効になり解放される。</span><br/>
+<br/>
+<span style="color: #708;">fn</span> gives_ownership<span style="">(</span><span style="">)</span> <span style="">-&gt;</span> String <span style="">{</span><br/>
+    <span style="color: #708;">let</span> some_string <span style="">=</span> String<span style="">::</span><span style="color: #164;">from</span><span style="">(</span><span style="color: #a11;">"hello"</span><span style="">)</span><span style="">;</span><br/>
+    <span style="color: #a50; font-style: italic;">// some_string は有効として宣言される</span><br/>
+<br/>
+    <span style="color: #708;">return</span> some_string<span style="">;</span><br/>
+    <span style="color: #a50; font-style: italic;">// some_string は戻り値として関数の外にムーブされる</span><br/>
+<span style="">}</span><br/>
+<br/>
+<span style="color: #708;">fn</span> takes_and_gives_back<span style="">(</span>a_string<span style="">:</span> String<span style="">)</span> <span style="">-&gt;</span> String <span style="">{</span> <br/>
+    <span style="color: #a50; font-style: italic;">// a_string は有効として宣言される</span><br/>
+<br/>
+    a_string  <span style="color: #a50; font-style: italic;">// a_string は戻り値として関数の外にムーブされる</span><br/>
+<span style="">}</span><br/>
+</div></div><p>関数の戻り値として扱われる変数の所有権は、関数の外にムーブされ、呼び出し元の場所に返されます。直接無効化されて解放されることはありません。</p>
+<hr/>
+<h2>参照と借用</h2><p>参照（Reference）は C++ 開発者にとって比較的馴染みのある概念です。</p><p>ポインタの概念に精通していれば、それを一種のポインタと見なすことができます。</p><p>実質的に「参照」は変数への間接的なアクセス方法です。</p><div class="example"><h2 class="example">例</h2> <div class="example_code">
+<span style="color: #708;">fn</span> main<span style="">(</span><span style="">)</span> <span style="">{</span><br/>
+    <span style="color: #708;">let</span> s1 <span style="">=</span> String<span style="">::</span><span style="color: #164;">from</span><span style="">(</span><span style="color: #a11;">"hello"</span><span style="">)</span><span style="">;</span><br/>
+    <span style="color: #708;">let</span> s2 <span style="">=</span> <span style="">&amp;</span>s1<span style="">;</span><br/>
+    println<span style="">!</span><span style="">(</span><span style="color: #a11;">"s1 is {}, s2 is {}"</span><span style="">,</span> s1<span style="">,</span> s2<span style="">)</span><span style="">;</span><br/>
+<span style="">}</span><br/>
+</div></div>
+<p>実行結果：</p><pre>
+s1 is hello, s2 is hello</pre>
+<p><span class="marked">&amp;</span>演算子を使って変数の「参照」を取得できます。</p><p>変数の値が参照される場合、変数自体が無効と見なされることはありません。「参照」はスタック内で変数の値をコピーしていないからです：</p>
+<p><img decoding="async" src="../wp-content/uploads/2020/04/F25111E7-C5D3-464A-805D-D2186A30C8A0.jpg"/></p>
+<p>関数の引数渡しも同じ理屈です：</p><div class="example"><h2 class="example">例</h2> <div class="example_code">
+<span style="color: #708;">fn</span> main<span style="">(</span><span style="">)</span> <span style="">{</span><br/>
+    <span style="color: #708;">let</span> s1 <span style="">=</span> String<span style="">::</span><span style="color: #164;">from</span><span style="">(</span><span style="color: #a11;">"hello"</span><span style="">)</span><span style="">;</span><br/>
+<br/>
+    <span style="color: #708;">let</span> len <span style="">=</span> calculate_length<span style="">(</span><span style="">&amp;</span>s1<span style="">)</span><span style="">;</span><br/>
+<br/>
+    println<span style="">!</span><span style="">(</span><span style="color: #a11;">"The length of '{}' is {}."</span><span style="">,</span> s1<span style="">,</span> len<span style="">)</span><span style="">;</span><br/>
+<span style="">}</span><br/>
+<br/>
+<span style="color: #708;">fn</span> calculate_length<span style="">(</span>s<span style="">:</span> <span style="">&amp;</span>String<span style="">)</span> <span style="">-&gt;</span> usize <span style="">{</span><br/>
+    s.len<span style="">(</span><span style="">)</span><br/>
+<span style="">}</span><br/>
+</div></div>
+<p>実行結果：</p><pre>
+The length of 'hello' is 5.</pre>
+<p>参照は値の所有権を取得しません。</p><p>参照は値の所有権を賃借（Borrow）することしかできません。</p><p>参照自体も一つの型であり、一つの値を持ちます。この値は別の値が存在する位置を記録しますが、参照は指し示す値の所有権を持ちません：</p>
+<div class="example"><h2 class="example">例</h2> <div class="example_code">
+<span style="color: #708;">fn</span> main<span style="">(</span><span style="">)</span> <span style="">{</span><br/>
+    <span style="color: #708;">let</span> s1 <span style="">=</span> String<span style="">::</span><span style="color: #164;">from</span><span style="">(</span><span style="color: #a11;">"hello"</span><span style="">)</span><span style="">;</span><br/>
+    <span style="color: #708;">let</span> s2 <span style="">=</span> <span style="">&amp;</span>s1<span style="">;</span><br/>
+    <span style="color: #708;">let</span> s3 <span style="">=</span> s1<span style="">;</span><br/>
+    println<span style="">!</span><span style="">(</span><span style="color: #a11;">"{}"</span><span style="">,</span> s2<span style="">)</span><span style="">;</span><br/>
+<span style="">}</span><br/>
+</div></div>
+<p>このプログラムは正しくありません：s2 が賃借していた s1 は既に所有権を s3 に移動しているため、s2 は引き続き s1 の所有権を賃借して使用することができません。s2 でその値を使用する必要がある場合は、再度賃借しなければなりません：</p>
+<div class="example"><h2 class="example">例</h2> <div class="example_code">
+<span style="color: #708;">fn</span> main<span style="">(</span><span style="">)</span> <span style="">{</span><br/>
+    <span style="color: #708;">let</span> s1 <span style="">=</span> String<span style="">::</span><span style="color: #164;">from</span><span style="">(</span><span style="color: #a11;">"hello"</span><span style="">)</span><span style="">;</span><br/>
+    <span style="color: #708;">let</span> <span style="color: #708;">mut</span> s2 <span style="">=</span> <span style="">&amp;</span>s1<span style="">;</span><br/>
+    <span style="color: #708;">let</span> s3 <span style="">=</span> s1<span style="">;</span><br/>
+    s2 <span style="">=</span> <span style="">&amp;</span>s3<span style="">;</span> <span style="color: #a50; font-style: italic;">// 再度 s3 から所有権を賃借する</span><br/>
+    println<span style="">!</span><span style="">(</span><span style="color: #a11;">"{}"</span><span style="">,</span> s2<span style="">)</span><span style="">;</span><br/>
+<span style="">}</span><br/>
+</div></div>
+<p>このプログラムは正しいです。</p><p>参照は所有権を持たない以上、所有権を賃借しても、使用権のみを享受します（これは家を借りるのと同じ理屈です）。</p><p>賃借した権利を利用してデータを変更しようとすると、阻止されます：</p><div class="example"><h2 class="example">例</h2> <div class="example_code">
+<span style="color: #708;">fn</span> main<span style="">(</span><span style="">)</span> <span style="">{</span><br/>
+    <span style="color: #708;">let</span> s1 <span style="">=</span> String<span style="">::</span><span style="color: #164;">from</span><span style="">(</span><span style="color: #a11;">"run"</span><span style="">)</span><span style="">;</span><br/>
+    <span style="color: #708;">let</span> s2 <span style="">=</span> <span style="">&amp;</span>s1<span style="">;</span> <br/>
+    println<span style="">!</span><span style="">(</span><span style="color: #a11;">"{}"</span><span style="">,</span> s2<span style="">)</span><span style="">;</span><br/>
+    s2.push_str<span style="">(</span><span style="color: #a11;">"oob"</span><span style="">)</span><span style="">;</span> <span style="color: #a50; font-style: italic;">// エラー、賃借した値を変更することは禁止されています</span><br/>
+    println<span style="">!</span><span style="">(</span><span style="color: #a11;">"{}"</span><span style="">,</span> s2<span style="">)</span><span style="">;</span><br/>
+<span style="">}</span><br/>
+</div></div><p>このプログラムでは、s2 が s1 の値を変更しようとして阻止されました。賃借した所有権では所有者の値を変更できません。</p><p>もちろん、可変の賃借方式も存在します。家を借りる場合を例にとると、もし管理規約で所有者が家の構造を変更できると定められており、所有者が賃貸時に契約書であなたにその権利を付与すると宣言していれば、あなたは家を改装することができます：</p>
+<div class="example"><h2 class="example">例</h2> <div class="example_code">
+<span style="color: #708;">fn</span> main<span style="">(</span><span style="">)</span> <span style="">{</span><br/>
+    <span style="color: #708;">let</span> <span style="color: #708;">mut</span> s1 <span style="">=</span> String<span style="">::</span><span style="color: #164;">from</span><span style="">(</span><span style="color: #a11;">"run"</span><span style="">)</span><span style="">;</span><br/>
+    <span style="color: #a50; font-style: italic;">// s1 は可変です</span><br/>
+<br/>
+    <span style="color: #708;">let</span> s2 <span style="">=</span> <span style="">&amp;</span><span style="color: #708;">mut</span> s1<span style="">;</span><br/>
+    <span style="color: #a50; font-style: italic;">// s2 は可変の参照です</span><br/>
+<br/>
+    s2.push_str<span style="">(</span><span style="color: #a11;">"oob"</span><span style="">)</span><span style="">;</span><br/>
+    println<span style="">!</span><span style="">(</span><span style="color: #a11;">"{}"</span><span style="">,</span> s2<span style="">)</span><span style="">;</span><br/>
+<span style="">}</span><br/>
+</div></div>
+<p>このプログラムは問題ありません。&amp;mut を使用して可変の参照型を修飾します。</p><p>可変参照は不変参照と比較して権限が異なるだけでなく、可変参照は多重参照を許可しませんが、不変参照は多重参照を許可します：</p>
+<div class="example"><h2 class="example">例</h2> <div class="example_code">
+<span style="color: #708;">let</span> <span style="color: #708;">mut</span> s <span style="">=</span> String<span style="">::</span><span style="color: #164;">from</span><span style="">(</span><span style="color: #a11;">"hello"</span><span style="">)</span><span style="">;</span><br/>
+<br/>
+<span style="color: #708;">let</span> r1 <span style="">=</span> <span style="">&amp;</span><span style="color: #708;">mut</span> s<span style="">;</span><br/>
+<span style="color: #708;">let</span> r2 <span style="">=</span> <span style="">&amp;</span><span style="color: #708;">mut</span> s<span style="">;</span><br/>
+<br/>
+println<span style="">!</span><span style="">(</span><span style="color: #a11;">"{}, {}"</span><span style="">,</span> r1<span style="">,</span> r2<span style="">)</span><span style="">;</span><br/>
+</div></div><p>このプログラムは正しくありません。s に対して多重の可変参照を行っているためです。</p><p>Rust が可変参照に対してこのような設計をしているのは、主に並行状態でのデータアクセス衝突を考慮したものであり、コンパイル段階でこのような事態の発生を防いでいます。</p><p>データアクセス衝突が発生する必要条件の一つは、データが少なくとも一つの使用者によって書き込まれ、同時に少なくとも一つの他の使用者によって読み書きされることです。そのため、ある値が可変参照されている間は、再度いかなる参照も許可されません。</p>
+<h3>ダングリング参照（Dangling References）</h3><p>これは名前を変えただけの概念です。ポインタの概念を持つプログラミング言語に当てはめると、実際にアクセス可能なデータを指していないポインタを指します（注意：必ずしもヌルポインタとは限らず、既に解放されたリソースの場合もあります）。それらは吊るす物体を失ったロープのようなものなので、「垂れ下がり参照」と呼ばれます。</p>
+<p>「垂れ下がり参照」は Rust 言語では許可されておらず、もしあればコンパイラがそれを検出します。</p>
+<p>以下は垂れ下がり参照の典型的なケースです：</p>
+<div class="example"><h2 class="example">例</h2> <div class="example_code">
+<span style="color: #708;">fn</span> main<span style="">(</span><span style="">)</span> <span style="">{</span><br/>
+    <span style="color: #708;">let</span> reference_to_nothing <span style="">=</span> dangle<span style="">(</span><span style="">)</span><span style="">;</span><br/>
+<span style="">}</span><br/>
+<br/>
+<span style="color: #708;">fn</span> dangle<span style="">(</span><span style="">)</span> <span style="">-&gt;</span> <span style="">&amp;</span>String <span style="">{</span><br/>
+    <span style="color: #708;">let</span> s <span style="">=</span> String<span style="">::</span><span style="color: #164;">from</span><span style="">(</span><span style="color: #a11;">"hello"</span><span style="">)</span><span style="">;</span><br/>
+<br/>
+    <span style="">&amp;</span>s<br/>
+<span style="">}</span><br/>
+</div></div>
+<p>明らかに、dangle 関数の終了に伴い、そのローカル変数の値自体は戻り値として扱われることなく解放されました。しかし、その参照は返却されています。この参照が指し示す値はもはや存在が確定できないため、その出現は許可されません。</p>
+その他の拡張
+</div>
+</div>
+<div class="archive-list" style="display:none;font-size: 14px;line-height: 1.8;margin-top: 20px;padding: 10px;">
+<div class="archive-list-item">
+<div class="post-intro" id="ai-info" style="width: 100%;">AI 思考中...</div>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../rust/rust-loop.html" rel="prev">Rust ループ</a> </div>
+<div class="next-design-link"><a href="../rust/rust-slice.html" rel="next">Rust Slice（スライス）型</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="sidebar-box">
+</div>
+ノート一覧
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="title" id="comments">
+<h2 class="">
+<div class="altblock">
+<i aria-hidden="true" class="fa fa-pencil-square-o" style="font-size:28px;margin-top: 8px;"></i>
+</div>
+<span class="mw-headline" id="qa_headline">2 件のノート</span>
+<span class="mw-headline" id="user_add_note" style="float:right;line-height: 62px;padding-right: 14px;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>ノートを書く</span>
+</h2>
+</div>
+<div id="postcomments">
+<ol class="commentlist">
+<li class="comment even thread-even depth-1" id="comment-56870"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>   surfsky</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  sur***y@sina.com</p></div><div class="upvotejs" data-commid="56870" id="runoobvote-id-56870"><a class="upvote"></a> <span class="count">219</span></div></div><div class="comt-main" id="div-comment-56870"><p>Rust が他の高級言語と異なる重要な特徴は、そのメモリ管理における次の2つの特徴にあります：</p><p>（1）変数がスコープを超えると自動的に解放されます。単純な値型のスタックメモリ（int、struct など）はスコープを超えると自動的に解放されます。このロジックは各言語で実装されています。一方、new で作成されたヒープメモリは、C/C++ では手動で解放する必要があり、Java や .NET ではガベージコレクションによる解放を委任するか、手動で dispose 文を書いて解放する必要があります。しかし、ガベージコレクションはリアルタイムではないため、パフォーマンスに影響を与えます。また、解放文を書き忘れる怠惰な人も必ずいます。Rust はスタックメモリとヒープメモリを同等に扱い、スコープを超えたらすべて自動的に解放します。この Rust の特徴は、パフォーマンスを両立させながら、コード量とメモリリークの危険性を効果的に減らします。</p><p>（2）「所有権」：あるメモリ領域は最後の変数名によってのみ所有され、前に宣言された変数はすべて無効になります。これにより、複数の変数によって解放される問題を効果的に防ぎます。また、この操作はコンパイル時にチェックできるため、この戦略によってコンパイル時にヌルポインタの問題を効果的に回避できます。</p><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">surfsky</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>   surfsky</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  sur***y@sina.com</p></div></span>6年前 (2020-09-08)</div></div></li><!-- #comment-## -->
+<li class="comment odd alt thread-odd thread-alt depth-1" id="comment-58565"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>   pior</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  pio***ina.com</p></div><div class="upvotejs" data-commid="58565" id="runoobvote-id-58565"><a class="upvote"></a> <span class="count">151</span></div></div><div class="comt-main" id="div-comment-58565"><p>この部分の所有権に関する設定は一見奇妙に見えますが、本質的には言語レベルで同じ可変データに対して複数の変数が参照することを禁止しています。一度パラメータとして渡されると、所有権の移動（Move）または借用（Borrow）が発生します。別の変数に代入すると、自動的に所有権を放棄したことになります。これにより、並行シナリオでのデータ共有の競合を根本的に防ぎます。</p><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">pior</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>   pior</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  pio***ina.com</p></div></span>6年前 (2020-11-12)</div></div></li><!-- #comment-## -->
+</ol>
+<div class="pagenav">
+</div>
+</div>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style="display:none; padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>クリックしてノートを共有</h3>
+&lt;p style="font-size:14px;"&gt;ノートはこの記事の内容の拡張である必要があります！&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;記事の投稿は、ここをクリックしてください&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; ノートを共有する前に&lt;a href=";.html" class="runoob-pop"&gt;ログイン&lt;/a&gt;が必要です！&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=";.html" id="cancel-comment-reply-link">キャンセル</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="22257"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>ノートを共有</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">ニックネーム</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">ニックネーム (必須)</span></li>
+<li class="form-inline"><label class="hide" for="email">メールアドレス</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">メールアドレス (必須)</span></li>
+<li class="form-inline"><label class="hide" for="url">引用アドレス</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">引用アドレス</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  22257;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 22257, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":22257},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+</div>
+</div>
+<!-- 右边栏 -->
+<div class="fivecol last right-column">
+<style>
+.sidebar-tree .double-li {
+    width:300px;
+}
+.sidebar-tree .double-li li {
+    width: 44%;
+    line-height: 1.5em;
+    border-bottom: 1px solid #ccc;
+    float: left;
+    display: inline;
+}
+</style>
+<div class="sidebar-box re-box re-box-large">
+<div class="sidebar-box recommend-here" style="margin: 0 auto;">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;"> <i aria-hidden="true" class="fa fa-list"></i> 分类导航</a>
+</div>
+<div class="sidebar-box sidebar-cate">
+<div class="sidebar-tree">
+<ul><li style="margin: 0;"><a class="tit" href="#"> Python / 数据科学</a><ul class="double-li"><li><a href="../python3/python3-tutorial.html" title="Python 教程">Python 教程</a></li><li><a href="../python/python-tutorial.html" title="Python2.x 教程">Python2.x 教程</a></li><li><a href="../fastapi/fastapi-tutorial.html" title="FastAPI 教程">FastAPI 教程</a></li><li><a href="../flask/flask-tutorial.html" title="Flask 教程">Flask 教程</a></li><li><a href="../django/django-tutorial.html" title="Django 教程">Django 教程</a></li><li><a href="../numpy/numpy-tutorial.html" title="NumPy 教程">NumPy 教程</a></li><li><a href="../pandas/pandas-tutorial.html" title="Pandas 教程">Pandas 教程</a></li><li><a href="../scipy/scipy-tutorial.html" title="SciPy 教程">SciPy 教程</a></li><li><a href="../matplotlib/matplotlib-tutorial.html" title="Matplotlib 教程">Matplotlib 教程</a></li><li><a href="../dash/dash-tutorial.html" title="Dash 教程">Dash 教程</a></li><li><a href="../jupyter-notebook/jupyter-notebook-tutorial.html" title="Jupyter Notebook 教程">Jupyter Notebook 教程</a></li><li><a href="../pillow/pillow-tutorial.html" title="Pillow 教程">Pillow 教程</a></li><li><a href="../qt/qt-tutorial.html" title="量化交易">量化交易</a></li><li><a href="../r/r-tutorial.html" title="R 教程">R 教程</a></li><li><a href="../julia/julia-tutorial.html" title="Julia 教程">Julia 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> AI / 智能开发</a><ul class="double-li"><li><a href="../ai-agent/ai-agent-tutorial.html" title="AI Agent（智能体）">AI Agent（智能体）</a></li><li><a href="../ai/ai-tutorial.html" title="AI（人工智能）">AI（人工智能）</a></li><li><a href="../codex/codex-tutorial.html" title="Codex 教程">Codex 教程</a></li><li><a href="../vibe-coding/vibe-coding-tutorial.html" title="Vibe Coding 教程">Vibe Coding 教程</a></li><li><a href="../claude-code/claude-code-tutorial.html" title="Claude Code">Claude Code</a></li><li><a href="../opencode/opencode-tutorial.html" title="OpenCode">OpenCode</a></li><li><a href="../skills/skills-tutorial.html" title="Skills（技能）">Skills（技能）</a></li><li><a href="../ollama/ollama-tutorial.html" title="Ollama 教程">Ollama 教程</a></li><li><a href="../hermes-agent/hermes-agent-tutorial.html" title="Hermes Agent">Hermes Agent</a></li><li><a href="../deepseek-harness/deepseek-harness-tutorial.html" title="DeepSeek Harness">DeepSeek Harness</a></li><li><a href="../pi-agent/pi-agent-tutorial.html" title="Pi Agent">Pi Agent</a></li><li><a href="../ai-math/ai-math-tutorial.html" title="AI 数学基础">AI 数学基础</a></li><li><a href="../tensorflow/tensorflow-tutorial.html" title="TensorFlow 教程">TensorFlow 教程</a></li><li><a href="../pytorch/pytorch-tutorial.html" title="PyTorch 教程">PyTorch 教程</a></li><li><a href="../sklearn/sklearn-tutorial.html" title="Scikit-learn 教程">Scikit-learn 教程</a></li><li><a href="../ml/ml-tutorial.html" title="机器 教程">机器 教程</a></li><li><a href="../langchain/langchain-tutorial.html" title="LangChain">LangChain</a></li><li><a href="../nlp/nlp-tutorial.html" title="自然语言处理 NLP">自然语言处理 NLP</a></li><li><a href="../opencv/opencv-tutorial.html" title="OpenCV 教程">OpenCV 教程</a></li><li><a href="../selenium/selenium-tutorial.html" title="Selenium 教程">Selenium 教程</a></li><li><a href="../playwright/playwright-tutorial.html" title="Playwright 教程">Playwright 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 前端开发</a><ul class="double-li"><li><a href="../html/html-tutorial.html" title="HTML 教程">HTML 教程</a></li><li><a href="../html/html5-intro.html" title="HTML5 教程">HTML5 教程</a></li><li><a href="../css/css-tutorial.html" title="CSS 教程">CSS 教程</a></li><li><a href="../css3/css3-tutorial.html" title="CSS3 教程">CSS3 教程</a></li><li><a href="../js/js-tutorial.html" title="JavaScript 教程">JavaScript 教程</a></li><li><a href="../htmldom/htmldom-tutorial.html" title="HTML DOM 教程">HTML DOM 教程</a></li><li><a href="../typescript/ts-tutorial.html" title="TypeScript 教程">TypeScript 教程</a></li><li><a href="../ajax/ajax-tutorial.html" title="AJAX 教程">AJAX 教程</a></li><li><a href="../json/json-tutorial.html" title="JSON 教程">JSON 教程</a></li><li><a href="../tailwindcss/tailwindcss-tutorial.html" title="Tailwind CSS 教程">Tailwind CSS 教程</a></li><li><a href="../bootstrap4/bootstrap4-tutorial.html" title="Bootstrap4 教程">Bootstrap4 教程</a></li><li><a href="../bootstrap5/bootstrap5-tutorial.html" title="Bootstrap5 教程">Bootstrap5 教程</a></li><li><a href="../foundation/foundation-tutorial.html" title="Foundation 教程">Foundation 教程</a></li><li><a href="../vue2/vue-tutorial.html" title="Vue.js 教程">Vue.js 教程</a></li><li><a href="../vue3/vue3-tutorial.html" title="Vue3 教程">Vue3 教程</a></li><li><a href="../react/react-tutorial.html" title="React 教程">React 教程</a></li><li><a href="../nextjs/nextjs-tutorial.html" title="Next.js 教程">Next.js 教程</a></li><li><a href="../angularjs/angularjs-tutorial.html" title="AngularJS 教程">AngularJS 教程</a></li><li><a href="../angularjs2/angularjs2-tutorial.html" title="Angular 教程">Angular 教程</a></li><li><a href="../jquery/jquery-tutorial.html" title="jQuery 教程">jQuery 教程</a></li><li><a href="../jqueryui/jqueryui-tutorial.html" title="jQuery UI 教程">jQuery UI 教程</a></li><li><a href="../jeasyui/jqueryeasyui-tutorial.html" title="jQuery EasyUI 教程">jQuery EasyUI 教程</a></li><li><a href="../echarts/echarts-tutorial.html" title="ECharts 教程">ECharts 教程</a></li><li><a href="../chartjs/chartjs-tutorial.html" title="Chart.js 教程">Chart.js 教程</a></li><li><a href="../highcharts/highcharts-tutorial.html" title="Highcharts 教程">Highcharts 教程</a></li><li><a href="../googleapi/google-maps-basic.html" title="Google 地图 教程">Google 地图 教程</a></li><li><a href="../svg/svg-tutorial.html" title="SVG 教程">SVG 教程</a></li><li><a href="../font-awesome/fontawesome-tutorial.html" title="Font Awesome 教程">Font Awesome 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 后端开发</a><ul class="double-li"><li><a href="../nodejs/nodejs-tutorial.html" title="Node.js 教程">Node.js 教程</a></li><li><a href="../electron/electron-tutorial.html" title="Electron 教程">Electron 教程</a></li><li><a href="../php/php-tutorial.html" title="PHP 教程">PHP 教程</a></li><li><a href="../java/java-tutorial.html" title="Java 教程">Java 教程</a></li><li><a href="../go/go-tutorial.html" title="Go 教程">Go 教程</a></li><li><a href="../rust/rust-tutorial.html" title="Rust 教程">Rust 教程</a></li><li><a href="../csharp/csharp-tutorial.html" title="C# 教程">C# 教程</a></li><li><a href="../servlet/servlet-tutorial.html" title="Servlet 教程">Servlet 教程</a></li><li><a href="../jsp/jsp-tutorial.html" title="JSP 教程">JSP 教程</a></li><li><a href="../asp/asp-tutorial.html" title="ASP 教程">ASP 教程</a></li><li><a href="../appml/appml-tutorial.html" title="AppML 教程">AppML 教程</a></li><li><a href="../vbscript/vbscript-tutorial.html" title="VBScript 教程">VBScript 教程</a></li><li><a href="../swagger/swagger-tutorial.html" title="Swagger 教程">Swagger 教程</a></li><li><a href="../restfulapi/restful-api-tutorial.html" title="RESTful API 教程">RESTful API 教程</a></li><li><a href="../docker/docker-tutorial.html" title="Docker 教程">Docker 教程</a></li><li><a href="../linux/linux-tutorial.html" title="Linux 教程">Linux 教程</a></li><li><a href="../w3cnote/zookeeper-tutorial.html" title="ZooKeeper 教程">ZooKeeper 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 数据库</a><ul class="double-li"><li><a href="../sql/sql-tutorial.html" title="SQL 教程">SQL 教程</a></li><li><a href="../mysql/mysql-tutorial.html" title="MySQL 教程">MySQL 教程</a></li><li><a href="../postgresql/postgresql-tutorial.html" title="PostgreSQL 教程">PostgreSQL 教程</a></li><li><a href="../sqlite/sqlite-tutorial.html" title="SQLite 教程">SQLite 教程</a></li><li><a href="../mongodb/mongodb-tutorial.html" title="MongoDB 教程">MongoDB 教程</a></li><li><a href="../redis/redis-tutorial.html" title="Redis 教程">Redis 教程</a></li><li><a href="../memcached/memcached-tutorial.html" title="Memcached 教程">Memcached 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 移动开发</a><ul class="double-li"><li><a href="../w3cnote/android-tutorial-intro.html" title="Android 教程">Android 教程</a></li><li><a href="../flutter/flutter-tutorial.html" title="Flutter 教程">Flutter 教程</a></li><li><a href="../ionic/ionic-tutorial.html" title="Ionic 教程">Ionic 教程</a></li><li><a href="../jquerymobile/jquerymobile-tutorial.html" title="jQuery Mobile 教程">jQuery Mobile 教程</a></li><li><a href="../swift/swift-tutorial.html" title="Swift 教程">Swift 教程</a></li><li><a href="../kotlin/kotlin-tutorial.html" title="Kotlin 教程">Kotlin 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> DevOps / 工程化</a><ul class="double-li"><li><a href="../git/git-tutorial.html" title="Git 教程">Git 教程</a></li><li><a href="../svn/svn-tutorial.html" title="SVN 教程">SVN 教程</a></li><li><a href="../cmake/cmake-tutorial.html" title="CMake 教程">CMake 教程</a></li><li><a href="../maven/maven-tutorial.html" title="Maven 教程">Maven 教程</a></li><li><a href="../vscode/vscode-tutorial.html" title="VS Code 教程">VS Code 教程</a></li><li><a href="../obsidian/obsidian-tutorial.html" title="Obsidian 教程">Obsidian 教程</a></li><li><a href="../pycharm/pycharm-tutorial.html" title="PyCharm 教程">PyCharm 教程</a></li><li><a href="../eclipse/eclipse-tutorial.html" title="Eclipse 教程">Eclipse 教程</a></li><li><a href="../markdown/md-tutorial.html" title="Markdown 教程">Markdown 教程</a></li><li><a href="../latex/latex-tutorial.html" title="LaTeX 教程">LaTeX 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 编程语言</a><ul class="double-li"><li><a href="../c/c-tutorial.html" title="C 教程">C 教程</a></li><li><a href="../cplusplus/cpp-tutorial.html" title="C++ 教程">C++ 教程</a></li><li><a href="../zig/zig-tutorial.html" title="Zig 教程">Zig 教程</a></li><li><a href="../scala/scala-tutorial.html" title="Scala 教程">Scala 教程</a></li><li><a href="../ruby/ruby-tutorial.html" title="Ruby 教程">Ruby 教程</a></li><li><a href="../perl/perl-tutorial.html" title="Perl 教程">Perl 教程</a></li><li><a href="../lua/lua-tutorial.html" title="Lua 教程">Lua 教程</a></li><li><a href="../dart/dart-tutorial.html" title="Dart 教程">Dart 教程</a></li><li><a href="../assembly/assembly-tutorial.html" title="汇编语言 教程">汇编语言 教程</a></li><li><a href="../w3cnote/verilog-tutorial.html" title="Verilog 教程">Verilog 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 计算机基础</a><ul class="double-li"><li><a href="../computer-organization/computer-organization-tutorial.html" title="计算机组成原理">计算机组成原理</a></li><li><a href="../data-structures/data-structures-tutorial.html" title="数据结构与算法">数据结构与算法</a></li><li><a href="../c-dsa/c-dsa-tutorial.html" title="C 语言数据结构与算法">C 语言数据结构与算法</a></li><li><a href="../design-pattern/design-pattern-tutorial.html" title="设计模式">设计模式</a></li><li><a href="../python-design-pattern/python-design-pattern-tutorial.html" title="Python 设计模式">Python 设计模式</a></li><li><a href="../regexp/regexp-tutorial.html" title="正则表达式">正则表达式</a></li><li><a href="../http/http-tutorial.html" title="HTTP 教程">HTTP 教程</a></li><li><a href="../tcpip/tcpip-tutorial.html" title="TCP/IP 教程">TCP/IP 教程</a></li><li><a href="../np/np-tutorial.html" title="网络协议">网络协议</a></li><li><a href="../w3c/w3c-tutorial.html" title="W3C 教程">W3C 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> XML / Web Service</a><ul class="double-li"><li><a href="../xml/xml-tutorial.html" title="XML 教程">XML 教程</a></li><li><a href="../dtd/dtd-tutorial.html" title="DTD 教程">DTD 教程</a></li><li><a href="../dom/dom-tutorial.html" title="XML DOM 教程">XML DOM 教程</a></li><li><a href="../xsl/xsl-tutorial.html" title="XSLT 教程">XSLT 教程</a></li><li><a href="../xpath/xpath-tutorial.html" title="XPath 教程">XPath 教程</a></li><li><a href="../xquery/xquery-tutorial.html" title="XQuery 教程">XQuery 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XLink 教程">XLink 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XPointer 教程">XPointer 教程</a></li><li><a href="../schema/schema-tutorial.html" title="XML Schema 教程">XML Schema 教程</a></li><li><a href="../xslfo/xslfo-tutorial.html" title="XSL-FO 教程">XSL-FO 教程</a></li><li><a href="../webservices/webservices-tutorial.html" title="Web Service 教程">Web Service 教程</a></li><li><a href="../wsdl/wsdl-tutorial.html" title="WSDL 教程">WSDL 教程</a></li><li><a href="../soap/soap-tutorial.html" title="SOAP 教程">SOAP 教程</a></li><li><a href="../rss/rss-tutorial.html" title="RSS 教程">RSS 教程</a></li><li><a href="../rdf/rdf-tutorial.html" title="RDF 教程">RDF 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> .NET</a><ul class="double-li"><li><a href="../aspnet/aspnet-tutorial.html" title="ASP.NET 教程">ASP.NET 教程</a></li><li><a href="../aspnet/mvc-intro.html" title="MVC 教程">MVC 教程</a></li><li><a href="../aspnet/razor-intro.html" title="Razor 教程">Razor 教程</a></li><li><a href="../aspnet/aspnet-intro.html" title="Web Forms 教程">Web Forms 教程</a></li><li><a href="../aspnet/webpages-intro.html" title="Web Pages 教程">Web Pages 教程</a></li><li><a href="../powershell/powershell-tutorial.html" title="PowerShell 教程">PowerShell 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 网站建设</a><ul class="double-li"><li><a href="../web/web-buildingprimer.html" title="网站建设指南">网站建设指南</a></li><li><a href="../browsers/browser-information.html" title="浏览器信息">浏览器信息</a></li><li><a href="../hosting/hosting-tutorial.html" title="网站主机教程">网站主机教程</a></li><li><a href="../quality/quality-tutorial.html" title="网站品质">网站品质</a></li></ul></li></ul> </div>
+</div>
+</div>
+<br/>
+<div class="sidebar-box re-box re-box-large">
+</div>
+</div></div>
+</div>
+<script>
+var aid = 22257;
+function coll() {
+	$.post( '/wp-content/themes/runoob/option/user/userinfo.php', {aid:aid, action:"collarticle", opt:'add'},function( data ) {
+		if(data.error==0) {
+			$("#content").find("h1:first").find("a").attr("href","javascript:void(0);");
+			$("#content").find("h1:first").find("img").attr("src","http://www.runoob.com/wp-content/themes/runoob/assets/img/coll2.png").css({width:32+"px",height:32+"px"});
+		}
+		alert(data.msg);
+	},'json');
+}
+
+(function () {
+    // 1. 仅 HTML 页面
+    if (!document.contentType || !document.contentType.includes('text/html')) return;
+
+    // 2. 容器判断
+    var container = document.querySelector('.article-intro');
+    if (!container) return;
+
+    var h1 = container.querySelector('h1');
+    if (!h1) return;
+
+    // 3. URL 判断
+    var url = window.location.href.toLowerCase();
+    var version = null;
+
+    if (url.includes('/python3/')) {
+        version = 'Python3.x';
+    } else if (url.includes('/python/')) {
+        version = 'Python2.x';
+    }
+
+    if (!version) return;
+
+    // 4. 防重复
+    if (h1.querySelector('.py-version-badge')) return;
+
+    // 5. 创建标签
+    var badge = document.createElement('span');
+    badge.className = 'py-version-badge';
+    badge.innerText = version;
+
+    // 6. 样式（核心：float 实现右上角）
+    badge.style.float = 'right';
+    badge.style.fontSize = '12px';
+    badge.style.padding = '2px 8px';
+    badge.style.borderRadius = '999px';
+
+   // 自适应亮/暗色 + 渐变背景（增强版）
+	badge.style.color = 'inherit';
+
+	// 渐变背景（低透明度，不影响暗黑模式）
+	if (version.includes('3')) {
+		badge.style.background = 'linear-gradient(90deg, rgba(79,172,254,0.15), rgba(0,242,254,0.15))';
+	} else {
+		badge.style.background = 'linear-gradient(90deg, rgba(161,140,209,0.15), rgba(251,194,235,0.15))';
+	}
+
+	// 边框弱化（更精致）
+	badge.style.border = '1px solid rgba(127,127,127,0.3)';
+
+	// 提升可读性
+	badge.style.opacity = '0.95';
+
+    // 微调位置（更贴近“右上角”）
+    badge.style.marginTop = '4px';
+    badge.style.marginLeft = '10px';
+
+    // 7. 插入到 h1 最前面（让 float 生效更稳定）
+    h1.insertBefore(badge, h1.firstChild);
+
+})();
+</script>
+<!-- 反馈对话框开始 -->
+<script src="../wp-content/themes/runoob/assets/js/runoob-article-dir.min.js"></script>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

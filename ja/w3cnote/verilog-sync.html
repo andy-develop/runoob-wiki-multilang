@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>4.1 Verilog 同期と非同期 | 菜鸟教程</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="./verilog-sync.html" rel="canonical"/>
+<meta content="4.1 Verilog 同步与异步" name="keywords"/>
+<meta content="关键词： 同步，异步 由第 3 章可知，当触发器输入端的数据和触发器的时钟不相关时，很容易导致电路时序不满足。本章主要解决模块间可导致时序 violation 的异步问题。 关于异步与同步的定义，许多地方都有介绍，细节上也有所差异。本章主要的关注点是解决异步问题的方法，而不关心为什么会出现异步时钟，也不关心异步电路的具体结构，仅从异步时钟的时序结果去分析解决问题。  同步时钟 数字设计中，一般认为，频率相同或频率比为整数倍、且相位相同或.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div><!-- 导航栏 -->
+<!--  内容  -->
+<div class="container main">
+<div class="row">
+<!--  Android 基础入门教程 start  -->
+<div class="col left-column" style="display:none;">
+<div class="tab">Verilog 高级教程</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+</div>
+</div>
+</div>
+<!--  Android 基础入门教程 end  -->
+<div class="col middle-column big-middle-column">
+<div class="article">
+<div class="article-heading">
+<h2>4.1 Verilog 同期と非同期</h2> <h3><em>分類</em> <a href="../w3cnote_genre/verilog2.html" title="Verilog 教程高级篇">Verilog チュートリアル上級編</a> </h3>
+</div>
+<div class="article-body note-body">
+<div class="article-intro">
+<!-- ad start-->
+<!-- ad end-->
+<h3>キーワード：同期，非同期</h3>
+<p>第3章からわかるように、フリップフロップの入力データとフリップフロップのクロックが無関係な場合、回路のタイミングが満たされなくなりやすい。本章では主に、モジュール間でタイミング violation を引き起こす可能性のある非同期問題を解決する。</p><p>非同期と同期の定義については、多くの場所で紹介されており、詳細にも違いがある。本章では主に非同期問題を解決する方法に焦点を当て、なぜ非同期クロックが発生するのかには関心を持たず、非同期回路の具体的な構造にも関心を持たず、非同期クロックのタイミング結果からのみ問題を分析・解決する。</p><hr/>
+<h2>同期クロック</h2><p>デジタル設計では、一般的に、周波数が同じか周波数比が整数倍であり、かつ位相が同じか位相差が固定されている2つのクロックを同期クロックとみなす。</p><p>あるいは、クロックが同源で周波数比が整数倍である2つのクロックを同期クロックと理解することもできる。実際、クロックが同源であれば、クロックの位相差の固定性が保証される。具体的には次のように分類できる：</p>
+<h3>同源・同周波数・同相位</h3><p>この種のクロックは周波数と位相がともに同じであり、同期している。クロック間のデータ転送は、通常のセットアップタイムとホールドタイムを満たしていればよく、特別な同期設計は必要ない。</p>
+<h3>同源・同周波数・異相位</h3><p>2つのクロックが同周波数だが位相が異なる場合、位相差が固定されていれば同期していると見なすこともできる。2つのクロック間で転送されるデータ遅延を合理的な範囲内に制御すれば、タイミング問題は発生しないからである。また、固定されたクロック遅延はレイアウトレベルのネットリストで修正することもできる。</p><p>固定された位相差は、同源クロックにおいて2つのクロックが経路の違いによって生じるスキューと理解できる。</p>
+<p><img decoding="async" src="../wp-content/uploads/2021/05/v-sync-1.png"/></p>
+<h3>同源・異周波数だが整数倍の分周比を持つ</h3><p>このような場合、一方のクロックはもう一方のクロックを分周したものであることが多く、位相差があっても固定される。</p><p>単一ビット信号が低速クロックドメインから高速クロックドメインに渡される場合、同源であるため、セットアップタイムとホールドタイムを満たしていれば、高速クロックドメインは常に低速クロックドメインから渡された信号を捕捉できる。</p><p>下図に示すように、clk2 の立ち上がりエッジは常に clk1 ドメインからの信号 sig1 を捕捉でき、捕捉された信号 sig2 のハイレベル持続周期も2つのクロックの周波数比、すなわち2周期となる。</p>
+<p><img decoding="async" src="../wp-content/uploads/2021/05/v-sync-2.png"/></p>
+<p>clk2 ドメインの信号 sig2 を1クロック周期だけ持続させたい場合は、sig1 の立ち上がりエッジ検出を行う必要がある。</p><p>
+<div class="example"><h2 class="example">例</h2> <div class="example_code">同期信号間の立ち上がりエッジ検出プログラムの Verilog 記述は以下の通りである。<span style="color: #5D478B;">&lt;/</span>p<span style="color: #5D478B;">&gt;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>    sig2_r <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">always</span> <span style="color: #5D478B;">@</span><span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">posedge</span> clk2 <span style="color: #A52A2A; font-weight: bold;">or</span> <span style="color: #A52A2A; font-weight: bold;">negedge</span> rstn<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+     <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span><span style="color: #5D478B;">!</span>rstn<span style="color: #9F79EE;">)</span> sig2_r  <span style="color: #5D478B;">&lt;=</span> <span style="color: #ff0055;">2'b0</span> <span style="color: #5D478B;">;</span><br/>
+     <span style="color: #A52A2A; font-weight: bold;">else</span>       sig2_r  <span style="color: #5D478B;">&lt;=</span> <span style="color: #9F79EE;">{</span>sig2_r<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">,</span> sig1<span style="color: #9F79EE;">}</span> <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">assign</span> sig2 <span style="color: #5D478B;">=</span> sig2_r<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">&amp;&amp;</span> <span style="color: #5D478B;">!</span>sig2_r<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">;</span><br/>
+</div></div>
+<p>シミュレーション結果を下図に示す：</p>
+<p><img decoding="async" src="../wp-content/uploads/2021/05/v-sync-3.png"/></p>
+<p>単一ビット信号が高速クロックドメインから低速クロックドメインに渡される場合、低速クロックドメインが高速クロックドメインから渡された信号を安全に捕捉できれば、非同期問題は存在しない。2つのクロックは同源だからである。下図の sig1 から sig2 への転送のように。</p><p>しかし、高速クロックドメインの信号が狭すぎる場合、低速クロックドメインはその信号を取りこぼす可能性がある。下図の sig11 から sig22 への転送のように。この場合は、高速クロックドメインの狭いパルス信号を拡張する必要がある。</p>
+<p><img decoding="async" src="../wp-content/uploads/2021/05/v-sync-4.png"/></p>
+<p>2つのクロックの周波数比が比較的小さい場合、高速クロックドメインで信号を遅延させる方法を用いて拡張できる。</p><p>2つのクロックの周波数比の差が大きい場合、高速クロックドメインでカウントする方法を用いて単一ビット信号の有効時間を延長できる。</p><p>遅延を利用して狭いパルス信号を拡張する方法の Verilog 記述は以下の通りである。clk1 と clk2 の周波数比が2であるため、clk2 クロックドメインで2クロック遅延させるだけでよい。</p>
+<div class="example"><h2 class="example">例</h2> <div class="example_code">
+   <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>    sig11_r <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">always</span> <span style="color: #5D478B;">@</span><span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">posedge</span> clk1 <span style="color: #A52A2A; font-weight: bold;">or</span> <span style="color: #A52A2A; font-weight: bold;">negedge</span> rstn<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+     <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span><span style="color: #5D478B;">!</span>rstn<span style="color: #9F79EE;">)</span> sig11_r  <span style="color: #5D478B;">&lt;=</span> <span style="color: #ff0055;">2'b0</span> <span style="color: #5D478B;">;</span><br/>
+     <span style="color: #A52A2A; font-weight: bold;">else</span>       sig11_r  <span style="color: #5D478B;">&lt;=</span> <span style="color: #9F79EE;">{</span>sig11_r<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">,</span> sig11<span style="color: #9F79EE;">}</span> <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+<br/>
+   <span style="color: #A52A2A; font-weight: bold;">reg</span>          sig22_r <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">always</span> <span style="color: #5D478B;">@</span><span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">posedge</span> clk2 <span style="color: #A52A2A; font-weight: bold;">or</span> <span style="color: #A52A2A; font-weight: bold;">negedge</span> rstn<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span><span style="color: #5D478B;">!</span>rstn<span style="color: #9F79EE;">)</span>        sig22_r  <span style="color: #5D478B;">&lt;=</span> <span style="color: #ff0055;">1'b0</span> <span style="color: #5D478B;">;</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">else</span>              sig22_r  <span style="color: #5D478B;">&lt;=</span> <span style="color: #5D478B;">|</span>sig11_r <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">assign</span> sig22 <span style="color: #5D478B;">=</span> sig22_r <span style="color: #5D478B;">;</span><br/>
+</div></div><p>このとき、高速クロックドメインの信号は2クロック遅延されるため、必ず低速クロックドメインに捕捉される。下図の通りである。</p>
+<p><img decoding="async" src="../wp-content/uploads/2021/05/v-sync-5.png"/></p>
+<p>要するに、同源かつ周波数比が整数倍の関係にある場合、これら2つのクロックは同期していると理解でき、特別な同期処理は不要である。以下では、非同期クロックの状況について簡単に紹介する。</p>
+<hr/><h2>非同期クロック</h2><p>非同期クロックで動作する2つのモジュールがデータをやり取りする場合、クロックの位相関係を制御できないため、セットアップタイムとホールドタイムの violation が発生しやすい。以下の3つの状況のクロックは非同期と見なすことができる。</p>
+<h3>異なるソース</h3><p>2つの異なるクロックソースから生成された2つのクロックは非同期であり、これは最も一般的な非同期クロックである。2つのクロックの周波数が同じであっても、電源投入ごとに両者の位相や位相差が同じであることは保証されないため、信号間の転送とクロックの関係も不確実である。</p>
+<h3>同源だが周波数比が整数倍でない</h3><p>この場合、2つのクロック間の位相差も複数存在する可能性がある。例えば、同源の7MHzクロックと3MHzクロックでは、それらの間にも複数の位相差が現れ、タイミングも制御が難しい。一般的には非同期クロックとして扱う必要もある。</p>
+<h3>同源で周波数比が整数倍でもタイミング要件を満たさない</h3>
+<p>前述の同期問題の説明で述べたように、信号が高速クロックドメインから低速クロックドメインに渡される場合、低速クロックドメインが高速クロックドメインから渡された信号を安全に捕捉できれば、非同期問題は存在しない。しかし、信号が高速クロックドメインで反転する速度が速すぎると、低速クロックドメインが高速クロックドメインから渡された信号を安全に捕捉できない可能性があり、これも非同期問題と見なすことができる。</p>
+<p>一般的に、低速クロックドメインのタイミング制約は比較的緩く、高速クロックドメインは比較的厳しい。</p><p>下図のように、高速クロックドメインの信号が低速クロックドメインの立ち上がりエッジの前に2回反転している。このとき、低速クロックドメインは一部のデータを取りこぼす。さらに、データの急激な変化も timing violation を引き起こす可能性がある。</p>
+<p><img decoding="async" src="../wp-content/uploads/2021/05/v-sync-6.png"/></p>
+<p>ここでは非同期クロックの分類について簡単に紹介するだけであり、非同期問題の解決方法については後続の章を参照されたい。</p>
+<h3>本章のソースコードダウンロード</h3><p>
+<a class="download" href="../wp-content/uploads/2021/05/v4.1_sync.zip">Download</a> </p> </p></div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link">← <a href="./verilog2-sdf.html" rel="prev">3.5 Verilog 遅延バックアノテーション</a> </div>
+<div class="next-design-link"><a href="./verilog2-slow2fast.html" rel="next">4.2 Verilog クロックドメイン間転送：低速から高速へ</a> →</div>
+</div>
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>クリックしてノートを共有</h3>
+&lt;p style="font-size:14px;"&gt;ノートは本記事の内容を拡張したものである必要があります！&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;記事投稿はこちらをクリック&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; ノートを共有する前に&lt;a href=".." class="runoob-pop"&gt;ログイン&lt;/a&gt;が必要です！&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=".." id="cancel-comment-reply-link">キャンセル</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="23714"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>ノートを共有</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">ニックネーム</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">ニックネーム (必須)</span></li>
+<li class="form-inline"><label class="hide" for="email">メールアドレス</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">メールアドレス (必須)</span></li>
+<li class="form-inline"><label class="hide" for="url">引用アドレス</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">引用アドレス</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  23714;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 23714, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":23714},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+<style>
+@media screen and (max-width: 768px) {
+	#w3cnote-ad728 {
+		display: none;
+	}
+}
+p.note-author {
+    border-bottom: 1px solid #ddd;
+    font-size: 18px;
+    font-weight: bold;
+    color: #78a15a;
+    padding-bottom: 2px;
+    margin-bottom: 4px;
+}
+</style>
+<script>
+var aid = 23714;
+</script>
+</div>
+</div>
+<div class="listcol last right-column">
+<script type="text/javascript">
+jQuery(document).ready(function ($){
+	var total = $(".membership li").length;
+	var left_list = '';
+	href = window.location.href;
+	
+	$(".membership li").each(function(index, value){
+
+		left_list += $(this).html();
+
+		cur_href = $(this).find("a").attr("href");
+		cur_obj = $(this);
+		
+		if(href.match(cur_href) != null) {
+			if(index==0) {
+				$(".previous-design-link").hide();
+			}
+			if(index==(total-1)) {
+				$(".next-design-link").hide();
+			}
+			prev_href = cur_obj.prev("li").find("a").attr("href");
+			prev_title = cur_obj.prev("li").find("a").attr("title");
+
+			next_href = cur_obj.next("li").find("a").attr("href");
+			next_title = cur_obj.next("li").find("a").attr("title");
+			if(prev_title) {
+				$(".previous-design-link a").attr("href", prev_href);
+				$(".previous-design-link a").attr("title", prev_title);
+				$(".previous-design-link a").text(prev_title);
+			} else {
+				$(".previous-design-link").html("");
+			}
+
+			if(next_title) {
+				$(".next-design-link a").attr("href", next_href);
+				$(".next-design-link a").attr("title", next_title);
+				$(".next-design-link a").text(next_title);
+			} else {
+				$(".next-design-link").html("");
+			}
+		}
+	});
+
+	$("#leftcolumn").html(left_list);
+});
+	</script>
+<div class="sidebar-box cate-list">
+<div class="sidebar-box recommend-here list-link">
+<a href="#">Verilog 高级教程</a> </div>
+<ul class="membership">
+<li><a data-id="23639" href="./verilog2-tutorial.html" target="_top" title="0.1 数字逻辑设计">0.1 数字逻辑设计</a></li>
+<li><a data-id="23641" href="./verilog2-codestyle.html" target="_top" title="0.2 Verilog 编码风格">0.2 Verilog 编码风格</a></li>
+<li><a data-id="23644" href="./verilog2-codeguide.html" target="_top" title="0.3 Verilog 代码规范">0.3 Verilog 代码规范</a></li>
+<li><a data-id="23645" href="./verilog2-gate.html" target="_top" title="1.1 Verilog 门的类型">1.1 Verilog 门的类型</a></li>
+<li><a data-id="23648" href="./verilog2-level-modeling.html" target="_top" title="1.2 Verilog 开关级建模">1.2 Verilog 开关级建模</a></li>
+<li><a data-id="23656" href="./verilog2-gate-delay.html" target="_top" title="1.3 Verilog 门延迟">1.3 Verilog 门延迟</a></li>
+<li><a data-id="23673" href="./verilog2-udp.html" target="_top" title="2.1 Verilog UDP 基础知识">2.1 Verilog UDP 基础知识</a></li>
+<li><a data-id="23674" href="./verilog2-udp-logic.html" target="_top" title="2.2 Verilog 组合逻辑 UDP">2.2 Verilog 组合逻辑 UDP</a></li>
+<li><a data-id="23677" href="./verilog2-udp-timing.html" target="_top" title="2.3 Verilog 时序逻辑 UDP">2.3 Verilog 时序逻辑 UDP</a></li>
+<li><a data-id="23685" href="./verilog2-delay-type.html" target="_top" title="3.1 Verilog 延迟模型">3.1 Verilog 延迟模型</a></li>
+<li><a data-id="23690" href="./verilog2-specify.html" target="_top" title="3.2 Verilog specify 块语句">3.2 Verilog specify 块语句</a></li>
+<li><a data-id="23692" href="./verilog2-setup-hold-time.html" target="_top" title="3.3 Verilog 建立时间和保持时间">3.3 Verilog 建立时间和保持时间</a></li>
+<li><a data-id="23701" href="./verilog2-timing-check.html" target="_top" title="3.4 Verilog 时序检查">3.4 Verilog 时序检查</a></li>
+<li><a data-id="23708" href="./verilog2-sdf.html" target="_top" title="3.5 Verilog 延迟反标注">3.5 Verilog 延迟反标注</a></li>
+<li>
+	4.1 Verilog 同步与异步	</li>
+<li><a data-id="23725" href="./verilog2-slow2fast.html" target="_top" title="4.2 Verilog 跨时钟域传输：慢到快">4.2 Verilog 跨时钟域传输：慢到快</a></li>
+<li><a data-id="23729" href="./verilog2-fast2slow.html" target="_top" title="4.3 Verilog 跨时钟域传输：快到慢">4.3 Verilog 跨时钟域传输：快到慢</a></li>
+<li><a data-id="23731" href="./verilog2-fifo.html" target="_top" title="4.4 Verilog FIFO 设计">4.4 Verilog FIFO 设计</a></li>
+<li><a data-id="23739" href="./verilog2-reset.html" target="_top" title="5.1 Verilog 复位简介">5.1 Verilog 复位简介</a></li>
+<li><a data-id="23743" href="./verilog2-clock.html" target="_top" title="5.2 Verilog 时钟简介">5.2 Verilog 时钟简介</a></li>
+<li><a data-id="23757" href="./verilog2-clock-division.html" target="_top" title="5.3 Verilog 时钟分频">5.3 Verilog 时钟分频</a></li>
+<li><a data-id="23768" href="./verilog2-clock-switch.html" target="_top" title="5.4 Verilog 时钟切换">5.4 Verilog 时钟切换</a></li>
+<li><a data-id="23779" href="./verilog2-low-power.html" target="_top" title="6.1 Verilog 低功耗简介">6.1 Verilog 低功耗简介</a></li>
+<li><a data-id="23788" href="./verilog2-lower-power-design.html" target="_top" title="6.2 Verilog 系统级低功耗设计">6.2 Verilog 系统级低功耗设计</a></li>
+<li><a data-id="23792" href="./verilog2-rtl-low-power-design-1.html" target="_top" title="6.3 Verilog  RTL 级低功耗设计（上）">6.3 Verilog  RTL 级低功耗设计（上）</a></li>
+<li><a data-id="23796" href="./verilog2-rtl-low-power-design-2.html" target="_top" title="6.4 Verilog RTL 级低功耗设计（下）">6.4 Verilog RTL 级低功耗设计（下）</a></li>
+<li><a data-id="23806" href="./verilog2-display.html" target="_top" title="7.1 Verilog 显示任务">7.1 Verilog 显示任务</a></li>
+<li><a data-id="23813" href="./verilog2-file.html" target="_top" title="7.2 Verilog 文件操作">7.2 Verilog 文件操作</a></li>
+<li><a data-id="23825" href="./verilog2-random.html" target="_top" title="7.3 Verilog 随机数及概率分布">7.3 Verilog 随机数及概率分布</a></li>
+<li><a data-id="23847" href="./verilog2-real2int.html" target="_top" title="7.4 Verilog 实数整数转换">7.4 Verilog 实数整数转换</a></li>
+<li><a data-id="23851" href="./verilog2-other-task.html" target="_top" title="7.5 Verilog 其他系统任务">7.5 Verilog 其他系统任务</a></li>
+<li><a data-id="23862" href="./verilog2-pli-intro.html" target="_top" title="8.1 Verilog  PLI 简介">8.1 Verilog  PLI 简介</a></li>
+<li><a data-id="23865" href="./verilog2-tf.html" target="_top" title="8.2 Verilog TF 子程序">8.2 Verilog TF 子程序</a></li>
+<li><a data-id="23869" href="./verilog2-tf-sub.html" target="_top" title="8.3 Verilog TF 子程序列表">8.3 Verilog TF 子程序列表</a></li>
+<li><a data-id="23870" href="./verilog2-acc.html" target="_top" title="8.4 Verilog ACC 子程序">8.4 Verilog ACC 子程序</a></li>
+<li><a data-id="23872" href="./verilog2-acc-sub.html" target="_top" title="8.5 Verilog ACC 子程序列表">8.5 Verilog ACC 子程序列表</a></li>
+<li><a data-id="23876" href="./verilog2-logic-sumarry.html" target="_top" title="9.1 Verilog 逻辑综合">9.1 Verilog 逻辑综合</a></li>
+<li><a data-id="23882" href="./verilog2-integrated-design.html" target="_top" title="9.2 Verilog 可综合性设计">9.2 Verilog 可综合性设计</a></li>
+</ul></div> </div>
+</div>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+</div><script src="../../lang-switcher.js"></script>
+</body>
+</html>

@@ -1,0 +1,1798 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Transformer Deep Dive | Rookie Tutorial</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<link href="../manifest.webmanifest.html" rel="manifest"/>
+<meta content="#10151c" name="theme-color"/>
+<link href="../pwa/icon-192.png.html" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="application-name"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="../ai/ai-transformer.html" rel="canonical"/>
+<meta content="Transformer 深度解析" name="keywords"/>
+<meta content="Transformer 深度解析   2017 年，Google 发表论文《Attention Is All You Need》，提出了 Transformer 架构。谁也没想到，这篇论文会彻底改变 AI 领域。  今天的 GPT、Claude、Gemini、Llama……几乎所有主流大语言模型，本质上都是 Transformer 的变体。  理解了 Transformer，就理解了现代 LLM 的 90%。  这篇文章我们会深入 Tr.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div>
+<!-- 导航栏 -->
+<style>
+/* 主题切换按钮 */
+/* ===== 主题变量（核心）===== */
+:root {
+  --theme-bg: #ffffff;
+  --theme-border: #e5e7eb;
+  --theme-icon: #333;
+  --theme-hover: #f3f4f6;
+}
+
+.dark {
+  --theme-bg: #1f2937;
+  --theme-border: #374151;
+  --theme-icon: #e5e7eb;
+  --theme-hover: #374151;
+}
+
+/* ===== 按钮容器 ===== */
+.nav-theme-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== 按钮本体 ===== */
+.nav-theme-toggle button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  border-radius: 6px;
+  border: 1px solid var(--theme-border);
+
+  background: var(--theme-bg);
+  color: var(--theme-icon);
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* ===== 图标大小 ===== */
+.nav-theme-toggle i {
+  font-size: 14px;
+}
+
+/* ===== hover 效果 ===== */
+.nav-theme-toggle button:hover {
+  background: var(--theme-hover);
+  transform: translateY(-1px);
+}
+
+/* ===== 点击反馈 ===== */
+.nav-theme-toggle button:active {
+  transform: scale(0.95);
+}
+
+/* ===== 当前激活态（可选）===== */
+.nav-theme-toggle button.active {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+</style>
+<!-- 导航栏 -->
+<nav aria-label="主导航" class="container navigation">
+<div class="row">
+<div class="col nav">
+<!-- PC 导航 -->
+<ul class="pc-nav" id="runoob-detail-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../js/js-tutorial.html">JavaScript</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a data-id="vue" href="#">Vue</a></li>
+<li><a href="../react/react-tutorial.html">React</a></li>
+<li><a href="../python3/python3-tutorial.html">Python3</a></li>
+<li><a href="../java/java-tutorial.html">Java</a></li>
+<li><a href="../cprogramming/c-tutorial.html">C</a></li>
+<li><a href="../cplusplus/cpp-tutorial.html">C++</a></li>
+<li><a href="../csharp/csharp-tutorial.html">C#</a></li>
+<li><a data-id="aiNav" href="#">AI</a></li>
+<li><a href="../go/go-tutorial.html">Go</a></li>
+<li><a href="../sql/sql-tutorial.html">SQL</a></li>
+<li><a href="../linux/linux-tutorial.html">Linux</a></li>
+<li><a href="../vscode/vscode-tutorial.html">VS Code</a></li>
+<li><a data-id="bootstrap" href="#">Bootstrap</a></li>
+<li><a href="../git/git-tutorial.html">Git</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<!-- 主题切换按钮，固定在最右侧 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+<!-- 移动端导航 -->
+<ul class="mobile-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a href="../js/js-tutorial.html">JS</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<li><a class="search-reveal" href="#">搜索</a></li>
+<!-- 移动端主题切换 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon-mobile" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun-mobile" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<!-- 二级导航 -->
+<!--  内容  -->
+<div class="container main">
+<!-- 中间 -->
+<div class="row">
+<div class="runoob-col-md2">
+<div class="left-column">
+<div class="tab" style="overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
+<i aria-hidden="true" class="fa fa-list"></i>
+<span>AI 入门教程</span>
+</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+<a data-p="par" href="../ai/ai-tutorial.html" target="_top" title="AI 入门教程">
+			AI 入门教程			</a>
+<a data-p="par" href="../ai/ai-into.html" target="_top" title="AI 简介">
+			AI 简介			</a>
+<a href="../ai/agi-intro.html" target="_top" title="AGI 简介">AGI 简介</a>
+<a href="../ai/llm-intro.html" target="_top" title="大模型相关概念">大模型相关概念</a> <a data-p="par" href="../ai/ai-prompt.html" target="_top" title="Prompt 提示词">
+			Prompt 提示词			</a>
+<a data-p="par" href="../ai/ai-tools.html" target="_top" title="AI 工具全景">
+			AI 工具全景			</a>
+<a data-p="par" href="../ai/how-ai-works.html" target="_top" title="AI 工作原理">
+			AI 工作原理			</a>
+<a data-p="par" href="../ai/ai-ethics.html" target="_top" title="AI 伦理与安全">
+			AI 伦理与安全			</a>
+<a data-p="par" href="../ai/ai-use-cases.html" target="_top" title="AI 应用场景">
+			AI 应用场景			</a>
+<a data-p="par" href="../ai/ai-industry.html" target="_top" title="AI 行业生态">
+			AI 行业生态			</a>
+<a data-p="par" href="../ai/prompt-engineering-advance.html" target="_top" title="Prompt 工程进阶">
+			Prompt 工程进阶			</a>
+<a data-p="par" href="../ai/ai-api-development.html" target="_top" title="AI API 开发">
+			AI API 开发			</a>
+<a data-p="par" href="../ai/ai-rag.html" target="_top" title="RAG 检索增强生成">
+			RAG 检索增强生成			</a>
+<a href="../ai/ai-agent.html" target="_top" title="AI 智能体">AI 智能体</a> <a data-p="par" href="../ai/ai-multimodal.html" target="_top" title="AI 多模态">
+			AI 多模态			</a>
+<a data-p="par" href="../ai/ai-workflow-auto.html" target="_top" title="AI 工作流自动化">
+			AI 工作流自动化			</a>
+<a data-p="par" href="../ai/ai-product-design.html" target="_top" title="AI 产品设计">
+			AI 产品设计			</a>
+<a data-p="par" href="../ai/ai-local-model-deployment.html" target="_top" title="本地模型部署">
+			本地模型部署			</a>
+<a data-p="par" href="../ai/ai-security.html" target="_top" title="AI 安全进阶">
+			AI 安全进阶			</a>
+<a data-p="par" href="../ai/ai-transformer.html" target="_top" title="Transformer 深度解析">
+			Transformer 深度解析			</a>
+<a data-p="par" href="../ai/ai-fine-tuning.html" target="_top" title="模型微调 Fine-tuning">
+			模型微调 Fine-tuning			</a>
+<a data-p="par" href="../ai/ai-rlhf.html" target="_top" title="RLHF 对齐训练">
+			RLHF 对齐训练			</a>
+<a data-p="par" href="../ai/ai-vector-database.html" target="_top" title="向量数据库">
+			向量数据库			</a>
+<a data-p="par" href="../ai/ai-deployment.html" target="_top" title="AI 工程化部署">
+			AI 工程化部署			</a>
+<a data-p="par" href="../ai/ai-deep-learning.html" target="_top" title="深度学习基础">
+			深度学习基础			</a>
+<a data-p="par" href="../ai/ai-computer-vision.html" target="_top" title="计算机视觉 AI">
+			计算机视觉 AI			</a>
+<a data-p="par" href="../ai/ai-nlp-advanced.html" target="_top" title="NLP 进阶技术">
+			NLP 进阶技术			</a>
+<a data-p="par" href="../ai/ai-frontier-research.html" target="_top" title="前沿研究动态">
+			前沿研究动态			</a>
+<a data-p="par" href="../ai/ai-system-architecture.html" target="_top" title="AI 系统架构">
+			AI 系统架构			</a>
+<a data-p="par" href="../ai/ai-evaluation.html" target="_top" title="AI 评测与安全研究">
+			AI 评测与安全研究			</a>
+</div>
+</div>
+</div>
+</div> <div class="col middle-column">
+<div class="article">
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../ai/ai-security.html" rel="prev">Advanced AI Safety</a> </div>
+<div class="next-design-link"><a href="../ai/ai-fine-tuning.html" rel="next">Model Fine-Tuning</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="article-body">
+<div class="article-intro" id="content">
+<h1>Transformer Deep Dive</h1>
+<p>In 2017, Google published the paper "Attention Is All You Need", introducing the Transformer architecture. No one expected that this paper would completely change the AI field.</p>
+<p>Today's GPT, Claude, Gemini, Llama... almost all mainstream large language models are essentially variants of the Transformer.</p>
+<p><span class="marked">Understand the Transformer, and you understand 90% of modern LLMs.</span></p>
+<p>In this article, we will dive into every component of the Transformer: self-attention, multi-head attention, positional encoding, feed-forward networks, layer normalization... covering not only "what" but also "why".</p>
+<blockquote>
+<p>This is one of the most technically in-depth modules. We will use code to demonstrate the core computations, ensuring that you not only understand the formulas but can also implement them yourself.</p>
+</blockquote>
+<hr/>
+<h2>Transformer Prequel: Limitations of RNN</h2>
+<p>Before the Transformer, sequence tasks (such as translation and text generation) were mainly handled by RNNs (Recurrent Neural Networks) and their variants LSTM and GRU.</p>
+<h3>How RNN Works</h3>
+<p>The core idea of RNN is "process one by one": the input sequence enters the network word by word, and the output at each step contains information from all previous words.</p>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># Simplified RNN forward propagation demonstration</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">import</span> <span style="color: #05a;">math</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> SimpleRNN:<br/>
+    <span style="color: #a11;">"""Simplified RNN implementation to demonstrate the principle"""</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> input_size: <span style="color: Teal;">int</span><span style="color: Gray;">,</span> hidden_size: <span style="color: Teal;">int</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""Initialize RNN parameters"""</span><br/>
+        <span style="color: Green;font-weight:bold;">import</span> <span style="color: #05a;">random</span><br/>
+        <span style="color: #05a;">random</span>.<span style="color: #05a;">seed</span><span style="color: Olive;">(</span><span style="color: Maroon;">42</span><span style="color: Olive;">)</span>  <span style="color: #a50"># Set random seed for reproducibility</span><br/>
+<br/>
+        <span style="color: #a50"># Weights from input to hidden layer</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">Wx</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">[</span><span style="color: #05a;">random</span>.<span style="color: #05a;">uniform</span><span style="color: Olive;">(</span>-<span style="color: Maroon;">0.1</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.1</span><span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>hidden_size<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+                   <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>input_size<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+        <span style="color: #a50"># Weights from hidden layer to hidden layer</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">Wh</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">[</span><span style="color: #05a;">random</span>.<span style="color: #05a;">uniform</span><span style="color: Olive;">(</span>-<span style="color: Maroon;">0.1</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.1</span><span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>hidden_size<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+                   <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>hidden_size<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+        <span style="color: #a50"># Bias</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">b</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Maroon;">0.0</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>hidden_size<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> step<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> x: <span style="color: Teal;">list</span><span style="color: Gray;">,</span> h_prev: <span style="color: Teal;">list</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">list</span>:<br/>
+        <span style="color: #a11;">"""Single-step RNN: takes input x and previous hidden state h_prev, outputs new hidden state"""</span><br/>
+        hidden_size <span style="color: Gray;">=</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>h_prev<span style="color: Olive;">)</span><br/>
+        h_new <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Maroon;">0.0</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>hidden_size<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+<br/>
+        <span style="color: #a50"># h_new = tanh(Wx·x + Wh·h_prev + b)</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> i <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>hidden_size<span style="color: Olive;">)</span>:<br/>
+            <span style="color: #a50"># Compute Wx·x</span><br/>
+            wx_sum <span style="color: Gray;">=</span> <span style="color: Teal;">sum</span><span style="color: Olive;">(</span>x<span style="color: Olive;">[</span>j<span style="color: Olive;">]</span> * <span style="color: Teal;">self</span>.<span style="color: #05a;">Wx</span><span style="color: Olive;">[</span>j<span style="color: Olive;">]</span><span style="color: Olive;">[</span>i<span style="color: Olive;">]</span> <span style="color: Green;font-weight:bold;">for</span> j <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Teal;">len</span><span style="color: Olive;">(</span>x<span style="color: Olive;">)</span><span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+            <span style="color: #a50"># Compute Wh·h_prev</span><br/>
+            wh_sum <span style="color: Gray;">=</span> <span style="color: Teal;">sum</span><span style="color: Olive;">(</span>h_prev<span style="color: Olive;">[</span>j<span style="color: Olive;">]</span> * <span style="color: Teal;">self</span>.<span style="color: #05a;">Wh</span><span style="color: Olive;">[</span>j<span style="color: Olive;">]</span><span style="color: Olive;">[</span>i<span style="color: Olive;">]</span> <span style="color: Green;font-weight:bold;">for</span> j <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>hidden_size<span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+            <span style="color: #a50"># Add bias, pass through tanh</span><br/>
+            h_new<span style="color: Olive;">[</span>i<span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: #05a;">math</span>.<span style="color: #05a;">tanh</span><span style="color: Olive;">(</span>wx_sum + wh_sum + <span style="color: Teal;">self</span>.<span style="color: #05a;">b</span><span style="color: Olive;">[</span>i<span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">return</span> h_new<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> forward<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> sequence: <span style="color: Teal;">list</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">list</span>:<br/>
+        <span style="color: #a11;">"""Process the full sequence"""</span><br/>
+        hidden_size <span style="color: Gray;">=</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span>.<span style="color: #05a;">b</span><span style="color: Olive;">)</span><br/>
+        h <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Maroon;">0.0</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>hidden_size<span style="color: Olive;">)</span><span style="color: Olive;">]</span>  <span style="color: #a50"># Initial hidden state</span><br/>
+        hidden_states <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">for</span> x <span style="color: Green;font-weight:bold;">in</span> sequence:<br/>
+            h <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">step</span><span style="color: Olive;">(</span>x<span style="color: Gray;">,</span> h<span style="color: Olive;">)</span><br/>
+            hidden_states.<span style="color: #05a;">append</span><span style="color: Olive;">(</span>h<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">return</span> hidden_states<br/>
+<br/>
+<br/>
+<span style="color: #a50"># Test: demonstrate with a simple vector sequence</span><br/>
+input_size <span style="color: Gray;">=</span> <span style="color: Maroon;">4</span><br/>
+hidden_size <span style="color: Gray;">=</span> <span style="color: Maroon;">3</span><br/>
+<br/>
+rnn <span style="color: Gray;">=</span> SimpleRNN<span style="color: Olive;">(</span>input_size<span style="color: Gray;">,</span> hidden_size<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># Assume the input sequence is 4 words, each represented by a 4-dimensional vector</span><br/>
+sequence <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><br/>
+    <span style="color: Olive;">[</span><span style="color: Maroon;">1.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span>  <span style="color: #a50"># Word 1</span><br/>
+    <span style="color: Olive;">[</span><span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">1.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span>  <span style="color: #a50"># Word 2</span><br/>
+    <span style="color: Olive;">[</span><span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">1.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span>  <span style="color: #a50"># Word 3</span><br/>
+    <span style="color: Olive;">[</span><span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">1.0</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span>  <span style="color: #a50"># Word 4</span><br/>
+<span style="color: Olive;">]</span><br/>
+<br/>
+hidden_states <span style="color: Gray;">=</span> rnn.<span style="color: #05a;">forward</span><span style="color: Olive;">(</span>sequence<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Runoob Simple RNN Demo"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">40</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">for</span> i<span style="color: Gray;">,</span> h <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">enumerate</span><span style="color: Olive;">(</span>hidden_states<span style="color: Olive;">)</span>:<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Hidden state at step {i+1}: {[f'{v:.4f}' for v in h]}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: #a50"># Output:</span><br/>
+<span style="color: #a50"># Runoob Simple RNN Demo</span><br/>
+<span style="color: #a50"># ========================================</span><br/>
+<span style="color: #a50"># Hidden state at step 1: ['0.0204', '-0.0434', '0.0556']</span><br/>
+<span style="color: #a50"># Hidden state at step 2: ['-0.0061', '-0.0529', '0.0775']</span><br/>
+<span style="color: #a50"># Hidden state at step 3: ['0.0641', '-0.0409', '0.0655']</span><br/>
+<span style="color: #a50"># Hidden state at step 4: ['0.0143', '-0.0805', '0.0277']</span><br/>
+</div>
+</div>
+<p>RNN seems reasonable, but it has three fatal problems:</p>
+<h3>Problem 1: Vanishing Gradients, Difficulty Remembering Long-Range Dependencies</h3>
+<p>RNN is a "chain" structure; the gradient at each step must backpropagate to the first step. After repeated multiplications, the gradient decays exponentially, becoming almost 0.</p>
+<p>For example, in the sentence "I went to Paris in 2010, ... that was my favorite city" — "city" needs to refer to "Paris", but there are too many words in between, so RNNs struggle to learn such long-range dependencies.</p>
+<p>LSTM and GRU alleviate this problem, but do not completely solve it.</p>
+<h3>Problem 2: Cannot Compute in Parallel, Slow Training</h3>
+<p>An RNN must wait for step t-1 to finish before it can compute step t. This means:</p>
+<ul>
+<li>Even with 100 GPUs, you can only compute one word at a time</li>
+<li>The longer the sequence, the longer the training time</li>
+<li>Difficult to scale to very large datasets</li>
+</ul>
+<h3>Problem 3: Earlier Information Is Easily "Overwritten"</h3>
+<p>The hidden state of an RNN is updated step by step, and later information keeps overwriting earlier information. Important information at the beginning of a sentence may be largely "diluted" by the end.</p>
+<p>The emergence of Transformer solved all three problems at once.</p>
+<table class="reference">
+<tr><th>Feature</th><th>RNN/LSTM</th><th>Transformer</th></tr>
+<tr><td>Computation method</td><td>Serial, step by step</td><td>Parallel, compute all at once</td></tr>
+<tr><td>Long-range dependencies</td><td>Weak, gradient vanishing</td><td>Strong, direct connection at any distance</td></tr>
+<tr><td>Positional information</td><td>Naturally sequential</td><td>Requires positional encoding</td></tr>
+<tr><td>Training speed</td><td>慢</td><td>Fast (parallelizable)</td></tr>
+</table>
+<hr/>
+<h2>Self-Attention Mechanism</h2>
+<p>Self-attention is the core of Transformer. Its idea is simple:<span class="marked">Each word must "communicate" with all words in the sentence, see who is important to itself, and then do a weighted sum by importance.</span></p>
+<p>First look at the overall architecture diagram:</p>
+<p><img alt="Transformer 整体架构图" decoding="async" src="../wp-content/uploads/2026/06/fafc8386-95ab-4e1a-a3e5-abf868f0c061.webp"/></p>
+<h3>Intuitive Understanding of Q, K, V</h3>
+<p>Self-attention uses three vectors to describe each word:</p>
+<ul>
+<li><strong>Q (Query)</strong>——"Who am I looking for?"—— which word this word wants to attend to</li>
+<li><strong>K (Key)</strong>——"Who am I?"—— this word's identity</li>
+<li><strong>V (Value)</strong>——"What do I have?"—— the actual content of this word</li>
+</ul>
+<p>The computation process is:</p>
+<ol>
+<li>Each word uses its Q to "match" with the K of all words, obtaining attention scores</li>
+<li>Use Softmax to normalize the scores so they sum to 1</li>
+<li>Use the normalized scores to weight and sum the V of all words</li>
+</ol>
+<p>The diagram makes it clearer:</p>
+<p><img alt="自注意力 QKV 计算流程图" decoding="async" src="../wp-content/uploads/2026/06/da9ba558-1c3a-4676-b017-c29cf39257e7.webp"/></p>
+<h3>Attention Score Calculation Formula</h3>
+<p>The complete formula is:</p>
+<pre>
+Attention(Q, K, V) = softmax( Q·Kᵀ / √dₖ ) · V
+</pre>
+<p>Let's implement it step by step in pure Python:</p>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># Pure Python implementation of Self-Attention</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">import</span> <span style="color: #05a;">math</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> softmax<span style="color: Olive;">(</span>x: <span style="color: Teal;">list</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">list</span>:<br/>
+    <span style="color: #a11;">"""Compute Softmax: turn a set of numbers into a probability distribution summing to 1"""</span><br/>
+    <span style="color: #a50"># Subtract the maximum value to prevent numerical overflow</span><br/>
+    max_val <span style="color: Gray;">=</span> <span style="color: Teal;">max</span><span style="color: Olive;">(</span>x<span style="color: Olive;">)</span><br/>
+    exp_x <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: #05a;">math</span>.<span style="color: #05a;">exp</span><span style="color: Olive;">(</span>v - max_val<span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> v <span style="color: Green;font-weight:bold;">in</span> x<span style="color: Olive;">]</span><br/>
+    sum_exp <span style="color: Gray;">=</span> <span style="color: Teal;">sum</span><span style="color: Olive;">(</span>exp_x<span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> <span style="color: Olive;">[</span>v / sum_exp <span style="color: Green;font-weight:bold;">for</span> v <span style="color: Green;font-weight:bold;">in</span> exp_x<span style="color: Olive;">]</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> matrix_multiply<span style="color: Olive;">(</span>A: <span style="color: Teal;">list</span><span style="color: Gray;">,</span> B: <span style="color: Teal;">list</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">list</span>:<br/>
+    <span style="color: #a11;">"""Matrix multiplication: A is m×n, B is n×p, output is m×p"""</span><br/>
+    m <span style="color: Gray;">=</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>A<span style="color: Olive;">)</span><br/>
+    n <span style="color: Gray;">=</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>B<span style="color: Olive;">)</span><br/>
+    p <span style="color: Gray;">=</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>B<span style="color: Olive;">[</span><span style="color: Maroon;">0</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+<br/>
+    result <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">[</span><span style="color: Maroon;">0.0</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>p<span style="color: Olive;">)</span><span style="color: Olive;">]</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>m<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+    <span style="color: Green;font-weight:bold;">for</span> i <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>m<span style="color: Olive;">)</span>:<br/>
+        <span style="color: Green;font-weight:bold;">for</span> j <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>p<span style="color: Olive;">)</span>:<br/>
+            <span style="color: Green;font-weight:bold;">for</span> k <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>n<span style="color: Olive;">)</span>:<br/>
+                result<span style="color: Olive;">[</span>i<span style="color: Olive;">]</span><span style="color: Olive;">[</span>j<span style="color: Olive;">]</span> +<span style="color: Gray;">=</span> A<span style="color: Olive;">[</span>i<span style="color: Olive;">]</span><span style="color: Olive;">[</span>k<span style="color: Olive;">]</span> * B<span style="color: Olive;">[</span>k<span style="color: Olive;">]</span><span style="color: Olive;">[</span>j<span style="color: Olive;">]</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> result<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> transpose<span style="color: Olive;">(</span>matrix: <span style="color: Teal;">list</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">list</span>:<br/>
+    <span style="color: #a11;">"""Matrix transpose"""</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> <span style="color: Teal;">list</span><span style="color: Olive;">(</span><span style="color: Teal;">map</span><span style="color: Olive;">(</span><span style="color: Teal;">list</span><span style="color: Gray;">,</span> <span style="color: Teal;">zip</span><span style="color: Olive;">(</span>*matrix<span style="color: Olive;">)</span><span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> SelfAttention:<br/>
+    <span style="color: #a11;">"""纯 Python 实现的自注意力层"""</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> d_model: <span style="color: Teal;">int</span><span style="color: Gray;">,</span> d_k: <span style="color: Teal;">int</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""<br/>初始化自注意力层<br/>d_model: 输入/输出维度<br/>d_k: Q/K 的维度（通常 d_k = d_model / num_heads）<br/>
+        """</span><br/>
+        <span style="color: Green;font-weight:bold;">import</span> <span style="color: #05a;">random</span><br/>
+        <span style="color: #05a;">random</span>.<span style="color: #05a;">seed</span><span style="color: Olive;">(</span><span style="color: Maroon;">42</span><span style="color: Olive;">)</span>  <span style="color: #a50"># runoob：固定随机种子</span><br/>
+<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">d_model</span> <span style="color: Gray;">=</span> d_model<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">d_k</span> <span style="color: Gray;">=</span> d_k<br/>
+<br/>
+        <span style="color: #a50"># 初始化 Q, K, V 的投影矩阵</span><br/>
+        <span style="color: #a50"># 实际中这些是训练出来的</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">Wq</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">[</span><span style="color: #05a;">random</span>.<span style="color: #05a;">normalvariate</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.1</span><span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_k<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+                   <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_model<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">Wk</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">[</span><span style="color: #05a;">random</span>.<span style="color: #05a;">normalvariate</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.1</span><span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_k<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+                   <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_model<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">Wv</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">[</span><span style="color: #05a;">random</span>.<span style="color: #05a;">normalvariate</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.1</span><span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_k<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+                   <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_model<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> forward<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> X: <span style="color: Teal;">list</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">list</span>:<br/>
+        <span style="color: #a11;">"""<br/>自注意力前向传播<br/>X: 输入序列，形状 [seq_len, d_model]<br/>返回: 输出序列，形状 [seq_len, d_k]<br/>
+        """</span><br/>
+        seq_len <span style="color: Gray;">=</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>X<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># 步骤 1：计算 Q, K, V</span><br/>
+        <span style="color: #a50"># Q = X·Wq, K = X·Wk, V = X·Wv</span><br/>
+        Q <span style="color: Gray;">=</span> matrix_multiply<span style="color: Olive;">(</span>X<span style="color: Gray;">,</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">Wq</span><span style="color: Olive;">)</span><br/>
+        K <span style="color: Gray;">=</span> matrix_multiply<span style="color: Olive;">(</span>X<span style="color: Gray;">,</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">Wk</span><span style="color: Olive;">)</span><br/>
+        V <span style="color: Gray;">=</span> matrix_multiply<span style="color: Olive;">(</span>X<span style="color: Gray;">,</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">Wv</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  Q 的形状:"</span><span style="color: Gray;">,</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>Q<span style="color: Olive;">)</span><span style="color: Gray;">,</span> <span style="color: #a11;">"×"</span><span style="color: Gray;">,</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>Q<span style="color: Olive;">[</span><span style="color: Maroon;">0</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  K 的形状:"</span><span style="color: Gray;">,</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>K<span style="color: Olive;">)</span><span style="color: Gray;">,</span> <span style="color: #a11;">"×"</span><span style="color: Gray;">,</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>K<span style="color: Olive;">[</span><span style="color: Maroon;">0</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  V 的形状:"</span><span style="color: Gray;">,</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>V<span style="color: Olive;">)</span><span style="color: Gray;">,</span> <span style="color: #a11;">"×"</span><span style="color: Gray;">,</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>V<span style="color: Olive;">[</span><span style="color: Maroon;">0</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># 步骤 2：计算注意力分数 Q·Kᵀ</span><br/>
+        K_transposed <span style="color: Gray;">=</span> transpose<span style="color: Olive;">(</span>K<span style="color: Olive;">)</span><br/>
+        scores <span style="color: Gray;">=</span> matrix_multiply<span style="color: Olive;">(</span>Q<span style="color: Gray;">,</span> K_transposed<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>原始注意力分数:"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> i<span style="color: Gray;">,</span> row <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">enumerate</span><span style="color: Olive;">(</span>scores<span style="color: Olive;">)</span>:<br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"    第 {i} 行: {[f'{v:.4f}' for v in row]}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># 步骤 3：缩放：除以 √d_k</span><br/>
+        <span style="color: #a50"># 这是为了防止 Softmax 进入梯度饱和区</span><br/>
+        scale_factor <span style="color: Gray;">=</span> <span style="color: #05a;">math</span>.<span style="color: #05a;">sqrt</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span>.<span style="color: #05a;">d_k</span><span style="color: Olive;">)</span><br/>
+        scores_scaled <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">[</span>v / scale_factor <span style="color: Green;font-weight:bold;">for</span> v <span style="color: Green;font-weight:bold;">in</span> row<span style="color: Olive;">]</span> <span style="color: Green;font-weight:bold;">for</span> row <span style="color: Green;font-weight:bold;">in</span> scores<span style="color: Olive;">]</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>缩放后的注意力分数:"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> i<span style="color: Gray;">,</span> row <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">enumerate</span><span style="color: Olive;">(</span>scores_scaled<span style="color: Olive;">)</span>:<br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"    第 {i} 行: {[f'{v:.4f}' for v in row]}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># 步骤 4：Softmax 归一化</span><br/>
+        attention_weights <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> row <span style="color: Green;font-weight:bold;">in</span> scores_scaled:<br/>
+            attention_weights.<span style="color: #05a;">append</span><span style="color: Olive;">(</span>softmax<span style="color: Olive;">(</span>row<span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>注意力权重（Softmax 后）:"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> i<span style="color: Gray;">,</span> row <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">enumerate</span><span style="color: Olive;">(</span>attention_weights<span style="color: Olive;">)</span>:<br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"    第 {i} 行: {[f'{v:.4f}' for v in row]}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># 步骤 5：加权求和 V</span><br/>
+        output <span style="color: Gray;">=</span> matrix_multiply<span style="color: Olive;">(</span>attention_weights<span style="color: Gray;">,</span> V<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">return</span> output<span style="color: Gray;">,</span> attention_weights<br/>
+<br/>
+<br/>
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># 演示：用一个简单例子运行自注意力</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: #a50"># 假设我们有一个 4 词的句子，每个词用 8 维向量表示</span><br/>
+<span style="color: #a50"># 为了演示，我们用 one-hot + 小随机噪声</span><br/>
+d_model <span style="color: Gray;">=</span> <span style="color: Maroon;">8</span><br/>
+d_k <span style="color: Gray;">=</span> <span style="color: Maroon;">6</span><br/>
+<br/>
+<span style="color: #a50"># 输入序列：4 个词，每个 8 维</span><br/>
+X <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><br/>
+    <span style="color: Olive;">[</span><span style="color: Maroon;">1.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span>  <span style="color: #a50"># 词 0</span><br/>
+    <span style="color: Olive;">[</span><span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">1.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span>  <span style="color: #a50"># 词 1</span><br/>
+    <span style="color: Olive;">[</span><span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">1.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span>  <span style="color: #a50"># 词 2</span><br/>
+    <span style="color: Olive;">[</span><span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">1.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span>  <span style="color: #a50"># 词 3</span><br/>
+<span style="color: Olive;">]</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">50</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Runoob 自注意力演示"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">50</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"输入序列长度: {len(X)}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"输入维度: {len(X</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+attn <span style="color: Gray;">=</span> SelfAttention<span style="color: Olive;">(</span>d_model<span style="color: Gray;">=</span>d_model<span style="color: Gray;">,</span> d_k<span style="color: Gray;">=</span>d_k<span style="color: Olive;">)</span><br/>
+output<span style="color: Gray;">,</span> attention_weights <span style="color: Gray;">=</span> attn.<span style="color: #05a;">forward</span><span style="color: Olive;">(</span>X<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>"</span> + <span style="color: #a11;">"="</span> * <span style="color: Maroon;">50</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"自注意力输出:"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">50</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">for</span> i<span style="color: Gray;">,</span> row <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">enumerate</span><span style="color: Olive;">(</span>output<span style="color: Olive;">)</span>:<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"词 {i} 的输出: {[f'{v:.4f}' for v in row]}"</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<p>运行这段代码，你会看到完整的计算过程：Q/K/V 生成、注意力分数计算、缩放、Softmax、最后加权输出。</p>
+<h3>Why Divide by √dₖ?</h3>
+<p>这是一个重要的细节。假设 Q 和 K 的每个元素都是均值 0、方差 1 的随机变量，那么它们的点积的方差是 dₖ。</p>
+<p>如果 dₖ 很大（比如 512），点积的值会很大，导致 Softmax 进入"饱和区"——梯度几乎为 0，训练不动。</p>
+<p>除以 √dₖ 后，方差变回 1，Softmax 的梯度就健康了。</p>
+<blockquote>
+<p>缩放点积是 Transformer 训练稳定的关键技巧之一。</p>
+</blockquote>
+<hr/>
+<h2>Multi-Head Attention</h2>
+<p>单头自注意力虽然强大，但有个问题：每个词只能"关注"一次。如果我们想让词同时关注多个不同方面呢？</p>
+<p>比如在句子"动物园里，老虎追着兔子跑"中：</p>
+<ul>
+<li>"老虎"可能需要一个头关注"动物园"（地点）</li>
+<li>另一个头关注"兔子"（动作对象）</li>
+<li>第三个头关注"追"（动作）</li>
+</ul>
+<p><span class="marked">多头注意力就是把 Q/K/V 拆分成多个"头"，每个头学不同的注意力模式，最后拼起来。</span></p>
+<h3>Steps to Compute Multi-Head Attention</h3>
+<ol>
+<li>把 Q/K/V 按最后一维拆分成 h 份（h 是头数）</li>
+<li>每个头独立做自注意力</li>
+<li>把所有头的输出拼起来</li>
+<li>过一个线性投影层得到最终输出</li>
+</ol>
+<p>公式是：</p>
+<pre>
+MultiHead(Q, K, V) = Concat(head₁, head₂, ..., headₕ) · Wₒ
+  其中 headᵢ = Attention(Q·Wqᵢ, K·Wkᵢ, V·Wvᵢ)
+</pre>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># 纯 Python 实现多头注意力（Multi-Head Attention）</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">import</span> <span style="color: #05a;">math</span><br/>
+<span style="color: Green;font-weight:bold;">import</span> <span style="color: #05a;">random</span><br/>
+<span style="color: #05a;">random</span>.<span style="color: #05a;">seed</span><span style="color: Olive;">(</span><span style="color: Maroon;">42</span><span style="color: Olive;">)</span>  <span style="color: #a50"># runoob：固定随机种子</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> softmax<span style="color: Olive;">(</span>x: <span style="color: Teal;">list</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">list</span>:<br/>
+    <span style="color: #a11;">"""计算 Softmax"""</span><br/>
+    max_val <span style="color: Gray;">=</span> <span style="color: Teal;">max</span><span style="color: Olive;">(</span>x<span style="color: Olive;">)</span><br/>
+    exp_x <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: #05a;">math</span>.<span style="color: #05a;">exp</span><span style="color: Olive;">(</span>v - max_val<span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> v <span style="color: Green;font-weight:bold;">in</span> x<span style="color: Olive;">]</span><br/>
+    sum_exp <span style="color: Gray;">=</span> <span style="color: Teal;">sum</span><span style="color: Olive;">(</span>exp_x<span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> <span style="color: Olive;">[</span>v / sum_exp <span style="color: Green;font-weight:bold;">for</span> v <span style="color: Green;font-weight:bold;">in</span> exp_x<span style="color: Olive;">]</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> matrix_multiply<span style="color: Olive;">(</span>A: <span style="color: Teal;">list</span><span style="color: Gray;">,</span> B: <span style="color: Teal;">list</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">list</span>:<br/>
+    <span style="color: #a11;">"""矩阵乘法"""</span><br/>
+    m <span style="color: Gray;">=</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>A<span style="color: Olive;">)</span><br/>
+    n <span style="color: Gray;">=</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>B<span style="color: Olive;">)</span><br/>
+    p <span style="color: Gray;">=</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>B<span style="color: Olive;">[</span><span style="color: Maroon;">0</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+    result <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">[</span><span style="color: Maroon;">0.0</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>p<span style="color: Olive;">)</span><span style="color: Olive;">]</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>m<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+    <span style="color: Green;font-weight:bold;">for</span> i <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>m<span style="color: Olive;">)</span>:<br/>
+        <span style="color: Green;font-weight:bold;">for</span> j <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>p<span style="color: Olive;">)</span>:<br/>
+            <span style="color: Green;font-weight:bold;">for</span> k <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>n<span style="color: Olive;">)</span>:<br/>
+                result<span style="color: Olive;">[</span>i<span style="color: Olive;">]</span><span style="color: Olive;">[</span>j<span style="color: Olive;">]</span> +<span style="color: Gray;">=</span> A<span style="color: Olive;">[</span>i<span style="color: Olive;">]</span><span style="color: Olive;">[</span>k<span style="color: Olive;">]</span> * B<span style="color: Olive;">[</span>k<span style="color: Olive;">]</span><span style="color: Olive;">[</span>j<span style="color: Olive;">]</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> result<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> transpose<span style="color: Olive;">(</span>matrix: <span style="color: Teal;">list</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">list</span>:<br/>
+    <span style="color: #a11;">"""矩阵转置"""</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> <span style="color: Teal;">list</span><span style="color: Olive;">(</span><span style="color: Teal;">map</span><span style="color: Olive;">(</span><span style="color: Teal;">list</span><span style="color: Gray;">,</span> <span style="color: Teal;">zip</span><span style="color: Olive;">(</span>*matrix<span style="color: Olive;">)</span><span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> MultiHeadAttention:<br/>
+    <span style="color: #a11;">"""Pure Python implementation of the multi-head attention layer"""</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> d_model: <span style="color: Teal;">int</span><span style="color: Gray;">,</span> num_heads: <span style="color: Teal;">int</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""<br/>Initialize multi-head attention<br/>d_model: model dimension (must be divisible by num_heads)<br/>num_heads: number of attention heads<br/>
+        """</span><br/>
+        <span style="color: Green;font-weight:bold;">assert</span> d_model % num_heads <span style="color: Gray;">==</span> <span style="color: Maroon;">0</span><span style="color: Gray;">,</span> <span style="color: #a11;">"d_model must be divisible by num_heads"</span><br/>
+<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">d_model</span> <span style="color: Gray;">=</span> d_model<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">num_heads</span> <span style="color: Gray;">=</span> num_heads<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">d_k</span> <span style="color: Gray;">=</span> d_model // num_heads  <span style="color: #a50"># dimension of each head</span><br/>
+<br/>
+        <span style="color: #a50"># initialize projection matrices</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">Wq</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">[</span><span style="color: #05a;">random</span>.<span style="color: #05a;">normalvariate</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.1</span><span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_model<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+                   <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_model<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">Wk</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">[</span><span style="color: #05a;">random</span>.<span style="color: #05a;">normalvariate</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.1</span><span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_model<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+                   <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_model<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">Wv</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">[</span><span style="color: #05a;">random</span>.<span style="color: #05a;">normalvariate</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.1</span><span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_model<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+                   <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_model<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">Wo</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">[</span><span style="color: #05a;">random</span>.<span style="color: #05a;">normalvariate</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.1</span><span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_model<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+                   <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_model<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> split_heads<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> X: <span style="color: Teal;">list</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">list</span>:<br/>
+        <span style="color: #a11;">"""<br/>Split the last dimension into num_heads heads<br/>Input shape: [seq_len, d_model]<br/>Output shape: [num_heads, seq_len, d_k]<br/>
+        """</span><br/>
+        seq_len <span style="color: Gray;">=</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>X<span style="color: Olive;">)</span><br/>
+        <span style="color: #a50"># Reshape: [seq_len, num_heads, d_k]</span><br/>
+        reshaped <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> row <span style="color: Green;font-weight:bold;">in</span> X:<br/>
+            head_rows <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+            <span style="color: Green;font-weight:bold;">for</span> h <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span>.<span style="color: #05a;">num_heads</span><span style="color: Olive;">)</span>:<br/>
+                start <span style="color: Gray;">=</span> h * <span style="color: Teal;">self</span>.<span style="color: #05a;">d_k</span><br/>
+                end <span style="color: Gray;">=</span> start + <span style="color: Teal;">self</span>.<span style="color: #05a;">d_k</span><br/>
+                head_rows.<span style="color: #05a;">append</span><span style="color: Olive;">(</span>row<span style="color: Olive;">[</span>start:end<span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+            reshaped.<span style="color: #05a;">append</span><span style="color: Olive;">(</span>head_rows<span style="color: Olive;">)</span><br/>
+        <span style="color: #a50"># Transpose: [num_heads, seq_len, d_k]</span><br/>
+        result <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> h <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span>.<span style="color: #05a;">num_heads</span><span style="color: Olive;">)</span>:<br/>
+            head_data <span style="color: Gray;">=</span> <span style="color: Olive;">[</span>reshaped<span style="color: Olive;">[</span>i<span style="color: Olive;">]</span><span style="color: Olive;">[</span>h<span style="color: Olive;">]</span> <span style="color: Green;font-weight:bold;">for</span> i <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>seq_len<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+            result.<span style="color: #05a;">append</span><span style="color: Olive;">(</span>head_data<span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> result<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> combine_heads<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> heads: <span style="color: Teal;">list</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">list</span>:<br/>
+        <span style="color: #a11;">"""<br/>Concatenate the heads back together<br/>Input shape: [num_heads, seq_len, d_k]<br/>Output shape: [seq_len, d_model]<br/>
+        """</span><br/>
+        seq_len <span style="color: Gray;">=</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>heads<span style="color: Olive;">[</span><span style="color: Maroon;">0</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+        result <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> i <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>seq_len<span style="color: Olive;">)</span>:<br/>
+            combined <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+            <span style="color: Green;font-weight:bold;">for</span> h <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span>.<span style="color: #05a;">num_heads</span><span style="color: Olive;">)</span>:<br/>
+                combined.<span style="color: #05a;">extend</span><span style="color: Olive;">(</span>heads<span style="color: Olive;">[</span>h<span style="color: Olive;">]</span><span style="color: Olive;">[</span>i<span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+            result.<span style="color: #05a;">append</span><span style="color: Olive;">(</span>combined<span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> result<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> attention_single_head<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> Q: <span style="color: Teal;">list</span><span style="color: Gray;">,</span> K: <span style="color: Teal;">list</span><span style="color: Gray;">,</span> V: <span style="color: Teal;">list</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">list</span>:<br/>
+        <span style="color: #a11;">"""Single-head self-attention"""</span><br/>
+        <span style="color: #a50"># Q·K^T</span><br/>
+        scores <span style="color: Gray;">=</span> matrix_multiply<span style="color: Olive;">(</span>Q<span style="color: Gray;">,</span> transpose<span style="color: Olive;">(</span>K<span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+        <span style="color: #a50"># Scaling</span><br/>
+        scale <span style="color: Gray;">=</span> <span style="color: #05a;">math</span>.<span style="color: #05a;">sqrt</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span>.<span style="color: #05a;">d_k</span><span style="color: Olive;">)</span><br/>
+        scores_scaled <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">[</span>v / scale <span style="color: Green;font-weight:bold;">for</span> v <span style="color: Green;font-weight:bold;">in</span> row<span style="color: Olive;">]</span> <span style="color: Green;font-weight:bold;">for</span> row <span style="color: Green;font-weight:bold;">in</span> scores<span style="color: Olive;">]</span><br/>
+        <span style="color: #a50"># Softmax</span><br/>
+        weights <span style="color: Gray;">=</span> <span style="color: Olive;">[</span>softmax<span style="color: Olive;">(</span>row<span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> row <span style="color: Green;font-weight:bold;">in</span> scores_scaled<span style="color: Olive;">]</span><br/>
+        <span style="color: #a50"># Weighted sum of V</span><br/>
+        output <span style="color: Gray;">=</span> matrix_multiply<span style="color: Olive;">(</span>weights<span style="color: Gray;">,</span> V<span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> output<span style="color: Gray;">,</span> weights<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> forward<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> X: <span style="color: Teal;">list</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">list</span>:<br/>
+        <span style="color: #a11;">"""Multi-head attention forward pass"""</span><br/>
+        seq_len <span style="color: Gray;">=</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>X<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># Step 1: Compute Q, K, V</span><br/>
+        Q <span style="color: Gray;">=</span> matrix_multiply<span style="color: Olive;">(</span>X<span style="color: Gray;">,</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">Wq</span><span style="color: Olive;">)</span><br/>
+        K <span style="color: Gray;">=</span> matrix_multiply<span style="color: Olive;">(</span>X<span style="color: Gray;">,</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">Wk</span><span style="color: Olive;">)</span><br/>
+        V <span style="color: Gray;">=</span> matrix_multiply<span style="color: Olive;">(</span>X<span style="color: Gray;">,</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">Wv</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># Step 2: Split into multiple heads</span><br/>
+        Q_heads <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">split_heads</span><span style="color: Olive;">(</span>Q<span style="color: Olive;">)</span><br/>
+        K_heads <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">split_heads</span><span style="color: Olive;">(</span>K<span style="color: Olive;">)</span><br/>
+        V_heads <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">split_heads</span><span style="color: Olive;">(</span>V<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># Step 3: Each head performs self-attention independently</span><br/>
+        output_heads <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+        all_weights <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> h <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span>.<span style="color: #05a;">num_heads</span><span style="color: Olive;">)</span>:<br/>
+            out<span style="color: Gray;">,</span> weights <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">attention_single_head</span><span style="color: Olive;">(</span><br/>
+                Q_heads<span style="color: Olive;">[</span>h<span style="color: Olive;">]</span><span style="color: Gray;">,</span> K_heads<span style="color: Olive;">[</span>h<span style="color: Olive;">]</span><span style="color: Gray;">,</span> V_heads<span style="color: Olive;">[</span>h<span style="color: Olive;">]</span><br/>
+            <span style="color: Olive;">)</span><br/>
+            output_heads.<span style="color: #05a;">append</span><span style="color: Olive;">(</span>out<span style="color: Olive;">)</span><br/>
+            all_weights.<span style="color: #05a;">append</span><span style="color: Olive;">(</span>weights<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># Step 4: Concatenate all heads</span><br/>
+        combined <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">combine_heads</span><span style="color: Olive;">(</span>output_heads<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># Step 5: Final linear projection</span><br/>
+        output <span style="color: Gray;">=</span> matrix_multiply<span style="color: Olive;">(</span>combined<span style="color: Gray;">,</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">Wo</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">return</span> output<span style="color: Gray;">,</span> all_weights<br/>
+<br/>
+<br/>
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># Demonstrate multi-head attention</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+d_model <span style="color: Gray;">=</span> <span style="color: Maroon;">12</span><br/>
+num_heads <span style="color: Gray;">=</span> <span style="color: Maroon;">3</span>  <span style="color: #a50"># 12 / 3 = 4 dimensions per head</span><br/>
+<br/>
+<span style="color: #a50"># Input sequence: 4 tokens, each with 12 dimensions</span><br/>
+X <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><br/>
+    <span style="color: Olive;">[</span><span style="color: Maroon;">1.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span><br/>
+    <span style="color: Olive;">[</span><span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">1.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span><br/>
+    <span style="color: Olive;">[</span><span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">1.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span><br/>
+    <span style="color: Olive;">[</span><span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">1.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span><br/>
+<span style="color: Olive;">]</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">50</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Runoob Multi-Head Attention Demo"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">50</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"d_model = {d_model}, num_heads = {num_heads}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Dimension per head: d_k = {d_model // num_heads}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+mha <span style="color: Gray;">=</span> MultiHeadAttention<span style="color: Olive;">(</span>d_model<span style="color: Gray;">=</span>d_model<span style="color: Gray;">,</span> num_heads<span style="color: Gray;">=</span>num_heads<span style="color: Olive;">)</span><br/>
+output<span style="color: Gray;">,</span> all_weights <span style="color: Gray;">=</span> mha.<span style="color: #05a;">forward</span><span style="color: Olive;">(</span>X<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>"Attention weights for each head:"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">for</span> h <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>num_heads<span style="color: Olive;">)</span>:<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>"Head {h}:"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">for</span> i<span style="color: Gray;">,</span> row <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">enumerate</span><span style="color: Olive;">(</span>all_weights<span style="color: Olive;">[</span>h<span style="color: Olive;">]</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  Position {i}: {[f'{v:.4f}' for v in row]}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>"</span> + <span style="color: #a11;">"="</span> * <span style="color: Maroon;">50</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Multi-head attention final output shape:"</span><span style="color: Gray;">,</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>output<span style="color: Olive;">)</span><span style="color: Gray;">,</span> <span style="color: #a11;">"×"</span><span style="color: Gray;">,</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>output<span style="color: Olive;">[</span><span style="color: Maroon;">0</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">50</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">for</span> i<span style="color: Gray;">,</span> row <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">enumerate</span><span style="color: Olive;">(</span>output<span style="color: Olive;">)</span>:<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Position {i}: {[f'{v:.4f}' for v in row[:6]]}..."</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<p>The power of multi-head attention lies in:<span class="marked">Different heads automatically learn different types of attention patterns.</span></p>
+<p>For example, in translation tasks:</p>
+<ul>
+<li>Some heads focus on syntactic relationships (subject-verb-object)</li>
+<li>Some heads focus on coreference (which noun a pronoun refers to)</li>
+<li>Some heads focus on local neighboring words</li>
+</ul>
+<p>These patterns are not manually designed; they are automatically learned by the model during training.</p>
+<hr/>
+<h2>Positional Encoding</h2>
+<p>Self-attention has a problem: it is a "bag of words" model—it does not care about word order. "I love you" and "You love me" may look the same to self-attention.</p>
+<p>But order is crucial to language. We need to "inject" positional information into the model.</p>
+<h3>Sinusoidal Positional Encoding</h3>
+<p>The original Transformer uses sinusoidal positional encoding:</p>
+<pre>
+PE(pos, 2i) = sin(pos / 10000^(2i/d_model))
+PE(pos, 2i+1) = cos(pos / 10000^(2i/d_model))
+</pre>
+<p>Where:</p>
+<ul>
+<li>pos is the position (0, 1, 2, ...)</li>
+<li>i is the dimension index</li>
+<li>d_model is the model dimension</li>
+</ul>
+<p>This design is ingenious:</p>
+<ul>
+<li>Each position has a unique encoding</li>
+<li>Relative positions can be represented by linear combinations (sin(a+b) = sin a cos b + cos a sin b)</li>
+<li>It can extrapolate to longer sequences than those seen during training</li>
+</ul>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># Implement sinusoidal positional encoding</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">import</span> <span style="color: #05a;">math</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> sinusoidal_positional_encoding<span style="color: Olive;">(</span>seq_len: <span style="color: Teal;">int</span><span style="color: Gray;">,</span> d_model: <span style="color: Teal;">int</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">list</span>:<br/>
+    <span style="color: #a11;">"""<br/>Compute sinusoidal positional encoding<br/>Returns: positional encoding matrix of shape [seq_len, d_model]<br/>
+    """</span><br/>
+    pe <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">[</span><span style="color: Maroon;">0.0</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_model<span style="color: Olive;">)</span><span style="color: Olive;">]</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>seq_len<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">for</span> pos <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>seq_len<span style="color: Olive;">)</span>:<br/>
+        <span style="color: Green;font-weight:bold;">for</span> i <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Gray;">,</span> d_model<span style="color: Gray;">,</span> <span style="color: Maroon;">2</span><span style="color: Olive;">)</span>:<br/>
+            <span style="color: #a50"># Use sin for even dimensions</span><br/>
+            div_term <span style="color: Gray;">=</span> <span style="color: #05a;">math</span>.<span style="color: Teal;">pow</span><span style="color: Olive;">(</span><span style="color: Maroon;">10000</span><span style="color: Gray;">,</span> <span style="color: Maroon;">2</span> * i / d_model<span style="color: Olive;">)</span><br/>
+            pe<span style="color: Olive;">[</span>pos<span style="color: Olive;">]</span><span style="color: Olive;">[</span>i<span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: #05a;">math</span>.<span style="color: #05a;">sin</span><span style="color: Olive;">(</span>pos / div_term<span style="color: Olive;">)</span><br/>
+<br/>
+            <span style="color: #a50"># Use cos for odd dimensions (if the next dimension exists)</span><br/>
+            <span style="color: Green;font-weight:bold;">if</span> i + <span style="color: Maroon;">1</span> <span style="color: Gray;">&lt;</span> d_model:<br/>
+                pe<span style="color: Olive;">[</span>pos<span style="color: Olive;">]</span><span style="color: Olive;">[</span>i + <span style="color: Maroon;">1</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: #05a;">math</span>.<span style="color: #05a;">cos</span><span style="color: Olive;">(</span>pos / div_term<span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">return</span> pe<br/>
+<br/>
+<br/>
+<span style="color: #a50"># Demo: generate positional encoding</span><br/>
+seq_len <span style="color: Gray;">=</span> <span style="color: Maroon;">10</span><br/>
+d_model <span style="color: Gray;">=</span> <span style="color: Maroon;">8</span><br/>
+<br/>
+pe <span style="color: Gray;">=</span> sinusoidal_positional_encoding<span style="color: Olive;">(</span>seq_len<span style="color: Gray;">,</span> d_model<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">50</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Runoob Sinusoidal Positional Encoding Demo"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">50</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Sequence length: {seq_len}, Dimension: {d_model}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">for</span> pos <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>seq_len<span style="color: Olive;">)</span>:<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Position {pos:2d}: {[f'{v:.4f}' for v in pe[pos]]}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># Examine the relationship of relative positions</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>"</span> + <span style="color: #a11;">"="</span> * <span style="color: Maroon;">50</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Verify the linear relationship of relative positions"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">50</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Encoding difference between position 0 and position 1:"</span><span style="color: Olive;">)</span><br/>
+diff <span style="color: Gray;">=</span> <span style="color: Olive;">[</span>pe<span style="color: Olive;">[</span><span style="color: Maroon;">1</span><span style="color: Olive;">]</span><span style="color: Olive;">[</span>i<span style="color: Olive;">]</span> - pe<span style="color: Olive;">[</span><span style="color: Maroon;">0</span><span style="color: Olive;">]</span><span style="color: Olive;">[</span>i<span style="color: Olive;">]</span> <span style="color: Green;font-weight:bold;">for</span> i <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_model<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">[</span>f<span style="color: #a11;">'{v:.4f}'</span> <span style="color: Green;font-weight:bold;">for</span> v <span style="color: Green;font-weight:bold;">in</span> diff<span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<h3>RoPE: Rotary Positional Encoding</h3>
+<p>Although sinusoidal positional encoding is classic, better solutions emerged later. The current mainstream large models (such as LLaMA) use<strong>RoPE（Rotary Positional Embedding）</strong>。</p>
+<p>The idea of RoPE is:<span class="marked">Rotate position information into Query and Key.</span></p>
+<p>Specifically, rotate each pair of dimensions of Q and K:</p>
+<pre>
+[ q₁, q₂, q₃, q₄, ... ]
+  ↓ 旋转
+[ q₁·cos mθ - q₂·sin mθ,
+  q₁·sin mθ + q₂·cos mθ,
+  q₃·cos mθ' - q₄·sin mθ',
+  q₃·sin mθ' + q₄·cos mθ',
+  ... ]
+</pre>
+<p>Advantages of RoPE:</p>
+<ul>
+<li>Naturally contains relative position information</li>
+<li>Good extrapolation (works for lengths beyond training)</li>
+<li>Usually performs better than sinusoidal positional encoding</li>
+</ul>
+<h3>ALiBi: Decaying Attention by Distance</h3>
+<p>Another simple and effective approach is<strong>ALiBi（Attention with Linear Biases）</strong>。</p>
+<p>It does not add positional encoding, but directly adds a bias to the attention scores: the farther apart, the lower the score.</p>
+<p>The advantage of ALiBi is its simplicity, and it is especially friendly to length extrapolation.</p>
+<table class="reference">
+<tr><th>Positional Encoding Methods</th><th>Principle</th><th>Advantages</th><th>Representative Models</th></tr>
+<tr><td>Sinusoidal positional encoding</td><td>sin/cos functions</td><td>Extrapolatable, simple computation</td><td>Original Transformer, BERT</td></tr>
+<tr><td>Learnable positional encoding</td><td>Directly train an embedding</td><td>Strong expressive power</td><td>GPT-1/2</td></tr>
+<tr><td>RoPE</td><td>Rotate Q/K</td><td>Relative positions, good performance</td><td>LLaMA, PaLM</td></tr>
+<tr><td>ALiBi</td><td>Add bias to attention scores</td><td>Simple, good for long sequences</td><td>MPT, BLOOM</td></tr>
+</table>
+<hr/>
+<h2>Feed-Forward Network (FFN) Layer</h2>
+<p>In each Transformer layer, after attention, there is also a feed-forward network.</p>
+<h3>Structure of FFN</h3>
+<p>The FFN of the original Transformer is:</p>
+<pre>
+FFN(x) = max(0, x·W₁ + b₁) · W₂ + b₂
+</pre>
+<p>That is: linear layer → ReLU activation → linear layer.</p>
+<p>Usually the intermediate dimension is larger than the input dimension (e.g., d_model=512, intermediate dimension=2048).</p>
+<h3>ReLU vs SwiGLU</h3>
+<p>The original used ReLU, but now the mainstream is<strong>SwiGLU</strong>：</p>
+<pre>
+SwiGLU(x) = (x·W₁ ⊗ sigmoid(x·V₁)) · W₂
+</pre>
+<p>where ⊗ is element-wise multiplication.</p>
+<p>SwiGLU performs better than ReLU on many tasks; LLaMA, PaLM, etc., all use it.</p>
+<p>Why is FFN important?</p>
+<ul>
+<li>Attention is "aggregating information", FFN is "processing information"</li>
+<li>FFN has a large number of parameters, and is the main place where the model "memorizes" knowledge</li>
+<li>Without FFN, the expressive capability of Transformer would be greatly reduced</li>
+</ul>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># Implement FFN: ReLU version and SwiGLU version</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">import</span> <span style="color: #05a;">math</span><br/>
+<span style="color: Green;font-weight:bold;">import</span> <span style="color: #05a;">random</span><br/>
+<span style="color: #05a;">random</span>.<span style="color: #05a;">seed</span><span style="color: Olive;">(</span><span style="color: Maroon;">42</span><span style="color: Olive;">)</span>  <span style="color: #a50"># runoob</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> relu<span style="color: Olive;">(</span>x: <span style="color: Teal;">float</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">float</span>:<br/>
+    <span style="color: #a11;">"""ReLU activation function: max(0, x)"""</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> <span style="color: Teal;">max</span><span style="color: Olive;">(</span><span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> x<span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> sigmoid<span style="color: Olive;">(</span>x: <span style="color: Teal;">float</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">float</span>:<br/>
+    <span style="color: #a11;">"""Sigmoid activation function"""</span><br/>
+    <span style="color: Green;font-weight:bold;">if</span> x <span style="color: Gray;">&lt;</span> -<span style="color: Maroon;">50</span>:  <span style="color: #a50"># Prevent numerical overflow</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> <span style="color: Maroon;">0.0</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> <span style="color: Maroon;">1.0</span> / <span style="color: Olive;">(</span><span style="color: Maroon;">1.0</span> + <span style="color: #05a;">math</span>.<span style="color: #05a;">exp</span><span style="color: Olive;">(</span>-x<span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> linear<span style="color: Olive;">(</span>x: <span style="color: Teal;">list</span><span style="color: Gray;">,</span> W: <span style="color: Teal;">list</span><span style="color: Gray;">,</span> b: <span style="color: Teal;">list</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">list</span>:<br/>
+    <span style="color: #a11;">"""Linear layer: y = x·W + b"""</span><br/>
+    output_size <span style="color: Gray;">=</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>b<span style="color: Olive;">)</span><br/>
+    output <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Maroon;">0.0</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>output_size<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">for</span> i <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>output_size<span style="color: Olive;">)</span>:<br/>
+        sum_wx <span style="color: Gray;">=</span> <span style="color: Teal;">sum</span><span style="color: Olive;">(</span>x<span style="color: Olive;">[</span>j<span style="color: Olive;">]</span> * W<span style="color: Olive;">[</span>j<span style="color: Olive;">]</span><span style="color: Olive;">[</span>i<span style="color: Olive;">]</span> <span style="color: Green;font-weight:bold;">for</span> j <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Teal;">len</span><span style="color: Olive;">(</span>x<span style="color: Olive;">)</span><span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+        output<span style="color: Olive;">[</span>i<span style="color: Olive;">]</span> <span style="color: Gray;">=</span> sum_wx + b<span style="color: Olive;">[</span>i<span style="color: Olive;">]</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">return</span> output<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> FFNReLU:<br/>
+    <span style="color: #a11;">"""ReLU version FFN"""</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> d_model: <span style="color: Teal;">int</span><span style="color: Gray;">,</span> d_ff: <span style="color: Teal;">int</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">d_model</span> <span style="color: Gray;">=</span> d_model<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">d_ff</span> <span style="color: Gray;">=</span> d_ff<br/>
+<br/>
+        <span style="color: #a50"># Randomly initialize parameters (obtained by training in practice)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">W1</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">[</span><span style="color: #05a;">random</span>.<span style="color: #05a;">normalvariate</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.1</span><span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_ff<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+                   <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_model<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">b1</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Maroon;">0.0</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_ff<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">W2</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">[</span><span style="color: #05a;">random</span>.<span style="color: #05a;">normalvariate</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.1</span><span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_model<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+                   <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_ff<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">b2</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Maroon;">0.0</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_model<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> forward<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> x: <span style="color: Teal;">list</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">list</span>:<br/>
+        <span style="color: #a11;">"""Forward pass"""</span><br/>
+        <span style="color: #a50"># First layer: linear + ReLU</span><br/>
+        hidden <span style="color: Gray;">=</span> linear<span style="color: Olive;">(</span>x<span style="color: Gray;">,</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">W1</span><span style="color: Gray;">,</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">b1</span><span style="color: Olive;">)</span><br/>
+        hidden <span style="color: Gray;">=</span> <span style="color: Olive;">[</span>relu<span style="color: Olive;">(</span>v<span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> v <span style="color: Green;font-weight:bold;">in</span> hidden<span style="color: Olive;">]</span><br/>
+<br/>
+        <span style="color: #a50"># Second layer: linear</span><br/>
+        output <span style="color: Gray;">=</span> linear<span style="color: Olive;">(</span>hidden<span style="color: Gray;">,</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">W2</span><span style="color: Gray;">,</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">b2</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> output<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> FFNSwiGLU:<br/>
+    <span style="color: #a11;">"""SwiGLU version FFN (a more modern choice)"""</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> d_model: <span style="color: Teal;">int</span><span style="color: Gray;">,</span> d_ff: <span style="color: Teal;">int</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">d_model</span> <span style="color: Gray;">=</span> d_model<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">d_ff</span> <span style="color: Gray;">=</span> d_ff<br/>
+<br/>
+        <span style="color: #a50"># SwiGLU needs two linear layers for gating, plus an output layer</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">W1</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">[</span><span style="color: #05a;">random</span>.<span style="color: #05a;">normalvariate</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.1</span><span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_ff<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+                   <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_model<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">V1</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">[</span><span style="color: #05a;">random</span>.<span style="color: #05a;">normalvariate</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.1</span><span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_ff<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+                   <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_model<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">W2</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">[</span><span style="color: #05a;">random</span>.<span style="color: #05a;">normalvariate</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.1</span><span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_model<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+                   <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_ff<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> forward<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> x: <span style="color: Teal;">list</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">list</span>:<br/>
+        <span style="color: #a11;">"""Forward pass: SwiGLU"""</span><br/>
+        <span style="color: #a50"># Compute two linear transformations</span><br/>
+        x1 <span style="color: Gray;">=</span> linear<span style="color: Olive;">(</span>x<span style="color: Gray;">,</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">W1</span><span style="color: Gray;">,</span> <span style="color: Olive;">[</span><span style="color: Maroon;">0.0</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span>.<span style="color: #05a;">d_ff</span><span style="color: Olive;">)</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+        x2 <span style="color: Gray;">=</span> linear<span style="color: Olive;">(</span>x<span style="color: Gray;">,</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">V1</span><span style="color: Gray;">,</span> <span style="color: Olive;">[</span><span style="color: Maroon;">0.0</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span>.<span style="color: #05a;">d_ff</span><span style="color: Olive;">)</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># SwiGLU：x1 * sigmoid(x2)</span><br/>
+        hidden <span style="color: Gray;">=</span> <span style="color: Olive;">[</span>a * sigmoid<span style="color: Olive;">(</span>b<span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> a<span style="color: Gray;">,</span> b <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">zip</span><span style="color: Olive;">(</span>x1<span style="color: Gray;">,</span> x2<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+<br/>
+        <span style="color: #a50"># Output layer</span><br/>
+        output <span style="color: Gray;">=</span> linear<span style="color: Olive;">(</span>hidden<span style="color: Gray;">,</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">W2</span><span style="color: Gray;">,</span> <span style="color: Olive;">[</span><span style="color: Maroon;">0.0</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span>.<span style="color: #05a;">d_model</span><span style="color: Olive;">)</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> output<br/>
+<br/>
+<br/>
+<span style="color: #a50"># Demonstrate FFN</span><br/>
+d_model <span style="color: Gray;">=</span> <span style="color: Maroon;">8</span><br/>
+d_ff <span style="color: Gray;">=</span> <span style="color: Maroon;">16</span><br/>
+<br/>
+<span style="color: #a50"># Test input</span><br/>
+x <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Maroon;">0.1</span><span style="color: Gray;">,</span> -<span style="color: Maroon;">0.2</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.3</span><span style="color: Gray;">,</span> -<span style="color: Maroon;">0.4</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.5</span><span style="color: Gray;">,</span> -<span style="color: Maroon;">0.6</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.7</span><span style="color: Gray;">,</span> -<span style="color: Maroon;">0.8</span><span style="color: Olive;">]</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">50</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Runoob FFN demo"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">50</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Input: {[f'{v:.4f}' for v in x]}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+ffn_relu <span style="color: Gray;">=</span> FFNReLU<span style="color: Olive;">(</span>d_model<span style="color: Gray;">,</span> d_ff<span style="color: Olive;">)</span><br/>
+output_relu <span style="color: Gray;">=</span> ffn_relu.<span style="color: #05a;">forward</span><span style="color: Olive;">(</span>x<span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>"ReLU FFN output: {[f'{v:.4f}' for v in output_relu]}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+ffn_swiglu <span style="color: Gray;">=</span> FFNSwiGLU<span style="color: Olive;">(</span>d_model<span style="color: Gray;">,</span> d_ff<span style="color: Olive;">)</span><br/>
+output_swiglu <span style="color: Gray;">=</span> ffn_swiglu.<span style="color: #05a;">forward</span><span style="color: Olive;">(</span>x<span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"SwiGLU FFN output: {[f'{v:.4f}' for v in output_swiglu]}"</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<hr/>
+<h2>Layer Normalization (Layer Norm)</h2>
+<p>There is another important component in Transformer: Layer Normalization.</p>
+<h3>What Layer Normalization Does</h3>
+<p>Layer normalization normalizes the features of each sample to mean 0 and variance 1:</p>
+<pre>
+LN(x) = γ ⊗ ((x - μ) / √σ²) + β
+</pre>
+<p>where:</p>
+<ul>
+<li>μ is the mean of x, σ² is the variance of x</li>
+<li>γ (scale) and β (shift) are learnable parameters</li>
+<li>⊗ is element-wise multiplication</li>
+</ul>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># Implement Layer Normalization</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">import</span> <span style="color: #05a;">math</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> layer_norm<span style="color: Olive;">(</span>x: <span style="color: Teal;">list</span><span style="color: Gray;">,</span> gamma: <span style="color: Teal;">list</span><span style="color: Gray;">,</span> beta: <span style="color: Teal;">list</span><span style="color: Gray;">,</span> eps: <span style="color: Teal;">float</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">1e-6</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">list</span>:<br/>
+    <span style="color: #a11;">"""<br/>Layer Normalization<br/>x: input vector<br/>gamma: scaling parameter<br/>beta: offset parameter<br/>eps: small constant to prevent division by zero<br/>
+    """</span><br/>
+    <span style="color: #a50"># Compute mean</span><br/>
+    mean <span style="color: Gray;">=</span> <span style="color: Teal;">sum</span><span style="color: Olive;">(</span>x<span style="color: Olive;">)</span> / <span style="color: Teal;">len</span><span style="color: Olive;">(</span>x<span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># Compute variance</span><br/>
+    var <span style="color: Gray;">=</span> <span style="color: Teal;">sum</span><span style="color: Olive;">(</span><span style="color: Olive;">(</span>v - mean<span style="color: Olive;">)</span> ** <span style="color: Maroon;">2</span> <span style="color: Green;font-weight:bold;">for</span> v <span style="color: Green;font-weight:bold;">in</span> x<span style="color: Olive;">)</span> / <span style="color: Teal;">len</span><span style="color: Olive;">(</span>x<span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># Normalization + scale and shift</span><br/>
+    normalized <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+    <span style="color: Green;font-weight:bold;">for</span> xi<span style="color: Gray;">,</span> gi<span style="color: Gray;">,</span> bi <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">zip</span><span style="color: Olive;">(</span>x<span style="color: Gray;">,</span> gamma<span style="color: Gray;">,</span> beta<span style="color: Olive;">)</span>:<br/>
+        normalized.<span style="color: #05a;">append</span><span style="color: Olive;">(</span>gi * <span style="color: Olive;">(</span>xi - mean<span style="color: Olive;">)</span> / <span style="color: #05a;">math</span>.<span style="color: #05a;">sqrt</span><span style="color: Olive;">(</span>var + eps<span style="color: Olive;">)</span> + bi<span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">return</span> normalized<br/>
+<br/>
+<br/>
+<span style="color: #a50"># Demonstrate layer normalization</span><br/>
+d_model <span style="color: Gray;">=</span> <span style="color: Maroon;">6</span><br/>
+<br/>
+<span style="color: #a50"># Input vector</span><br/>
+x <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Maroon;">1.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">2.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">3.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">4.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">5.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">6.0</span><span style="color: Olive;">]</span><br/>
+<br/>
+<span style="color: #a50"># gamma initialized to 1, beta initialized to 0</span><br/>
+gamma <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Maroon;">1.0</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_model<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+beta <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Maroon;">0.0</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_model<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">50</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Runoob Layer Normalization Demo"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">50</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Input: {[f'{v:.4f}' for v in x]}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+output <span style="color: Gray;">=</span> layer_norm<span style="color: Olive;">(</span>x<span style="color: Gray;">,</span> gamma<span style="color: Gray;">,</span> beta<span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Output: {[f'{v:.4f}' for v in output]}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># Verify mean and variance</span><br/>
+mean_out <span style="color: Gray;">=</span> <span style="color: Teal;">sum</span><span style="color: Olive;">(</span>output<span style="color: Olive;">)</span> / <span style="color: Teal;">len</span><span style="color: Olive;">(</span>output<span style="color: Olive;">)</span><br/>
+var_out <span style="color: Gray;">=</span> <span style="color: Teal;">sum</span><span style="color: Olive;">(</span><span style="color: Olive;">(</span>v - mean_out<span style="color: Olive;">)</span> ** <span style="color: Maroon;">2</span> <span style="color: Green;font-weight:bold;">for</span> v <span style="color: Green;font-weight:bold;">in</span> output<span style="color: Olive;">)</span> / <span style="color: Teal;">len</span><span style="color: Olive;">(</span>output<span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>"Output mean: {mean_out:.4f}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Output variance: {var_out:.4f}"</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<h3>Pre-Norm vs Post-Norm</h3>
+<p>Layer normalization has two placement methods:</p>
+<ul>
+<li><strong>Post-Norm</strong>: sublayer → residual → normalization (original Transformer)</li>
+<li><strong>Pre-Norm</strong>: normalization → sublayer → residual (now mainstream)</li>
+</ul>
+<p>Pre-Norm training is more stable, and almost all large models use it now.</p>
+<h3>RMS Norm</h3>
+<p><strong>RMS Norm</strong>It is a simplified version of layer normalization, only calculating root mean square, without subtracting the mean:</p>
+<pre>
+RMS(x) = sqrt(mean(x²))
+RMSNorm(x) = γ ⊗ (x / RMS(x))
+</pre>
+<p>RMS Norm is faster to compute, with similar results; models like LLaMA use it.</p>
+<hr/>
+<h2>Encoder-Decoder vs Decoder-Only Architecture</h2>
+<p>The original Transformer is an Encoder-Decoder architecture, but most large language models today are Decoder-Only.</p>
+<h3>Encoder-Decoder: Used for Tasks Like Translation</h3>
+<p>Encoder-Decoder architecture:</p>
+<ul>
+<li>Encoder: reads the input sequence (e.g., source language sentence) and generates a context representation</li>
+<li>Decoder: generates the target sequence (e.g., translation result) based on the Encoder's output</li>
+</ul>
+<p>There are two types of attention in the Decoder:</p>
+<ol>
+<li><strong>Masked self-attention</strong>: can only look at previous words (cannot see the future)</li>
+<li><strong>Cross-attention</strong>: to attend to the Encoder's output</li>
+</ol>
+<p>Suitable tasks: machine translation, speech recognition, summarization (requires "rewriting" input into output).</p>
+<h3>Decoder-Only: GPT Series, Used for Generation</h3>
+<p>The Decoder-Only architecture has only a Decoder, no Encoder. Its characteristics:</p>
+<ul>
+<li>Only masked self-attention (causal attention)</li>
+<li>Autoregressive generation: outputs one word at a time</li>
+<li>Suitable for the pretraining + fine-tuning paradigm</li>
+</ul>
+<p>Current GPT, LLaMA, Claude, Gemini... are almost all Decoder-Only.</p>
+<h3>Encoder-Only: BERT Series, Used for Understanding</h3>
+<p>The Encoder-Only architecture has only an Encoder. Its characteristics:</p>
+<ul>
+<li>Bidirectional attention: each word can see all words</li>
+<li>Suitable for understanding tasks: classification, named entity recognition, extractive question answering</li>
+<li>Pretrained with "Masked Language Model" (MLM)</li>
+</ul>
+<table class="reference">
+<tr><th>Architecture</th><th>Component</th><th>Attention type</th><th>Representative model</th><th>Applicable tasks</th></tr>
+<tr><td>Encoder-Decoder</td><td>Encoder + Decoder</td><td>Bidirectional + masked + cross</td><td>T5, BART</td><td>Translation, summarization</td></tr>
+<tr><td>Decoder-Only</td><td>Decoder</td><td>Masked (causal)</td><td>GPT, LLaMA, Claude</td><td>Text generation</td></tr>
+<tr><td>Encoder-Only</td><td>Encoder</td><td>Bidirectional</td><td>BERT, RoBERTa</td><td>Classification, NER</td></tr>
+</table>
+<blockquote>
+<p>Why did Decoder-Only become mainstream? Because it is simple, and under large-scale pretraining, its generation ability is extremely strong. "One size fits all" actually works better than "specialized design".</p>
+</blockquote>
+<hr/>
+<h2>Flash Attention: Making Attention Computation Fast and Memory-Efficient</h2>
+<p>The time and memory complexity of standard self-attention are both O(n²); when the sequence gets long (e.g., n=8192), it is slow and GPU memory is insufficient.</p>
+<p><strong>Flash Attention</strong>It is a key optimization; its emergence in 2022 made long-sequence training feasible.</p>
+<h3>Memory Bottleneck of Standard Attention</h3>
+<p>Standard self-attention needs to save intermediate results (attention weight matrices) for backpropagation. For n=8192, this is 8192×8192 ≈ 67 million elements, which alone takes up tens of GB of GPU memory.</p>
+<h3>Optimization Principles of Flash Attention</h3>
+<p>Core idea of Flash Attention:</p>
+<ol>
+<li><strong>Block-wise computation</strong>: Split Q/K/V into small blocks and compute block by block</li>
+<li><strong>Online Softmax</strong>: Don't save the full attention matrix; use mathematical tricks to recompute it during backpropagation</li>
+<li><strong>Leverage SRAM</strong>: Put the blocks into the GPU's high-speed cache (SRAM) to reduce HBM access</li>
+</ol>
+<p>The result:</p>
+<ul>
+<li>Memory complexity drops from O(n²) to O(n)</li>
+<li>2-4x faster</li>
+<li>Identical precision (mathematically equivalent)</li>
+</ul>
+<p>Almost all large model training now uses Flash Attention or its variants (Flash Attention v2, Memory-Efficient Attention, etc.).</p>
+<hr/>
+<h2>KV Cache: Principles of Inference Acceleration</h2>
+<p>Once training optimization is done, inference (generation) also needs optimization.<strong>KV Cache</strong>It is the key to inference acceleration.</p>
+<h3>Problem: Repetitive Computation in Autoregressive Generation</h3>
+<p>During autoregressive generation, every time a new token is generated, the K and V of all previous tokens must be recomputed — this is very wasteful.</p>
+<p>For example, when generating the 100th token, the K/V of the first 99 tokens has already been computed and does not need to be recomputed.</p>
+<h3>How KV Cache Works</h3>
+<p>The idea of KV Cache is simple:</p>
+<ul>
+<li>Cache the K and V of all previous positions</li>
+<li>When generating a new token, only compute the new token's K/V and append it to the cache</li>
+<li>Use the complete K/V for attention</li>
+</ul>
+<p>This way, computation per step drops from O(n²) to O(n), greatly improving generation speed.</p>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># Demonstrate the principle of KV Cache</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">import</span> <span style="color: #05a;">math</span><br/>
+<span style="color: Green;font-weight:bold;">import</span> <span style="color: #05a;">random</span><br/>
+<span style="color: #05a;">random</span>.<span style="color: #05a;">seed</span><span style="color: Olive;">(</span><span style="color: Maroon;">42</span><span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> softmax<span style="color: Olive;">(</span>x<span style="color: Olive;">)</span>:<br/>
+    max_val <span style="color: Gray;">=</span> <span style="color: Teal;">max</span><span style="color: Olive;">(</span>x<span style="color: Olive;">)</span><br/>
+    exp_x <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: #05a;">math</span>.<span style="color: #05a;">exp</span><span style="color: Olive;">(</span>v - max_val<span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> v <span style="color: Green;font-weight:bold;">in</span> x<span style="color: Olive;">]</span><br/>
+    sum_exp <span style="color: Gray;">=</span> <span style="color: Teal;">sum</span><span style="color: Olive;">(</span>exp_x<span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> <span style="color: Olive;">[</span>v / sum_exp <span style="color: Green;font-weight:bold;">for</span> v <span style="color: Green;font-weight:bold;">in</span> exp_x<span style="color: Olive;">]</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> matmul<span style="color: Olive;">(</span>A<span style="color: Gray;">,</span> B<span style="color: Olive;">)</span>:<br/>
+    m <span style="color: Gray;">=</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>A<span style="color: Olive;">)</span><br/>
+    n <span style="color: Gray;">=</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>B<span style="color: Olive;">)</span><br/>
+    p <span style="color: Gray;">=</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>B<span style="color: Olive;">[</span><span style="color: Maroon;">0</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+    result <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">[</span><span style="color: Maroon;">0.0</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>p<span style="color: Olive;">)</span><span style="color: Olive;">]</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>m<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+    <span style="color: Green;font-weight:bold;">for</span> i <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>m<span style="color: Olive;">)</span>:<br/>
+        <span style="color: Green;font-weight:bold;">for</span> j <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>p<span style="color: Olive;">)</span>:<br/>
+            <span style="color: Green;font-weight:bold;">for</span> k <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>n<span style="color: Olive;">)</span>:<br/>
+                result<span style="color: Olive;">[</span>i<span style="color: Olive;">]</span><span style="color: Olive;">[</span>j<span style="color: Olive;">]</span> +<span style="color: Gray;">=</span> A<span style="color: Olive;">[</span>i<span style="color: Olive;">]</span><span style="color: Olive;">[</span>k<span style="color: Olive;">]</span> * B<span style="color: Olive;">[</span>k<span style="color: Olive;">]</span><span style="color: Olive;">[</span>j<span style="color: Olive;">]</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> result<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> transpose<span style="color: Olive;">(</span>matrix<span style="color: Olive;">)</span>:<br/>
+    <span style="color: Green;font-weight:bold;">return</span> <span style="color: Teal;">list</span><span style="color: Olive;">(</span><span style="color: Teal;">map</span><span style="color: Olive;">(</span><span style="color: Teal;">list</span><span style="color: Gray;">,</span> <span style="color: Teal;">zip</span><span style="color: Olive;">(</span>*matrix<span style="color: Olive;">)</span><span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> SimpleAttentionWithKVCache:<br/>
+    <span style="color: #a11;">"""Simple self-attention with KV Cache"""</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> d_model: <span style="color: Teal;">int</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">d_model</span> <span style="color: Gray;">=</span> d_model<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">Wq</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">[</span><span style="color: #05a;">random</span>.<span style="color: #05a;">normalvariate</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.1</span><span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_model<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+                   <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_model<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">Wk</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">[</span><span style="color: #05a;">random</span>.<span style="color: #05a;">normalvariate</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.1</span><span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_model<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+                   <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_model<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">Wv</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">[</span><span style="color: #05a;">random</span>.<span style="color: #05a;">normalvariate</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.1</span><span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_model<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+                   <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>d_model<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> forward<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> x_new: <span style="color: Teal;">list</span><span style="color: Gray;">,</span> kv_cache: <span style="color: Teal;">tuple</span> <span style="color: Gray;">=</span> <span style="color: Teal;">None</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">tuple</span>:<br/>
+        <span style="color: #a11;">"""<br/>One-step generation with KV Cache<br/>x_new: current new input (single position)<br/>kv_cache: previous K and V, (K_cache, V_cache)<br/>Returns: (output, new kv_cache)<br/>
+        """</span><br/>
+        <span style="color: #a50"># Compute Q, K, V for the current position</span><br/>
+        q <span style="color: Gray;">=</span> matmul<span style="color: Olive;">(</span><span style="color: Olive;">[</span>x_new<span style="color: Olive;">]</span><span style="color: Gray;">,</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">Wq</span><span style="color: Olive;">)</span><br/>
+        k <span style="color: Gray;">=</span> matmul<span style="color: Olive;">(</span><span style="color: Olive;">[</span>x_new<span style="color: Olive;">]</span><span style="color: Gray;">,</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">Wk</span><span style="color: Olive;">)</span><br/>
+        v <span style="color: Gray;">=</span> matmul<span style="color: Olive;">(</span><span style="color: Olive;">[</span>x_new<span style="color: Olive;">]</span><span style="color: Gray;">,</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">Wv</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># Update KV Cache</span><br/>
+        <span style="color: Green;font-weight:bold;">if</span> kv_cache <span style="color: Green;font-weight:bold;">is</span> <span style="color: Teal;">None</span>:<br/>
+            K_full <span style="color: Gray;">=</span> k<br/>
+            V_full <span style="color: Gray;">=</span> v<br/>
+        <span style="color: Green;font-weight:bold;">else</span>:<br/>
+            K_cache<span style="color: Gray;">,</span> V_cache <span style="color: Gray;">=</span> kv_cache<br/>
+            K_full <span style="color: Gray;">=</span> K_cache + k<br/>
+            V_full <span style="color: Gray;">=</span> V_cache + v<br/>
+<br/>
+        <span style="color: #a50"># Attention: only use the current position's Q</span><br/>
+        scores <span style="color: Gray;">=</span> matmul<span style="color: Olive;">(</span>q<span style="color: Gray;">,</span> transpose<span style="color: Olive;">(</span>K_full<span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+        scale <span style="color: Gray;">=</span> <span style="color: #05a;">math</span>.<span style="color: #05a;">sqrt</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span>.<span style="color: #05a;">d_model</span><span style="color: Olive;">)</span><br/>
+        scores_scaled <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">[</span>v / scale <span style="color: Green;font-weight:bold;">for</span> v <span style="color: Green;font-weight:bold;">in</span> row<span style="color: Olive;">]</span> <span style="color: Green;font-weight:bold;">for</span> row <span style="color: Green;font-weight:bold;">in</span> scores<span style="color: Olive;">]</span><br/>
+        weights <span style="color: Gray;">=</span> <span style="color: Olive;">[</span>softmax<span style="color: Olive;">(</span>row<span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> row <span style="color: Green;font-weight:bold;">in</span> scores_scaled<span style="color: Olive;">]</span><br/>
+        output <span style="color: Gray;">=</span> matmul<span style="color: Olive;">(</span>weights<span style="color: Gray;">,</span> V_full<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">return</span> output<span style="color: Olive;">[</span><span style="color: Maroon;">0</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span> <span style="color: Olive;">(</span>K_full<span style="color: Gray;">,</span> V_full<span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: #a50"># Demonstrate the KV Cache generation process</span><br/>
+d_model <span style="color: Gray;">=</span> <span style="color: Maroon;">4</span><br/>
+<br/>
+<span style="color: #a50"># Simulate 4 steps of generation</span><br/>
+inputs <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><br/>
+    <span style="color: Olive;">[</span><span style="color: Maroon;">1.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span><br/>
+    <span style="color: Olive;">[</span><span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">1.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span><br/>
+    <span style="color: Olive;">[</span><span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">1.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span><br/>
+    <span style="color: Olive;">[</span><span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">1.0</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span><br/>
+<span style="color: Olive;">]</span><br/>
+<br/>
+attn <span style="color: Gray;">=</span> SimpleAttentionWithKVCache<span style="color: Olive;">(</span>d_model<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">50</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Runoob KV Cache demonstration"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">50</span><span style="color: Olive;">)</span><br/>
+<br/>
+kv_cache <span style="color: Gray;">=</span> <span style="color: Teal;">None</span><br/>
+<span style="color: Green;font-weight:bold;">for</span> step<span style="color: Gray;">,</span> x <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">enumerate</span><span style="color: Olive;">(</span>inputs<span style="color: Olive;">)</span>:<br/>
+    output<span style="color: Gray;">,</span> kv_cache <span style="color: Gray;">=</span> attn.<span style="color: #05a;">forward</span><span style="color: Olive;">(</span>x<span style="color: Gray;">,</span> kv_cache<span style="color: Olive;">)</span><br/>
+    K_cache<span style="color: Gray;">,</span> V_cache <span style="color: Gray;">=</span> kv_cache<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>"Step {step}:"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  KV Cache size: {len(K_cache)} positions"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  Output: {[f'{v:.4f}' for v in output]}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>"</span> + <span style="color: #a11;">"="</span> * <span style="color: Maroon;">50</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Note: each step only computes the K/V of the current position,"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"then appends it to the Cache, no need to recompute the previous ones!"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">50</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<p>KV Cache has a small cost: it requires extra GPU memory to store K and V. For a 7B model with a 4k context, KV Cache takes about 1-2GB of GPU memory — this is worth it.</p>
+<p>There are also more advanced optimizations:</p>
+<ul>
+<li><strong>Multi-Query Attention</strong>: Multiple heads share K/V</li>
+<li><strong>Grouped Query Attention</strong>: Grouped sharing of K/V</li>
+</ul>
+<p>These further reduce memory usage and improve inference speed.</p>
+<hr/>
+<h2>Summary: Complete Transformer Pipeline</h2>
+<p>Let's put all the components together and summarize the complete Transformer flow.</p>
+<h3>One Decoder-Only Transformer Layer</h3>
+<pre>
+x → LayerNorm → Masked Multi-Head Attention → 残差连接 →
+    → LayerNorm → FFN → 残差连接 → 输出
+</pre>
+<h3>Complete Decoder-Only Model</h3>
+<ol>
+<li>Input token IDs → word embedding</li>
+<li>Add positional encoding</li>
+<li>Pass through N Transformer layers</li>
+<li>Final LayerNorm</li>
+<li>Linear layer mapping to vocabulary size</li>
+<li>Softmax to get the probability of the next token</li>
+</ol>
+<h3>Key Hyperparameters</h3>
+<table class="reference">
+<tr><th>Hyperparameter</th><th>Meaning</th><th>GPT-2 (124M)</th><th>LLaMA-7B</th><th>GPT-3 (175B)</th></tr>
+<tr><td>d_model</td><td>Model dimension</td><td>768</td><td>4096</td><td>12288</td></tr>
+<tr><td>num_heads</td><td>Number of attention heads</td><td>12</td><td>32</td><td>96</td></tr>
+<tr><td>num_layers</td><td>Number of layers</td><td>12</td><td>32</td><td>96</td></tr>
+<tr><td>d_ff</td><td>FFN intermediate dimension</td><td>3072</td><td>11008</td><td>49152</td></tr>
+<tr><td>context_len</td><td>Context length</td><td>1024</td><td>2048/4096</td><td>2048</td></tr>
+</table>
+<h3>Code Implementation Guide</h3>
+<p>If you want to implement a simplified Transformer from scratch, the steps are:</p>
+<ol>
+<li>Implement layer normalization</li>
+<li>Implement self-attention (with masking)</li>
+<li>Implement multi-head attention</li>
+<li>Implement FFN</li>
+<li>Implement Transformer layer</li>
+<li>Implement positional encoding</li>
+<li>Assemble the complete model</li>
+<li>Implement the training loop</li>
+</ol>
+<p>In practice, we use frameworks like PyTorch rather than pure Python. The pure Python implementation here is for demonstrating the principles and helping you understand what each step does.</p>
+<blockquote>
+<p>The best way to understand Transformer is to implement it yourself. Even a simplified version will give you a fresh perspective on many details.</p>
+</blockquote>
+Other extensions
+</div>
+</div>
+<div class="archive-list" style="display:none;font-size: 14px;line-height: 1.8;margin-top: 20px;padding: 10px;">
+<div class="archive-list-item">
+<div class="post-intro" id="ai-info" style="width: 100%;">AI thinking...</div>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../ai/ai-security.html" rel="prev">AI security advanced</a> </div>
+<div class="next-design-link"><a href="../ai/ai-fine-tuning.html" rel="next">Model fine-tuning</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="sidebar-box">
+</div>
+Note list
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>Click to Share Notes</h3>
+&lt;p style="font-size:14px;"&gt;The note must be an extension of the content of this article!&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;To submit an article, click here&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;How to get a registration invitation code&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; You must &lt;a href=";.html" class="runoob-pop"&gt;log in&lt;/a&gt; before sharing notes!&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;How to get a registration invitation code&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=";.html" id="cancel-comment-reply-link">Cancel</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="31516"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>Share notes</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">Nickname</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">Nickname (required)</span></li>
+<li class="form-inline"><label class="hide" for="email">Email</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">Email (required)</span></li>
+<li class="form-inline"><label class="hide" for="url">Reference address</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">Reference address</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  31516;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 31516, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":31516},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+</div>
+</div>
+<!-- 右边栏 -->
+<div class="fivecol last right-column">
+<style>
+.sidebar-tree .double-li {
+    width:300px;
+}
+.sidebar-tree .double-li li {
+    width: 44%;
+    line-height: 1.5em;
+    border-bottom: 1px solid #ccc;
+    float: left;
+    display: inline;
+}
+</style>
+<div class="sidebar-box re-box re-box-large">
+<div class="sidebar-box recommend-here" style="margin: 0 auto;">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;"> <i aria-hidden="true" class="fa fa-list"></i> 分类导航</a>
+</div>
+<div class="sidebar-box sidebar-cate">
+<div class="sidebar-tree">
+<ul><li style="margin: 0;"><a class="tit" href="#"> Python / 数据科学</a><ul class="double-li"><li><a href="../python3/python3-tutorial.html" title="Python 教程">Python 教程</a></li><li><a href="../python/python-tutorial.html" title="Python2.x 教程">Python2.x 教程</a></li><li><a href="../fastapi/fastapi-tutorial.html" title="FastAPI 教程">FastAPI 教程</a></li><li><a href="../flask/flask-tutorial.html" title="Flask 教程">Flask 教程</a></li><li><a href="../django/django-tutorial.html" title="Django 教程">Django 教程</a></li><li><a href="../numpy/numpy-tutorial.html" title="NumPy 教程">NumPy 教程</a></li><li><a href="../pandas/pandas-tutorial.html" title="Pandas 教程">Pandas 教程</a></li><li><a href="../scipy/scipy-tutorial.html" title="SciPy 教程">SciPy 教程</a></li><li><a href="../matplotlib/matplotlib-tutorial.html" title="Matplotlib 教程">Matplotlib 教程</a></li><li><a href="../dash/dash-tutorial.html" title="Dash 教程">Dash 教程</a></li><li><a href="../jupyter-notebook/jupyter-notebook-tutorial.html" title="Jupyter Notebook 教程">Jupyter Notebook 教程</a></li><li><a href="../pillow/pillow-tutorial.html" title="Pillow 教程">Pillow 教程</a></li><li><a href="../qt/qt-tutorial.html" title="量化交易">量化交易</a></li><li><a href="../r/r-tutorial.html" title="R 教程">R 教程</a></li><li><a href="../julia/julia-tutorial.html" title="Julia 教程">Julia 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> AI / 智能开发</a><ul class="double-li"><li><a href="../ai-agent/ai-agent-tutorial.html" title="AI Agent（智能体）">AI Agent（智能体）</a></li><li><a href="../ai/ai-tutorial.html" title="AI（人工智能）">AI（人工智能）</a></li><li><a href="../codex/codex-tutorial.html" title="Codex 教程">Codex 教程</a></li><li><a href="../vibe-coding/vibe-coding-tutorial.html" title="Vibe Coding 教程">Vibe Coding 教程</a></li><li><a href="../claude-code/claude-code-tutorial.html" title="Claude Code">Claude Code</a></li><li><a href="../opencode/opencode-tutorial.html" title="OpenCode">OpenCode</a></li><li><a href="../skills/skills-tutorial.html" title="Skills（技能）">Skills（技能）</a></li><li><a href="../ollama/ollama-tutorial.html" title="Ollama 教程">Ollama 教程</a></li><li><a href="../hermes-agent/hermes-agent-tutorial.html" title="Hermes Agent">Hermes Agent</a></li><li><a href="../deepseek-harness/deepseek-harness-tutorial.html" title="DeepSeek Harness">DeepSeek Harness</a></li><li><a href="../pi-agent/pi-agent-tutorial.html" title="Pi Agent">Pi Agent</a></li><li><a href="../ai-math/ai-math-tutorial.html" title="AI 数学基础">AI 数学基础</a></li><li><a href="../tensorflow/tensorflow-tutorial.html" title="TensorFlow 教程">TensorFlow 教程</a></li><li><a href="../pytorch/pytorch-tutorial.html" title="PyTorch 教程">PyTorch 教程</a></li><li><a href="../sklearn/sklearn-tutorial.html" title="Scikit-learn 教程">Scikit-learn 教程</a></li><li><a href="../ml/ml-tutorial.html" title="机器 教程">机器 教程</a></li><li><a href="../langchain/langchain-tutorial.html" title="LangChain">LangChain</a></li><li><a href="../nlp/nlp-tutorial.html" title="自然语言处理 NLP">自然语言处理 NLP</a></li><li><a href="../opencv/opencv-tutorial.html" title="OpenCV 教程">OpenCV 教程</a></li><li><a href="../selenium/selenium-tutorial.html" title="Selenium 教程">Selenium 教程</a></li><li><a href="../playwright/playwright-tutorial.html" title="Playwright 教程">Playwright 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 前端开发</a><ul class="double-li"><li><a href="../html/html-tutorial.html" title="HTML 教程">HTML 教程</a></li><li><a href="../html/html5-intro.html" title="HTML5 教程">HTML5 教程</a></li><li><a href="../css/css-tutorial.html" title="CSS 教程">CSS 教程</a></li><li><a href="../css3/css3-tutorial.html" title="CSS3 教程">CSS3 教程</a></li><li><a href="../js/js-tutorial.html" title="JavaScript 教程">JavaScript 教程</a></li><li><a href="../htmldom/htmldom-tutorial.html" title="HTML DOM 教程">HTML DOM 教程</a></li><li><a href="../typescript/ts-tutorial.html" title="TypeScript 教程">TypeScript 教程</a></li><li><a href="../ajax/ajax-tutorial.html" title="AJAX 教程">AJAX 教程</a></li><li><a href="../json/json-tutorial.html" title="JSON 教程">JSON 教程</a></li><li><a href="../tailwindcss/tailwindcss-tutorial.html" title="Tailwind CSS 教程">Tailwind CSS 教程</a></li><li><a href="../bootstrap4/bootstrap4-tutorial.html" title="Bootstrap4 教程">Bootstrap4 教程</a></li><li><a href="../bootstrap5/bootstrap5-tutorial.html" title="Bootstrap5 教程">Bootstrap5 教程</a></li><li><a href="../foundation/foundation-tutorial.html" title="Foundation 教程">Foundation 教程</a></li><li><a href="../vue2/vue-tutorial.html" title="Vue.js 教程">Vue.js 教程</a></li><li><a href="../vue3/vue3-tutorial.html" title="Vue3 教程">Vue3 教程</a></li><li><a href="../react/react-tutorial.html" title="React 教程">React 教程</a></li><li><a href="../nextjs/nextjs-tutorial.html" title="Next.js 教程">Next.js 教程</a></li><li><a href="../angularjs/angularjs-tutorial.html" title="AngularJS 教程">AngularJS 教程</a></li><li><a href="../angularjs2/angularjs2-tutorial.html" title="Angular 教程">Angular 教程</a></li><li><a href="../jquery/jquery-tutorial.html" title="jQuery 教程">jQuery 教程</a></li><li><a href="../jqueryui/jqueryui-tutorial.html" title="jQuery UI 教程">jQuery UI 教程</a></li><li><a href="../jeasyui/jqueryeasyui-tutorial.html" title="jQuery EasyUI 教程">jQuery EasyUI 教程</a></li><li><a href="../echarts/echarts-tutorial.html" title="ECharts 教程">ECharts 教程</a></li><li><a href="../chartjs/chartjs-tutorial.html" title="Chart.js 教程">Chart.js 教程</a></li><li><a href="../highcharts/highcharts-tutorial.html" title="Highcharts 教程">Highcharts 教程</a></li><li><a href="../googleapi/google-maps-basic.html" title="Google 地图 教程">Google 地图 教程</a></li><li><a href="../svg/svg-tutorial.html" title="SVG 教程">SVG 教程</a></li><li><a href="../font-awesome/fontawesome-tutorial.html" title="Font Awesome 教程">Font Awesome 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 后端开发</a><ul class="double-li"><li><a href="../nodejs/nodejs-tutorial.html" title="Node.js 教程">Node.js 教程</a></li><li><a href="../electron/electron-tutorial.html" title="Electron 教程">Electron 教程</a></li><li><a href="../php/php-tutorial.html" title="PHP 教程">PHP 教程</a></li><li><a href="../java/java-tutorial.html" title="Java 教程">Java 教程</a></li><li><a href="../go/go-tutorial.html" title="Go 教程">Go 教程</a></li><li><a href="../rust/rust-tutorial.html" title="Rust 教程">Rust 教程</a></li><li><a href="../csharp/csharp-tutorial.html" title="C# 教程">C# 教程</a></li><li><a href="../servlet/servlet-tutorial.html" title="Servlet 教程">Servlet 教程</a></li><li><a href="../jsp/jsp-tutorial.html" title="JSP 教程">JSP 教程</a></li><li><a href="../asp/asp-tutorial.html" title="ASP 教程">ASP 教程</a></li><li><a href="../appml/appml-tutorial.html" title="AppML 教程">AppML 教程</a></li><li><a href="../vbscript/vbscript-tutorial.html" title="VBScript 教程">VBScript 教程</a></li><li><a href="../swagger/swagger-tutorial.html" title="Swagger 教程">Swagger 教程</a></li><li><a href="../restfulapi/restful-api-tutorial.html" title="RESTful API 教程">RESTful API 教程</a></li><li><a href="../docker/docker-tutorial.html" title="Docker 教程">Docker 教程</a></li><li><a href="../linux/linux-tutorial.html" title="Linux 教程">Linux 教程</a></li><li><a href="../w3cnote/zookeeper-tutorial.html" title="ZooKeeper 教程">ZooKeeper 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 数据库</a><ul class="double-li"><li><a href="../sql/sql-tutorial.html" title="SQL 教程">SQL 教程</a></li><li><a href="../mysql/mysql-tutorial.html" title="MySQL 教程">MySQL 教程</a></li><li><a href="../postgresql/postgresql-tutorial.html" title="PostgreSQL 教程">PostgreSQL 教程</a></li><li><a href="../sqlite/sqlite-tutorial.html" title="SQLite 教程">SQLite 教程</a></li><li><a href="../mongodb/mongodb-tutorial.html" title="MongoDB 教程">MongoDB 教程</a></li><li><a href="../redis/redis-tutorial.html" title="Redis 教程">Redis 教程</a></li><li><a href="../memcached/memcached-tutorial.html" title="Memcached 教程">Memcached 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 移动开发</a><ul class="double-li"><li><a href="../w3cnote/android-tutorial-intro.html" title="Android 教程">Android 教程</a></li><li><a href="../flutter/flutter-tutorial.html" title="Flutter 教程">Flutter 教程</a></li><li><a href="../ionic/ionic-tutorial.html" title="Ionic 教程">Ionic 教程</a></li><li><a href="../jquerymobile/jquerymobile-tutorial.html" title="jQuery Mobile 教程">jQuery Mobile 教程</a></li><li><a href="../swift/swift-tutorial.html" title="Swift 教程">Swift 教程</a></li><li><a href="../kotlin/kotlin-tutorial.html" title="Kotlin 教程">Kotlin 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> DevOps / 工程化</a><ul class="double-li"><li><a href="../git/git-tutorial.html" title="Git 教程">Git 教程</a></li><li><a href="../svn/svn-tutorial.html" title="SVN 教程">SVN 教程</a></li><li><a href="../cmake/cmake-tutorial.html" title="CMake 教程">CMake 教程</a></li><li><a href="../maven/maven-tutorial.html" title="Maven 教程">Maven 教程</a></li><li><a href="../vscode/vscode-tutorial.html" title="VS Code 教程">VS Code 教程</a></li><li><a href="../obsidian/obsidian-tutorial.html" title="Obsidian 教程">Obsidian 教程</a></li><li><a href="../pycharm/pycharm-tutorial.html" title="PyCharm 教程">PyCharm 教程</a></li><li><a href="../eclipse/eclipse-tutorial.html" title="Eclipse 教程">Eclipse 教程</a></li><li><a href="../markdown/md-tutorial.html" title="Markdown 教程">Markdown 教程</a></li><li><a href="../latex/latex-tutorial.html" title="LaTeX 教程">LaTeX 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 编程语言</a><ul class="double-li"><li><a href="../c/c-tutorial.html" title="C 教程">C 教程</a></li><li><a href="../cplusplus/cpp-tutorial.html" title="C++ 教程">C++ 教程</a></li><li><a href="../zig/zig-tutorial.html" title="Zig 教程">Zig 教程</a></li><li><a href="../scala/scala-tutorial.html" title="Scala 教程">Scala 教程</a></li><li><a href="../ruby/ruby-tutorial.html" title="Ruby 教程">Ruby 教程</a></li><li><a href="../perl/perl-tutorial.html" title="Perl 教程">Perl 教程</a></li><li><a href="../lua/lua-tutorial.html" title="Lua 教程">Lua 教程</a></li><li><a href="../dart/dart-tutorial.html" title="Dart 教程">Dart 教程</a></li><li><a href="../assembly/assembly-tutorial.html" title="汇编语言 教程">汇编语言 教程</a></li><li><a href="../w3cnote/verilog-tutorial.html" title="Verilog 教程">Verilog 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 计算机基础</a><ul class="double-li"><li><a href="../computer-organization/computer-organization-tutorial.html" title="计算机组成原理">计算机组成原理</a></li><li><a href="../data-structures/data-structures-tutorial.html" title="数据结构与算法">数据结构与算法</a></li><li><a href="../c-dsa/c-dsa-tutorial.html" title="C 语言数据结构与算法">C 语言数据结构与算法</a></li><li><a href="../design-pattern/design-pattern-tutorial.html" title="设计模式">设计模式</a></li><li><a href="../python-design-pattern/python-design-pattern-tutorial.html" title="Python 设计模式">Python 设计模式</a></li><li><a href="../regexp/regexp-tutorial.html" title="正则表达式">正则表达式</a></li><li><a href="../http/http-tutorial.html" title="HTTP 教程">HTTP 教程</a></li><li><a href="../tcpip/tcpip-tutorial.html" title="TCP/IP 教程">TCP/IP 教程</a></li><li><a href="../np/np-tutorial.html" title="网络协议">网络协议</a></li><li><a href="../w3c/w3c-tutorial.html" title="W3C 教程">W3C 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> XML / Web Service</a><ul class="double-li"><li><a href="../xml/xml-tutorial.html" title="XML 教程">XML 教程</a></li><li><a href="../dtd/dtd-tutorial.html" title="DTD 教程">DTD 教程</a></li><li><a href="../dom/dom-tutorial.html" title="XML DOM 教程">XML DOM 教程</a></li><li><a href="../xsl/xsl-tutorial.html" title="XSLT 教程">XSLT 教程</a></li><li><a href="../xpath/xpath-tutorial.html" title="XPath 教程">XPath 教程</a></li><li><a href="../xquery/xquery-tutorial.html" title="XQuery 教程">XQuery 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XLink 教程">XLink 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XPointer 教程">XPointer 教程</a></li><li><a href="../schema/schema-tutorial.html" title="XML Schema 教程">XML Schema 教程</a></li><li><a href="../xslfo/xslfo-tutorial.html" title="XSL-FO 教程">XSL-FO 教程</a></li><li><a href="../webservices/webservices-tutorial.html" title="Web Service 教程">Web Service 教程</a></li><li><a href="../wsdl/wsdl-tutorial.html" title="WSDL 教程">WSDL 教程</a></li><li><a href="../soap/soap-tutorial.html" title="SOAP 教程">SOAP 教程</a></li><li><a href="../rss/rss-tutorial.html" title="RSS 教程">RSS 教程</a></li><li><a href="../rdf/rdf-tutorial.html" title="RDF 教程">RDF 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> .NET</a><ul class="double-li"><li><a href="../aspnet/aspnet-tutorial.html" title="ASP.NET 教程">ASP.NET 教程</a></li><li><a href="../aspnet/mvc-intro.html" title="MVC 教程">MVC 教程</a></li><li><a href="../aspnet/razor-intro.html" title="Razor 教程">Razor 教程</a></li><li><a href="../aspnet/aspnet-intro.html" title="Web Forms 教程">Web Forms 教程</a></li><li><a href="../aspnet/webpages-intro.html" title="Web Pages 教程">Web Pages 教程</a></li><li><a href="../powershell/powershell-tutorial.html" title="PowerShell 教程">PowerShell 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 网站建设</a><ul class="double-li"><li><a href="../web/web-buildingprimer.html" title="网站建设指南">网站建设指南</a></li><li><a href="../browsers/browser-information.html" title="浏览器信息">浏览器信息</a></li><li><a href="../hosting/hosting-tutorial.html" title="网站主机教程">网站主机教程</a></li><li><a href="../quality/quality-tutorial.html" title="网站品质">网站品质</a></li></ul></li></ul> </div>
+</div>
+</div>
+<br/>
+<div class="sidebar-box re-box re-box-large">
+</div>
+</div></div>
+</div>
+<script>
+var aid = 31516;
+function coll() {
+	$.post( '/wp-content/themes/runoob/option/user/userinfo.php', {aid:aid, action:"collarticle", opt:'add'},function( data ) {
+		if(data.error==0) {
+			$("#content").find("h1:first").find("a").attr("href","javascript:void(0);");
+			$("#content").find("h1:first").find("img").attr("src","http://www.runoob.com/wp-content/themes/runoob/assets/img/coll2.png").css({width:32+"px",height:32+"px"});
+		}
+		alert(data.msg);
+	},'json');
+}
+
+(function () {
+    // 1. 仅 HTML 页面
+    if (!document.contentType || !document.contentType.includes('text/html')) return;
+
+    // 2. 容器判断
+    var container = document.querySelector('.article-intro');
+    if (!container) return;
+
+    var h1 = container.querySelector('h1');
+    if (!h1) return;
+
+    // 3. URL 判断
+    var url = window.location.href.toLowerCase();
+    var version = null;
+
+    if (url.includes('/python3/')) {
+        version = 'Python3.x';
+    } else if (url.includes('/python/')) {
+        version = 'Python2.x';
+    }
+
+    if (!version) return;
+
+    // 4. 防重复
+    if (h1.querySelector('.py-version-badge')) return;
+
+    // 5. 创建标签
+    var badge = document.createElement('span');
+    badge.className = 'py-version-badge';
+    badge.innerText = version;
+
+    // 6. 样式（核心：float 实现右上角）
+    badge.style.float = 'right';
+    badge.style.fontSize = '12px';
+    badge.style.padding = '2px 8px';
+    badge.style.borderRadius = '999px';
+
+   // 自适应亮/暗色 + 渐变背景（增强版）
+	badge.style.color = 'inherit';
+
+	// 渐变背景（低透明度，不影响暗黑模式）
+	if (version.includes('3')) {
+		badge.style.background = 'linear-gradient(90deg, rgba(79,172,254,0.15), rgba(0,242,254,0.15))';
+	} else {
+		badge.style.background = 'linear-gradient(90deg, rgba(161,140,209,0.15), rgba(251,194,235,0.15))';
+	}
+
+	// 边框弱化（更精致）
+	badge.style.border = '1px solid rgba(127,127,127,0.3)';
+
+	// 提升可读性
+	badge.style.opacity = '0.95';
+
+    // 微调位置（更贴近“右上角”）
+    badge.style.marginTop = '4px';
+    badge.style.marginLeft = '10px';
+
+    // 7. 插入到 h1 最前面（让 float 生效更稳定）
+    h1.insertBefore(badge, h1.firstChild);
+
+})();
+</script>
+<!-- 反馈对话框开始 -->
+<script src="../wp-content/themes/runoob/assets/js/runoob-article-dir.min.js"></script>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

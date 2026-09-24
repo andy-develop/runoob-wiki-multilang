@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ストレージピラミッド — なぜこれほど多くの層に分けるのか | 菜鸟教程</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<link href="../manifest.webmanifest.html" rel="manifest"/>
+<meta content="#10151c" name="theme-color"/>
+<link href="../pwa/icon-192.png.html" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="application-name"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="../computer-organization/memory-hierarchy.html" rel="canonical"/>
+<meta content="存储金字塔 — 为什么要分这么多层" name="keywords"/>
+<meta content="存储金字塔 -- 为什么要分这么多层   /* ========== runoob 存储金字塔配图与交互演示专用样式（仅作用于本节容器，不污染主题） ========== */  /* SVG 金字塔图容器 */ .storage-fig-wrap {   position: relative;   max-width: 760px;   margin: 24px auto; }  .storage-fig-wrap svg {   d.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div>
+<!-- 导航栏 -->
+<style>
+/* 主题切换按钮 */
+/* ===== 主题变量（核心）===== */
+:root {
+  --theme-bg: #ffffff;
+  --theme-border: #e5e7eb;
+  --theme-icon: #333;
+  --theme-hover: #f3f4f6;
+}
+
+.dark {
+  --theme-bg: #1f2937;
+  --theme-border: #374151;
+  --theme-icon: #e5e7eb;
+  --theme-hover: #374151;
+}
+
+/* ===== 按钮容器 ===== */
+.nav-theme-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== 按钮本体 ===== */
+.nav-theme-toggle button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  border-radius: 6px;
+  border: 1px solid var(--theme-border);
+
+  background: var(--theme-bg);
+  color: var(--theme-icon);
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* ===== 图标大小 ===== */
+.nav-theme-toggle i {
+  font-size: 14px;
+}
+
+/* ===== hover 效果 ===== */
+.nav-theme-toggle button:hover {
+  background: var(--theme-hover);
+  transform: translateY(-1px);
+}
+
+/* ===== 点击反馈 ===== */
+.nav-theme-toggle button:active {
+  transform: scale(0.95);
+}
+
+/* ===== 当前激活态（可选）===== */
+.nav-theme-toggle button.active {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+</style>
+<!-- 导航栏 -->
+<nav aria-label="主导航" class="container navigation">
+<div class="row">
+<div class="col nav">
+<!-- PC 导航 -->
+<ul class="pc-nav" id="runoob-detail-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../js/js-tutorial.html">JavaScript</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a data-id="vue" href="#">Vue</a></li>
+<li><a href="../react/react-tutorial.html">React</a></li>
+<li><a href="../python3/python3-tutorial.html">Python3</a></li>
+<li><a href="../java/java-tutorial.html">Java</a></li>
+<li><a href="../cprogramming/c-tutorial.html">C</a></li>
+<li><a href="../cplusplus/cpp-tutorial.html">C++</a></li>
+<li><a href="../csharp/csharp-tutorial.html">C#</a></li>
+<li><a data-id="aiNav" href="#">AI</a></li>
+<li><a href="../go/go-tutorial.html">Go</a></li>
+<li><a href="../sql/sql-tutorial.html">SQL</a></li>
+<li><a href="../linux/linux-tutorial.html">Linux</a></li>
+<li><a href="../vscode/vscode-tutorial.html">VS Code</a></li>
+<li><a data-id="bootstrap" href="#">Bootstrap</a></li>
+<li><a href="../git/git-tutorial.html">Git</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<!-- 主题切换按钮，固定在最右侧 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+<!-- 移动端导航 -->
+<ul class="mobile-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a href="../js/js-tutorial.html">JS</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<li><a class="search-reveal" href="#">搜索</a></li>
+<!-- 移动端主题切换 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon-mobile" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun-mobile" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<!-- 二级导航 -->
+<!--  内容  -->
+<div class="container main">
+<!-- 中间 -->
+<div class="row">
+<div class="runoob-col-md2">
+<div class="left-column">
+<div class="tab" style="overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
+<i aria-hidden="true" class="fa fa-list"></i>
+<span>计算机组成原理</span>
+</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+<a data-p="par" href="../computer-organization/computer-organization-tutorial.html" target="_top" title="计算机组成原理">
+			计算机组成原理			</a>
+<a data-p="par" href="../computer-organization/why-computer-only-knows-0-and-1.html" target="_top" title="为什么计算机只认识 0 和 1">
+			计算机只认识 0 和 1			</a>
+<a data-p="par" href="../computer-organization/number-system-conversion.html" target="_top" title="进制转换 — 二进制、十进制、十六进制">
+			进制转换			</a>
+<a data-p="par" href="../computer-organization/negative-numbers-complement.html" target="_top" title="负数怎么表示 — 原码、反码、补码">
+			负数怎么表示			</a>
+<a data-p="par" href="../computer-organization/floating-point-ieee754.html" target="_top" title="小数怎么表示 — 浮点数与 IEEE 754">
+			小数怎么表示			</a>
+<a data-p="par" href="../computer-organization/character-encoding.html" target="_top" title="字符怎么表示 — ASCII 与 Unicode">
+			字符怎么表示			</a>
+<a data-p="par" href="../computer-organization/boolean-algebra-logic-gates.html" target="_top" title="布尔代数基础 — AND / OR / NOT / XOR">
+			布尔代数基础			</a>
+<a data-p="par" href="../computer-organization/building-logic-circuits.html" target="_top" title="逻辑门电路搭建">
+			逻辑门电路搭建			</a>
+<a data-p="par" href="../computer-organization/from-gates-to-adder.html" target="_top" title="从逻辑门到加法器">
+			从逻辑门到加法器			</a>
+<a data-p="par" href="../computer-organization/flip-flops-and-registers.html" target="_top" title="触发器与寄存器 — 计算机如何「记住」数据">
+			触发器与寄存器			</a>
+<a data-p="par" href="../computer-organization/computer-architecture-overview.html" target="_top" title="一台计算机的整体骨架">
+			一台计算机的整体骨架			</a>
+<a data-p="par" href="../computer-organization/stored-program-concept.html" target="_top" title="程序和数据为什么能放在同一块内存里">
+			程序和数据			</a>
+<a data-p="par" href="../computer-organization/instruction-cycle.html" target="_top" title="指令周期 — 取指、译码、执行、写回">
+			指令周期			</a>
+<a data-p="par" href="../computer-organization/clock-frequency.html" target="_top" title="时钟频率是什么意思">
+			时钟频率			</a>
+<a data-p="par" href="../computer-organization/cpu-pipeline.html" target="_top" title="流水线 — 如何让 CPU 更快">
+			流水线			</a>
+<a data-p="par" href="../computer-organization/multi-core-processors.html" target="_top" title="多核心是怎么回事">
+			多核心是怎么回事			</a>
+<a data-p="par" href="../computer-organization/memory-hierarchy.html" target="_top" title="存储金字塔 — 为什么要分这么多层">
+			存储金字塔			</a>
+<a data-p="par" href="../computer-organization/cache-hits-and-misses.html" target="_top" title="缓存命中与缓存未命中">
+			缓存命中与缓存未命中			</a>
+<a data-p="par" href="../computer-organization/memory-addressing.html" target="_top" title="内存地址与寻址">
+			内存地址与寻址			</a>
+<a data-p="par" href="../computer-organization/computer-bus-system.html" target="_top" title="总线 — 计算机内部的「公路系统」">
+			总线			</a>
+<a data-p="par" href="../computer-organization/io-polling-interrupt-dma.html" target="_top" title="I/O 的三种方式 — 轮询、中断、DMA">
+			I/O 的三种方式			</a>
+<a data-p="par" href="../computer-organization/instruction-journey-summary.html" target="_top" title="一条指令的完整旅程">
+			一条指令的完整旅程			</a>
+</div>
+</div>
+</div>
+</div> <div class="col middle-column">
+<div class="article">
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../computer-organization/multi-core-processors.html" rel="prev">マルチコアとはどういうことか</a> </div>
+<div class="next-design-link"><a href="../computer-organization/cache-hits-and-misses.html" rel="next">キャッシュヒットとキャッシュミス</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="article-body">
+<div class="article-intro" id="content">
+<h1>ストレージピラミッド -- なぜこれほど多くの層に分けるのか</h1>
+<style>
+/* ========== runoob 存储金字塔配图与交互演示专用样式（仅作用于本节容器，不污染主题） ========== */
+
+/* SVG 金字塔图容器 */
+.storage-fig-wrap {
+  position: relative;
+  max-width: 760px;
+  margin: 24px auto;
+}
+
+.storage-fig-wrap svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* 普通层：纸色填充 + 发丝线描边 */
+.storage-fig-wrap .poly-base {
+  fill: #f2ede4;
+  stroke: rgba(28,25,23,0.25);
+  stroke-width: 1;
+  cursor: pointer;
+  transition: fill 0.2s ease;
+}
+
+.storage-fig-wrap .poly-base:hover {
+  fill: rgba(28,25,23,0.10);
+}
+
+/* 强调层（顶层寄存器）：唯一 accent，锈红描边 */
+.storage-fig-wrap .poly-accent {
+  fill: rgba(181,82,58,0.08);
+  stroke: #b5523a;
+  stroke-width: 1.2;
+  cursor: pointer;
+  transition: fill 0.2s ease;
+}
+
+.storage-fig-wrap .poly-accent:hover {
+  fill: rgba(181,82,58,0.18);
+}
+
+/* SVG 悬浮提示浮层 */
+.storage-fig-wrap .storage-tip {
+  display: none;
+  position: absolute;
+  background: rgba(28,25,23,0.94);
+  color: #faf7f2;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  pointer-events: none;
+  z-index: 50;
+  white-space: nowrap;
+}
+
+/* Plotly 图表白色卡片 */
+.storage-chart-card {
+  max-width: 780px;
+  margin: 24px auto;
+  background: #ffffff;
+  border: 1px solid rgba(28,25,23,0.12);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+/* 配图说明文字 */
+.storage-caption {
+  text-align: center;
+  color: #78716c;
+  font-size: 12px;
+  margin: 8px 0 0;
+}
+</style>
+<p>なぜパソコンには「メモリ」と「ハードディスク」の両方があるのか、考えたことはありますか？なぜすべてのデータを最速の場所に置かないのでしょうか？</p>
+<p>答えはコンピュータのストレージシステムの設計に隠されています——<span class="marked">ストレージピラミッド</span>。この講義では、アーキテクトにとって最も核心的なトレードオフの知恵を徹底的に理解します。</p>
+<hr/>
+<h2>身近な例え：キッチン vs スーパーの倉庫</h2>
+<p>料理をするときの食材の配置を使って、まず直感的なイメージを掴みましょう。</p>
+<p>あなたが料理をしているところを想像してください。</p>
+<p>塩と醤油はコンロのそばに置いて、手を伸ばせば届く——これらはコンピュータの<span class="marked">レジスタ</span>和<span class="marked">L1キャッシュ</span>。</p>
+<p>冷蔵庫の中の食材は、数歩歩いて取りに行く必要がある——これは<span class="marked">メモリ（RAM）</span>。</p>
+<p>地下室に備蓄した米や麺、油などの食料は、わざわざ取りに行かなければならない——これは<span class="marked">ソリッドステートドライブ（SSD）</span>。</p>
+<p>そしてスーパーの倉庫にある在庫は、家に置くことすらしない——それは<span class="marked">ハードディスクドライブ（HDD）</span>とクラウドストレージです。</p>
+<p>これは素朴な原則を明らかにしています：<span class="marked">よく使うものほど近い場所に置くが、近い場所はスペースが限られていて高価でもある；あまり使わないものは遠くに置き、容量が大きくより安価である。</span></p>
+<p>コンピュータのストレージシステムは、まさにこの素朴な原則に従って設計されています。</p>
+<hr/>
+<h2>ストレージピラミッド：速度と容量のトレードオフ</h2>
+<p>コンピュータ内部では、ストレージデバイスが「速度-容量-コスト」の段階的な関係に従って、ピラミッド構造を形成しています。</p>
+runoob ストレージピラミッド図 — diagram-design 仕様 SVG：紙色の背景 + ヘアラインの層分割、錆赤のアクセントは最上層のレジスタのみをマーク
+<div class="storage-fig-wrap">
+<svg aria-label="存储金字塔示意图" role="img" viewbox="0 0 760 348" xmlns="http://www.w3.org/2000/svg">
+<defs>
+背景のドットパターン
+<pattern height="22" id="storage-dots" patternunits="userSpaceOnUse" width="22">
+<circle cx="1" cy="1" fill="rgba(28,25,23,0.10)" r="0.9"></circle>
+</pattern>
+</defs>
+<rect fill="#faf7f2" height="100%" width="100%"></rect>
+<rect fill="url(#storage-dots)" height="100%" opacity="0.6" width="100%"></rect>
+第1層：レジスタ — 最上層、アクセント強調（唯一の焦点）
+<polygon class="poly-accent" data-cap="~1 KB" data-detail="CPU 核心里面 | 速度基准 1x" data-lat="~0.3 ns" data-layer="寄存器" points="316,16 444,16 480,60 280,60"></polygon>
+<text fill="#1c1917" font-family="-apple-system,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif" font-size="12" font-weight="600" text-anchor="middle" x="380" y="35">レジスタ</text>
+<text fill="#b5523a" font-family="'Geist Mono','SF Mono',Consolas,monospace" font-size="9" text-anchor="middle" x="380" y="49">~1 KB · 0.3 ns</text>
+第2層：L1キャッシュ
+<polygon class="poly-base" data-cap="~64 KB" data-detail="CPU 核心内部 | 3x 慢于寄存器" data-lat="~1 ns" data-layer="L1 缓存" points="280,60 480,60 516,104 244,104"></polygon>
+<text fill="#1c1917" font-family="-apple-system,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif" font-size="12" font-weight="600" text-anchor="middle" x="380" y="79">L1キャッシュ</text>
+<text fill="#57534e" font-family="'Geist Mono','SF Mono',Consolas,monospace" font-size="9" text-anchor="middle" x="380" y="93">~64 KB · 1 ns</text>
+第3層：L2キャッシュ
+<polygon class="poly-base" data-cap="~256 KB" data-detail="CPU 核心内部 | 13x 慢于寄存器" data-lat="~4 ns" data-layer="L2 缓存" points="244,104 516,104 552,148 208,148"></polygon>
+<text fill="#1c1917" font-family="-apple-system,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif" font-size="12" font-weight="600" text-anchor="middle" x="380" y="123">L2キャッシュ</text>
+<text fill="#57534e" font-family="'Geist Mono','SF Mono',Consolas,monospace" font-size="9" text-anchor="middle" x="380" y="137">~256 KB · 4 ns</text>
+第4層：L3キャッシュ
+<polygon class="poly-base" data-cap="~8 MB" data-detail="CPU 芯片上，多核共享 | 40x 慢" data-lat="~12 ns" data-layer="L3 缓存" points="208,148 552,148 588,192 172,192"></polygon>
+<text fill="#1c1917" font-family="-apple-system,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif" font-size="12" font-weight="600" text-anchor="middle" x="380" y="167">L3キャッシュ</text>
+<text fill="#57534e" font-family="'Geist Mono','SF Mono',Consolas,monospace" font-size="9" text-anchor="middle" x="380" y="181">~8 MB · 12 ns</text>
+第5層：メモリ RAM
+<polygon class="poly-base" data-cap="~16 GB" data-detail="主板上独立芯片 | 333x 慢" data-lat="~100 ns" data-layer="内存 RAM" points="172,192 588,192 624,236 136,236"></polygon>
+<text fill="#1c1917" font-family="-apple-system,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif" font-size="12" font-weight="600" text-anchor="middle" x="380" y="211">メモリ RAM</text>
+<text fill="#57534e" font-family="'Geist Mono','SF Mono',Consolas,monospace" font-size="9" text-anchor="middle" x="380" y="225">~16 GB · 100 ns</text>
+第6層：ソリッドステートドライブ SSD
+<polygon class="poly-base" data-cap="~1 TB" data-detail="机箱内部独立设备 | 333,333x 慢" data-lat="~100 μs" data-layer="固态硬盘 SSD" points="136,236 624,236 660,280 100,280"></polygon>
+<text fill="#1c1917" font-family="-apple-system,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif" font-size="12" font-weight="600" text-anchor="middle" x="380" y="255">ソリッドステートドライブ SSD</text>
+<text fill="#57534e" font-family="'Geist Mono','SF Mono',Consolas,monospace" font-size="9" text-anchor="middle" x="380" y="269">~1 TB · 100 μs</text>
+第7層：ハードディスクドライブ HDD — 最下層、最も広い
+<polygon class="poly-base" data-cap="~10 TB" data-detail="机箱内部独立设备 | 33,333,333x 慢" data-lat="~10 ms" data-layer="机械硬盘 HDD" points="100,280 660,280 696,324 64,324"></polygon>
+<text fill="#1c1917" font-family="-apple-system,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif" font-size="12" font-weight="600" text-anchor="middle" x="380" y="299">ハードディスクドライブ HDD</text>
+<text fill="#57534e" font-family="'Geist Mono','SF Mono',Consolas,monospace" font-size="9" text-anchor="middle" x="380" y="313">~10 TB · 10 ms</text>
+左右両側のラベル（Geist Mono 小文字）
+<text fill="#b5523a" font-family="'Geist Mono','SF Mono',Consolas,monospace" font-size="9" font-weight="600" x="8" y="20">より高速 ↑</text>
+<text fill="#57534e" font-family="'Geist Mono','SF Mono',Consolas,monospace" font-size="9" x="8" y="320">より低速 ↓</text>
+<text fill="#57534e" font-family="'Geist Mono','SF Mono',Consolas,monospace" font-size="9" text-anchor="end" x="752" y="20">容量はより小さい</text>
+<text fill="#57534e" font-family="'Geist Mono','SF Mono',Consolas,monospace" font-size="9" text-anchor="end" x="752" y="320">容量はより大きい</text>
+</svg>
+マウスホバー時の詳細オーバーレイ
+<div class="storage-tip" id="storagePyramidTip"></div>
+</div>
+<p class="storage-caption">ストレージピラミッド模式図：上に行くほど速く小さく、下に行くほど遅く大きい。台形にマウスをホバーすると各層の詳細を確認できます。</p>
+<h3>核心となる原則</h3>
+<p>このピラミッド図は、ハードウェア設計における鉄則を明らかにしています：</p>
+<ul>
+<li><span class="tag1">速いほど高価で、小さい</span>：レジスタはCPU内部にあり、最速のトランジスタで作られていますが、わずか数キロバイトしかありません。チップ面積が非常に高価だからです。</li>
+<li><span class="tag1">遅いほど安価で、大きい</span>：ハードディスクドライブは磁気ヘッドと回転するプラッタを使用し、コストが極めて低く、数十TBのデータを格納できます。</li>
+<li><span class="tag1">ピラミッド構造の目的</span>：「小さく速い + 大きく遅い」の組み合わせにより、合理的なコストで最速ストレージに近い体験を実現することです。</li>
+</ul>
+<p>もしパソコンのストレージをすべてレジスタで作ったら、価格は天文学的な額になるだけでなく、チップ面積も大きくなりすぎて製造できなくなります。</p>
+<p>逆に、すべてハードディスクドライブにしたら、パソコンは使えないほど遅くなります——どのプログラムを開くにも数百ミリ秒待たなければなりません。</p>
+<hr/>
+<h2>各層の詳細な比較</h2>
+<p>7層のストレージの主要な属性を1つの表にまとめ、横方向の比較を容易にします。</p>
+<table class="reference">
+<tr><th>階層</th><th>代表的な容量</th><th>アクセスレイテンシ</th><th>相対速度</th><th>物理的な位置</th><th>製造コスト</th></tr>
+<tr><td>レジスタ</td><td>~1 KB</td><td>~0.3 ns</td><td>1x（基準）</td><td>CPUコア内</td><td>極めて高い</td></tr>
+<tr><td>L1キャッシュ</td><td>~64 KB</td><td>~1 ns</td><td>レジスタより3倍遅い</td><td>CPUコア内部</td><td>極めて高い</td></tr>
+<tr><td>L2キャッシュ</td><td>~256 KB</td><td>~4 ns</td><td>13倍遅い</td><td>CPUコア内部</td><td>非常に高い</td></tr>
+<tr><td>L3キャッシュ</td><td>~8 MB</td><td>~12 ns</td><td>40倍遅い</td><td>CPUチップ上、マルチコアで共有</td><td>高</td></tr>
+<tr><td>メモリ (RAM)</td><td>~16 GB</td><td>~100 ns</td><td>333倍遅い</td><td>マザーボード上（独立したチップ）</td><td>中程度</td></tr>
+<tr><td>ソリッドステートドライブ (SSD)</td><td>~1 TB</td><td>~100 μs</td><td>333,333倍遅い</td><td>筐体内部（独立したデバイス）</td><td>比較的低い</td></tr>
+<tr><td>ハードディスクドライブ (HDD)</td><td>~10 TB</td><td>~10 ms</td><td>33,333,333倍遅い</td><td>筐体内部（独立したデバイス）</td><td>低</td></tr>
+</table>
+<blockquote><p>桁の飛躍に注目してください：メモリはL1キャッシュより100倍遅く、SSDはメモリよりさらに1000倍遅く、HDDはSSDよりさらに100倍遅いです。各層間の速度差は桁違いです。</p></blockquote>
+<h3>なぜSSDはHDDよりこれほど速いのか？</h3>
+<p>重要な違いは機械部品の有無です。</p>
+<p>SSDはフラッシュメモリチップを使用し、純粋に電子的に読み取るため、機械部品がありません。</p>
+<p>HDDは回転するプラッタと移動する磁気ヘッドを使用します——データを読み取るには、磁気ヘッドがまず正しいトラックに移動し（シーク時間、約5-10ms）、その後プラッタが正しい位置に回転するのを待つ必要があります（回転レイテンシ、約2-4ms）。</p>
+<p>この機械的な移動プロセスこそ、HDDがSSDより100倍以上遅い根本的な原因です。</p>
+<hr/>
+<h2>インタラクティブデモ：多層ストレージのアクセス時間をシミュレーション</h2>
+<p>Pythonコードを使用して、同じアドレスを7層のストレージからそれぞれ読み取る際のレイテンシの違いをシミュレーションします。</p>
+<div class="example">
+<h2 class="example">実例</h2>
+<div class="example_code">
+<span style="color: #a11;">"""<br/>ストレージピラミッドアクセスレイテンシシミュレーター (runoob デモ)<br/>異なる階層から同じサイズのデータブロックを読み取ることをシミュレーションし、各層の速度差を直感的に比較します<br/>
+"""</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> StorageHierarchy:<br/>
+    <span style="color: #a11;">"""コンピュータのストレージ階層構造をシミュレーションする"""</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a50"># 各層のストレージのシミュレーションレイテンシ（単位：ナノ秒）と代表的な容量</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">layers</span> <span style="color: Gray;">=</span> <span style="color: Olive;">{</span><br/>
+            <span style="color: #a11;">'Register'</span>:  <span style="color: Olive;">{</span><span style="color: #a11;">'latency_ns'</span>: <span style="color: Maroon;">0.3</span><span style="color: Gray;">,</span>  <span style="color: #a11;">'capacity'</span>: <span style="color: #a11;">'~1 KB'</span><span style="color: Gray;">,</span>   <span style="color: #a11;">'color'</span>: <span style="color: #a11;">'red'</span><span style="color: Olive;">}</span><span style="color: Gray;">,</span><br/>
+            <span style="color: #a11;">'L1 Cache'</span>:  <span style="color: Olive;">{</span><span style="color: #a11;">'latency_ns'</span>: <span style="color: Maroon;">1</span><span style="color: Gray;">,</span>    <span style="color: #a11;">'capacity'</span>: <span style="color: #a11;">'~64 KB'</span><span style="color: Gray;">,</span>  <span style="color: #a11;">'color'</span>: <span style="color: #a11;">'orange'</span><span style="color: Olive;">}</span><span style="color: Gray;">,</span><br/>
+            <span style="color: #a11;">'L2 Cache'</span>:  <span style="color: Olive;">{</span><span style="color: #a11;">'latency_ns'</span>: <span style="color: Maroon;">4</span><span style="color: Gray;">,</span>    <span style="color: #a11;">'capacity'</span>: <span style="color: #a11;">'~256 KB'</span><span style="color: Gray;">,</span> <span style="color: #a11;">'color'</span>: <span style="color: #a11;">'gold'</span><span style="color: Olive;">}</span><span style="color: Gray;">,</span><br/>
+            <span style="color: #a11;">'L3 Cache'</span>:  <span style="color: Olive;">{</span><span style="color: #a11;">'latency_ns'</span>: <span style="color: Maroon;">12</span><span style="color: Gray;">,</span>   <span style="color: #a11;">'capacity'</span>: <span style="color: #a11;">'~8 MB'</span><span style="color: Gray;">,</span>   <span style="color: #a11;">'color'</span>: <span style="color: #a11;">'yellow'</span><span style="color: Olive;">}</span><span style="color: Gray;">,</span><br/>
+            <span style="color: #a11;">'RAM'</span>:       <span style="color: Olive;">{</span><span style="color: #a11;">'latency_ns'</span>: <span style="color: Maroon;">100</span><span style="color: Gray;">,</span>  <span style="color: #a11;">'capacity'</span>: <span style="color: #a11;">'~16 GB'</span><span style="color: Gray;">,</span>  <span style="color: #a11;">'color'</span>: <span style="color: #a11;">'green'</span><span style="color: Olive;">}</span><span style="color: Gray;">,</span><br/>
+            <span style="color: #a11;">'SSD'</span>:       <span style="color: Olive;">{</span><span style="color: #a11;">'latency_ns'</span>: <span style="color: Maroon;">100000</span><span style="color: Gray;">,</span> <span style="color: #a11;">'capacity'</span>: <span style="color: #a11;">'~1 TB'</span><span style="color: Gray;">,</span> <span style="color: #a11;">'color'</span>: <span style="color: #a11;">'blue'</span><span style="color: Olive;">}</span><span style="color: Gray;">,</span><br/>
+            <span style="color: #a11;">'HDD'</span>:       <span style="color: Olive;">{</span><span style="color: #a11;">'latency_ns'</span>: <span style="color: Maroon;">10000000</span><span style="color: Gray;">,</span> <span style="color: #a11;">'capacity'</span>: <span style="color: #a11;">'~10 TB'</span><span style="color: Gray;">,</span> <span style="color: #a11;">'color'</span>: <span style="color: #a11;">'purple'</span><span style="color: Olive;">}</span><span style="color: Gray;">,</span><br/>
+        <span style="color: Olive;">}</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> read<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> layer_name<span style="color: Gray;">,</span> address<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""<br/>指定した層からデータを読み取ることをシミュレーション<br/>シミュレーションされたデータ値を返す<br/>
+        """</span><br/>
+        value <span style="color: Gray;">=</span> f<span style="color: #a11;">"DATA_FROM_{layer_name.upper()}_{address}"</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> value<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> compare_access<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> address<span style="color: Gray;">,</span> num_accesses<span style="color: Gray;">=</span><span style="color: Maroon;">3</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""同じアドレスを各層から読み取る速度を比較する"""</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">65</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"ストレージ階層アクセスレイテンシ比較（アドレス: {address}）"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">65</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"{'階層':&lt;12} {'レイテンシ(ナノ秒)':&gt;12} {'容量':&lt;12} {'レジスタ比':&gt;12}"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"-"</span> * <span style="color: Maroon;">65</span><span style="color: Olive;">)</span><br/>
+<br/>
+        baseline <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">layers</span><span style="color: Olive;">[</span><span style="color: #a11;">'Register'</span><span style="color: Olive;">]</span><span style="color: Olive;">[</span><span style="color: #a11;">'latency_ns'</span><span style="color: Olive;">]</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">for</span> name<span style="color: Gray;">,</span> info <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">layers</span>.<span style="color: #05a;">items</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+            lat_ns <span style="color: Gray;">=</span> info<span style="color: Olive;">[</span><span style="color: #a11;">'latency_ns'</span><span style="color: Olive;">]</span><br/>
+            ratio <span style="color: Gray;">=</span> lat_ns / baseline<br/>
+            cap <span style="color: Gray;">=</span> info<span style="color: Olive;">[</span><span style="color: #a11;">'capacity'</span><span style="color: Olive;">]</span><br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"{name:&lt;12} {lat_ns:&gt;10,.1f} ns {cap:&lt;12} {ratio:&gt;10,.0f}x"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: #a50"># デモを実行</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"RUNOOB ストレージシステム講座: ストレージピラミッドアクセスレイテンシ比較"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+store <span style="color: Gray;">=</span> StorageHierarchy<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+store.<span style="color: #05a;">compare_access</span><span style="color: Olive;">(</span><span style="color: #a11;">"0x7FFF1234"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">65</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"結論分析："</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">65</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 主要な比率を計算</span><br/>
+register_lat <span style="color: Gray;">=</span> <span style="color: Maroon;">0.3</span>          <span style="color: #a50"># ns</span><br/>
+ram_lat <span style="color: Gray;">=</span> <span style="color: Maroon;">100</span>               <span style="color: #a50"># ns</span><br/>
+ssd_lat <span style="color: Gray;">=</span> <span style="color: Maroon;">100000</span>            <span style="color: #a50"># ns</span><br/>
+hdd_lat <span style="color: Gray;">=</span> <span style="color: Maroon;">10000000</span>          <span style="color: #a50"># ns</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"1. メモリ(RAM) は レジスタ より {ram_lat / register_lat:,.0f} 倍遅い"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"2. SSD は メモリ(RAM) より {ssd_lat / ram_lat:,.0f} 倍遅い"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"3. HDD は メモリ(RAM) より {hdd_lat / ram_lat:,.0f} 倍遅い"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"4. HDD は レジスタ より {hdd_lat / register_lat:,.0f} 倍遅い"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"レジスタがデータにアクセスするのに1秒かかるとすると："</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  - L1キャッシュから取得するには {1/register_lat:.0f} 秒"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  - メモリから取得するには {ram_lat/register_lat:,.0f} 秒（約 {ram_lat/register_lat/60:.0f} 分）"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  - HDDから取得するには {hdd_lat/register_lat:,.0f} 秒（約 {hdd_lat/register_lat/3600:,.0f} 時間）"</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<p>実行結果：</p>
+<pre>
+RUNOOB 存储系统教学: 存储金字塔访问延迟对比
+
+=================================================================
+存储层次访问延迟对比（地址: 0x7FFF1234）
+=================================================================
+层级                 延迟(纳秒) 容量                  相对寄存器
+-----------------------------------------------------------------
+Register            0.3 ns ~1 KB                 1x
+L1 Cache            1.0 ns ~64 KB                3x
+L2 Cache            4.0 ns ~256 KB              13x
+L3 Cache           12.0 ns ~8 MB                40x
+RAM               100.0 ns ~16 GB              333x
+SSD           100,000.0 ns ~1 TB           333,333x
+HDD          10,000,000.0 ns ~10 TB       33,333,333x
+
+=================================================================
+结论分析：
+=================================================================
+1. 内存(RAM) 比 寄存器 慢 333 倍
+2. SSD 比 内存(RAM) 慢 1,000 倍
+3. HDD 比 内存(RAM) 慢 100,000 倍
+4. HDD 比 寄存器 慢 33,333,333 倍
+
+如果寄存器访问数据需要 1 秒，那么：
+  - 从 L1 缓存获取需要 3 秒
+  - 从内存获取需要 333 秒（约 6 分钟）
+  - 从 HDD 获取需要 33,333,333 秒（约 9,259 小时）
+</pre>
+<h3>インタラクティブデモ：各層のアクセスレイテンシ対数比較グラフ</h3>
+<p>下の図は対数座標の棒グラフで、横軸の隣り合う2目盛りは10倍の差があります。柱にホバーすると容量とレイテンシの詳細を確認できます。</p>
+runoob ストレージ階層レイテンシ比較 — Plotly 対数座標の横向き棒グラフ（仕様による選定：対数座標系には Plotly を使用）
+<div class="storage-chart-card">
+<div id="storageLatencyChart"></div>
+</div>
+<script src="../static.jyshare.com/assets/libs/plotly-2.32.0.min.js"></script>
+<script>
+(function() {
+  'use strict';
+  /*
+   * runoob 存储金字塔 — SVG 金字塔悬停提示 + Plotly 对数坐标条形图
+   * 功能：
+   *   1. SVG 7 层梯形金字塔，鼠标悬停显示层详情（名称/容量/延迟/位置）
+   *   2. Plotly 对数坐标横向条形图，直观对比各层访问延迟的数量级差异
+   */
+
+  /* ---- SVG 金字塔悬停提示 ---- */
+  function initPyramidTip() {
+    var wrap = document.querySelector('.storage-fig-wrap');
+    var tooltip = document.getElementById('storagePyramidTip');
+    var polygons = document.querySelectorAll('.storage-fig-wrap .poly-base, .storage-fig-wrap .poly-accent');
+    if (!wrap || !tooltip || polygons.length === 0) return;
+
+    polygons.forEach(function(poly) {
+      poly.addEventListener('mouseenter', function() {
+        var layer  = poly.getAttribute('data-layer');
+        var cap    = poly.getAttribute('data-cap');
+        var lat    = poly.getAttribute('data-lat');
+        var detail = poly.getAttribute('data-detail');
+        tooltip.innerHTML = '<strong>' + layer + '</strong><br>'
+                          + '容量: ' + cap + ' | 延迟: ' + lat + '<br>'
+                          + '<span style="color:#a8a29e;font-size:11px;">' + detail + '</span>';
+        tooltip.style.display = 'block';
+      });
+
+      poly.addEventListener('mousemove', function(e) {
+        var rect = wrap.getBoundingClientRect();
+        var x = e.clientX - rect.left + 14;
+        var y = e.clientY - rect.top - 70;
+        // 防止提示框溢出容器
+        if (x + 210 > rect.width) x = rect.width - 220;
+        if (y < 0) y = 10;
+        tooltip.style.left = x + 'px';
+        tooltip.style.top = y + 'px';
+      });
+
+      poly.addEventListener('mouseleave', function() {
+        tooltip.style.display = 'none';
+      });
+    });
+  }
+
+  /* ---- Plotly 对数坐标横向条形图 ---- */
+  function initLatencyChart() {
+    if (typeof Plotly === 'undefined') return; // CDN 未加载则跳过
+    var el = document.getElementById('storageLatencyChart');
+    if (!el) return;
+
+    /* 存储层级数据定义（数组顺序 = 图表自上而下的显示顺序） */
+    var layers = [
+      { name: '寄存器',       latency: 0.3,      cap: '~1 KB'  },
+      { name: 'L1 缓存',      latency: 1,        cap: '~64 KB' },
+      { name: 'L2 缓存',      latency: 4,        cap: '~256 KB' },
+      { name: 'L3 缓存',      latency: 12,       cap: '~8 MB'  },
+      { name: '内存 RAM',     latency: 100,      cap: '~16 GB' },
+      { name: '固态硬盘 SSD', latency: 100000,   cap: '~1 TB'  },
+      { name: '机械硬盘 HDD', latency: 10000000, cap: '~10 TB' }
+    ];
+
+    /* 条形颜色：仅顶层寄存器用 accent 锈红，其余统一墨色浅调 */
+    var colors = layers.map(function(l) {
+      return l.name === '寄存器' ? 'rgba(181,82,58,0.65)' : 'rgba(28,25,23,0.30)';
+    });
+
+    Plotly.newPlot(el, [{
+      type: 'bar',
+      orientation: 'h',                                   // 横向条形，层级名称更易读
+      y: layers.map(function(l) { return l.name; }).reverse(),
+      x: layers.map(function(l) { return l.latency; }).reverse(),
+      marker: { color: colors.slice().reverse() },
+      customdata: layers.map(function(l) { return l.cap; }).reverse(),
+      hovertemplate: '%{y}<br>延迟: %{x:,.1f} ns<br>容量: %{customdata}<extra></extra>',
+      hoverlabel: { bgcolor: '#1c1917', font: { color: '#faf7f2', size: 12 } }
+    }], {
+      width: 720,
+      height: 400,
+      autosize: true,
+      margin: { l: 130, r: 24, t: 16, b: 56 },
+      paper_bgcolor: '#ffffff',
+      plot_bgcolor: '#ffffff',
+      font: {
+        family: "-apple-system,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif",
+        size: 12,
+        color: '#1c1917'
+      },
+      bargap: 0.35,
+      xaxis: {
+        type: 'log',                                      // 对数刻度：数量级差异一目了然
+        range: [-1, 8],
+        tickvals: [0.1, 1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000],
+        ticktext: ['0.1 ns', '1 ns', '10 ns', '100 ns', '1 μs', '10 μs', '100 μs', '1 ms', '10 ms', '100 ms'],
+        title: { text: '访问延迟（对数刻度，相邻两格相差 10 倍）', font: { size: 12 } },
+        gridcolor: 'rgba(28,25,23,0.08)',
+        zeroline: false
+      },
+      yaxis: {
+        autorange: true,
+        tickfont: { size: 12 }
+      }
+    }, {
+      displayModeBar: false,
+      responsive: true
+    });
+  }
+
+  /* ---- 入口 ---- */
+  function boot() {
+    initPyramidTip();
+    initLatencyChart();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
+})();
+</script>
+<hr/>
+<h2>ピラミッドはどのように機能するか：層ごとのキャッシュ戦略</h2>
+<p>ピラミッドは静的ではない——そこには自動的に機能するデータの流れの仕組みがある。</p>
+<h4>データの流れのルール</h4>
+<ol>
+<li><span class="tag1 green">CPUがデータを必要とするとき</span>：まず最速のL1キャッシュを探し、見つからなければL2へ、さらに見つからなければL3へ、メインメモリに至るまで。</li>
+<li><span class="tag1 green">遅い階層からデータを読み取った後</span>：データをCPUに渡すだけでなく、より高速な階層にもコピーを保存する。そうすれば次回使うとき速い。</li>
+<li><span class="tag1 green">高速な階層がいっぱいになったらどうするか</span>：一定の戦略（LRU——最も長く使われていないものを追い出す）に従って、使用頻度の低いデータを低速階層に戻し、新しいデータのための場所を空ける。</li>
+</ol>
+<p>このプロセスはプログラマにとって完全に透過的である——プログラムを書くときにどのキャッシュを手動で管理する必要はなく、ハードウェアとOSが自動的にすべて行う。</p>
+<h4>現実世界の例</h4>
+<p>あなたがビデオファイルを編集中だとしよう：</p>
+<ul>
+<li>ビデオファイルは<span class="marked">HDDまたはSSD</span>に存在する（最下層）。</li>
+<li>ファイルを開くと、OSはその一部を<span class="marked">メモリ（RAM）</span>に読み込む。</li>
+<li>再生を開始すると、CPUは現在処理中の数フレームのデータを<span class="marked">L3/L2/L1キャッシュ</span>にコピーする。</li>
+<li>ALUによって計算中のピクセル値は、<span class="marked">レジスタ</span>に存在する。</li>
+</ul>
+<p>編集ソフトウェアで「とてもスムーズ」と感じるのは、ほとんどの場合CPUが必要なデータをキャッシュ内で見つけられるからである。</p>
+<hr/>
+<h2>歴史的背景：ピラミッドはなぜこのような形なのか</h2>
+<p>ピラミッドの階層数は、CPUとメモリの速度差が拡大し続けた歴史的産物である。</p>
+<p>1980年代には、CPUとメモリの速度差は大きくなかった。しかし半導体プロセスの進歩により、CPUの速度は年間約60%の割合で増加した一方、メモリの速度は年間約10%しか増加しなかった。</p>
+<p>この拡大し続ける差は、<span class="marked">「メモリウォール」（Memory Wall）と呼ばれる</span>。</p>
+<p>メモリピラミッドは、エンジニアたちが「メモリウォール」に対して取った対策である——多段階キャッシュでCPUとメインメモリの間の速度ギャップを緩和する。</p>
+<table class="reference">
+<tr><th>年代</th><th>CPUクロック周波数</th><th>メモリレイテンシ</th><th>速度差</th><th>キャッシュ階層</th></tr>
+<tr><td>1980s</td><td>~10 MHz</td><td>~200 ns</td><td>約2倍</td><td>なしまたは1階層</td></tr>
+<tr><td>1990s</td><td>~200 MHz</td><td>~70 ns</td><td>約14倍</td><td>L1 + L2</td></tr>
+<tr><td>2000s</td><td>~3 GHz</td><td>~50 ns</td><td>約150倍</td><td>L1 + L2 + L3</td></tr>
+<tr><td>2020s</td><td>~5 GHz</td><td>~80 ns</td><td>約400倍</td><td>L1 + L2 + L3</td></tr>
+</table>
+<blockquote><p>メモリレイテンシは40年間で本質的にほとんど変わっていないことに注目！メモリが進歩していないのではなく、CPUの進歩があまりにも速すぎるのだ。メモリの物理的限界（コンデンサの充放電速度）により、そのレイテンシは大幅に短縮することが難しい。</p></blockquote>
+その他の拡張
+</div>
+</div>
+<div class="archive-list" style="display:none;font-size: 14px;line-height: 1.8;margin-top: 20px;padding: 10px;">
+<div class="archive-list-item">
+<div class="post-intro" id="ai-info" style="width: 100%;">AI 思考中...</div>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../computer-organization/multi-core-processors.html" rel="prev">マルチコアとはどういうことか</a> </div>
+<div class="next-design-link"><a href="../computer-organization/cache-hits-and-misses.html" rel="next">キャッシュヒットとキャッシュミス</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="sidebar-box">
+</div>
+ノートリスト
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>クリックしてノートを共有</h3>
+&lt;p style="font-size:14px;"&gt;ノートは本記事の内容の拡張である必要があります！&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;記事の投稿はこちらをクリック&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; ノートを共有する前に&lt;a href=";.html" class="runoob-pop"&gt;ログイン&lt;/a&gt;が必要です！&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=";.html" id="cancel-comment-reply-link">キャンセル</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="31886"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>ノートを共有</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">ニックネーム</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">ニックネーム (必須)</span></li>
+<li class="form-inline"><label class="hide" for="email">メールアドレス</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">メールアドレス (必須)</span></li>
+<li class="form-inline"><label class="hide" for="url">引用アドレス</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">引用アドレス</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  31886;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 31886, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":31886},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+</div>
+</div>
+<!-- 右边栏 -->
+<div class="fivecol last right-column">
+<style>
+.sidebar-tree .double-li {
+    width:300px;
+}
+.sidebar-tree .double-li li {
+    width: 44%;
+    line-height: 1.5em;
+    border-bottom: 1px solid #ccc;
+    float: left;
+    display: inline;
+}
+</style>
+<div class="sidebar-box re-box re-box-large">
+<div class="sidebar-box recommend-here" style="margin: 0 auto;">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;"> <i aria-hidden="true" class="fa fa-list"></i> 分类导航</a>
+</div>
+<div class="sidebar-box sidebar-cate">
+<div class="sidebar-tree">
+<ul><li style="margin: 0;"><a class="tit" href="#"> Python / 数据科学</a><ul class="double-li"><li><a href="../python3/python3-tutorial.html" title="Python 教程">Python 教程</a></li><li><a href="../python/python-tutorial.html" title="Python2.x 教程">Python2.x 教程</a></li><li><a href="../fastapi/fastapi-tutorial.html" title="FastAPI 教程">FastAPI 教程</a></li><li><a href="../flask/flask-tutorial.html" title="Flask 教程">Flask 教程</a></li><li><a href="../django/django-tutorial.html" title="Django 教程">Django 教程</a></li><li><a href="../numpy/numpy-tutorial.html" title="NumPy 教程">NumPy 教程</a></li><li><a href="../pandas/pandas-tutorial.html" title="Pandas 教程">Pandas 教程</a></li><li><a href="../scipy/scipy-tutorial.html" title="SciPy 教程">SciPy 教程</a></li><li><a href="../matplotlib/matplotlib-tutorial.html" title="Matplotlib 教程">Matplotlib 教程</a></li><li><a href="../dash/dash-tutorial.html" title="Dash 教程">Dash 教程</a></li><li><a href="../jupyter-notebook/jupyter-notebook-tutorial.html" title="Jupyter Notebook 教程">Jupyter Notebook 教程</a></li><li><a href="../pillow/pillow-tutorial.html" title="Pillow 教程">Pillow 教程</a></li><li><a href="../qt/qt-tutorial.html" title="量化交易">量化交易</a></li><li><a href="../r/r-tutorial.html" title="R 教程">R 教程</a></li><li><a href="../julia/julia-tutorial.html" title="Julia 教程">Julia 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> AI / 智能开发</a><ul class="double-li"><li><a href="../ai-agent/ai-agent-tutorial.html" title="AI Agent（智能体）">AI Agent（智能体）</a></li><li><a href="../ai/ai-tutorial.html" title="AI（人工智能）">AI（人工智能）</a></li><li><a href="../codex/codex-tutorial.html" title="Codex 教程">Codex 教程</a></li><li><a href="../vibe-coding/vibe-coding-tutorial.html" title="Vibe Coding 教程">Vibe Coding 教程</a></li><li><a href="../claude-code/claude-code-tutorial.html" title="Claude Code">Claude Code</a></li><li><a href="../opencode/opencode-tutorial.html" title="OpenCode">OpenCode</a></li><li><a href="../skills/skills-tutorial.html" title="Skills（技能）">Skills（技能）</a></li><li><a href="../ollama/ollama-tutorial.html" title="Ollama 教程">Ollama 教程</a></li><li><a href="../hermes-agent/hermes-agent-tutorial.html" title="Hermes Agent">Hermes Agent</a></li><li><a href="../deepseek-harness/deepseek-harness-tutorial.html" title="DeepSeek Harness">DeepSeek Harness</a></li><li><a href="../pi-agent/pi-agent-tutorial.html" title="Pi Agent">Pi Agent</a></li><li><a href="../ai-math/ai-math-tutorial.html" title="AI 数学基础">AI 数学基础</a></li><li><a href="../tensorflow/tensorflow-tutorial.html" title="TensorFlow 教程">TensorFlow 教程</a></li><li><a href="../pytorch/pytorch-tutorial.html" title="PyTorch 教程">PyTorch 教程</a></li><li><a href="../sklearn/sklearn-tutorial.html" title="Scikit-learn 教程">Scikit-learn 教程</a></li><li><a href="../ml/ml-tutorial.html" title="机器 教程">机器 教程</a></li><li><a href="../langchain/langchain-tutorial.html" title="LangChain">LangChain</a></li><li><a href="../nlp/nlp-tutorial.html" title="自然语言处理 NLP">自然语言处理 NLP</a></li><li><a href="../opencv/opencv-tutorial.html" title="OpenCV 教程">OpenCV 教程</a></li><li><a href="../selenium/selenium-tutorial.html" title="Selenium 教程">Selenium 教程</a></li><li><a href="../playwright/playwright-tutorial.html" title="Playwright 教程">Playwright 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 前端开发</a><ul class="double-li"><li><a href="../html/html-tutorial.html" title="HTML 教程">HTML 教程</a></li><li><a href="../html/html5-intro.html" title="HTML5 教程">HTML5 教程</a></li><li><a href="../css/css-tutorial.html" title="CSS 教程">CSS 教程</a></li><li><a href="../css3/css3-tutorial.html" title="CSS3 教程">CSS3 教程</a></li><li><a href="../js/js-tutorial.html" title="JavaScript 教程">JavaScript 教程</a></li><li><a href="../htmldom/htmldom-tutorial.html" title="HTML DOM 教程">HTML DOM 教程</a></li><li><a href="../typescript/ts-tutorial.html" title="TypeScript 教程">TypeScript 教程</a></li><li><a href="../ajax/ajax-tutorial.html" title="AJAX 教程">AJAX 教程</a></li><li><a href="../json/json-tutorial.html" title="JSON 教程">JSON 教程</a></li><li><a href="../tailwindcss/tailwindcss-tutorial.html" title="Tailwind CSS 教程">Tailwind CSS 教程</a></li><li><a href="../bootstrap4/bootstrap4-tutorial.html" title="Bootstrap4 教程">Bootstrap4 教程</a></li><li><a href="../bootstrap5/bootstrap5-tutorial.html" title="Bootstrap5 教程">Bootstrap5 教程</a></li><li><a href="../foundation/foundation-tutorial.html" title="Foundation 教程">Foundation 教程</a></li><li><a href="../vue2/vue-tutorial.html" title="Vue.js 教程">Vue.js 教程</a></li><li><a href="../vue3/vue3-tutorial.html" title="Vue3 教程">Vue3 教程</a></li><li><a href="../react/react-tutorial.html" title="React 教程">React 教程</a></li><li><a href="../nextjs/nextjs-tutorial.html" title="Next.js 教程">Next.js 教程</a></li><li><a href="../angularjs/angularjs-tutorial.html" title="AngularJS 教程">AngularJS 教程</a></li><li><a href="../angularjs2/angularjs2-tutorial.html" title="Angular 教程">Angular 教程</a></li><li><a href="../jquery/jquery-tutorial.html" title="jQuery 教程">jQuery 教程</a></li><li><a href="../jqueryui/jqueryui-tutorial.html" title="jQuery UI 教程">jQuery UI 教程</a></li><li><a href="../jeasyui/jqueryeasyui-tutorial.html" title="jQuery EasyUI 教程">jQuery EasyUI 教程</a></li><li><a href="../echarts/echarts-tutorial.html" title="ECharts 教程">ECharts 教程</a></li><li><a href="../chartjs/chartjs-tutorial.html" title="Chart.js 教程">Chart.js 教程</a></li><li><a href="../highcharts/highcharts-tutorial.html" title="Highcharts 教程">Highcharts 教程</a></li><li><a href="../googleapi/google-maps-basic.html" title="Google 地图 教程">Google 地图 教程</a></li><li><a href="../svg/svg-tutorial.html" title="SVG 教程">SVG 教程</a></li><li><a href="../font-awesome/fontawesome-tutorial.html" title="Font Awesome 教程">Font Awesome 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 后端开发</a><ul class="double-li"><li><a href="../nodejs/nodejs-tutorial.html" title="Node.js 教程">Node.js 教程</a></li><li><a href="../electron/electron-tutorial.html" title="Electron 教程">Electron 教程</a></li><li><a href="../php/php-tutorial.html" title="PHP 教程">PHP 教程</a></li><li><a href="../java/java-tutorial.html" title="Java 教程">Java 教程</a></li><li><a href="../go/go-tutorial.html" title="Go 教程">Go 教程</a></li><li><a href="../rust/rust-tutorial.html" title="Rust 教程">Rust 教程</a></li><li><a href="../csharp/csharp-tutorial.html" title="C# 教程">C# 教程</a></li><li><a href="../servlet/servlet-tutorial.html" title="Servlet 教程">Servlet 教程</a></li><li><a href="../jsp/jsp-tutorial.html" title="JSP 教程">JSP 教程</a></li><li><a href="../asp/asp-tutorial.html" title="ASP 教程">ASP 教程</a></li><li><a href="../appml/appml-tutorial.html" title="AppML 教程">AppML 教程</a></li><li><a href="../vbscript/vbscript-tutorial.html" title="VBScript 教程">VBScript 教程</a></li><li><a href="../swagger/swagger-tutorial.html" title="Swagger 教程">Swagger 教程</a></li><li><a href="../restfulapi/restful-api-tutorial.html" title="RESTful API 教程">RESTful API 教程</a></li><li><a href="../docker/docker-tutorial.html" title="Docker 教程">Docker 教程</a></li><li><a href="../linux/linux-tutorial.html" title="Linux 教程">Linux 教程</a></li><li><a href="../w3cnote/zookeeper-tutorial.html" title="ZooKeeper 教程">ZooKeeper 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 数据库</a><ul class="double-li"><li><a href="../sql/sql-tutorial.html" title="SQL 教程">SQL 教程</a></li><li><a href="../mysql/mysql-tutorial.html" title="MySQL 教程">MySQL 教程</a></li><li><a href="../postgresql/postgresql-tutorial.html" title="PostgreSQL 教程">PostgreSQL 教程</a></li><li><a href="../sqlite/sqlite-tutorial.html" title="SQLite 教程">SQLite 教程</a></li><li><a href="../mongodb/mongodb-tutorial.html" title="MongoDB 教程">MongoDB 教程</a></li><li><a href="../redis/redis-tutorial.html" title="Redis 教程">Redis 教程</a></li><li><a href="../memcached/memcached-tutorial.html" title="Memcached 教程">Memcached 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 移动开发</a><ul class="double-li"><li><a href="../w3cnote/android-tutorial-intro.html" title="Android 教程">Android 教程</a></li><li><a href="../flutter/flutter-tutorial.html" title="Flutter 教程">Flutter 教程</a></li><li><a href="../ionic/ionic-tutorial.html" title="Ionic 教程">Ionic 教程</a></li><li><a href="../jquerymobile/jquerymobile-tutorial.html" title="jQuery Mobile 教程">jQuery Mobile 教程</a></li><li><a href="../swift/swift-tutorial.html" title="Swift 教程">Swift 教程</a></li><li><a href="../kotlin/kotlin-tutorial.html" title="Kotlin 教程">Kotlin 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> DevOps / 工程化</a><ul class="double-li"><li><a href="../git/git-tutorial.html" title="Git 教程">Git 教程</a></li><li><a href="../svn/svn-tutorial.html" title="SVN 教程">SVN 教程</a></li><li><a href="../cmake/cmake-tutorial.html" title="CMake 教程">CMake 教程</a></li><li><a href="../maven/maven-tutorial.html" title="Maven 教程">Maven 教程</a></li><li><a href="../vscode/vscode-tutorial.html" title="VS Code 教程">VS Code 教程</a></li><li><a href="../obsidian/obsidian-tutorial.html" title="Obsidian 教程">Obsidian 教程</a></li><li><a href="../pycharm/pycharm-tutorial.html" title="PyCharm 教程">PyCharm 教程</a></li><li><a href="../eclipse/eclipse-tutorial.html" title="Eclipse 教程">Eclipse 教程</a></li><li><a href="../markdown/md-tutorial.html" title="Markdown 教程">Markdown 教程</a></li><li><a href="../latex/latex-tutorial.html" title="LaTeX 教程">LaTeX 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 编程语言</a><ul class="double-li"><li><a href="../c/c-tutorial.html" title="C 教程">C 教程</a></li><li><a href="../cplusplus/cpp-tutorial.html" title="C++ 教程">C++ 教程</a></li><li><a href="../zig/zig-tutorial.html" title="Zig 教程">Zig 教程</a></li><li><a href="../scala/scala-tutorial.html" title="Scala 教程">Scala 教程</a></li><li><a href="../ruby/ruby-tutorial.html" title="Ruby 教程">Ruby 教程</a></li><li><a href="../perl/perl-tutorial.html" title="Perl 教程">Perl 教程</a></li><li><a href="../lua/lua-tutorial.html" title="Lua 教程">Lua 教程</a></li><li><a href="../dart/dart-tutorial.html" title="Dart 教程">Dart 教程</a></li><li><a href="../assembly/assembly-tutorial.html" title="汇编语言 教程">汇编语言 教程</a></li><li><a href="../w3cnote/verilog-tutorial.html" title="Verilog 教程">Verilog 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 计算机基础</a><ul class="double-li"><li><a href="../computer-organization/computer-organization-tutorial.html" title="计算机组成原理">计算机组成原理</a></li><li><a href="../data-structures/data-structures-tutorial.html" title="数据结构与算法">数据结构与算法</a></li><li><a href="../c-dsa/c-dsa-tutorial.html" title="C 语言数据结构与算法">C 语言数据结构与算法</a></li><li><a href="../design-pattern/design-pattern-tutorial.html" title="设计模式">设计模式</a></li><li><a href="../python-design-pattern/python-design-pattern-tutorial.html" title="Python 设计模式">Python 设计模式</a></li><li><a href="../regexp/regexp-tutorial.html" title="正则表达式">正则表达式</a></li><li><a href="../http/http-tutorial.html" title="HTTP 教程">HTTP 教程</a></li><li><a href="../tcpip/tcpip-tutorial.html" title="TCP/IP 教程">TCP/IP 教程</a></li><li><a href="../np/np-tutorial.html" title="网络协议">网络协议</a></li><li><a href="../w3c/w3c-tutorial.html" title="W3C 教程">W3C 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> XML / Web Service</a><ul class="double-li"><li><a href="../xml/xml-tutorial.html" title="XML 教程">XML 教程</a></li><li><a href="../dtd/dtd-tutorial.html" title="DTD 教程">DTD 教程</a></li><li><a href="../dom/dom-tutorial.html" title="XML DOM 教程">XML DOM 教程</a></li><li><a href="../xsl/xsl-tutorial.html" title="XSLT 教程">XSLT 教程</a></li><li><a href="../xpath/xpath-tutorial.html" title="XPath 教程">XPath 教程</a></li><li><a href="../xquery/xquery-tutorial.html" title="XQuery 教程">XQuery 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XLink 教程">XLink 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XPointer 教程">XPointer 教程</a></li><li><a href="../schema/schema-tutorial.html" title="XML Schema 教程">XML Schema 教程</a></li><li><a href="../xslfo/xslfo-tutorial.html" title="XSL-FO 教程">XSL-FO 教程</a></li><li><a href="../webservices/webservices-tutorial.html" title="Web Service 教程">Web Service 教程</a></li><li><a href="../wsdl/wsdl-tutorial.html" title="WSDL 教程">WSDL 教程</a></li><li><a href="../soap/soap-tutorial.html" title="SOAP 教程">SOAP 教程</a></li><li><a href="../rss/rss-tutorial.html" title="RSS 教程">RSS 教程</a></li><li><a href="../rdf/rdf-tutorial.html" title="RDF 教程">RDF 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> .NET</a><ul class="double-li"><li><a href="../aspnet/aspnet-tutorial.html" title="ASP.NET 教程">ASP.NET 教程</a></li><li><a href="../aspnet/mvc-intro.html" title="MVC 教程">MVC 教程</a></li><li><a href="../aspnet/razor-intro.html" title="Razor 教程">Razor 教程</a></li><li><a href="../aspnet/aspnet-intro.html" title="Web Forms 教程">Web Forms 教程</a></li><li><a href="../aspnet/webpages-intro.html" title="Web Pages 教程">Web Pages 教程</a></li><li><a href="../powershell/powershell-tutorial.html" title="PowerShell 教程">PowerShell 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 网站建设</a><ul class="double-li"><li><a href="../web/web-buildingprimer.html" title="网站建设指南">网站建设指南</a></li><li><a href="../browsers/browser-information.html" title="浏览器信息">浏览器信息</a></li><li><a href="../hosting/hosting-tutorial.html" title="网站主机教程">网站主机教程</a></li><li><a href="../quality/quality-tutorial.html" title="网站品质">网站品质</a></li></ul></li></ul> </div>
+</div>
+</div>
+<br/>
+<div class="sidebar-box re-box re-box-large">
+</div>
+</div></div>
+</div>
+<script>
+var aid = 31886;
+function coll() {
+	$.post( '/wp-content/themes/runoob/option/user/userinfo.php', {aid:aid, action:"collarticle", opt:'add'},function( data ) {
+		if(data.error==0) {
+			$("#content").find("h1:first").find("a").attr("href","javascript:void(0);");
+			$("#content").find("h1:first").find("img").attr("src","http://www.runoob.com/wp-content/themes/runoob/assets/img/coll2.png").css({width:32+"px",height:32+"px"});
+		}
+		alert(data.msg);
+	},'json');
+}
+
+(function () {
+    // 1. 仅 HTML 页面
+    if (!document.contentType || !document.contentType.includes('text/html')) return;
+
+    // 2. 容器判断
+    var container = document.querySelector('.article-intro');
+    if (!container) return;
+
+    var h1 = container.querySelector('h1');
+    if (!h1) return;
+
+    // 3. URL 判断
+    var url = window.location.href.toLowerCase();
+    var version = null;
+
+    if (url.includes('/python3/')) {
+        version = 'Python3.x';
+    } else if (url.includes('/python/')) {
+        version = 'Python2.x';
+    }
+
+    if (!version) return;
+
+    // 4. 防重复
+    if (h1.querySelector('.py-version-badge')) return;
+
+    // 5. 创建标签
+    var badge = document.createElement('span');
+    badge.className = 'py-version-badge';
+    badge.innerText = version;
+
+    // 6. 样式（核心：float 实现右上角）
+    badge.style.float = 'right';
+    badge.style.fontSize = '12px';
+    badge.style.padding = '2px 8px';
+    badge.style.borderRadius = '999px';
+
+   // 自适应亮/暗色 + 渐变背景（增强版）
+	badge.style.color = 'inherit';
+
+	// 渐变背景（低透明度，不影响暗黑模式）
+	if (version.includes('3')) {
+		badge.style.background = 'linear-gradient(90deg, rgba(79,172,254,0.15), rgba(0,242,254,0.15))';
+	} else {
+		badge.style.background = 'linear-gradient(90deg, rgba(161,140,209,0.15), rgba(251,194,235,0.15))';
+	}
+
+	// 边框弱化（更精致）
+	badge.style.border = '1px solid rgba(127,127,127,0.3)';
+
+	// 提升可读性
+	badge.style.opacity = '0.95';
+
+    // 微调位置（更贴近“右上角”）
+    badge.style.marginTop = '4px';
+    badge.style.marginLeft = '10px';
+
+    // 7. 插入到 h1 最前面（让 float 生效更稳定）
+    h1.insertBefore(badge, h1.firstChild);
+
+})();
+</script>
+<!-- 反馈对话框开始 -->
+<script src="../wp-content/themes/runoob/assets/js/runoob-article-dir.min.js"></script>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>13.0 Principio de elección de líder de Zookeeper | Tutorial para novatos</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="./zookeeper-leader.html" rel="canonical"/>
+<meta content="13.0 Zookeeper Leader 选举原理" name="keywords"/>
+<meta content="zookeeper 的 leader 选举存在两个阶段，一个是服务器启动时 leader 选举，另一个是运行过程中 leader 服务器宕机。在分析选举原理前，先介绍几个重要的参数。  服务器 ID(myid)：编号越大在选举算法中权重越大 事务 ID(zxid)：值越大说明数据越新，权重越大 逻辑时钟(epoch-logicalclock)：同一轮投票过程中的逻辑时钟值是相同的，每投完一次值会增加  选举状态： LOOKING: 竞选.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div><!-- 导航栏 -->
+<!--  内容  -->
+<div class="container main">
+<div class="row">
+<!--  Android 基础入门教程 start  -->
+<div class="col left-column" style="display:none;">
+<div class="tab">Zookeeper 教程</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+</div>
+</div>
+</div>
+<!--  Android 基础入门教程 end  -->
+<div class="col middle-column big-middle-column">
+<div class="article">
+<div class="article-heading">
+<h2>13.0 Principio de elección de líder de Zookeeper</h2> <h3><em>Categoría</em> <a href="../w3cnote_genre/zookeeper.html" title="Zookeeper 教程">Tutorial de Zookeeper</a> </h3>
+</div>
+<div class="article-body note-body">
+<div class="article-intro">
+<!-- ad start-->
+<!-- ad end-->
+<p>La elección de líder de Zookeeper tiene dos fases: una es la elección de líder al iniciar el servidor, y la otra es cuando el servidor líder se cae durante el funcionamiento. Antes de analizar el principio de elección, se presentan primero algunos parámetros importantes.</p>
+<ul><li>ID de servidor (myid): cuanto mayor es el número, mayor es el peso en el algoritmo de elección.</li><li>ID de transacción (zxid): cuanto mayor es el valor, más nuevos son los datos y mayor es el peso.</li><li>Reloj lógico (epoch-logicalclock): el valor del reloj lógico es el mismo durante el mismo proceso de votación, y el valor aumenta después de cada votación.</li></ul>
+<p><strong>Estado de elección:</strong></p><ul><li>
+<strong>LOOKING</strong>: Estado de candidatura</li><li>
+<strong>FOLLOWING</strong>: Estado de seguidor, sincroniza el estado del líder y participa en la votación.</li><li>
+<strong>OBSERVING</strong>: Estado de observador, sincroniza el estado del líder y no participa en la votación.</li><li>
+<strong>LEADING</strong>: Estado de líder</li></ul>
+<h3>1、Elección de líder al iniciar el servidor</h3><p>Cada nodo está en estado LOOKING al iniciarse, y a continuación comienza el proceso principal de elección. Aquí se toma como ejemplo un clúster de tres máquinas. Cuando se inicia la primera máquina server1, no se puede realizar la elección de líder; cuando se inicia la segunda máquina server2, las dos máquinas pueden comunicarse entre sí y entran en el proceso de elección de líder.</p><ul><li>
+<p>(1) Cada servidor emite un voto. Como es la situación inicial, tanto server1 como server2 se votan a sí mismos como servidor líder. Cada voto contiene el myid, zxid y epoch del servidor recomendado, representado por (myid, zxid). En este momento, el voto de server1 es (1,0), el voto de server2 es (2,0), y luego cada uno envía su voto a las otras máquinas del clúster.</p></li><li>
+<p>(2) Recibir votos de cada servidor. Después de que cada servidor del clúster recibe un voto, primero juzga la validez del voto, por ejemplo, verifica si es de esta ronda de votación (epoch) y si proviene de un servidor en estado LOOKING.</p></li><li>
+<p>(3) Procesar los votos respectivamente. Para cada voto, el servidor debe comparar los votos de otros servidores con su propio voto. Las reglas de comparación son las siguientes:</p>
+<ul><li>a. Comparar primero el epoch</li><li>b. Revisar el zxid; el servidor con mayor zxid tiene prioridad como líder.</li><li>c. Si el zxid es el mismo, entonces se compara el myid; el servidor con mayor myid será el servidor líder.</li></ul></li><li>
+<p>(4) Contar los votos. Después de cada votación, el servidor cuenta la información de los votos para determinar si más de la mitad de las máquinas han recibido la misma información de voto. Tanto server1 como server2 cuentan que dos máquinas en el clúster han aceptado la información de voto (2,0). En este momento, se ha elegido a server2 como nodo líder.</p></li><li>
+<p>(5) Cambiar el estado del servidor. Una vez que se determina el líder, cada servidor actualiza su propio estado en consecuencia. Si es un seguidor, cambia a FOLLOWING; si es un líder, cambia a LEADING. En este momento, server3 continúa iniciándose y directamente se une y cambia su estado a FOLLOWING.</p></li></ul>
+<p><img decoding="async" src="../wp-content/uploads/2020/09/vote-01.png"/></p>
+<h3>2、Elección de líder durante el funcionamiento</h3>
+<p>Cuando el servidor líder del clúster se cae o no está disponible, todo el clúster no puede proporcionar servicios al exterior y entra en una nueva ronda de elección de líder.</p><ul><li>(1) Cambiar el estado. Después de que el líder se cae, los demás servidores que no son Observer cambian su propio estado de servidor a LOOKING.</li><li>(2) Cada servidor emite un voto. Durante el funcionamiento, el zxid en cada servidor puede ser diferente.</li><li>(3) Procesar los votos. Las reglas son las mismas que en el proceso de inicio.</li><li>(4) Contar los votos. Igual que el proceso de inicio.</li><li>(5) Cambiar el estado del servidor. Igual que el proceso de inicio.</li></ul>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link">← <a href="./zookeeper-data-sync.html" rel="prev">12.0 Proceso de sincronización de datos de Zookeeper</a> </div>
+<div class="next-design-link"><a href="./zookeeper-locks.html" rel="next">14.0 Principio de implementación del bloqueo distribuido de Zookeeper</a> →</div>
+</div>
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>Haz clic para compartir notas</h3>
+&lt;p style="font-size:14px;"&gt;Las notas deben ser una extensión del contenido de este artículo.&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;Envío de artículos, haga clic aquí&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;Cómo obtener el código de invitación de registro&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; Antes de compartir notas, debe &lt;a href=".." class="runoob-pop"&gt;iniciar sesión&lt;/a&gt;.&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;Cómo obtener el código de invitación de registro&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=".." id="cancel-comment-reply-link">Cancelar</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="22843"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>Compartir notas</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">Apodo</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">Apodo (obligatorio)</span></li>
+<li class="form-inline"><label class="hide" for="email">Correo electrónico</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">Correo electrónico (obligatorio)</span></li>
+<li class="form-inline"><label class="hide" for="url">Dirección de referencia</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">引用地址</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  22843;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 22843, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":22843},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+<style>
+@media screen and (max-width: 768px) {
+	#w3cnote-ad728 {
+		display: none;
+	}
+}
+p.note-author {
+    border-bottom: 1px solid #ddd;
+    font-size: 18px;
+    font-weight: bold;
+    color: #78a15a;
+    padding-bottom: 2px;
+    margin-bottom: 4px;
+}
+</style>
+<script>
+var aid = 22843;
+</script>
+</div>
+</div>
+<div class="listcol last right-column">
+<script type="text/javascript">
+jQuery(document).ready(function ($){
+	var total = $(".membership li").length;
+	var left_list = '';
+	href = window.location.href;
+	
+	$(".membership li").each(function(index, value){
+
+		left_list += $(this).html();
+
+		cur_href = $(this).find("a").attr("href");
+		cur_obj = $(this);
+		
+		if(href.match(cur_href) != null) {
+			if(index==0) {
+				$(".previous-design-link").hide();
+			}
+			if(index==(total-1)) {
+				$(".next-design-link").hide();
+			}
+			prev_href = cur_obj.prev("li").find("a").attr("href");
+			prev_title = cur_obj.prev("li").find("a").attr("title");
+
+			next_href = cur_obj.next("li").find("a").attr("href");
+			next_title = cur_obj.next("li").find("a").attr("title");
+			if(prev_title) {
+				$(".previous-design-link a").attr("href", prev_href);
+				$(".previous-design-link a").attr("title", prev_title);
+				$(".previous-design-link a").text(prev_title);
+			} else {
+				$(".previous-design-link").html("");
+			}
+
+			if(next_title) {
+				$(".next-design-link a").attr("href", next_href);
+				$(".next-design-link a").attr("title", next_title);
+				$(".next-design-link a").text(next_title);
+			} else {
+				$(".next-design-link").html("");
+			}
+		}
+	});
+
+	$("#leftcolumn").html(left_list);
+});
+	</script>
+<div class="sidebar-box cate-list">
+<div class="sidebar-box recommend-here list-link">
+<a href="#">Zookeeper 教程</a> </div>
+<ul class="membership">
+<li><a data-id="22726" href="./zookeeper-tutorial.html" target="_top" title="1.0 Zookeeper 教程">1.0 Zookeeper 教程</a></li>
+<li><a data-id="22725" href="./zookeeper-setup.html" target="_top" title="2.0 Zookeeper 安装配置">2.0 Zookeeper 安装配置</a></li>
+<li><a data-id="22745" href="./zookeeper-linux-cluster.html" target="_top" title="3.0 Zookeeper  linux 服务端集群搭建步骤">3.0 Zookeeper  linux 服务端集群搭建步骤</a></li>
+<li><a data-id="22757" href="./zookeeper-java-setup.html" target="_top" title="4.0 Zookeeper Java 客户端搭建">4.0 Zookeeper Java 客户端搭建</a></li>
+<li><a data-id="22764" href="./zookeeper-znode-data-model.html" target="_top" title="5.0 ZooKeeper 数据模型 znode 结构详解">5.0 ZooKeeper 数据模型 znode 结构详解</a></li>
+<li><a data-id="22770" href="./zookeeper-session.html" target="_top" title="6.0 Zookeeper session 基本原理">6.0 Zookeeper session 基本原理</a></li>
+<li><a data-id="22775" href="./zookeeper-bs-command.html" target="_top" title="7.0 Zookeeper 客户端基础命令使用">7.0 Zookeeper 客户端基础命令使用</a></li>
+<li><a data-id="22803" href="./zookeeper-sc-4lw.html" target="_top" title="8.0 Zookeeper 四字命令">8.0 Zookeeper 四字命令</a></li>
+<li><a data-id="22810" href="./zookeeper-node-feature.html" target="_top" title="9.0 Zookeeper 节点特性">9.0 Zookeeper 节点特性</a></li>
+<li><a data-id="22819" href="./zookeeper-acl.html" target="_top" title="10.0 Zookeeper 权限控制 ACL">10.0 Zookeeper 权限控制 ACL</a></li>
+<li><a data-id="22824" href="./zookeeper-watcher.html" target="_top" title="11.0 Zookeeper watcher 事件机制原理剖析">11.0 Zookeeper watcher 事件机制原理剖析</a></li>
+<li><a data-id="22841" href="./zookeeper-data-sync.html" target="_top" title="12.0 Zookeeper 数据同步流程">12.0 Zookeeper 数据同步流程</a></li>
+<li>
+	13.0 Zookeeper Leader 选举原理	</li>
+<li><a data-id="22845" href="./zookeeper-locks.html" target="_top" title="14.0 Zookeeper 分布式锁实现原理">14.0 Zookeeper 分布式锁实现原理</a></li>
+</ul></div> </div>
+</div>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+</div><script src="../../lang-switcher.js"></script>
+</body>
+</html>

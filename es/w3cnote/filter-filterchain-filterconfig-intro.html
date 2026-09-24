@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Introducción a Filter, FilterChain y FilterConfig | Tutorial de Runoob</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="./filter-filterchain-filterconfig-intro.html" rel="canonical"/>
+<meta content="Filter、FilterChain、FilterConfig 介绍" name="keywords"/>
+<meta content="一、Filter 的基本工作原理  1、Filter 程序是一个实现了特殊接口的 Java 类，与 Servlet 类似，也是由 Servlet 容器进行调用和执行的。  2、当在 web.xml 注册了一个 Filter 来对某个 Servlet 程序进行拦截处理时，它可以决定是否将请求继续传递给 Servlet 程序，以及对请求和响应消息是否进行修改。  3、当 Servlet 容器开始调用某个 Servlet 程序时，如果发现已经.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div><!-- 导航栏 -->
+<!--  内容  -->
+<div class="container main">
+<div class="row">
+<div class="col middle-column big-middle-column">
+<div class="article">
+<div class="article-heading">
+<h2>Introducción a Filter, FilterChain y FilterConfig</h2> <h3><em>Categoría</em> <a href="../w3cnote_genre/code.html" title="编程技术">Tecnología de programación</a> </h3>
+</div>
+<div class="article-body note-body">
+<div class="article-intro">
+<!-- ad start-->
+<!-- ad end-->
+<h2>1. Principio básico de funcionamiento de Filter</h2>
+<ul><li>1. Un programa Filter es una clase Java que implementa una interfaz especial; al igual que Servlet, también es invocado y ejecutado por el contenedor de Servlet.</li><li>2. Cuando se registra un Filter en web.xml para interceptar un programa Servlet, puede decidir si continuar pasando la solicitud al programa Servlet y si modificar los mensajes de solicitud y respuesta.</li><li>3. Cuando el contenedor de Servlet comienza a invocar un programa Servlet, si descubre que ya se ha registrado un programa Filter para interceptar ese Servlet, el contenedor ya no invoca directamente el método service del Servlet, sino que invoca el método doFilter del Filter, y luego el método doFilter decide si activar el método service.</li><li>4. Sin embargo, en el método Filter.doFilter no se puede invocar directamente el método service del Servlet; en su lugar, se invoca el método FilterChain.doFilter para activar el método service del Servlet de destino. El objeto FilterChain se pasa a través del parámetro del método Filter.doFilter.</li><li>5. Basta con agregar cierto código de programa antes y después de la instrucción que invoca FilterChain.doFilter en el método Filter.doFilter para implementar ciertas funciones especiales antes y después de que el Servlet responda.</li><li>6. Si en el método Filter.doFilter no se invoca el método FilterChain.doFilter, el método service del Servlet de destino no se ejecutará; de esta manera, a través de Filter se pueden bloquear ciertas solicitudes de acceso ilegales.</li>
+</ul>
+<hr/><h2>2. Cadena de filtros</h2><ul><li>1. En una aplicación web se pueden registrar varios programas Filter; cada programa Filter puede interceptar uno o un grupo de programas Servlet. Si hay varios programas Filter que pueden interceptar el proceso de acceso a un programa Servlet, cuando llega la solicitud de acceso para ese Servlet, el contenedor web combina estos múltiples programas Filter en una cadena de filtros (también llamada filter chain).</li><li>2. El orden de interceptación de cada Filter en la cadena de filtros es consistente con su orden de mapeo en el archivo web.xml. La invocación del método FilterChain.doFilter en el método Filter.doFilter del Filter anterior activará el método doFilter del siguiente Filter; la invocación del método FilterChain.doFilter en el método Filter.doFilter del último Filter activará el método service del Servlet de destino.</li><li>3. Mientras cualquier Filter en la cadena de filtros no invoque el método FilterChain.doFilter, el método service del Servlet de destino no se ejecutará.</li>
+</ul><hr/><h2>3. Interfaz Filter</h2>
+<p>Un programa Filter es una clase Java que debe implementar la interfaz Filter. La interfaz javax.servlet.Filter define tres métodos: init, doFilter, destroy.</p>
+<p><strong>1. Método init</strong></p>
+<ul><li>(1) Cuando se inicia la aplicación web, el servidor web (contenedor web) creará el objeto de instancia de cada Filter registrado según la información de configuración de su archivo web.xml y lo guardará en la memoria.</li><li>
+<p>(2) Después de que el contenedor web crea el objeto de instancia de Filter, inmediatamente llama al método init del objeto Filter. El método init se ejecuta solo una vez en el ciclo de vida del Filter. Cuando el contenedor web invoca el método init, pasa un objeto FilterConfig que contiene la configuración del Filter y la información del entorno de ejecución.</p>
+<pre>public voic init(FilterConfig filterConfig) throws ServletException</pre></li><li>(3) El desarrollador puede realizar en el método init funciones de inicialización similares a las de un constructor. Se debe tener en cuenta que, si el código de inicialización necesita usar el objeto FilterConfig, este código solo puede escribirse en el método init, no en el constructor (ya que el método init todavía no se ha invocado, es decir, el objeto FilterConfig aún no se ha creado, por lo que usarlo sin duda causaría un error).</li></ul><h3>2. Método doFilter</h3>
+<p>Cuando un objeto Filter puede interceptar la solicitud de acceso, el contenedor de Servlet invocará el método doFilter del objeto Filter.</p>
+<pre>public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws java.io.IOException.ServletException</pre>
+<p>Entre ellos, los parámetros request y response son los objetos de solicitud y respuesta transferidos por el contenedor web o por el Filter anterior en la cadena de filtros; el parámetro chain es el objeto que representa la cadena de filtros actual.</p>
+<h3>3. Método destroy</h3>
+<p>Este método se invoca antes de que el contenedor web descargue el objeto Filter, y también se ejecuta solo una vez. Puede realizar la función contraria al método init, liberando los recursos abiertos por ese objeto Filter, por ejemplo: cerrar conexiones de base de datos y flujos de E/S.</p>
+<hr/><h2>4. Interfaz FilterChain</h2>
+<p>Esta interfaz se utiliza para definir los métodos que un objeto de cadena de filtros debe proporcionar externamente. Esta interfaz solo define un método doFilter.</p>
+<pre>public void doFilter(ServletRequest request, ServletResponse response) throws java.io.IOException.ServletException</pre>
+<p>El método doFilter de la interfaz FilterChain se utiliza para notificar al contenedor web que entregue la solicitud al siguiente Filter en la cadena de filtros para que la procese. Si el objeto Filter que actualmente llama a este método es el último Filter de la cadena de filtros, entonces la solicitud se entregará al programa Servlet de destino para su procesamiento.</p>
+<hr/><h2>5. Interfaz FilterConfig</h2>
+<ul><li>1. Al igual que un programa Servlet normal, un programa Filter probablemente también necesite acceder al contenedor de Servlet. La especificación de Servlet encapsula el objeto ServletContext y la información de parámetros de configuración del Filter en un objeto llamado FilterConfig.</li><li>2. La interfaz FilterConfig se utiliza para definir los métodos que el objeto FilterConfig debe proporcionar externamente, de modo que en el programa Filter se puedan invocar estos métodos para obtener el objeto ServletContext, así como el nombre descriptivo y los parámetros de inicialización establecidos para el Filter en el archivo web.xml.</li><li>
+<p>3. Métodos definidos por la interfaz FilterConfig:</p>
+<ul>
+<li><p>El método getFilterName devuelve el valor establecido del elemento &lt;filter-name&gt;.</p></li>
+<li><p>El método getServletContext devuelve una referencia al objeto ServletContext contenido en el objeto FilterConfig.</p></li>
+<li><p>El método getInitParameter se utiliza para devolver el valor del parámetro de inicialización con un determinado nombre establecido para el Filter en el archivo web.xml.</p></li>
+<li><p>El método getInitParameterNames devuelve un objeto de colección Enumeration.</p></li>
+</ul>
+</li></ul>
+<hr/><h2>6. Registro y mapeo de Filter</h2>
+<h3>1. Registrar Filter</h3>
+<p>Un elemento &lt;filter&gt; se utiliza para registrar un Filter. Entre ellos, el elemento &lt;filter-name&gt; es obligatorio, el elemento &lt;filter-class&gt; también es obligatorio, el elemento &lt;init-param&gt; es opcional y puede haber múltiples elementos &lt;init-param&gt;.</p>
+<pre>&lt;filter&gt;
+    &lt;filter-name&gt;FirstFilter&lt;/filter-name&gt;
+    &lt;filter-class&gt;FirstFilter&lt;/filter-class&gt;
+    &lt;init-param&gt;
+        &lt;param-name&gt;encoding&lt;/param-name&gt;
+        &lt;param-value&gt;GB2312&lt;/param-value&gt;
+    &lt;/init-param&gt;
+&lt;/filter&gt;</pre>
+<h3>2. Mapear Filter</h3>
+<p>El elemento &lt;filter-mapping&gt; se utiliza para configurar los recursos que un Filter se encarga de interceptar. Los recursos que intercepta un Filter se pueden especificar de dos maneras: la ruta de solicitud de acceso del recurso y el nombre del Servlet.</p>
+<p><strong>Primera: especificar la ruta de acceso del recurso</strong></p>
+<pre>&lt;filter-mapping&gt;
+    &lt;filter-name&gt;FirstFilter&lt;/filter-name&gt;
+    &lt;url-pattern&gt;/*&lt;/url-pattern&gt;
+&lt;/filter-mapping&gt;</pre>
+<p>El método de configuración de la ruta de acceso en el elemento &lt;url-pattern&gt; sigue la especificación de mapeo de URL de Servlet.</p>
+<ul><li>
+<span class="marked">/*</span>: significa interceptar todas las solicitudes de acceso.</li><li>
+<span class="marked">/filter/*</span>: Indica interceptar todas las solicitudes de acceso en el directorio filter, por ejemplo: http://localhost:8888/testFilter_001/filter/xxxxxx</li><li>
+<span class="marked">/test.html</span>: Indica interceptar las solicitudes de acceso con test.html como nombre de recurso en el directorio raíz; la URL de acceso solo será: http://localhost:8888/test.html</li></ul>
+<p><strong>Segundo tipo: especificar el nombre del Servlet</strong></p>
+<pre>&lt;filter-mapping&gt;
+    &lt;filter-name&gt;FirstFilter&lt;/filter-name&gt;
+    &lt;servlet-name&gt;default&gt;&lt;/servlet-name&gt;
+    &lt;dispatcher&gt;INCLUDE&lt;/dispatcher&gt;
+    &lt;dispatcher&gt;REQUEST&lt;/dispatcher&gt;
+&lt;/filter-mapping&gt;</pre>
+<p>(1) Los elementos &lt;servlet-name&gt; y &lt;url-pattern&gt; son mutuamente excluyentes; su valor es el nombre registrado de un Servlet en el archivo web.xml.</p>
+<p>(2) El elemento &lt;dispatcher&gt; tiene 4 valores posibles: REQUEST, INCLUDE, FORWARD, ERROR, que corresponden a las 4 formas en que el contenedor de Servlet invoca un recurso:</p>
+<ul>
+<li><p>Mediante una solicitud de acceso normal;</p></li>
+<li><p>Mediante el método RequestDispatcher.include;</p></li>
+<li><p>Mediante el método RequestDispatcher.forward;</p></li>
+<li><p>Como recurso de respuesta de error.</p></li>
+</ul>
+<p>Si no se establece el elemento hijo &lt;dispatcher&gt;, equivale al caso REQUEST. También se pueden configurar varios elementos hijo &lt;dispatcher&gt; para especificar que el Filter intercepte múltiples formas de invocación del recurso.</p>
+<hr/>
+<h2>7. Ejemplo de programa Filter</h2>
+<div class="example">
+<h2 class="example">FitstFilter.java</h2>
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">import</span><span class="hl-code"> </span><span class="hl-identifier">java</span><span class="hl-code">.</span><span class="hl-identifier">io</span><span class="hl-code">.</span><span class="hl-identifier">IOException</span><span class="hl-code">;
+</span><span class="hl-reserved">import</span><span class="hl-code"> </span><span class="hl-identifier">java</span><span class="hl-code">.</span><span class="hl-identifier">io</span><span class="hl-code">.</span><span class="hl-identifier">PrintWriter</span><span class="hl-code">;
+</span><span class="hl-reserved">import</span><span class="hl-code"> </span><span class="hl-identifier">java</span><span class="hl-code">.</span><span class="hl-identifier">util</span><span class="hl-code">.</span><span class="hl-identifier">Enumeration</span><span class="hl-code">;
+</span><span class="hl-reserved">import</span><span class="hl-code"> </span><span class="hl-identifier">javax</span><span class="hl-code">.</span><span class="hl-identifier">servlet</span><span class="hl-code">.</span><span class="hl-identifier">Filter</span><span class="hl-code">;
+</span><span class="hl-reserved">import</span><span class="hl-code"> </span><span class="hl-identifier">javax</span><span class="hl-code">.</span><span class="hl-identifier">servlet</span><span class="hl-code">.</span><span class="hl-identifier">FilterChain</span><span class="hl-code">;
+</span><span class="hl-reserved">import</span><span class="hl-code"> </span><span class="hl-identifier">javax</span><span class="hl-code">.</span><span class="hl-identifier">servlet</span><span class="hl-code">.</span><span class="hl-identifier">FilterConfig</span><span class="hl-code">;
+</span><span class="hl-reserved">import</span><span class="hl-code"> </span><span class="hl-identifier">javax</span><span class="hl-code">.</span><span class="hl-identifier">servlet</span><span class="hl-code">.</span><span class="hl-identifier">ServletException</span><span class="hl-code">;
+</span><span class="hl-reserved">import</span><span class="hl-code"> </span><span class="hl-identifier">javax</span><span class="hl-code">.</span><span class="hl-identifier">servlet</span><span class="hl-code">.</span><span class="hl-identifier">ServletRequest</span><span class="hl-code">;
+</span><span class="hl-reserved">import</span><span class="hl-code"> </span><span class="hl-identifier">javax</span><span class="hl-code">.</span><span class="hl-identifier">servlet</span><span class="hl-code">.</span><span class="hl-identifier">ServletResponse</span><span class="hl-code">;
+</span><span class="hl-reserved">import</span><span class="hl-code"> </span><span class="hl-identifier">javax</span><span class="hl-code">.</span><span class="hl-identifier">servlet</span><span class="hl-code">.</span><span class="hl-identifier">http</span><span class="hl-code">.</span><span class="hl-identifier">HttpServletRequest</span><span class="hl-code">;
+ 
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-reserved">class</span><span class="hl-code"> </span><span class="hl-identifier">FirstFilter</span><span class="hl-code"> </span><span class="hl-reserved">implements</span><span class="hl-code"> </span><span class="hl-identifier">Filter</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-identifier">FilterConfig</span><span class="hl-code"> </span><span class="hl-identifier">filterConfig</span><span class="hl-code"> = </span><span class="hl-reserved">null</span><span class="hl-code">;
+    </span><span class="hl-identifier">String</span><span class="hl-code"> </span><span class="hl-identifier">paramValue</span><span class="hl-code"> = </span><span class="hl-reserved">null</span><span class="hl-code">;
+ 
+    @</span><span class="hl-identifier">Override</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">init</span><span class="hl-brackets">(</span><span class="hl-identifier">FilterConfig</span><span class="hl-code"> </span><span class="hl-identifier">filterConfig</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-reserved">throws</span><span class="hl-code"> </span><span class="hl-identifier">ServletException</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">this</span><span class="hl-code">.</span><span class="hl-identifier">filterConfig</span><span class="hl-code"> = </span><span class="hl-identifier">filterConfig</span><span class="hl-code">;
+        </span><span class="hl-identifier">paramValue</span><span class="hl-code"> = </span><span class="hl-identifier">filterConfig</span><span class="hl-code">.</span><span class="hl-identifier">getInitParameter</span><span class="hl-brackets">(</span><span class="hl-quotes">"</span><span class="hl-string">encoding</span><span class="hl-quotes">"</span><span class="hl-brackets">)</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+    
+    @</span><span class="hl-identifier">Override</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">doFilter</span><span class="hl-brackets">(</span><span class="hl-identifier">ServletRequest</span><span class="hl-code"> </span><span class="hl-identifier">request</span><span class="hl-code">, </span><span class="hl-identifier">ServletResponse</span><span class="hl-code"> </span><span class="hl-identifier">response</span><span class="hl-code">,
+            </span><span class="hl-identifier">FilterChain</span><span class="hl-code"> </span><span class="hl-identifier">chain</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-reserved">throws</span><span class="hl-code"> </span><span class="hl-identifier">IOException</span><span class="hl-code">, </span><span class="hl-identifier">ServletException</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">System</span><span class="hl-code">.</span><span class="hl-identifier">out</span><span class="hl-code">.</span><span class="hl-identifier">println</span><span class="hl-brackets">(</span><span class="hl-quotes">"</span><span class="hl-string">begin headers-------------------</span><span class="hl-quotes">"</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-identifier">Enumeration</span><span class="hl-code">&lt;?&gt; </span><span class="hl-identifier">headerNames</span><span class="hl-code"> = </span><span class="hl-brackets">(</span><span class="hl-brackets">(</span><span class="hl-identifier">HttpServletRequest</span><span class="hl-brackets">)</span><span class="hl-identifier">request</span><span class="hl-brackets">)</span><span class="hl-code">.</span><span class="hl-identifier">getHeaderNames</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+        
+        </span><span class="hl-reserved">while</span><span class="hl-brackets">(</span><span class="hl-identifier">headerNames</span><span class="hl-code">.</span><span class="hl-identifier">hasMoreElements</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">String</span><span class="hl-code"> </span><span class="hl-identifier">headerName</span><span class="hl-code"> = </span><span class="hl-brackets">(</span><span class="hl-identifier">String</span><span class="hl-brackets">)</span><span class="hl-identifier">headerNames</span><span class="hl-code">.</span><span class="hl-identifier">nextElement</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+            </span><span class="hl-identifier">System</span><span class="hl-code">.</span><span class="hl-identifier">out</span><span class="hl-code">.</span><span class="hl-identifier">println</span><span class="hl-brackets">(</span><span class="hl-identifier">headerName</span><span class="hl-code"> + </span><span class="hl-quotes">"</span><span class="hl-string">: </span><span class="hl-quotes">"</span><span class="hl-code"> + </span><span class="hl-brackets">(</span><span class="hl-brackets">(</span><span class="hl-identifier">HttpServletRequest</span><span class="hl-brackets">)</span><span class="hl-identifier">request</span><span class="hl-brackets">)</span><span class="hl-code">.</span><span class="hl-identifier">getHeader</span><span class="hl-brackets">(</span><span class="hl-identifier">headerName</span><span class="hl-brackets">)</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">System</span><span class="hl-code">.</span><span class="hl-identifier">out</span><span class="hl-code">.</span><span class="hl-identifier">println</span><span class="hl-brackets">(</span><span class="hl-quotes">"</span><span class="hl-string">end headers-------------------</span><span class="hl-quotes">"</span><span class="hl-brackets">)</span><span class="hl-code">;
+        
+        </span><span class="hl-comment">//</span><span class="hl-comment">Escribir contenido de respuesta antes de llamar al objetivo</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">response</span><span class="hl-code">.</span><span class="hl-identifier">setContentType</span><span class="hl-brackets">(</span><span class="hl-quotes">"</span><span class="hl-string">text/html; charset=gb2312</span><span class="hl-quotes">"</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-identifier">PrintWriter</span><span class="hl-code"> </span><span class="hl-identifier">out</span><span class="hl-code"> = </span><span class="hl-identifier">response</span><span class="hl-code">.</span><span class="hl-identifier">getWriter</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-identifier">out</span><span class="hl-code">.</span><span class="hl-identifier">println</span><span class="hl-brackets">(</span><span class="hl-quotes">"</span><span class="hl-string">La dirección IP es:</span><span class="hl-quotes">"</span><span class="hl-code"> + </span><span class="hl-identifier">request</span><span class="hl-code">.</span><span class="hl-identifier">getRemoteHost</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code"> + </span><span class="hl-quotes">"</span><span class="hl-string">&lt;br&gt;</span><span class="hl-quotes">"</span><span class="hl-brackets">)</span><span class="hl-code">;
+ 
+        </span><span class="hl-identifier">chain</span><span class="hl-code">.</span><span class="hl-identifier">doFilter</span><span class="hl-brackets">(</span><span class="hl-identifier">request</span><span class="hl-code">, </span><span class="hl-identifier">response</span><span class="hl-brackets">)</span><span class="hl-code">;
+        
+        </span><span class="hl-comment">//</span><span class="hl-comment">Escribir contenido de respuesta después de que el objetivo retorne</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">out</span><span class="hl-code">.</span><span class="hl-identifier">println</span><span class="hl-brackets">(</span><span class="hl-quotes">"</span><span class="hl-string">&lt;br&gt;El valor del parámetro de inicialización llamado encoding es:</span><span class="hl-quotes">"</span><span class="hl-code"> + </span><span class="hl-identifier">paramValue</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-identifier">out</span><span class="hl-code">.</span><span class="hl-identifier">println</span><span class="hl-brackets">(</span><span class="hl-quotes">"</span><span class="hl-string">&lt;br&gt;La ruta real del programa Web actual es:</span><span class="hl-quotes">"</span><span class="hl-code"> + </span><span class="hl-identifier">filterConfig</span><span class="hl-code">.</span><span class="hl-identifier">getServletContext</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">.</span><span class="hl-identifier">getRealPath</span><span class="hl-brackets">(</span><span class="hl-quotes">"</span><span class="hl-string">/</span><span class="hl-quotes">"</span><span class="hl-brackets">)</span><span class="hl-brackets">)</span><span class="hl-code">;
+        
+        </span><span class="hl-comment">//</span><span class="hl-comment">out.println("&lt;br&gt;修改了test.html文件！");</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+    
+    @</span><span class="hl-identifier">Override</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">destroy</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">this</span><span class="hl-code">.</span><span class="hl-identifier">filterConfig</span><span class="hl-code"> = </span><span class="hl-reserved">null</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span></div>
+</div>
+</div>
+<div class="example">
+<h2 class="example">web.xml</h2>
+<div class="example_code">
+<div class="hl-main"><span class="hl-brackets">&lt;</span><span class="hl-reserved">filter</span><span class="hl-brackets">&gt;</span><span class="hl-code">
+</span><span class="hl-brackets">&lt;</span><span class="hl-reserved">filter-name</span><span class="hl-brackets">&gt;</span><span class="hl-code">FirstFilter</span><span class="hl-brackets">&lt;/</span><span class="hl-reserved">filter-name</span><span class="hl-brackets">&gt;</span><span class="hl-code">
+</span><span class="hl-brackets">&lt;</span><span class="hl-reserved">filter-class</span><span class="hl-brackets">&gt;</span><span class="hl-code">FirstFilter</span><span class="hl-brackets">&lt;/</span><span class="hl-reserved">filter-class</span><span class="hl-brackets">&gt;</span><span class="hl-code">
+</span><span class="hl-brackets">&lt;</span><span class="hl-reserved">init-param</span><span class="hl-brackets">&gt;</span><span class="hl-code">
+</span><span class="hl-brackets">&lt;</span><span class="hl-reserved">param-name</span><span class="hl-brackets">&gt;</span><span class="hl-code">encoding</span><span class="hl-brackets">&lt;/</span><span class="hl-reserved">param-name</span><span class="hl-brackets">&gt;</span><span class="hl-code">
+</span><span class="hl-brackets">&lt;</span><span class="hl-reserved">param-value</span><span class="hl-brackets">&gt;</span><span class="hl-code">GB2312</span><span class="hl-brackets">&lt;/</span><span class="hl-reserved">param-value</span><span class="hl-brackets">&gt;</span><span class="hl-code">
+</span><span class="hl-brackets">&lt;/</span><span class="hl-reserved">init-param</span><span class="hl-brackets">&gt;</span><span class="hl-code">
+</span><span class="hl-brackets">&lt;/</span><span class="hl-reserved">filter</span><span class="hl-brackets">&gt;</span><span class="hl-code">
+</span><span class="hl-brackets">&lt;</span><span class="hl-reserved">filter-mapping</span><span class="hl-brackets">&gt;</span><span class="hl-code">
+</span><span class="hl-brackets">&lt;</span><span class="hl-reserved">filter-name</span><span class="hl-brackets">&gt;</span><span class="hl-code">FirstFilter</span><span class="hl-brackets">&lt;/</span><span class="hl-reserved">filter-name</span><span class="hl-brackets">&gt;</span><span class="hl-code">
+</span><span class="hl-brackets">&lt;</span><span class="hl-reserved">url-pattern</span><span class="hl-brackets">&gt;</span><span class="hl-code">/*</span><span class="hl-brackets">&lt;/</span><span class="hl-reserved">url-pattern</span><span class="hl-brackets">&gt;</span><span class="hl-code">
+</span><span class="hl-brackets">&lt;/</span><span class="hl-reserved">filter-mapping</span><span class="hl-brackets">&gt;</span></div>
+</div>
+</div>
+<div class="example">
+<h2 class="example">test.html (ubicado en el directorio filter de la ruta WebContent)</h2>
+<div class="example_code">
+<div class="hl-main"><span class="hl-brackets">&lt;</span><span class="hl-reserved">html</span><span class="hl-brackets">&gt;</span><span class="hl-code">
+</span><span class="hl-brackets">&lt;</span><span class="hl-reserved">head</span><span class="hl-brackets">&gt;</span><span class="hl-code">
+</span><span class="hl-brackets">&lt;</span><span class="hl-reserved">meta</span><span class="hl-code"> </span><span class="hl-var">charset</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string">UTF-8</span><span class="hl-quotes">"</span><span class="hl-brackets">&gt;</span><span class="hl-code">
+</span><span class="hl-brackets">&lt;</span><span class="hl-reserved">title</span><span class="hl-brackets">&gt;</span><span class="hl-code">Insert title here</span><span class="hl-brackets">&lt;/</span><span class="hl-reserved">title</span><span class="hl-brackets">&gt;</span><span class="hl-code">
+</span><span class="hl-brackets">&lt;/</span><span class="hl-reserved">head</span><span class="hl-brackets">&gt;</span><span class="hl-code">
+</span><span class="hl-brackets">&lt;</span><span class="hl-reserved">body</span><span class="hl-brackets">&gt;</span><span class="hl-code">¡Este es el contenido original de la página test.html!</span><span class="hl-brackets">&lt;/</span><span class="hl-reserved">body</span><span class="hl-brackets">&gt;</span><span class="hl-code">
+</span><span class="hl-brackets">&lt;/</span><span class="hl-reserved">html</span><span class="hl-brackets">&gt;</span></div>
+</div>
+</div>
+<p>Acceder:<strong>http://localhost:8888/testFilter_001/filter/test.html</strong></p>
+<blockquote><p>Fuente del artículo: https://my.oschina.net/u/1171518/blog/265467</p></blockquote>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link">← <a href="./js-jquery-refresh-iframe.html" rel="prev">Métodos de JS/jQuery para actualizar un iframe</a> </div>
+<div class="next-design-link"><a href="./cpp-keyword-intro.html" rel="next">Introducción completa a las palabras clave (reservadas) de C++</a> →</div>
+</div>
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>Haz clic para compartir notas</h3>
+&lt;p style="font-size:14px;"&gt;¡La nota debe ser una extensión del contenido de este artículo!&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;Para enviar un artículo, haz clic aquí&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;Cómo obtener el código de invitación de registro&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; ¡Antes de compartir notas debes &lt;a href=".." class="runoob-pop"&gt;iniciar sesión&lt;/a&gt;!&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;Cómo obtener el código de invitación de registro&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=".." id="cancel-comment-reply-link">Cancelar</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="20273"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>Compartir notas</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">Apodo</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">Apodo (obligatorio)</span></li>
+<li class="form-inline"><label class="hide" for="email">Correo electrónico</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">Correo electrónico (obligatorio)</span></li>
+<li class="form-inline"><label class="hide" for="url">URL de referencia</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">引用地址</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  20273;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 20273, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":20273},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+<style>
+@media screen and (max-width: 768px) {
+	#w3cnote-ad728 {
+		display: none;
+	}
+}
+p.note-author {
+    border-bottom: 1px solid #ddd;
+    font-size: 18px;
+    font-weight: bold;
+    color: #78a15a;
+    padding-bottom: 2px;
+    margin-bottom: 4px;
+}
+</style>
+<script>
+var aid = 20273;
+</script>
+</div>
+</div>
+<div class="listcol last right-column">
+<!--
+	<div class="tab tab-light-blue"> 订阅</div>
+	<div class="sidebar-box">
+		<div class="socialicons">
+			<a href="../feed.html" class="rss">RSS 订阅</a>
+		
+			<form action="..//list.qq.com/cgi-bin/qf_compose_send" method="post">
+			<input type="hidden" value="qf_booked_feedback" name="t">
+			<input type="hidden" value="4b67b6b6c1f5e792559940cab4aebb8f1126fba880bff1a8" name="id">
+			<input class="placeholder" id="feed_email" name="to" value="输入邮箱 订阅笔记" autocomplete="off">
+			<input type="submit" value="订阅" class="btn btn-primary">
+			</form>
+		
+		</div>
+ 
+	</div>
+-->
+<!--
+	<div class="sidebar-box cate-list">
+	<div class="sidebar-box recommend-here list-link">
+			<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">笔记列表</a>
+		</div>
+
+ 
+
+</div>
+-->
+<div class="sidebar-box cate-list" style="display:none;">
+<div class="sidebar-box recommend-here list-link">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">热门文章</a>
+</div>
+<div class="membership">
+<ul class="membership">
+<li><a href="https://mp.weixin.qq.com/s/ZaP6YNgKTCHYy3r2WPBBaw" target="_blank" title="2024 年 04 月 JavaScript 框架排行榜">2024 年 04 月 JavaScript 框架排行榜</a></li>
+<li><a href="https://mp.weixin.qq.com/s/JBR2twC0t6krjjuxqvhsEQ" target="_blank" title="免费、开源、好用的 SQL 客户端合集">免费、开源、好用的 SQL 客户端合集</a></li>
+<li><a href="https://mp.weixin.qq.com/s/TwV3YQjA1glyaW7TiHvhlA" target="_blank" title="优雅的代码规范，提升代码质量">优雅的代码规范，提升代码质量</a></li>
+<li><a href="https://mp.weixin.qq.com/s/CnUJ-2OHPbBKlnVpjDzavA" target="_blank" title="命令行中的趣味世界，牛也能说话，有趣又好玩">命令行中的趣味世界，牛也能说话，有趣又好玩</a></li>
+<li><a href="https://mp.weixin.qq.com/s/7NKl-mD7N8CeSNQlbKDEWA" target="_blank" title="2024 年 05 月编程语言排行榜，Fortran 进入前 10 名，发生了什么？">2024 年 05 月编程语言排行榜，Fortran 进入前 10 名，发生了什么？</a></li>
+<li><a href="https://mp.weixin.qq.com/s/yWlSVDKobtDhThnhirVRpw" target="_blank" title="免费开源的 IDE、数据库管理工具、SSH客户端和FTP客户端">免费开源的 IDE、数据库管理工具、SSH客户端和FTP客户端</a></li>
+</ul>
+</div>
+</div>
+<div class="sidebar-box cate-list">
+<div class="sidebar-box recommend-here list-link">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">教程列表</a>
+</div>
+<div class="cate-items">
+<a href="../ado.html">ADO 教程</a>
+<a href="../ai-agent.html">AI Agent 教程</a>
+<a href="../ai.html">AI 入门教程</a>
+<a href="../ai-math.html">AI 数学基础</a>
+<a href="../ajax.html">Ajax 教程</a>
+<a href="../android.html">Android 教程</a>
+<a href="../angularjs2.html">Angular2 教程</a>
+<a href="../angularjs.html">AngularJS 教程</a>
+<a href="../appml.html">AppML 教程</a>
+<a href="../asp.html">ASP 教程</a>
+<a href="../aspnet.html">ASP.NET 教程</a>
+<a href="../bootstrap.html">Bootstrap 教程</a>
+<a href="../bootstrap4.html">Bootstrap4 教程</a>
+<a href="../bootstrap5.html">Bootstrap5 教程</a>
+<a href="../cprogramming.html">C 教程</a>
+<a href="../c-dsa.html">C 语言数据结构与算法</a>
+<a href="../csharp.html">C# 教程</a>
+<a href="../cplusplus.html">C++ 教程</a>
+<a href="../chartjs.html">Chart.js 教程</a>
+<a href="../claude-code.html">Claude Code 教程</a>
+<a href="../cmake.html">CMake 教程</a>
+<a href="../codex.html">Codex 教程</a>
+<a href="../cssref.html">CSS 参考手册</a>
+<a href="../css.html">CSS 教程</a>
+<a href="../css3.html">CSS3 教程</a>
+<a href="../cursor.html">Cursor 教程</a>
+<a href="../dart.html">Dart 教程</a>
+<a href="../dash.html">Dash 教程</a>
+<a href="../deepseek-harness.html">DeepSeek Harness</a>
+<a href="../django.html">Django 教程</a>
+<a href="../docker.html">Docker 教程</a>
+<a href="../dtd.html">DTD 教程</a>
+<a href="../echarts.html">ECharts 教程</a>
+<a href="../eclipse.html">Eclipse 教程</a>
+<a href="../electron.html">Electron 教程</a>
+<a href="../fastapi.html">FastAPI 教程</a>
+<a href="../firebug.html">Firebug 教程</a>
+<a href="../flask.html">Flask 教程</a>
+<a href="../flutter.html">Flutter 教程</a>
+<a href="../font-awesome.html">Font Awesome 图标</a>
+<a href="../foundation.html">Foundation 教程</a>
+<a href="../git.html">Git 教程</a>
+<a href="../go.html">Go 语言教程</a>
+<a href="../googleapi.html">Google 地图 API 教程</a>
+<a href="../hermes-agent.html">Hermes Agent</a>
+<a href="../highcharts.html">Highcharts 教程</a>
+<a href="../htmldom.html">HTML DOM 教程</a>
+<a href="../tags.html">HTML 参考手册</a>
+<a href="../charsets.html">HTML 字符集</a>
+<a href="../html.html">HTML 教程</a>
+<a href="../http.html">HTTP 教程</a>
+<a href="../ionic.html">ionic 教程</a>
+<a href="../ios.html">iOS 教程</a>
+<a href="../java.html">Java 教程</a>
+<a href="../jsref.html">JavaScript 参考手册</a>
+<a href="../js.html">Javascript 教程</a>
+<a href="../jeasyui.html">jQuery EasyUI 教程</a>
+<a href="../jquerymobile.html">jQuery Mobile 教程</a>
+<a href="../jqueryui.html">jQuery UI 教程</a>
+<a href="../jquery.html">jQuery 教程</a>
+<a href="../json.html">JSON 教程</a>
+<a href="../jsp.html">JSP 教程</a>
+<a href="../julia.html">Julia 教程</a>
+<a href="../jupyter-notebook.html">Jupyter Notebook 教程</a>
+<a href="../kotlin.html">Kotlin 教程</a>
+<a href="../langchain.html">LangChain 教程</a>
+<a href="../latex.html">LaTeX 教程</a>
+<a href="../linux.html">Linux 教程</a>
+<a href="../lua.html">Lua 教程</a>
+<a href="../markdown.html">Markdown 教程</a>
+<a href="../matplotlib.html">Matplotlib 教程</a>
+<a href="../maven.html">Maven 教程</a>
+<a href="../memcached.html">Memcached 教程</a>
+<a href="../mongodb.html">MongoDB 教程</a>
+<a href="../mysql.html">MySQL 教程</a>
+<a href="../nextjs.html">Next.js 教程</a>
+<a href="../nlp.html">NLP 教程</a>
+<a href="../nodejs.html">Node.js 教程</a>
+<a href="../numpy.html">NumPy 教程</a>
+<a href="../obsidian.html">Obsidian 教程</a>
+<a href="../ollama.html">Ollama 教程</a>
+<a href="../opencode.html">OpenCode 教程</a>
+<a href="../opencv.html">OpenCV 教程</a>
+<a href="../pandas.html">Pandas 教程</a>
+<a href="../perl.html">Perl 教程</a>
+<a href="../php.html">PHP 教程</a>
+<a href="../pi-agent.html">Pi Agent</a>
+<a href="../pillow.html">Pillow 教程</a>
+<a href="../playwright.html">Playwright 教程</a>
+<a href="../postgresql.html">PostgreSQL 教程</a>
+<a href="../powershell.html">PowerShell</a>
+<a href="../pycharm.html">Pycharm 教程</a>
+<a href="../python3.html">Python 3 教程</a>
+<a href="../python.html">Python 基础教程</a>
+<a href="../python-design-pattern.html">Python 设计模式</a>
+<a href="../python-qt.html">Python 量化交易</a>
+<a href="../pytorch.html">PyTorch 教程</a>
+<a href="../r.html">R 教程</a>
+<a href="../rdf.html">RDF 教程</a>
+<a href="../react.html">React 教程</a>
+<a href="../redis.html">Redis 教程</a>
+<a href="../restfulapi.html">RESTful API</a>
+<a href="../rss.html">RSS 教程</a>
+<a href="../ruby.html">Ruby 教程</a>
+<a href="../rust.html">Rust 教程</a>
+<a href="../sass.html">Sass 教程</a>
+<a href="../scala.html">Scala 教程</a>
+<a href="../scipy.html">SciPy 教程</a>
+<a href="../selenium.html">Selenium 教程</a>
+<a href="../servlet.html">Servlet 教程</a>
+<a href="../skills.html">Skills 教程</a>
+<a href="../sklearn.html">Sklearn 教程</a>
+<a href="../soap.html">SOAP 教程</a>
+<a href="../sql.html">SQL 教程</a>
+<a href="../sqlite.html">SQLite 教程</a>
+<a href="../svg.html">SVG 教程</a>
+<a href="../svn.html">SVN 教程</a>
+<a href="../swagger.html">Swagger 教程</a>
+<a href="../swift.html">Swift 教程</a>
+<a href="../tailwindcss.html">Tailwind CSS 教程</a>
+<a href="../tcpip.html">TCP/IP 教程</a>
+<a href="../tensorflow.html">TensorFlow 教程</a>
+<a href="../typescript.html">TypeScript 教程</a>
+<a href="../uniapp.html">uni-app 教程</a>
+<a href="../vbscript.html">VBScript 教程</a>
+<a href="../vibe-coding.html">Vibe Coding 教程</a>
+<a href="../vscode.html">VSCode 教程</a>
+<a href="../vue2.html">Vue.js 教程</a>
+<a href="../vue3.html">Vue3 教程</a>
+<a href="../w3c.html">W3C 教程</a>
+<a href="../webservices.html">Web Service 教程</a>
+<a href="../wsdl.html">WSDL 教程</a>
+<a href="../xlink.html">XLink 教程</a>
+<a href="../dom.html">XML DOM 教程</a>
+<a href="../schema.html">XML Schema 教程</a>
+<a href="../xml.html">XML 教程</a>
+<a href="../xpath.html">XPath 教程</a>
+<a href="../xquery.html">XQuery 教程</a>
+<a href="../xslfo.html">XSLFO 教程</a>
+<a href="../xsl.html">XSLT 教程</a>
+<a href="../zig.html">Zig 教程</a>
+<a href="../data-structures.html">数据结构</a>
+<a href="../ml.html">机器学习</a>
+<a href="../regexp.html">正则表达式</a>
+<a href="../assembly.html">汇编语言</a>
+<a href="../quiz.html">测验</a>
+<a href="../browsers.html">浏览器</a>
+<a href="../quality.html">网站品质</a>
+<a href="../web.html">网站建设指南</a>
+<a href="../hosting.html">网站服务器教程</a>
+<a href="../np.html">网络协议</a>
+<a href="../computer-organization.html">计算机组成原理</a>
+<a href="../design-pattern.html">设计模式</a>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

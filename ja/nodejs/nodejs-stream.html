@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Node.js Stream(ストリーム) | 菜鸟教程</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<link href="../manifest.webmanifest.html" rel="manifest"/>
+<meta content="#10151c" name="theme-color"/>
+<link href="../pwa/icon-192.png.html" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="application-name"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="../nodejs/nodejs-stream.html" rel="canonical"/>
+<meta content="Node.js Stream(流)" name="keywords"/>
+<meta content="Node.js Stream(流)  Node.js 的 Stream 是一种处理流式数据的抽象接口，广泛应用于文件操作、网络通信等场景。 流式数据处理的一个主要优点是可以在数据传输过程中就开始处理数据，而不需要等待整个数据加载完毕，这使得 Node.js 能够高效地处理大量数据，而不会占用过多的内存。  Stream 是一个抽象接口，Node 中有很多对象实现了这个接口。例如，对http 服务器发起请求的 request 对象就是一个.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div>
+<!-- 导航栏 -->
+<style>
+/* 主题切换按钮 */
+/* ===== 主题变量（核心）===== */
+:root {
+  --theme-bg: #ffffff;
+  --theme-border: #e5e7eb;
+  --theme-icon: #333;
+  --theme-hover: #f3f4f6;
+}
+
+.dark {
+  --theme-bg: #1f2937;
+  --theme-border: #374151;
+  --theme-icon: #e5e7eb;
+  --theme-hover: #374151;
+}
+
+/* ===== 按钮容器 ===== */
+.nav-theme-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== 按钮本体 ===== */
+.nav-theme-toggle button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  border-radius: 6px;
+  border: 1px solid var(--theme-border);
+
+  background: var(--theme-bg);
+  color: var(--theme-icon);
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* ===== 图标大小 ===== */
+.nav-theme-toggle i {
+  font-size: 14px;
+}
+
+/* ===== hover 效果 ===== */
+.nav-theme-toggle button:hover {
+  background: var(--theme-hover);
+  transform: translateY(-1px);
+}
+
+/* ===== 点击反馈 ===== */
+.nav-theme-toggle button:active {
+  transform: scale(0.95);
+}
+
+/* ===== 当前激活态（可选）===== */
+.nav-theme-toggle button.active {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+</style>
+<!-- 导航栏 -->
+<nav aria-label="主导航" class="container navigation">
+<div class="row">
+<div class="col nav">
+<!-- PC 导航 -->
+<ul class="pc-nav" id="runoob-detail-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../js/js-tutorial.html">JavaScript</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a data-id="vue" href="#">Vue</a></li>
+<li><a href="../react/react-tutorial.html">React</a></li>
+<li><a href="../python3/python3-tutorial.html">Python3</a></li>
+<li><a href="../java/java-tutorial.html">Java</a></li>
+<li><a href="../cprogramming/c-tutorial.html">C</a></li>
+<li><a href="../cplusplus/cpp-tutorial.html">C++</a></li>
+<li><a href="../csharp/csharp-tutorial.html">C#</a></li>
+<li><a data-id="aiNav" href="#">AI</a></li>
+<li><a href="../go/go-tutorial.html">Go</a></li>
+<li><a href="../sql/sql-tutorial.html">SQL</a></li>
+<li><a href="../linux/linux-tutorial.html">Linux</a></li>
+<li><a href="../vscode/vscode-tutorial.html">VS Code</a></li>
+<li><a data-id="bootstrap" href="#">Bootstrap</a></li>
+<li><a href="../git/git-tutorial.html">Git</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<!-- 主题切换按钮，固定在最右侧 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+<!-- 移动端导航 -->
+<ul class="mobile-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a href="../js/js-tutorial.html">JS</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<li><a class="search-reveal" href="#">搜索</a></li>
+<!-- 移动端主题切换 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon-mobile" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun-mobile" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<!-- 二级导航 -->
+<!--  内容  -->
+<div class="container main">
+<!-- 中间 -->
+<div class="row">
+<div class="runoob-col-md2">
+<div class="left-column">
+<div class="tab" style="overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
+<i aria-hidden="true" class="fa fa-list"></i>
+<span>Node.js 教程</span>
+</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+<a data-p="par" href="../nodejs/nodejs-tutorial.html" target="_top" title="Node.js 教程">
+			Node.js 教程			</a>
+<a href="../nodejs/nodejs-intro.html" target="_top" title="Node.js 概念">Node.js 概念</a> <a data-p="par" href="../nodejs/nodejs-install-setup.html" target="_top" title="Node.js 安装配置">
+			Node.js 安装配置			</a>
+<a href="../nodejs/nodejs-vscode.html" title="Node.js VS Code">Node.js VS Code</a>
+<a href="../nodejs/nodejs-nvm.html" title="Node.js NVM">Node.js NVM</a> <a data-p="par" href="../nodejs/nodejs-http-server.html" target="_top" title="Node.js 创建第一个应用">
+			Node.js 创建第一个应用			</a>
+<a href="how-nodejs-works.html" target="_top" title=" Node.js 工作机制"> Node.js 工作机制</a>
+<a href="nodejs-npm.html" target="_top" title="NPM 使用介绍"> NPM 使用介绍 </a>
+<a href="nodejs-pnpm.html" target="_top" title="PNPM 使用介绍"> PNPM 使用介绍 </a>
+<a href="nodejs-repl.html" target="_top" title="Node.js REPL(交互式解释器)"> Node.js REPL </a>
+<a href="nodejs-asynchronous.html" target="_top" title="Node.js 异步编程"> Node.js 异步编程 </a>
+<a href="nodejs-callback.html" target="_top" title="Node.js 回调函数"> Node.js 回调函数 </a>
+<a href="nodejs-promise.html" target="_top" title="Node.js Promise"> Node.js Promise </a>
+<a href="nodejs-async-await.html" target="_top" title="Node.js async/await"> Node.js async/await </a>
+<a href="nodejs-event-loop.html" target="_top" title="Node.js 事件循环"> Node.js 事件循环 </a>
+<a href="nodejs-event.html" target="_top" title="Node.js EventEmitter"> Node.js EventEmitter </a>
+<a href="nodejs-buffer.html" target="_top" title="Node.js Buffer"> Node.js  Buffer</a>
+<a href="nodejs-stream.html" target="_top" title="Node.js Stream"> Node.js  Stream</a>
+<a data-p="par" href="../nodejs/nodejs-module-system.html" target="_top" title="Node.js 模块系统">
+			Node.js 模块系统			</a>
+<a href="nodejs-commonjs-esm.html" target="_top" title="Node.js 模块导入">Node.js 模块导入</a> <a data-p="par" href="../nodejs/nodejs-function.html" target="_top" title="Node.js 函数">
+			Node.js 函数			</a>
+<a data-p="par" href="../nodejs/nodejs-router.html" target="_top" title="Node.js 路由">
+			Node.js 路由			</a>
+<a data-p="par" href="../nodejs/nodejs-global-object.html" target="_top" title="Node.js 全局对象">
+			Node.js 全局对象			</a>
+<a data-p="par" href="../nodejs/nodejs-util.html" target="_top" title="Node.js 常用工具">
+			Node.js 常用工具			</a>
+<a data-p="par" href="../nodejs/nodejs-fs.html" target="_top" title="Node.js 文件系统">
+			Node.js 文件系统			</a>
+<a href="nodejs-buildin-modules.html" target="_top" title="Node.js 内置模块">Node.js 内置模块</a>
+<a href="nodejs-quiz.html" target="_top" title="Node.js 测验">Node.js 测验</a>
+<br/><h2 class="left">Node.js <span class="left_h2">应用</span></h2>
+<a href="../nodejs/nodejs-build-app.html" target="_top" title="Node.js 构建简单应用">Node.js 构建简单应用</a> <a data-p="par" href="../nodejs/node-js-get-post.html" target="_top" title="Node.js GET/POST请求">
+			Node.js GET/POST请求			</a>
+<a data-p="par" href="../nodejs/nodejs-util-module.html" target="_top" title="Node.js util 模块">
+			Node.js util 模块			</a>
+<a data-p="par" href="../nodejs/nodejs-web-module.html" target="_top" title="Node.js Web 模块">
+			Node.js Web 模块			</a>
+<a data-p="par" href="../nodejs/nodejs-express-framework.html" target="_top" title="Node.js Express 框架">
+			Node.js Express 框架			</a>
+<a data-p="par" href="../nodejs/nodejs-restful-api.html" target="_top" title="Node.js RESTful API">
+			Node.js RESTful API			</a>
+<a data-p="par" href="../nodejs/nodejs-process.html" target="_top" title="Node.js 多进程">
+			Node.js 多进程			</a>
+<a data-p="par" href="../nodejs/nodejs-jxcore-packaging.html" target="_top" title="Node.js JXcore 打包">
+			Node.js JXcore 打包			</a>
+<a data-p="par" href="../nodejs/nodejs-mysql.html" target="_top" title="Node.js 连接 MySQL">
+			Node.js MySQL			</a>
+<a data-p="par" href="../nodejs/nodejs-mongodb.html" target="_top" title="Node.js 连接 MongoDB">
+			Node.js MongoDB			</a>
+<a data-p="par" href="../nodejs/npx-intro.html" target="_top" title="npx 入门教程">
+			npx 入门教程			</a>
+</div>
+</div>
+</div>
+</div> <div class="col middle-column">
+<div class="article">
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../nodejs/nodejs-buffer.html" rel="prev">Node.js Buffer(バッファ)</a> </div>
+<div class="next-design-link"><a href="../nodejs/nodejs-util-module.html" rel="next">Node.js util モジュール</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="article-body">
+<div class="article-intro" id="content">
+<h1>Node.js Stream(ストリーム)</h1>
+<p>Node.js の Stream は、ストリーミングデータを処理する抽象インターフェースであり、ファイル操作やネットワーク通信などのシーンで広く使用されています。</p>
+<p>ストリーミングデータ処理の主な利点は、データ転送中にデータの処理を開始できることであり、すべてのデータが読み込まれるのを待つ必要がありません。これにより、Node.js は大量のデータを効率的に処理でき、過剰なメモリを消費しません。</p><p><img decoding="async" src="../wp-content/uploads/2015/09/stream-nodejs.png"/></p>
+<p>Stream は抽象インターフェースであり、Node にはこのインターフェースを実装した多くのオブジェクトがあります。例えば、http サーバーにリクエストを送信する request オブジェクトは Stream であり、stdout（標準出力）も同様です。</p><p>Node.js の Stream（ストリーム）は、データフローを処理する方法であり、データを一度にすべてメモリに読み込むのではなく、ストリーム形式でデータを処理することができます。これは、大量のデータを処理したり、効率的なデータ転送を実現したりするのに非常に役立ちます。</p>
+<p>Node.js の Stream には4つのストリームタイプがあります：</p>
+<ul>
+<li><p><b>Readable</b>- 読み取り可能な操作。</p></li>
+<li><p><b>Writable</b>- 書き込み可能な操作。</p></li>
+<li><p><b>Duplex</b>- 読み取りおよび書き込みが可能な操作。</p></li>
+<li><p><b>Transform</b>- 書き込まれたデータを操作し、その後結果を読み出す操作。</p></li>
+</ul>
+<p>すべての Stream オブジェクトは EventEmitter のインスタンスです。一般的なイベントは次のとおりです：</p>
+<ul>
+<li><p><b>data</b>- 読み取り可能なデータがあるときにトリガーされます。</p></li>
+<li><p><b>end</b>- 読み取るデータがなくなったときにトリガーされます。</p></li>
+<li><p><b>error</b>- 受信および書き込み中にエラーが発生したときにトリガーされます。</p></li>
+<li><p><b>finish</b>- すべてのデータが基盤となるシステムに書き込まれたときにトリガーされます。</p></li>
+</ul>
+<p>このチュートリアルでは、一般的なストリーム操作を紹介します。</p>
+<hr/>
+<h2>ストリームからデータを読み取る</h2><p>一般的な読み取り可能なストリームには、ファイル読み取りストリームやネットワークリクエスト応答ストリームが含まれます。</p>
+<p>input.txt ファイルを作成し、内容は次のとおりです：</p>
+<pre>
+菜鸟教程官网地址：www.runoob.com
+</pre>
+<p>main.js ファイルを作成し、コードは次のとおりです：</p>
+<div class="example"><h2 class="example">例</h2> <div class="example_code">
+<span style="color: #000066; font-weight: bold;">var</span> fs <span style="color: #339933;">=</span> require<span style="color: #009900;">(</span><span style="color: #3366CC;">"fs"</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<span style="color: #000066; font-weight: bold;">var</span> data <span style="color: #339933;">=</span> <span style="color: #3366CC;">''</span><span style="color: #339933;">;</span><br/>
+<br/>
+<span style="color: #006600; font-style: italic;">// 読み取り可能なストリームを作成</span><br/>
+<span style="color: #000066; font-weight: bold;">var</span> readerStream <span style="color: #339933;">=</span> fs.<span style="color: #660066;">createReadStream</span><span style="color: #009900;">(</span><span style="color: #3366CC;">'input.txt'</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<br/>
+<span style="color: #006600; font-style: italic;">// エンコーディングを utf8 に設定します。</span><br/>
+readerStream.<span style="color: #660066;">setEncoding</span><span style="color: #009900;">(</span><span style="color: #3366CC;">'UTF8'</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<br/>
+<span style="color: #006600; font-style: italic;">// ストリームイベントを処理 --&gt; data, end, error</span><br/>
+readerStream.<span style="color: #660066;">on</span><span style="color: #009900;">(</span><span style="color: #3366CC;">'data'</span><span style="color: #339933;">,</span> <span style="color: #000066; font-weight: bold;">function</span><span style="color: #009900;">(</span>chunk<span style="color: #009900;">)</span> <span style="color: #009900;">{</span><br/>
+   data <span style="color: #339933;">+=</span> chunk<span style="color: #339933;">;</span><br/>
+<span style="color: #009900;">}</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<br/>
+readerStream.<span style="color: #660066;">on</span><span style="color: #009900;">(</span><span style="color: #3366CC;">'end'</span><span style="color: #339933;">,</span><span style="color: #000066; font-weight: bold;">function</span><span style="color: #009900;">(</span><span style="color: #009900;">)</span><span style="color: #009900;">{</span><br/>
+   console.<span style="color: #660066;">log</span><span style="color: #009900;">(</span>data<span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<span style="color: #009900;">}</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<br/>
+readerStream.<span style="color: #660066;">on</span><span style="color: #009900;">(</span><span style="color: #3366CC;">'error'</span><span style="color: #339933;">,</span> <span style="color: #000066; font-weight: bold;">function</span><span style="color: #009900;">(</span>err<span style="color: #009900;">)</span><span style="color: #009900;">{</span><br/>
+   console.<span style="color: #660066;">log</span><span style="color: #009900;">(</span>err.<span style="color: #660066;">stack</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<span style="color: #009900;">}</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<br/>
+console.<span style="color: #660066;">log</span><span style="color: #009900;">(</span><span style="color: #3366CC;">"プログラムの実行が完了しました"</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+</div></div>
+<p>上記のコードの実行結果は次のとおりです：</p>
+<pre>
+程序执行完毕
+菜鸟教程官网地址：www.runoob.com
+</pre>
+<hr/>
+<h2>書き込みストリーム</h2><p>書き込み可能なストリームは、データを宛先に書き込むために使用されます。一般的な書き込み可能なストリームには、ファイル書き込みストリームやネットワークリクエスト送信ストリームが含まれます。</p>
+<p>main.js ファイルを作成し、コードは次のとおりです：</p>
+<div class="example"><h2 class="example">例</h2> <div class="example_code">
+<span style="color: #000066; font-weight: bold;">var</span> fs <span style="color: #339933;">=</span> require<span style="color: #009900;">(</span><span style="color: #3366CC;">"fs"</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<span style="color: #000066; font-weight: bold;">var</span> data <span style="color: #339933;">=</span> <span style="color: #3366CC;">'菜鸟教程公式サイトのアドレス：www.runoob.com'</span><span style="color: #339933;">;</span><br/>
+<br/>
+<span style="color: #006600; font-style: italic;">// 書き込み可能なストリームを作成し、ファイル output.txt に書き込みます</span><br/>
+<span style="color: #000066; font-weight: bold;">var</span> writerStream <span style="color: #339933;">=</span> fs.<span style="color: #660066;">createWriteStream</span><span style="color: #009900;">(</span><span style="color: #3366CC;">'output.txt'</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<br/>
+<span style="color: #006600; font-style: italic;">// utf8 エンコーディングを使用してデータを書き込みます</span><br/>
+writerStream.<span style="color: #660066;">write</span><span style="color: #009900;">(</span>data<span style="color: #339933;">,</span><span style="color: #3366CC;">'UTF8'</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<br/>
+<span style="color: #006600; font-style: italic;">// ファイルの末尾をマークします</span><br/>
+writerStream.<span style="color: #660066;">end</span><span style="color: #009900;">(</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<br/>
+<span style="color: #006600; font-style: italic;">// ストリームイベントを処理 --&gt; finish、error</span><br/>
+writerStream.<span style="color: #660066;">on</span><span style="color: #009900;">(</span><span style="color: #3366CC;">'finish'</span><span style="color: #339933;">,</span> <span style="color: #000066; font-weight: bold;">function</span><span style="color: #009900;">(</span><span style="color: #009900;">)</span> <span style="color: #009900;">{</span><br/>
+    console.<span style="color: #660066;">log</span><span style="color: #009900;">(</span><span style="color: #3366CC;">"書き込みが完了しました。"</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<span style="color: #009900;">}</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<br/>
+writerStream.<span style="color: #660066;">on</span><span style="color: #009900;">(</span><span style="color: #3366CC;">'error'</span><span style="color: #339933;">,</span> <span style="color: #000066; font-weight: bold;">function</span><span style="color: #009900;">(</span>err<span style="color: #009900;">)</span><span style="color: #009900;">{</span><br/>
+   console.<span style="color: #660066;">log</span><span style="color: #009900;">(</span>err.<span style="color: #660066;">stack</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<span style="color: #009900;">}</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<br/>
+console.<span style="color: #660066;">log</span><span style="color: #009900;">(</span><span style="color: #3366CC;">"プログラムの実行が完了しました"</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+</div></div>
+<p>上記のプログラムは、data 変数のデータを output.txt ファイルに書き込みます。コードの実行結果は次のとおりです：</p>
+<pre>
+$ node main.js 
+程序执行完毕
+写入完成。
+</pre>
+<p>output.txt ファイルの内容を確認します：</p>
+<pre>
+$ cat output.txt 
+菜鸟教程官网地址：www.runoob.com
+</pre><hr/><h2>双方向ストリーム（Duplex）</h2><p>双方向ストリームは、読み取りと書き込みの両方の機能を同時に備えています。</p><p>典型的な双方向ストリームは TCP ソケットです。</p>
+<div class="example"><h2 class="example">例</h2> <div class="example_code">
+<span style="color: #000066; font-weight: bold;">const</span> net <span style="color: #339933;">=</span> require<span style="color: #009900;">(</span><span style="color: #3366CC;">'net'</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<br/>
+<span style="color: #006600; font-style: italic;">// TCP サーバーを作成します</span><br/>
+<span style="color: #000066; font-weight: bold;">const</span> server <span style="color: #339933;">=</span> net.<span style="color: #660066;">createServer</span><span style="color: #009900;">(</span><span style="color: #009900;">(</span>socket<span style="color: #009900;">)</span> <span style="color: #339933;">=&gt;</span> <span style="color: #009900;">{</span><br/>
+    console.<span style="color: #660066;">log</span><span style="color: #009900;">(</span><span style="color: #3366CC;">'Client connected.'</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<br/>
+    <span style="color: #006600; font-style: italic;">// クライアントデータを読み取ります</span><br/>
+    socket.<span style="color: #660066;">on</span><span style="color: #009900;">(</span><span style="color: #3366CC;">'data'</span><span style="color: #339933;">,</span> <span style="color: #009900;">(</span>data<span style="color: #009900;">)</span> <span style="color: #339933;">=&gt;</span> <span style="color: #009900;">{</span><br/>
+        console.<span style="color: #660066;">log</span><span style="color: #009900;">(</span><span style="color: #3366CC;">'Received data:'</span><span style="color: #339933;">,</span> data.<span style="color: #660066;">toString</span><span style="color: #009900;">(</span><span style="color: #009900;">)</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+    <span style="color: #009900;">}</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<br/>
+    <span style="color: #006600; font-style: italic;">// クライアントにデータを送信します</span><br/>
+    socket.<span style="color: #660066;">write</span><span style="color: #009900;">(</span><span style="color: #3366CC;">'Hello, Client!<span style="color: #000099; font-weight: bold;">\n</span>'</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<br/>
+    <span style="color: #006600; font-style: italic;">// クローズイベントをリッスンします</span><br/>
+    socket.<span style="color: #660066;">on</span><span style="color: #009900;">(</span><span style="color: #3366CC;">'end'</span><span style="color: #339933;">,</span> <span style="color: #009900;">(</span><span style="color: #009900;">)</span> <span style="color: #339933;">=&gt;</span> <span style="color: #009900;">{</span><br/>
+        console.<span style="color: #660066;">log</span><span style="color: #009900;">(</span><span style="color: #3366CC;">'Client disconnected.'</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+    <span style="color: #009900;">}</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<span style="color: #009900;">}</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<br/>
+server.<span style="color: #660066;">listen</span><span style="color: #009900;">(</span><span style="color: #CC0000;">3000</span><span style="color: #339933;">,</span> <span style="color: #009900;">(</span><span style="color: #009900;">)</span> <span style="color: #339933;">=&gt;</span> <span style="color: #009900;">{</span><br/>
+    console.<span style="color: #660066;">log</span><span style="color: #009900;">(</span><span style="color: #3366CC;">'Server listening on port 3000.'</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<span style="color: #009900;">}</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+</div></div><hr/><h2>変換ストリーム（Transform）</h2><p>変換ストリームは特殊な双方向ストリームで、データを変更または変換できます。一般的な変換ストリームには、圧縮ストリームと解凍ストリームが含まれます。</p>
+<div class="example"><h2 class="example">例</h2> <div class="example_code">
+<span style="color: #000066; font-weight: bold;">const</span> zlib <span style="color: #339933;">=</span> require<span style="color: #009900;">(</span><span style="color: #3366CC;">'zlib'</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<span style="color: #000066; font-weight: bold;">const</span> fs <span style="color: #339933;">=</span> require<span style="color: #009900;">(</span><span style="color: #3366CC;">'fs'</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<br/>
+<span style="color: #006600; font-style: italic;">// 読み取り可能なストリームを作成します</span><br/>
+<span style="color: #000066; font-weight: bold;">const</span> readableStream <span style="color: #339933;">=</span> fs.<span style="color: #660066;">createReadStream</span><span style="color: #009900;">(</span><span style="color: #3366CC;">'example.txt'</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<br/>
+<span style="color: #006600; font-style: italic;">// 変換ストリームを作成します（圧縮）</span><br/>
+<span style="color: #000066; font-weight: bold;">const</span> gzip <span style="color: #339933;">=</span> zlib.<span style="color: #660066;">createGzip</span><span style="color: #009900;">(</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<br/>
+<span style="color: #006600; font-style: italic;">// 書き込み可能なストリームを作成します</span><br/>
+<span style="color: #000066; font-weight: bold;">const</span> writableStream <span style="color: #339933;">=</span> fs.<span style="color: #660066;">createWriteStream</span><span style="color: #009900;">(</span><span style="color: #3366CC;">'example.txt.gz'</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<br/>
+<span style="color: #006600; font-style: italic;">// 読み取り可能なストリームを変換ストリームにパイプし、さらに書き込み可能なストリームにパイプします</span><br/>
+readableStream.<span style="color: #660066;">pipe</span><span style="color: #009900;">(</span>gzip<span style="color: #009900;">)</span>.<span style="color: #660066;">pipe</span><span style="color: #009900;">(</span>writableStream<span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<br/>
+<span style="color: #006600; font-style: italic;">// 完了イベントをリッスンします</span><br/>
+writableStream.<span style="color: #660066;">on</span><span style="color: #009900;">(</span><span style="color: #3366CC;">'finish'</span><span style="color: #339933;">,</span> <span style="color: #009900;">(</span><span style="color: #009900;">)</span> <span style="color: #339933;">=&gt;</span> <span style="color: #009900;">{</span><br/>
+    console.<span style="color: #660066;">log</span><span style="color: #009900;">(</span><span style="color: #3366CC;">'File compressed successfully.'</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<span style="color: #009900;">}</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+</div></div>
+<hr/><h2>パイプストリーム</h2><p>パイプは、出力ストリームから入力ストリームへのメカニズムを提供します。</p><p>通常は、あるストリームからデータを取得して、別のストリームにデータを渡すために使用されます。</p>
+<p><img decoding="async" src="../wp-content/uploads/2015/09/bVcla61.html"/>
+<p>上の図のように、ファイルを水を入れるバケツに例え、水はファイルの内容です。パイプで2つのバケツを接続し、水を一方のバケツからもう一方のバケツに流し込むことで、大きなファイルのコピープロセスを徐々に実現します。</p>
+<p>以下の例では、ファイルの内容を読み取り、その内容を別のファイルに書き込みます。</p>
+<p>input.txt ファイルの内容を次のように設定します：</p>
+<pre>
+菜鸟教程官网地址：www.runoob.com
+管道流操作实例
+</pre>
+<p>main.js ファイルを作成し、コードは次のとおりです：</p>
+<div class="example"><h2 class="example">例</h2> <div class="example_code">
+<span style="color: #000066; font-weight: bold;">var</span> fs <span style="color: #339933;">=</span> require<span style="color: #009900;">(</span><span style="color: #3366CC;">"fs"</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<br/>
+<span style="color: #006600; font-style: italic;">// 読み取り可能なストリームを作成します</span><br/>
+<span style="color: #000066; font-weight: bold;">var</span> readerStream <span style="color: #339933;">=</span> fs.<span style="color: #660066;">createReadStream</span><span style="color: #009900;">(</span><span style="color: #3366CC;">'input.txt'</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<br/>
+<span style="color: #006600; font-style: italic;">// 書き込み可能なストリームを作成します</span><br/>
+<span style="color: #000066; font-weight: bold;">var</span> writerStream <span style="color: #339933;">=</span> fs.<span style="color: #660066;">createWriteStream</span><span style="color: #009900;">(</span><span style="color: #3366CC;">'output.txt'</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<br/>
+<span style="color: #006600; font-style: italic;">// パイプによる読み書き操作</span><br/>
+<span style="color: #006600; font-style: italic;">// input.txt ファイルの内容を読み取り、その内容を output.txt ファイルに書き込みます</span><br/>
+readerStream.<span style="color: #660066;">pipe</span><span style="color: #009900;">(</span>writerStream<span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<br/>
+console.<span style="color: #660066;">log</span><span style="color: #009900;">(</span><span style="color: #3366CC;">"プログラムの実行が完了しました"</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+</div></div>
+<p>コードの実行結果は次のとおりです：</p>
+<pre>
+$ node main.js 
+程序执行完毕
+</pre>
+<p>output.txt ファイルの内容を確認します：</p>
+<pre>
+$ cat output.txt 
+菜鸟教程官网地址：www.runoob.com
+管道流操作实例
+</pre>
+<hr/>
+<h2>チェーンストリーム</h2>
+<p>チェーンとは、出力ストリームを別のストリームに接続して、複数のストリーム操作チェーンを作成するメカニズムです。</p><p>チェーンストリームは通常、パイプ操作に使用されます。</p>
+<p>次に、パイプとチェーンを使用してファイルを圧縮および解凍します。</p>
+<p>compress.js ファイルを作成し、コードは次のとおりです：</p>
+<div class="example"><h2 class="example">例</h2> <div class="example_code">
+<span style="color: #000066; font-weight: bold;">var</span> fs <span style="color: #339933;">=</span> require<span style="color: #009900;">(</span><span style="color: #3366CC;">"fs"</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<span style="color: #000066; font-weight: bold;">var</span> zlib <span style="color: #339933;">=</span> require<span style="color: #009900;">(</span><span style="color: #3366CC;">'zlib'</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<br/>
+<span style="color: #006600; font-style: italic;">// input.txt ファイルを input.txt.gz に圧縮します</span><br/>
+fs.<span style="color: #660066;">createReadStream</span><span style="color: #009900;">(</span><span style="color: #3366CC;">'input.txt'</span><span style="color: #009900;">)</span><br/>
+  .<span style="color: #660066;">pipe</span><span style="color: #009900;">(</span>zlib.<span style="color: #660066;">createGzip</span><span style="color: #009900;">(</span><span style="color: #009900;">)</span><span style="color: #009900;">)</span><br/>
+  .<span style="color: #660066;">pipe</span><span style="color: #009900;">(</span>fs.<span style="color: #660066;">createWriteStream</span><span style="color: #009900;">(</span><span style="color: #3366CC;">'input.txt.gz'</span><span style="color: #009900;">)</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+  <br/>
+console.<span style="color: #660066;">log</span><span style="color: #009900;">(</span><span style="color: #3366CC;">"ファイルの圧縮が完了しました。"</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+</div></div>
+<p>コードの実行結果は次のとおりです：</p>
+<pre>
+$ node compress.js 
+文件压缩完成。
+</pre>
+<p>上記の操作を実行すると、現在のディレクトリに input.txt の圧縮ファイル input.txt.gz が生成されたことを確認できます。</p>
+<p>次に、このファイルを解凍しましょう。decompress.js ファイルを作成し、コードは次のとおりです：</p>
+<div class="example"><h2 class="example">例</h2> <div class="example_code">
+<span style="color: #000066; font-weight: bold;">var</span> fs <span style="color: #339933;">=</span> require<span style="color: #009900;">(</span><span style="color: #3366CC;">"fs"</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<span style="color: #000066; font-weight: bold;">var</span> zlib <span style="color: #339933;">=</span> require<span style="color: #009900;">(</span><span style="color: #3366CC;">'zlib'</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<br/>
+<span style="color: #006600; font-style: italic;">// input.txt.gz ファイルを input.txt に解凍します</span><br/>
+fs.<span style="color: #660066;">createReadStream</span><span style="color: #009900;">(</span><span style="color: #3366CC;">'input.txt.gz'</span><span style="color: #009900;">)</span><br/>
+  .<span style="color: #660066;">pipe</span><span style="color: #009900;">(</span>zlib.<span style="color: #660066;">createGunzip</span><span style="color: #009900;">(</span><span style="color: #009900;">)</span><span style="color: #009900;">)</span><br/>
+  .<span style="color: #660066;">pipe</span><span style="color: #009900;">(</span>fs.<span style="color: #660066;">createWriteStream</span><span style="color: #009900;">(</span><span style="color: #3366CC;">'input.txt'</span><span style="color: #009900;">)</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+  <br/>
+console.<span style="color: #660066;">log</span><span style="color: #009900;">(</span><span style="color: #3366CC;">"ファイルの解凍が完了しました。"</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+</div></div>
+<p>コードの実行結果は次のとおりです：</p>
+<pre>
+$ node decompress.js 
+文件解压完成。
+</pre><hr/>
+<h2>一時停止と再開</h2><p>読み取り可能なストリームは、データの読み取りを一時停止および再開できます。</p>
+<div class="example"><h2 class="example">例</h2> <div class="example_code">
+<span style="color: #000066; font-weight: bold;">const</span> fs <span style="color: #339933;">=</span> require<span style="color: #009900;">(</span><span style="color: #3366CC;">'fs'</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<br/>
+<span style="color: #000066; font-weight: bold;">const</span> readableStream <span style="color: #339933;">=</span> fs.<span style="color: #660066;">createReadStream</span><span style="color: #009900;">(</span><span style="color: #3366CC;">'example.txt'</span><span style="color: #339933;">,</span> <span style="color: #3366CC;">'utf8'</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<br/>
+readableStream.<span style="color: #660066;">on</span><span style="color: #009900;">(</span><span style="color: #3366CC;">'data'</span><span style="color: #339933;">,</span> <span style="color: #009900;">(</span>chunk<span style="color: #009900;">)</span> <span style="color: #339933;">=&gt;</span> <span style="color: #009900;">{</span><br/>
+    console.<span style="color: #660066;">log</span><span style="color: #009900;">(</span><span style="color: #3366CC;">'Received chunk:'</span><span style="color: #339933;">,</span> chunk<span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+    readableStream.<span style="color: #660066;">pause</span><span style="color: #009900;">(</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span> <span style="color: #006600; font-style: italic;">// 読み取りを一時停止します</span><br/>
+    setTimeout<span style="color: #009900;">(</span><span style="color: #009900;">(</span><span style="color: #009900;">)</span> <span style="color: #339933;">=&gt;</span> <span style="color: #009900;">{</span><br/>
+        readableStream.<span style="color: #660066;">resume</span><span style="color: #009900;">(</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span> <span style="color: #006600; font-style: italic;">// 読み取りを再開します</span><br/>
+    <span style="color: #009900;">}</span><span style="color: #339933;">,</span> <span style="color: #CC0000;">1000</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<span style="color: #009900;">}</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+</div></div>
+<hr/>
+<h2>破棄</h2><p>ストリームを破棄して、リソースを解放できます。</p>
+<div class="example"><h2 class="example">例</h2> <div class="example_code">
+<span style="color: #000066; font-weight: bold;">const</span> fs <span style="color: #339933;">=</span> require<span style="color: #009900;">(</span><span style="color: #3366CC;">'fs'</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<br/>
+<span style="color: #000066; font-weight: bold;">const</span> readableStream <span style="color: #339933;">=</span> fs.<span style="color: #660066;">createReadStream</span><span style="color: #009900;">(</span><span style="color: #3366CC;">'example.txt'</span><span style="color: #339933;">,</span> <span style="color: #3366CC;">'utf8'</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+<br/>
+readableStream.<span style="color: #660066;">on</span><span style="color: #009900;">(</span><span style="color: #3366CC;">'data'</span><span style="color: #339933;">,</span> <span style="color: #009900;">(</span>chunk<span style="color: #009900;">)</span> <span style="color: #339933;">=&gt;</span> <span style="color: #009900;">{</span><br/>
+    console.<span style="color: #660066;">log</span><span style="color: #009900;">(</span><span style="color: #3366CC;">'Received chunk:'</span><span style="color: #339933;">,</span> chunk<span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+    readableStream.<span style="color: #660066;">destroy</span><span style="color: #009900;">(</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span> <span style="color: #006600; font-style: italic;">// ストリームを破棄します</span><br/>
+<span style="color: #009900;">}</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+</div></div> その他の拡張
+</p></div>
+</div>
+<div class="archive-list" style="display:none;font-size: 14px;line-height: 1.8;margin-top: 20px;padding: 10px;">
+<div class="archive-list-item">
+<div class="post-intro" id="ai-info" style="width: 100%;">AI 思考中...</div>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../nodejs/nodejs-buffer.html" rel="prev">Node.js Buffer(バッファ)</a> </div>
+<div class="next-design-link"><a href="../nodejs/nodejs-util-module.html" rel="next">Node.js util モジュール</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="sidebar-box">
+</div>
+ノートリスト
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="title" id="comments">
+<h2 class="">
+<div class="altblock">
+<i aria-hidden="true" class="fa fa-plus-square" style="font-size:28px;margin-top: 8px;"></i>
+</div>
+<span class="mw-headline" id="qa_headline">5 件のノート</span>
+<span class="mw-headline" id="user_add_note" style="float:right;line-height: 62px;padding-right: 14px;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>ノートを書く</span>
+</h2>
+</div>
+<div id="postcomments" style="display:none;">
+<ol class="commentlist">
+<li class="comment even thread-even depth-1" id="comment-23377"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>房明</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  121***5022@qq.com</p></div><div class="upvotejs" data-commid="23377" id="runoobvote-id-23377"><a class="upvote"></a> <span class="count">19</span></div></div><div class="comt-main" id="div-comment-23377"><p>で、今こんな要件があります。input の中身を outInput に書き込みたいのですが、上記の方法はどれもドキュメントの中身をリセットしてしまいます。追加したいだけで、元の内容を保持したい場合はどうすればよいでしょうか。読み取り可能なストリームの作成完了時のコールバック関数内で操作できます。コードを見てください：</p>
+<pre>let fs = require('fs');
+let data = '';
+let data2 = '你的小青蛙是真的可爱';
+//1.读取流
+//创建可读流
+let readStream = fs.createReadStream("input.txt");
+//设置utf-8编码
+readStream.setEncoding('UTF8');
+//处理流事件
+readStream.on('data', chunk =&gt; data += chunk);
+readStream.on('end', () =&gt; writeS(data));
+readStream.on("error", err =&gt; console.log(err.strck));
+console.log("程序1执行完毕");
+//2.写入流
+//创建可写流
+let writeS = dataS =&gt;{
+    let writeStream = fs.createWriteStream("outInput.txt");
+    //使用utf-8写入流    
+    writeStream.write(data2+dataS, "UTF8");
+    //标记文件末尾
+    writeStream.end();
+    //处理事件流    
+    writeStream.on("finish", () =&gt; console.log("写入完成")); 
+    writeStream.on("error", err =&gt; console.log(err.stack));   
+    console.log("程序2执行完毕");
+}</pre>
+<p>これで大丈夫です。</p>
+<div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">房明</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>房明</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  121***5022@qq.com</p></div></span>9年前（2018-01-22）</div></div></li><!-- #comment-## -->
+<li class="comment odd alt thread-odd thread-alt depth-1" id="comment-23544"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>彤哥哥</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  lty***in@gmail.com</p></div><div class="upvotejs" data-commid="23544" id="runoobvote-id-23544"><a class="upvote"></a> <span class="count">87</span></div></div><div class="comt-main" id="div-comment-23544"><p>上記のように上書き状態になる可能性がある場合は、書き込みストリームの追記パラメータを設定することで解決できます：</p>
+<pre>var fs = require('fs');
+var read = fs.createReadStream('../data/input.txt');
+//设置第二个参数append
+var write = fs.createWriteStream('../data/out.txt', { 'flags': 'a' });
+//管道流读写操作
+read.pipe(write);
+console.log('执行完毕');</pre>
+<div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">彤哥哥</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>彤哥哥</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  lty***in@gmail.com</p></div></span>9年前（2018-01-26）</div></div></li><!-- #comment-## -->
+<li class="comment even thread-even depth-1" id="comment-34652"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>共有</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  294***2136@qq.com</p></div><div class="upvotejs" data-commid="34652" id="runoobvote-id-34652"><a class="upvote"></a> <span class="count">7</span></div></div><div class="comt-main" id="div-comment-34652"><p>最初のチュートリアルに従って input.txt を読み取ると、中国語の文字化けが発生します。以下のように設定しても：</p>
+<pre>// 设置编码为 utf8。
+readerStream.setEncoding('UTF8');</pre>
+<p>それでも無駄でした。私のコードは上記の最初の読み取りストリームのチュートリアルとまったく同じで、input.txt の中身もまったく同じですが、それでも文字化けします。</p>
+<p>解決策：</p>
+<p>iconv-lite モジュールをグローバルにインストールします：</p>
+<pre>npm install -g iconv-lite</pre>
+<p>コードでの記述は次のとおりです：</p>
+<pre>var iconv = require('iconv-lite');
+var fs = require('fs');
+var fileStr = fs.readFileSync('D:\\test.csv', {encoding:'binary'});
+var buf = new Buffer(fileStr, 'binary');
+var str = iconv.decode(buf, 'GBK');
+console.log(str);</pre>
+<p>原理は、まずバイナリエンコーディング方式で読み取り、その後 GBK でデコードするというものです。</p>
+<blockquote><p><strong>管理者の注記：</strong>この場合、お使いの JS ファイルのエンコーディングが ASCII である可能性が高いです。ファイルのエンコーディング形式を UTF-8 に変更すれば解決します。</p></blockquote>
+<div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">共有</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>共有</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  294***2136@qq.com</p></div></span>8年前 (2018-09-01)</div></div></li><!-- #comment-## -->
+<li class="comment odd alt thread-odd thread-alt depth-1" id="comment-41277"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>夏楠</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  414***997@qq.com</p></div><div class="upvotejs" data-commid="41277" id="runoobvote-id-41277"><a class="upvote"></a> <span class="count">42</span></div></div><div class="comt-main" id="div-comment-41277"><p>私は1番目のコメントのような乱雑な書き方には賛成しません。私はpromiseを使用して2つのファイルのリクエストデータを並行して取得し、その後2つのファイルの内容を別のファイルに書き直しました。ご参考までに。</p>
+<pre>//引入fs模块
+var fs =  require("fs")
+
+//封装请求文件数据的函数
+function getFileData(fileName){
+ return new Promise(resolve=&gt;{
+    var readStream = fs.createReadStream(fileName)  
+    readStream.setEncoding('UTF8')
+    readStream.on("data",chunk=&gt;resolve(chunk))
+  }) 
+}
+
+//并发请求
+Promise.all([getFileData("input.txt"),getFileData("output.txt")]).then(result=&gt;{
+   var writeStream = fs.createWriteStream("output.txt");
+   //讲两个文件的内容重新再写入到output.txt中
+   writeStream.write(result[0]+","+result[1],"UTF8");
+   writeStream.end();
+   //再获取output.txt文件的内容
+   fs.readFile("output.txt",(err,content)=&gt;console.log(content.toString()))
+})</pre><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">夏楠</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>夏楠</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  414***997@qq.com</p></div></span>8年前 (2019-03-27)</div></div></li><!-- #comment-## -->
+<li class="comment even thread-even depth-1" id="comment-56639"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>良木</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  341***8308@qq.com</p></div><div class="upvotejs" data-commid="56639" id="runoobvote-id-56639"><a class="upvote"></a> <span class="count">25</span></div></div><div class="comt-main" id="div-comment-56639"><p>1番目のコメントの意味は、一度の追記操作です。fsパッケージはappendFileという関数を提供しており、追記操作を解決できます。</p>
+<p>個人検索で得たファイル追記操作：</p>
+<p>writeFile関数でもファイルに書き込むことはできますが、ファイルが既に存在し、単に一部の内容を追加したい場合には、そのニーズを満たすことができません。幸いなことに、fsモジュールにはappendFile関数があり、新しい内容を既存のファイルに追記することができます。ファイルが存在しない場合は、新しいファイルが作成されます。使用方法は以下の通りです：</p>
+<p>例：<span class="marked">fs.appendFile(ファイル名, データ, エンコーディング, コールバック関数(err));</span></p>
+<pre>var fs= require("fs");​
+fs.appendFile('test.txt', 'data to append', function (err) {   
+    if (err) throw err;​    //数据被添加到文件的尾部    
+    console.log('The "data to append" was appended to file!'); 
+});</pre><p>エンコード形式はデフォルトで「utf8」です。</p><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">良木</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>良木</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  341***8308@qq.com</p></div></span>6年前 (2020-08-30)</div></div></li><!-- #comment-## -->
+</ol>
+<div class="pagenav">
+</div>
+</div>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style="display:none; padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>クリックしてノートを共有</h3>
+&lt;p style="font-size:14px;"&gt;ノートは本記事の内容の拡張である必要があります！&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;記事の投稿は、こちらをクリック&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; ノートを共有する前に&lt;a href=";.html" class="runoob-pop"&gt;ログイン&lt;/a&gt;が必要です！&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=";.html" id="cancel-comment-reply-link">キャンセル</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="13617"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>ノートを共有</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">ニックネーム</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">ニックネーム (必須)</span></li>
+<li class="form-inline"><label class="hide" for="email">メールアドレス</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">メールアドレス (必須)</span></li>
+<li class="form-inline"><label class="hide" for="url">引用アドレス</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">引用アドレス</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  13617;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 13617, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":13617},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+</div>
+</div>
+<!-- 右边栏 -->
+<div class="fivecol last right-column">
+<style>
+.sidebar-tree .double-li {
+    width:300px;
+}
+.sidebar-tree .double-li li {
+    width: 44%;
+    line-height: 1.5em;
+    border-bottom: 1px solid #ccc;
+    float: left;
+    display: inline;
+}
+</style>
+<div class="sidebar-box re-box re-box-large">
+<div class="sidebar-box recommend-here" style="margin: 0 auto;">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;"> <i aria-hidden="true" class="fa fa-list"></i> 分类导航</a>
+</div>
+<div class="sidebar-box sidebar-cate">
+<div class="sidebar-tree">
+<ul><li style="margin: 0;"><a class="tit" href="#"> Python / 数据科学</a><ul class="double-li"><li><a href="../python3/python3-tutorial.html" title="Python 教程">Python 教程</a></li><li><a href="../python/python-tutorial.html" title="Python2.x 教程">Python2.x 教程</a></li><li><a href="../fastapi/fastapi-tutorial.html" title="FastAPI 教程">FastAPI 教程</a></li><li><a href="../flask/flask-tutorial.html" title="Flask 教程">Flask 教程</a></li><li><a href="../django/django-tutorial.html" title="Django 教程">Django 教程</a></li><li><a href="../numpy/numpy-tutorial.html" title="NumPy 教程">NumPy 教程</a></li><li><a href="../pandas/pandas-tutorial.html" title="Pandas 教程">Pandas 教程</a></li><li><a href="../scipy/scipy-tutorial.html" title="SciPy 教程">SciPy 教程</a></li><li><a href="../matplotlib/matplotlib-tutorial.html" title="Matplotlib 教程">Matplotlib 教程</a></li><li><a href="../dash/dash-tutorial.html" title="Dash 教程">Dash 教程</a></li><li><a href="../jupyter-notebook/jupyter-notebook-tutorial.html" title="Jupyter Notebook 教程">Jupyter Notebook 教程</a></li><li><a href="../pillow/pillow-tutorial.html" title="Pillow 教程">Pillow 教程</a></li><li><a href="../qt/qt-tutorial.html" title="量化交易">量化交易</a></li><li><a href="../r/r-tutorial.html" title="R 教程">R 教程</a></li><li><a href="../julia/julia-tutorial.html" title="Julia 教程">Julia 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> AI / 智能开发</a><ul class="double-li"><li><a href="../ai-agent/ai-agent-tutorial.html" title="AI Agent（智能体）">AI Agent（智能体）</a></li><li><a href="../ai/ai-tutorial.html" title="AI（人工智能）">AI（人工智能）</a></li><li><a href="../codex/codex-tutorial.html" title="Codex 教程">Codex 教程</a></li><li><a href="../vibe-coding/vibe-coding-tutorial.html" title="Vibe Coding 教程">Vibe Coding 教程</a></li><li><a href="../claude-code/claude-code-tutorial.html" title="Claude Code">Claude Code</a></li><li><a href="../opencode/opencode-tutorial.html" title="OpenCode">OpenCode</a></li><li><a href="../skills/skills-tutorial.html" title="Skills（技能）">Skills（技能）</a></li><li><a href="../ollama/ollama-tutorial.html" title="Ollama 教程">Ollama 教程</a></li><li><a href="../hermes-agent/hermes-agent-tutorial.html" title="Hermes Agent">Hermes Agent</a></li><li><a href="../deepseek-harness/deepseek-harness-tutorial.html" title="DeepSeek Harness">DeepSeek Harness</a></li><li><a href="../pi-agent/pi-agent-tutorial.html" title="Pi Agent">Pi Agent</a></li><li><a href="../ai-math/ai-math-tutorial.html" title="AI 数学基础">AI 数学基础</a></li><li><a href="../tensorflow/tensorflow-tutorial.html" title="TensorFlow 教程">TensorFlow 教程</a></li><li><a href="../pytorch/pytorch-tutorial.html" title="PyTorch 教程">PyTorch 教程</a></li><li><a href="../sklearn/sklearn-tutorial.html" title="Scikit-learn 教程">Scikit-learn 教程</a></li><li><a href="../ml/ml-tutorial.html" title="机器 教程">机器 教程</a></li><li><a href="../langchain/langchain-tutorial.html" title="LangChain">LangChain</a></li><li><a href="../nlp/nlp-tutorial.html" title="自然语言处理 NLP">自然语言处理 NLP</a></li><li><a href="../opencv/opencv-tutorial.html" title="OpenCV 教程">OpenCV 教程</a></li><li><a href="../selenium/selenium-tutorial.html" title="Selenium 教程">Selenium 教程</a></li><li><a href="../playwright/playwright-tutorial.html" title="Playwright 教程">Playwright 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 前端开发</a><ul class="double-li"><li><a href="../html/html-tutorial.html" title="HTML 教程">HTML 教程</a></li><li><a href="../html/html5-intro.html" title="HTML5 教程">HTML5 教程</a></li><li><a href="../css/css-tutorial.html" title="CSS 教程">CSS 教程</a></li><li><a href="../css3/css3-tutorial.html" title="CSS3 教程">CSS3 教程</a></li><li><a href="../js/js-tutorial.html" title="JavaScript 教程">JavaScript 教程</a></li><li><a href="../htmldom/htmldom-tutorial.html" title="HTML DOM 教程">HTML DOM 教程</a></li><li><a href="../typescript/ts-tutorial.html" title="TypeScript 教程">TypeScript 教程</a></li><li><a href="../ajax/ajax-tutorial.html" title="AJAX 教程">AJAX 教程</a></li><li><a href="../json/json-tutorial.html" title="JSON 教程">JSON 教程</a></li><li><a href="../tailwindcss/tailwindcss-tutorial.html" title="Tailwind CSS 教程">Tailwind CSS 教程</a></li><li><a href="../bootstrap4/bootstrap4-tutorial.html" title="Bootstrap4 教程">Bootstrap4 教程</a></li><li><a href="../bootstrap5/bootstrap5-tutorial.html" title="Bootstrap5 教程">Bootstrap5 教程</a></li><li><a href="../foundation/foundation-tutorial.html" title="Foundation 教程">Foundation 教程</a></li><li><a href="../vue2/vue-tutorial.html" title="Vue.js 教程">Vue.js 教程</a></li><li><a href="../vue3/vue3-tutorial.html" title="Vue3 教程">Vue3 教程</a></li><li><a href="../react/react-tutorial.html" title="React 教程">React 教程</a></li><li><a href="../nextjs/nextjs-tutorial.html" title="Next.js 教程">Next.js 教程</a></li><li><a href="../angularjs/angularjs-tutorial.html" title="AngularJS 教程">AngularJS 教程</a></li><li><a href="../angularjs2/angularjs2-tutorial.html" title="Angular 教程">Angular 教程</a></li><li><a href="../jquery/jquery-tutorial.html" title="jQuery 教程">jQuery 教程</a></li><li><a href="../jqueryui/jqueryui-tutorial.html" title="jQuery UI 教程">jQuery UI 教程</a></li><li><a href="../jeasyui/jqueryeasyui-tutorial.html" title="jQuery EasyUI 教程">jQuery EasyUI 教程</a></li><li><a href="../echarts/echarts-tutorial.html" title="ECharts 教程">ECharts 教程</a></li><li><a href="../chartjs/chartjs-tutorial.html" title="Chart.js 教程">Chart.js 教程</a></li><li><a href="../highcharts/highcharts-tutorial.html" title="Highcharts 教程">Highcharts 教程</a></li><li><a href="../googleapi/google-maps-basic.html" title="Google 地图 教程">Google 地图 教程</a></li><li><a href="../svg/svg-tutorial.html" title="SVG 教程">SVG 教程</a></li><li><a href="../font-awesome/fontawesome-tutorial.html" title="Font Awesome 教程">Font Awesome 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 后端开发</a><ul class="double-li"><li><a href="../nodejs/nodejs-tutorial.html" title="Node.js 教程">Node.js 教程</a></li><li><a href="../electron/electron-tutorial.html" title="Electron 教程">Electron 教程</a></li><li><a href="../php/php-tutorial.html" title="PHP 教程">PHP 教程</a></li><li><a href="../java/java-tutorial.html" title="Java 教程">Java 教程</a></li><li><a href="../go/go-tutorial.html" title="Go 教程">Go 教程</a></li><li><a href="../rust/rust-tutorial.html" title="Rust 教程">Rust 教程</a></li><li><a href="../csharp/csharp-tutorial.html" title="C# 教程">C# 教程</a></li><li><a href="../servlet/servlet-tutorial.html" title="Servlet 教程">Servlet 教程</a></li><li><a href="../jsp/jsp-tutorial.html" title="JSP 教程">JSP 教程</a></li><li><a href="../asp/asp-tutorial.html" title="ASP 教程">ASP 教程</a></li><li><a href="../appml/appml-tutorial.html" title="AppML 教程">AppML 教程</a></li><li><a href="../vbscript/vbscript-tutorial.html" title="VBScript 教程">VBScript 教程</a></li><li><a href="../swagger/swagger-tutorial.html" title="Swagger 教程">Swagger 教程</a></li><li><a href="../restfulapi/restful-api-tutorial.html" title="RESTful API 教程">RESTful API 教程</a></li><li><a href="../docker/docker-tutorial.html" title="Docker 教程">Docker 教程</a></li><li><a href="../linux/linux-tutorial.html" title="Linux 教程">Linux 教程</a></li><li><a href="../w3cnote/zookeeper-tutorial.html" title="ZooKeeper 教程">ZooKeeper 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 数据库</a><ul class="double-li"><li><a href="../sql/sql-tutorial.html" title="SQL 教程">SQL 教程</a></li><li><a href="../mysql/mysql-tutorial.html" title="MySQL 教程">MySQL 教程</a></li><li><a href="../postgresql/postgresql-tutorial.html" title="PostgreSQL 教程">PostgreSQL 教程</a></li><li><a href="../sqlite/sqlite-tutorial.html" title="SQLite 教程">SQLite 教程</a></li><li><a href="../mongodb/mongodb-tutorial.html" title="MongoDB 教程">MongoDB 教程</a></li><li><a href="../redis/redis-tutorial.html" title="Redis 教程">Redis 教程</a></li><li><a href="../memcached/memcached-tutorial.html" title="Memcached 教程">Memcached 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 移动开发</a><ul class="double-li"><li><a href="../w3cnote/android-tutorial-intro.html" title="Android 教程">Android 教程</a></li><li><a href="../flutter/flutter-tutorial.html" title="Flutter 教程">Flutter 教程</a></li><li><a href="../ionic/ionic-tutorial.html" title="Ionic 教程">Ionic 教程</a></li><li><a href="../jquerymobile/jquerymobile-tutorial.html" title="jQuery Mobile 教程">jQuery Mobile 教程</a></li><li><a href="../swift/swift-tutorial.html" title="Swift 教程">Swift 教程</a></li><li><a href="../kotlin/kotlin-tutorial.html" title="Kotlin 教程">Kotlin 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> DevOps / 工程化</a><ul class="double-li"><li><a href="../git/git-tutorial.html" title="Git 教程">Git 教程</a></li><li><a href="../svn/svn-tutorial.html" title="SVN 教程">SVN 教程</a></li><li><a href="../cmake/cmake-tutorial.html" title="CMake 教程">CMake 教程</a></li><li><a href="../maven/maven-tutorial.html" title="Maven 教程">Maven 教程</a></li><li><a href="../vscode/vscode-tutorial.html" title="VS Code 教程">VS Code 教程</a></li><li><a href="../obsidian/obsidian-tutorial.html" title="Obsidian 教程">Obsidian 教程</a></li><li><a href="../pycharm/pycharm-tutorial.html" title="PyCharm 教程">PyCharm 教程</a></li><li><a href="../eclipse/eclipse-tutorial.html" title="Eclipse 教程">Eclipse 教程</a></li><li><a href="../markdown/md-tutorial.html" title="Markdown 教程">Markdown 教程</a></li><li><a href="../latex/latex-tutorial.html" title="LaTeX 教程">LaTeX 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 编程语言</a><ul class="double-li"><li><a href="../c/c-tutorial.html" title="C 教程">C 教程</a></li><li><a href="../cplusplus/cpp-tutorial.html" title="C++ 教程">C++ 教程</a></li><li><a href="../zig/zig-tutorial.html" title="Zig 教程">Zig 教程</a></li><li><a href="../scala/scala-tutorial.html" title="Scala 教程">Scala 教程</a></li><li><a href="../ruby/ruby-tutorial.html" title="Ruby 教程">Ruby 教程</a></li><li><a href="../perl/perl-tutorial.html" title="Perl 教程">Perl 教程</a></li><li><a href="../lua/lua-tutorial.html" title="Lua 教程">Lua 教程</a></li><li><a href="../dart/dart-tutorial.html" title="Dart 教程">Dart 教程</a></li><li><a href="../assembly/assembly-tutorial.html" title="汇编语言 教程">汇编语言 教程</a></li><li><a href="../w3cnote/verilog-tutorial.html" title="Verilog 教程">Verilog 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 计算机基础</a><ul class="double-li"><li><a href="../computer-organization/computer-organization-tutorial.html" title="计算机组成原理">计算机组成原理</a></li><li><a href="../data-structures/data-structures-tutorial.html" title="数据结构与算法">数据结构与算法</a></li><li><a href="../c-dsa/c-dsa-tutorial.html" title="C 语言数据结构与算法">C 语言数据结构与算法</a></li><li><a href="../design-pattern/design-pattern-tutorial.html" title="设计模式">设计模式</a></li><li><a href="../python-design-pattern/python-design-pattern-tutorial.html" title="Python 设计模式">Python 设计模式</a></li><li><a href="../regexp/regexp-tutorial.html" title="正则表达式">正则表达式</a></li><li><a href="../http/http-tutorial.html" title="HTTP 教程">HTTP 教程</a></li><li><a href="../tcpip/tcpip-tutorial.html" title="TCP/IP 教程">TCP/IP 教程</a></li><li><a href="../np/np-tutorial.html" title="网络协议">网络协议</a></li><li><a href="../w3c/w3c-tutorial.html" title="W3C 教程">W3C 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> XML / Web Service</a><ul class="double-li"><li><a href="../xml/xml-tutorial.html" title="XML 教程">XML 教程</a></li><li><a href="../dtd/dtd-tutorial.html" title="DTD 教程">DTD 教程</a></li><li><a href="../dom/dom-tutorial.html" title="XML DOM 教程">XML DOM 教程</a></li><li><a href="../xsl/xsl-tutorial.html" title="XSLT 教程">XSLT 教程</a></li><li><a href="../xpath/xpath-tutorial.html" title="XPath 教程">XPath 教程</a></li><li><a href="../xquery/xquery-tutorial.html" title="XQuery 教程">XQuery 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XLink 教程">XLink 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XPointer 教程">XPointer 教程</a></li><li><a href="../schema/schema-tutorial.html" title="XML Schema 教程">XML Schema 教程</a></li><li><a href="../xslfo/xslfo-tutorial.html" title="XSL-FO 教程">XSL-FO 教程</a></li><li><a href="../webservices/webservices-tutorial.html" title="Web Service 教程">Web Service 教程</a></li><li><a href="../wsdl/wsdl-tutorial.html" title="WSDL 教程">WSDL 教程</a></li><li><a href="../soap/soap-tutorial.html" title="SOAP 教程">SOAP 教程</a></li><li><a href="../rss/rss-tutorial.html" title="RSS 教程">RSS 教程</a></li><li><a href="../rdf/rdf-tutorial.html" title="RDF 教程">RDF 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> .NET</a><ul class="double-li"><li><a href="../aspnet/aspnet-tutorial.html" title="ASP.NET 教程">ASP.NET 教程</a></li><li><a href="../aspnet/mvc-intro.html" title="MVC 教程">MVC 教程</a></li><li><a href="../aspnet/razor-intro.html" title="Razor 教程">Razor 教程</a></li><li><a href="../aspnet/aspnet-intro.html" title="Web Forms 教程">Web Forms 教程</a></li><li><a href="../aspnet/webpages-intro.html" title="Web Pages 教程">Web Pages 教程</a></li><li><a href="../powershell/powershell-tutorial.html" title="PowerShell 教程">PowerShell 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 网站建设</a><ul class="double-li"><li><a href="../web/web-buildingprimer.html" title="网站建设指南">网站建设指南</a></li><li><a href="../browsers/browser-information.html" title="浏览器信息">浏览器信息</a></li><li><a href="../hosting/hosting-tutorial.html" title="网站主机教程">网站主机教程</a></li><li><a href="../quality/quality-tutorial.html" title="网站品质">网站品质</a></li></ul></li></ul> </div>
+</div>
+</div>
+<br/>
+<div class="sidebar-box re-box re-box-large">
+</div>
+</div></div>
+</div>
+<script>
+var aid = 13617;
+function coll() {
+	$.post( '/wp-content/themes/runoob/option/user/userinfo.php', {aid:aid, action:"collarticle", opt:'add'},function( data ) {
+		if(data.error==0) {
+			$("#content").find("h1:first").find("a").attr("href","javascript:void(0);");
+			$("#content").find("h1:first").find("img").attr("src","http://www.runoob.com/wp-content/themes/runoob/assets/img/coll2.png").css({width:32+"px",height:32+"px"});
+		}
+		alert(data.msg);
+	},'json');
+}
+
+(function () {
+    // 1. 仅 HTML 页面
+    if (!document.contentType || !document.contentType.includes('text/html')) return;
+
+    // 2. 容器判断
+    var container = document.querySelector('.article-intro');
+    if (!container) return;
+
+    var h1 = container.querySelector('h1');
+    if (!h1) return;
+
+    // 3. URL 判断
+    var url = window.location.href.toLowerCase();
+    var version = null;
+
+    if (url.includes('/python3/')) {
+        version = 'Python3.x';
+    } else if (url.includes('/python/')) {
+        version = 'Python2.x';
+    }
+
+    if (!version) return;
+
+    // 4. 防重复
+    if (h1.querySelector('.py-version-badge')) return;
+
+    // 5. 创建标签
+    var badge = document.createElement('span');
+    badge.className = 'py-version-badge';
+    badge.innerText = version;
+
+    // 6. 样式（核心：float 实现右上角）
+    badge.style.float = 'right';
+    badge.style.fontSize = '12px';
+    badge.style.padding = '2px 8px';
+    badge.style.borderRadius = '999px';
+
+   // 自适应亮/暗色 + 渐变背景（增强版）
+	badge.style.color = 'inherit';
+
+	// 渐变背景（低透明度，不影响暗黑模式）
+	if (version.includes('3')) {
+		badge.style.background = 'linear-gradient(90deg, rgba(79,172,254,0.15), rgba(0,242,254,0.15))';
+	} else {
+		badge.style.background = 'linear-gradient(90deg, rgba(161,140,209,0.15), rgba(251,194,235,0.15))';
+	}
+
+	// 边框弱化（更精致）
+	badge.style.border = '1px solid rgba(127,127,127,0.3)';
+
+	// 提升可读性
+	badge.style.opacity = '0.95';
+
+    // 微调位置（更贴近“右上角”）
+    badge.style.marginTop = '4px';
+    badge.style.marginLeft = '10px';
+
+    // 7. 插入到 h1 最前面（让 float 生效更稳定）
+    h1.insertBefore(badge, h1.firstChild);
+
+})();
+</script>
+<!-- 反馈对话框开始 -->
+<script src="../wp-content/themes/runoob/assets/js/runoob-article-dir.min.js"></script>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

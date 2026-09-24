@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>流水线 — 如何让 CPU 更快 | 菜鸟教程</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<link href="../manifest.webmanifest.html" rel="manifest"/>
+<meta content="#10151c" name="theme-color"/>
+<link href="../pwa/icon-192.png.html" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="application-name"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="../computer-organization/cpu-pipeline.html" rel="canonical"/>
+<meta content="流水线 — 如何让 CPU 更快" name="keywords"/>
+<meta content="流水线 -- 如何让 CPU 更快 在不提高时钟频率的情况下，CPU 还能变快吗？答案是肯定的。流水线（Pipeline）技术就是其中最重要的一种方法。本讲用 Python 代码和甘特图风格的可视化输出，展示流水线如何让指令执行效率大幅提升。   生活中的类比：洗车流水线  想象你开了一家洗车店。有两种经营方式：  方式一：单人包干（无流水线） 一个工人从头到尾负责一辆车的全部清洗工序——冲水、打泡沫、刷洗、擦干。做完一辆，才能开始下一.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div>
+<!-- 导航栏 -->
+<style>
+/* 主题切换按钮 */
+/* ===== 主题变量（核心）===== */
+:root {
+  --theme-bg: #ffffff;
+  --theme-border: #e5e7eb;
+  --theme-icon: #333;
+  --theme-hover: #f3f4f6;
+}
+
+.dark {
+  --theme-bg: #1f2937;
+  --theme-border: #374151;
+  --theme-icon: #e5e7eb;
+  --theme-hover: #374151;
+}
+
+/* ===== 按钮容器 ===== */
+.nav-theme-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== 按钮本体 ===== */
+.nav-theme-toggle button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  border-radius: 6px;
+  border: 1px solid var(--theme-border);
+
+  background: var(--theme-bg);
+  color: var(--theme-icon);
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* ===== 图标大小 ===== */
+.nav-theme-toggle i {
+  font-size: 14px;
+}
+
+/* ===== hover 效果 ===== */
+.nav-theme-toggle button:hover {
+  background: var(--theme-hover);
+  transform: translateY(-1px);
+}
+
+/* ===== 点击反馈 ===== */
+.nav-theme-toggle button:active {
+  transform: scale(0.95);
+}
+
+/* ===== 当前激活态（可选）===== */
+.nav-theme-toggle button.active {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+</style>
+<!-- 导航栏 -->
+<nav aria-label="主导航" class="container navigation">
+<div class="row">
+<div class="col nav">
+<!-- PC 导航 -->
+<ul class="pc-nav" id="runoob-detail-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../js/js-tutorial.html">JavaScript</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a data-id="vue" href="#">Vue</a></li>
+<li><a href="../react/react-tutorial.html">React</a></li>
+<li><a href="../python3/python3-tutorial.html">Python3</a></li>
+<li><a href="../java/java-tutorial.html">Java</a></li>
+<li><a href="../cprogramming/c-tutorial.html">C</a></li>
+<li><a href="../cplusplus/cpp-tutorial.html">C++</a></li>
+<li><a href="../csharp/csharp-tutorial.html">C#</a></li>
+<li><a data-id="aiNav" href="#">AI</a></li>
+<li><a href="../go/go-tutorial.html">Go</a></li>
+<li><a href="../sql/sql-tutorial.html">SQL</a></li>
+<li><a href="../linux/linux-tutorial.html">Linux</a></li>
+<li><a href="../vscode/vscode-tutorial.html">VS Code</a></li>
+<li><a data-id="bootstrap" href="#">Bootstrap</a></li>
+<li><a href="../git/git-tutorial.html">Git</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<!-- 主题切换按钮，固定在最右侧 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+<!-- 移动端导航 -->
+<ul class="mobile-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a href="../js/js-tutorial.html">JS</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<li><a class="search-reveal" href="#">搜索</a></li>
+<!-- 移动端主题切换 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon-mobile" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun-mobile" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<!-- 二级导航 -->
+<!--  内容  -->
+<div class="container main">
+<!-- 中间 -->
+<div class="row">
+<div class="runoob-col-md2">
+<div class="left-column">
+<div class="tab" style="overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
+<i aria-hidden="true" class="fa fa-list"></i>
+<span>计算机组成原理</span>
+</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+<a data-p="par" href="../computer-organization/computer-organization-tutorial.html" target="_top" title="计算机组成原理">
+			计算机组成原理			</a>
+<a data-p="par" href="../computer-organization/why-computer-only-knows-0-and-1.html" target="_top" title="为什么计算机只认识 0 和 1">
+			计算机只认识 0 和 1			</a>
+<a data-p="par" href="../computer-organization/number-system-conversion.html" target="_top" title="进制转换 — 二进制、十进制、十六进制">
+			进制转换			</a>
+<a data-p="par" href="../computer-organization/negative-numbers-complement.html" target="_top" title="负数怎么表示 — 原码、反码、补码">
+			负数怎么表示			</a>
+<a data-p="par" href="../computer-organization/floating-point-ieee754.html" target="_top" title="小数怎么表示 — 浮点数与 IEEE 754">
+			小数怎么表示			</a>
+<a data-p="par" href="../computer-organization/character-encoding.html" target="_top" title="字符怎么表示 — ASCII 与 Unicode">
+			字符怎么表示			</a>
+<a data-p="par" href="../computer-organization/boolean-algebra-logic-gates.html" target="_top" title="布尔代数基础 — AND / OR / NOT / XOR">
+			布尔代数基础			</a>
+<a data-p="par" href="../computer-organization/building-logic-circuits.html" target="_top" title="逻辑门电路搭建">
+			逻辑门电路搭建			</a>
+<a data-p="par" href="../computer-organization/from-gates-to-adder.html" target="_top" title="从逻辑门到加法器">
+			从逻辑门到加法器			</a>
+<a data-p="par" href="../computer-organization/flip-flops-and-registers.html" target="_top" title="触发器与寄存器 — 计算机如何「记住」数据">
+			触发器与寄存器			</a>
+<a data-p="par" href="../computer-organization/computer-architecture-overview.html" target="_top" title="一台计算机的整体骨架">
+			一台计算机的整体骨架			</a>
+<a data-p="par" href="../computer-organization/stored-program-concept.html" target="_top" title="程序和数据为什么能放在同一块内存里">
+			程序和数据			</a>
+<a data-p="par" href="../computer-organization/instruction-cycle.html" target="_top" title="指令周期 — 取指、译码、执行、写回">
+			指令周期			</a>
+<a data-p="par" href="../computer-organization/clock-frequency.html" target="_top" title="时钟频率是什么意思">
+			时钟频率			</a>
+<a data-p="par" href="../computer-organization/cpu-pipeline.html" target="_top" title="流水线 — 如何让 CPU 更快">
+			流水线			</a>
+<a data-p="par" href="../computer-organization/multi-core-processors.html" target="_top" title="多核心是怎么回事">
+			多核心是怎么回事			</a>
+<a data-p="par" href="../computer-organization/memory-hierarchy.html" target="_top" title="存储金字塔 — 为什么要分这么多层">
+			存储金字塔			</a>
+<a data-p="par" href="../computer-organization/cache-hits-and-misses.html" target="_top" title="缓存命中与缓存未命中">
+			缓存命中与缓存未命中			</a>
+<a data-p="par" href="../computer-organization/memory-addressing.html" target="_top" title="内存地址与寻址">
+			内存地址与寻址			</a>
+<a data-p="par" href="../computer-organization/computer-bus-system.html" target="_top" title="总线 — 计算机内部的「公路系统」">
+			总线			</a>
+<a data-p="par" href="../computer-organization/io-polling-interrupt-dma.html" target="_top" title="I/O 的三种方式 — 轮询、中断、DMA">
+			I/O 的三种方式			</a>
+<a data-p="par" href="../computer-organization/instruction-journey-summary.html" target="_top" title="一条指令的完整旅程">
+			一条指令的完整旅程			</a>
+</div>
+</div>
+</div>
+</div> <div class="col middle-column">
+<div class="article">
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../computer-organization/clock-frequency.html" rel="prev">时钟频率是什么意思</a> </div>
+<div class="next-design-link"><a href="../computer-organization/multi-core-processors.html" rel="next">多核心是怎么回事</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="article-body">
+<div class="article-intro" id="content">
+<h1>流水线 -- 如何让 CPU 更快</h1>
+<p>在不提高时钟频率的情况下，CPU 还能变快吗？答案是肯定的。流水线（Pipeline）技术就是其中最重要的一种方法。本讲用 Python 代码和甘特图风格的可视化输出，展示流水线如何让指令执行效率大幅提升。</p>
+<hr/>
+<h2>生活中的类比：洗车流水线</h2>
+<p>想象你开了一家洗车店。有两种经营方式：</p>
+<p><span class="marked">方式一：单人包干（无流水线）</span></p>
+<p>一个工人从头到尾负责一辆车的全部清洗工序——冲水、打泡沫、刷洗、擦干。做完一辆，才能开始下一辆。每辆车耗时 40 分钟，一小时只能洗 1.5 辆车。</p>
+<p><span class="marked">方式二：流水线分工作业（有流水线）</span></p>
+<p>4 个工人各负责一个工序——冲水、打泡沫、刷洗、擦干。第一辆车进入冲水工序后，冲水工就可以开始冲第二辆车，同时打泡工在给第一辆车打泡沫。四个人同时忙碌，每 10 分钟就有一辆车完成。</p>
+<p>第二种方式并没有让单个工序变快（冲水还是 10 分钟），但通过让不同车辆的工序重叠，整体的产出速度大大提升了。</p>
+<p><span class="marked">这就是 CPU 流水线的核心思想：让不同指令的不同阶段重叠执行。</span></p>
+<hr/>
+<h2>串行执行 vs 流水线执行</h2>
+<h3>串行执行的问题</h3>
+<p>回顾第 12 讲，每条指令要经过四个阶段：取指（IF）、译码（ID）、执行（EX）、写回（WB）。</p>
+<p>在<span class="marked">串行执行（无流水线）</span>模式下，CPU 必须先完整执行完当前指令的所有四个阶段，才能开始取下一条指令。</p>
+<pre>
+周期:  1    2    3    4    5    6    7    8    9    10   11   12
+I1:   [IF] [ID] [EX] [WB]
+I2:                      [IF] [ID] [EX] [WB]
+I3:                                          [IF] [ID] [EX] [WB]
+
+3 条指令 = 12 个周期
+</pre>
+<h3>流水线执行的优势</h3>
+<p>在<span class="marked">流水线执行</span>模式下，一旦指令 I1 完成了取指阶段（IF），CPU 的取指部件就空闲了。与其让它干等着，不如立刻开始取下一条指令 I2。</p>
+<p>同理，当 I1 完成了译码（ID）进入执行阶段时，译码部件也开始处理 I2，同时取指部件开始处理 I3。</p>
+<pre>
+周期:  1    2    3    4    5    6    7
+I1:   [IF] [ID] [EX] [WB]
+I2:        [IF] [ID] [EX] [WB]
+I3:             [IF] [ID] [EX] [WB]
+
+3 条指令 = 6 个周期（比串行快了一倍！）
+</pre>
+<p>注意关键数字：</p>
+<ul>
+<li>无流水线：n 条指令 = 4n 个周期</li>
+<li>有流水线：n 条指令 = 4 + (n-1) = n + 3 个周期（即填满流水线后，每个周期完成一条指令）</li>
+</ul>
+<p>当 n 很大时，流水线的加速比接近 4（流水线的级数）。</p>
+<blockquote><p>流水线并没有让单条指令执行得更快（每条指令仍然需要 4 个周期），但它大幅提高了「吞吐率」——单位时间内完成的指令数量。</p></blockquote>
+<hr/>
+<h2>流水线的「冒险」问题</h2>
+<p>流水线虽然好，但并不是无代价的。有三种典型的「冒险」（Hazard）会导致流水线停摆：</p>
+<table class="reference">
+<tr><th>冒险类型</th><th>英文</th><th>问题描述</th><th>生活类比</th></tr>
+<tr><td>结构冒险</td><td>Structural Hazard</td><td>两个阶段争用同一个硬件资源（比如都需访问内存）</td><td>洗车店里只有一把高压水枪，冲水和最后冲洗都需用它，只能排队</td></tr>
+<tr><td>数据冒险</td><td>Data Hazard</td><td>后一条指令依赖前一条指令的结果，但结果还没写回</td><td>做红烧肉必须先切好肉再下锅。如果切肉工还没切完，炒菜工就只能等着</td></tr>
+<tr><td>控制冒险</td><td>Control Hazard</td><td>遇到跳转指令时，不知道下一条该取哪条指令</td><td>菜单上写着「客人如果点辣的，换另一个配方」。在客人决定之前，后厨不知道该准备什么</td></tr>
+</table>
+<p>现代 CPU 用各种技术来缓解这些冒险：</p>
+<ul>
+<li><span class="tag1 green">数据旁路（Data Forwarding）</span>：不等结果写回寄存器，直接从 ALU 输出「偷」数据给下一条指令用</li>
+<li><span class="tag1 green">分支预测（Branch Prediction）</span>：猜测跳转方向，提前取指。猜对了就赚，猜错了就清空流水线重来</li>
+<li><span class="tag1 green">乱序执行（Out-of-Order Execution）</span>：不按程序顺序，而是「哪个指令数据准备好了就先执行哪个」</li>
+</ul>
+<hr/>
+<h2>交互演示：流水线模拟器（甘特图风格）</h2>
+<p>下面的 Python 代码模拟了有流水线和无流水线两种模式下的指令执行过程，并以甘特图风格打印输出，让你直观对比两种方式的差异。</p>
+<div class="example">
+<h2 class="example">实例</h2>
+<div class="example_code">
+<span style="color: #a11;">"""<br/>CPU 流水线模拟器 (runoob 演示)<br/>对比：无流水线（串行）vs 有流水线（并行重叠）<br/>以甘特图风格打印每条指令各阶段的执行时间线<br/>
+"""</span><br/>
+<br/>
+<span style="color: #a50"># 定义指令序列和各阶段的简称</span><br/>
+INSTRUCTIONS <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: #a11;">"I1"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"I2"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"I3"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"I4"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"I5"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"I6"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"I7"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"I8"</span><span style="color: Olive;">]</span><br/>
+STAGES <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: #a11;">"IF"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"ID"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"EX"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"WB"</span><span style="color: Olive;">]</span>  <span style="color: #a50"># 取指、译码、执行、写回</span><br/>
+STAGE_NAMES <span style="color: Gray;">=</span> <span style="color: Olive;">{</span><span style="color: #a11;">"IF"</span>: <span style="color: #a11;">"取指"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"ID"</span>: <span style="color: #a11;">"译码"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"EX"</span>: <span style="color: #a11;">"执行"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"WB"</span>: <span style="color: #a11;">"写回"</span><span style="color: Olive;">}</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> simulate_serial<span style="color: Olive;">(</span>instructions<span style="color: Gray;">,</span> stages<span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""<br/>无流水线模式：每条指令完整执行完 4 个阶段后，才开始下一条<br/>返回: (总周期数, 时间线二维数组)<br/>时间线格式: time_grid[周期][阶段列] = 当前正在执行的指令名 或 None<br/>
+    """</span><br/>
+    num_instr <span style="color: Gray;">=</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>instructions<span style="color: Olive;">)</span><br/>
+    num_stages <span style="color: Gray;">=</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>stages<span style="color: Olive;">)</span><br/>
+    total_cycles <span style="color: Gray;">=</span> num_instr * num_stages  <span style="color: #a50"># n 条指令 × 4 阶段</span><br/>
+<br/>
+    <span style="color: #a50"># time_grid[cycle][stage_slot] → 哪个指令在此周期的此阶段</span><br/>
+    time_grid <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">[</span><span style="color: Teal;">None</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>num_instr<span style="color: Olive;">)</span><span style="color: Olive;">]</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>total_cycles<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">for</span> i<span style="color: Gray;">,</span> instr <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">enumerate</span><span style="color: Olive;">(</span>instructions<span style="color: Olive;">)</span>:<br/>
+        base_cycle <span style="color: Gray;">=</span> i * num_stages<br/>
+        <span style="color: Green;font-weight:bold;">for</span> s_idx<span style="color: Gray;">,</span> stage <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">enumerate</span><span style="color: Olive;">(</span>stages<span style="color: Olive;">)</span>:<br/>
+            cycle <span style="color: Gray;">=</span> base_cycle + s_idx<br/>
+            time_grid<span style="color: Olive;">[</span>cycle<span style="color: Olive;">]</span><span style="color: Olive;">[</span>i<span style="color: Olive;">]</span> <span style="color: Gray;">=</span> f<span style="color: #a11;">"{instr}({stage})"</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">return</span> total_cycles<span style="color: Gray;">,</span> time_grid<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> simulate_pipeline<span style="color: Olive;">(</span>instructions<span style="color: Gray;">,</span> stages<span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""<br/>有流水线模式：不同指令的不同阶段可以重叠执行<br/>返回: (总周期数, 时间线二维数组)<br/>
+    """</span><br/>
+    num_instr <span style="color: Gray;">=</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>instructions<span style="color: Olive;">)</span><br/>
+    num_stages <span style="color: Gray;">=</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>stages<span style="color: Olive;">)</span><br/>
+    <span style="color: #a50"># 流水线总周期数 = 级数 + (指令数 - 1)</span><br/>
+    total_cycles <span style="color: Gray;">=</span> num_stages + <span style="color: Olive;">(</span>num_instr - <span style="color: Maroon;">1</span><span style="color: Olive;">)</span><br/>
+<br/>
+    time_grid <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">[</span><span style="color: Teal;">None</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>num_instr<span style="color: Olive;">)</span><span style="color: Olive;">]</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>total_cycles<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">for</span> i<span style="color: Gray;">,</span> instr <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">enumerate</span><span style="color: Olive;">(</span>instructions<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a50"># 指令 i 的阶段 s 在周期 (i + s) 执行</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> s_idx<span style="color: Gray;">,</span> stage <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">enumerate</span><span style="color: Olive;">(</span>stages<span style="color: Olive;">)</span>:<br/>
+            cycle <span style="color: Gray;">=</span> i + s_idx<br/>
+            <span style="color: Green;font-weight:bold;">if</span> cycle <span style="color: Gray;">&lt;</span> total_cycles:<br/>
+                time_grid<span style="color: Olive;">[</span>cycle<span style="color: Olive;">]</span><span style="color: Olive;">[</span>i<span style="color: Olive;">]</span> <span style="color: Gray;">=</span> f<span style="color: #a11;">"{instr}({stage})"</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">return</span> total_cycles<span style="color: Gray;">,</span> time_grid<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> print_gantt<span style="color: Olive;">(</span>instructions<span style="color: Gray;">,</span> stages<span style="color: Gray;">,</span> time_grid<span style="color: Gray;">,</span> total_cycles<span style="color: Gray;">,</span> mode_name<span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""以甘特图风格打印时间线"""</span><br/>
+    num_instr <span style="color: Gray;">=</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>instructions<span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 表头</span><br/>
+    header <span style="color: Gray;">=</span> f<span style="color: #a11;">"{'周期':&gt;4}  "</span><br/>
+    <span style="color: Green;font-weight:bold;">for</span> instr <span style="color: Green;font-weight:bold;">in</span> instructions:<br/>
+        header +<span style="color: Gray;">=</span> f<span style="color: #a11;">"  {instr:^10}"</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>header<span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"-"</span> * <span style="color: Olive;">(</span><span style="color: Maroon;">6</span> + <span style="color: Maroon;">12</span> * num_instr<span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">for</span> cycle <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>total_cycles<span style="color: Olive;">)</span>:<br/>
+        row <span style="color: Gray;">=</span> f<span style="color: #a11;">"{cycle+1:&gt;4}  "</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> i <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>num_instr<span style="color: Olive;">)</span>:<br/>
+            cell <span style="color: Gray;">=</span> time_grid<span style="color: Olive;">[</span>cycle<span style="color: Olive;">]</span><span style="color: Olive;">[</span>i<span style="color: Olive;">]</span><br/>
+            <span style="color: Green;font-weight:bold;">if</span> cell:<br/>
+                <span style="color: #a50"># 给不同阶段配上不同标识</span><br/>
+                <span style="color: Green;font-weight:bold;">if</span> <span style="color: #a11;">"(IF)"</span> <span style="color: Green;font-weight:bold;">in</span> cell:<br/>
+                    row +<span style="color: Gray;">=</span> f<span style="color: #a11;">"  [<span style="color: #000099; font-weight: bold;">\0</span>33[94mIF<span style="color: #000099; font-weight: bold;">\0</span>33[0m]     "</span>  <span style="color: #a50"># 蓝色</span><br/>
+                <span style="color: Green;font-weight:bold;">elif</span> <span style="color: #a11;">"(ID)"</span> <span style="color: Green;font-weight:bold;">in</span> cell:<br/>
+                    row +<span style="color: Gray;">=</span> f<span style="color: #a11;">"  [<span style="color: #000099; font-weight: bold;">\0</span>33[93mID<span style="color: #000099; font-weight: bold;">\0</span>33[0m]     "</span>  <span style="color: #a50"># 黄色</span><br/>
+                <span style="color: Green;font-weight:bold;">elif</span> <span style="color: #a11;">"(EX)"</span> <span style="color: Green;font-weight:bold;">in</span> cell:<br/>
+                    row +<span style="color: Gray;">=</span> f<span style="color: #a11;">"  [<span style="color: #000099; font-weight: bold;">\0</span>33[92mEX<span style="color: #000099; font-weight: bold;">\0</span>33[0m]     "</span>  <span style="color: #a50"># 绿色</span><br/>
+                <span style="color: Green;font-weight:bold;">elif</span> <span style="color: #a11;">"(WB)"</span> <span style="color: Green;font-weight:bold;">in</span> cell:<br/>
+                    row +<span style="color: Gray;">=</span> f<span style="color: #a11;">"  [<span style="color: #000099; font-weight: bold;">\0</span>33[91mWB<span style="color: #000099; font-weight: bold;">\0</span>33[0m]     "</span>  <span style="color: #a50"># 红色</span><br/>
+            <span style="color: Green;font-weight:bold;">else</span>:<br/>
+                row +<span style="color: Gray;">=</span> f<span style="color: #a11;">"  {'':10}"</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>row<span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"-"</span> * <span style="color: Olive;">(</span><span style="color: Maroon;">6</span> + <span style="color: Maroon;">12</span> * num_instr<span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"总周期数: {total_cycles}"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> total_cycles<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> print_simple_gantt<span style="color: Olive;">(</span>instructions<span style="color: Gray;">,</span> stages<span style="color: Gray;">,</span> time_grid<span style="color: Gray;">,</span> total_cycles<span style="color: Gray;">,</span> mode_name<span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""简易版甘特图（不使用 ANSI 颜色，兼容所有终端）"""</span><br/>
+    num_instr <span style="color: Gray;">=</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>instructions<span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>{'='*70}"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">" {mode_name}"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"{'='*70}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 表头</span><br/>
+    header <span style="color: Gray;">=</span> f<span style="color: #a11;">"{'周期':&gt;5} |"</span><br/>
+    <span style="color: Green;font-weight:bold;">for</span> instr <span style="color: Green;font-weight:bold;">in</span> instructions:<br/>
+        header +<span style="color: Gray;">=</span> f<span style="color: #a11;">" {instr:^9} |"</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>header<span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"-"</span> * <span style="color: Olive;">(</span><span style="color: Maroon;">7</span> + <span style="color: Maroon;">11</span> * num_instr<span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">for</span> cycle <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>total_cycles<span style="color: Olive;">)</span>:<br/>
+        row <span style="color: Gray;">=</span> f<span style="color: #a11;">"  {cycle+1:&gt;3} |"</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> i <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>num_instr<span style="color: Olive;">)</span>:<br/>
+            cell <span style="color: Gray;">=</span> time_grid<span style="color: Olive;">[</span>cycle<span style="color: Olive;">]</span><span style="color: Olive;">[</span>i<span style="color: Olive;">]</span><br/>
+            <span style="color: Green;font-weight:bold;">if</span> cell:<br/>
+                <span style="color: #a50"># 提取阶段标识</span><br/>
+                <span style="color: Green;font-weight:bold;">for</span> stage <span style="color: Green;font-weight:bold;">in</span> stages:<br/>
+                    <span style="color: Green;font-weight:bold;">if</span> f<span style="color: #a11;">"({stage})"</span> <span style="color: Green;font-weight:bold;">in</span> cell:<br/>
+                        row +<span style="color: Gray;">=</span> f<span style="color: #a11;">"  [{stage}]   |"</span><br/>
+                        <span style="color: Green;font-weight:bold;">break</span><br/>
+            <span style="color: Green;font-weight:bold;">else</span>:<br/>
+                row +<span style="color: Gray;">=</span> f<span style="color: #a11;">"          |"</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>row<span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"-"</span> * <span style="color: Olive;">(</span><span style="color: Maroon;">7</span> + <span style="color: Maroon;">11</span> * num_instr<span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">" 总周期数: {total_cycles}"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> total_cycles<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> calculate_metrics<span style="color: Olive;">(</span>serial_cycles<span style="color: Gray;">,</span> pipeline_cycles<span style="color: Gray;">,</span> num_instr<span style="color: Gray;">,</span> num_stages<span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""计算性能指标"""</span><br/>
+    speedup <span style="color: Gray;">=</span> serial_cycles / pipeline_cycles<br/>
+    ideal_speedup <span style="color: Gray;">=</span> num_stages  <span style="color: #a50"># 理想加速比 = 流水线级数</span><br/>
+<br/>
+    <span style="color: #a50"># 吞吐率：每周期完成的指令数</span><br/>
+    serial_throughput <span style="color: Gray;">=</span> num_instr / serial_cycles<br/>
+    pipeline_throughput <span style="color: Gray;">=</span> num_instr / pipeline_cycles<br/>
+<br/>
+    <span style="color: #a50"># 流水线效率</span><br/>
+    <span style="color: #a50"># 所有指令占用槽位总数</span><br/>
+    used_slots <span style="color: Gray;">=</span> num_instr * num_stages<br/>
+    total_slots <span style="color: Gray;">=</span> num_instr * pipeline_cycles<br/>
+    efficiency <span style="color: Gray;">=</span> <span style="color: Olive;">(</span>used_slots / total_slots<span style="color: Olive;">)</span> * <span style="color: Maroon;">100</span> <span style="color: Green;font-weight:bold;">if</span> total_slots <span style="color: Gray;">&gt;</span> <span style="color: Maroon;">0</span> <span style="color: Green;font-weight:bold;">else</span> <span style="color: Maroon;">0</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">return</span> <span style="color: Olive;">{</span><br/>
+        <span style="color: #a11;">'speedup'</span>: speedup<span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">'ideal_speedup'</span>: ideal_speedup<span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">'serial_throughput'</span>: serial_throughput<span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">'pipeline_throughput'</span>: pipeline_throughput<span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">'efficiency'</span>: efficiency<span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">'serial_cycles'</span>: serial_cycles<span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">'pipeline_cycles'</span>: pipeline_cycles<span style="color: Gray;">,</span><br/>
+    <span style="color: Olive;">}</span><br/>
+<br/>
+<br/>
+<span style="color: #a50"># ===== 主程序 =====</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">70</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  CPU 流水线模拟器 — 甘特图风格对比 (runoob 演示)"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">70</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">" 指令序列: {', '.join(INSTRUCTIONS[:8])}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">" 流水线级数: 4 (IF=取指, ID=译码, EX=执行, WB=写回)"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 1. 无流水线（串行）</span><br/>
+serial_cycles<span style="color: Gray;">,</span> serial_grid <span style="color: Gray;">=</span> simulate_serial<span style="color: Olive;">(</span>INSTRUCTIONS<span style="color: Gray;">,</span> STAGES<span style="color: Olive;">)</span><br/>
+print_simple_gantt<span style="color: Olive;">(</span>INSTRUCTIONS<span style="color: Gray;">,</span> STAGES<span style="color: Gray;">,</span> serial_grid<span style="color: Gray;">,</span> serial_cycles<span style="color: Gray;">,</span> <span style="color: #a11;">"模式 A: 无流水线（串行执行）"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 2. 有流水线</span><br/>
+pipeline_cycles<span style="color: Gray;">,</span> pipeline_grid <span style="color: Gray;">=</span> simulate_pipeline<span style="color: Olive;">(</span>INSTRUCTIONS<span style="color: Gray;">,</span> STAGES<span style="color: Olive;">)</span><br/>
+print_simple_gantt<span style="color: Olive;">(</span>INSTRUCTIONS<span style="color: Gray;">,</span> STAGES<span style="color: Gray;">,</span> pipeline_grid<span style="color: Gray;">,</span> pipeline_cycles<span style="color: Gray;">,</span> <span style="color: #a11;">"模式 B: 有流水线（4级流水线）"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 3. 性能对比</span><br/>
+metrics <span style="color: Gray;">=</span> calculate_metrics<span style="color: Olive;">(</span>serial_cycles<span style="color: Gray;">,</span> pipeline_cycles<span style="color: Gray;">,</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>INSTRUCTIONS<span style="color: Olive;">)</span><span style="color: Gray;">,</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>STAGES<span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>{'='*70}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">" 性能对比分析"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"{'='*70}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  指令数量:       {len(INSTRUCTIONS)} 条"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  流水线级数:     {len(STAGES)} 级"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">""</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  无流水线总周期: {metrics['serial_cycles']} 周期"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  有流水线总周期: {metrics['pipeline_cycles']} 周期"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">""</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  实际加速比:     {metrics['speedup']:.2f}x"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  理想加速比:     {metrics['ideal_speedup']}x (等于流水线级数)"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">""</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  串行吞吐率:     {metrics['serial_throughput']:.3f} 指令/周期"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  流水线吞吐率:   {metrics['pipeline_throughput']:.3f} 指令/周期"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  流水线效率:     {metrics['efficiency']:.1f}%"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">""</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  结论: 使用 {len(STAGES)} 级流水线后，同样的 8 条指令"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"        从 {metrics['serial_cycles']} 周期缩短到 {metrics['pipeline_cycles']} 周期"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"        加速了 {metrics['speedup']:.1f} 倍！"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">""</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  注意: 流水线有「填充」和「排空」的开销。"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"        前 {len(STAGES)-1} 个周期流水线未满（填充期），"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"        最后 {len(STAGES)-1} 个周期流水线逐渐排空。"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"        指令数量越多，填充/排空的相对开销越小，"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"        加速比越接近理想值 {len(STAGES)}x。"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: #a50"># 4. 扩展演示：不同指令数量下的加速比趋势</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>{'='*70}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">" 扩展分析：不同指令数量下的加速比"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"{'='*70}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">" {'指令数':&gt;6} | {'串行周期':&gt;8} | {'流水线周期':&gt;10} | {'加速比':&gt;8} | {'加速比/理想值':&gt;14}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">" {'-'*6}-+-{'-'*8}-+-{'-'*10}-+-{'-'*8}-+-{'-'*14}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">for</span> n <span style="color: Green;font-weight:bold;">in</span> <span style="color: Olive;">[</span><span style="color: Maroon;">1</span><span style="color: Gray;">,</span> <span style="color: Maroon;">2</span><span style="color: Gray;">,</span> <span style="color: Maroon;">4</span><span style="color: Gray;">,</span> <span style="color: Maroon;">8</span><span style="color: Gray;">,</span> <span style="color: Maroon;">16</span><span style="color: Gray;">,</span> <span style="color: Maroon;">32</span><span style="color: Gray;">,</span> <span style="color: Maroon;">64</span><span style="color: Gray;">,</span> <span style="color: Maroon;">128</span><span style="color: Gray;">,</span> <span style="color: Maroon;">256</span><span style="color: Olive;">]</span>:<br/>
+    test_instrs <span style="color: Gray;">=</span> <span style="color: Olive;">[</span>f<span style="color: #a11;">"I{i}"</span> <span style="color: Green;font-weight:bold;">for</span> i <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Maroon;">1</span><span style="color: Gray;">,</span> n+<span style="color: Maroon;">1</span><span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+    s_cycles<span style="color: Gray;">,</span> _ <span style="color: Gray;">=</span> simulate_serial<span style="color: Olive;">(</span>test_instrs<span style="color: Gray;">,</span> STAGES<span style="color: Olive;">)</span><br/>
+    p_cycles<span style="color: Gray;">,</span> _ <span style="color: Gray;">=</span> simulate_pipeline<span style="color: Olive;">(</span>test_instrs<span style="color: Gray;">,</span> STAGES<span style="color: Olive;">)</span><br/>
+    sp <span style="color: Gray;">=</span> s_cycles / p_cycles<br/>
+    ideal <span style="color: Gray;">=</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>STAGES<span style="color: Olive;">)</span><br/>
+    ratio <span style="color: Gray;">=</span> <span style="color: Olive;">(</span>sp / ideal<span style="color: Olive;">)</span> * <span style="color: Maroon;">100</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">" {n:&gt;6} | {s_cycles:&gt;8} | {p_cycles:&gt;10} | {sp:&gt;7.2f}x | {ratio:&gt;13.1f}%"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">" 结论: 指令越多，加速比越接近理想值 {len(STAGES)}x（即流水线级数）。"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"       当只有 1 条指令时，流水线完全没有加速效果。"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"       但现代程序通常包含数百万条指令，流水线效率接近 100%。"</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<p>运行上面的代码，你会看到：</p>
+<ul>
+<li><span class="tag1 green">甘特图对比</span>：无流水线模式中，每条指令占连续 4 个周期，指令间有大量空白。有流水线模式中，各个阶段紧密排列，几乎没有空白周期。</li>
+<li><span class="tag1 green">加速比趋势</span>：指令越多，加速比越接近流水线级数（这里是 4）。但只有 1 条指令时，流水线完全没有加速效果，因为填充期和排空期的开销占比 100%。</li>
+<li><span class="tag1 green">吞吐率</span>：流水线「填满」后（从第 4 个周期开始），每个周期都能完成一条指令。这就是流水线的核心价值。</li>
+</ul>
+<h2>交互演示：流水线甘特图对比</h2>
+<p>下面使用 Chart.js 横向堆叠条形图绘制甘特图，直观对比<strong>无流水线（串行）</strong>和<strong>有流水线（4级）</strong>两种模式下，4 条指令各阶段的时间分布。每个色块代表一个阶段（IF=取指, ID=译码, EX=执行, WB=写回），x 轴为时钟周期。</p>
+<script src="../static.jyshare.com/assets/libs/chart.js-4.5.0/chart.umd.min.js"></script>
+<style>
+/* 流水线甘特图演示样式 (runoob) */
+.pipeline-demo-container {
+  background: #0d1117;
+  border-radius: 12px;
+  padding: 24px;
+  margin: 20px 0;
+  color: #c9d1d9;
+}
+.pipeline-demo-container .pipeline-demo-container h3 {
+  text-align: center;
+  color: #58a6ff;
+  margin: 0 0 16px 0;
+  font-size: 18px;
+}
+.pipeline-charts-row {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.pipeline-chart-wrap {
+  flex: 1 1 400px;
+  min-width: 350px;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 16px;
+}
+.pipeline-chart-wrap h4 {
+  text-align: center;
+  color: #e0e0e0;
+  margin: 0 0 8px 0;
+  font-size: 15px;
+}
+.pipeline-chart-wrap canvas {
+  width: 100% !important;
+  height: 200px !important;
+}
+.pipeline-metrics {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+.pipeline-metric-card {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 12px 20px;
+  text-align: center;
+  min-width: 100px;
+}
+.pipeline-metric-label { font-size: 12px; color: #8b949e; }
+.pipeline-metric-value { font-size: 22px; font-weight: bold; color: #3fb950; }
+.pipeline-metric-value.warn { color: #f78166; }
+.pipeline-legend {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+.pipeline-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #c9d1d9;
+}
+.pipeline-legend-color {
+  width: 18px;
+  height: 14px;
+  border-radius: 3px;
+}
+.pipeline-info-text {
+  margin-top: 16px;
+  padding: 12px;
+  background: #161b22;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #8b949e;
+  line-height: 1.6;
+}
+.pipeline-info-text strong { color: #58a6ff; }
+</style>
+<div class="pipeline-demo-container">
+<h3>流水线甘特图对比 (runoob 演示)</h3>
+<div class="pipeline-legend">
+<div class="pipeline-legend-item">
+<div class="pipeline-legend-color" style="background:#58a6ff;"></div>IF 取指</div>
+<div class="pipeline-legend-item">
+<div class="pipeline-legend-color" style="background:#e3b341;"></div>ID 译码</div>
+<div class="pipeline-legend-item">
+<div class="pipeline-legend-color" style="background:#3fb950;"></div>EX 执行</div>
+<div class="pipeline-legend-item">
+<div class="pipeline-legend-color" style="background:#f78166;"></div>WB 写回</div>
+</div>
+<div class="pipeline-charts-row">
+<div class="pipeline-chart-wrap">
+<h4>无流水线（串行执行）— 共 16 周期</h4>
+<canvas id="chartSerial"></canvas>
+</div>
+<div class="pipeline-chart-wrap">
+<h4>有流水线（4级流水线）— 共 7 周期</h4>
+<canvas id="chartPipeline"></canvas>
+</div>
+</div>
+<div class="pipeline-metrics">
+<div class="pipeline-metric-card">
+<div class="pipeline-metric-label">无流水线总周期</div>
+<div class="pipeline-metric-value warn">16</div>
+</div>
+<div class="pipeline-metric-card">
+<div class="pipeline-metric-label">有流水线总周期</div>
+<div class="pipeline-metric-value">7</div>
+</div>
+<div class="pipeline-metric-card">
+<div class="pipeline-metric-label">加速比</div>
+<div class="pipeline-metric-value">2.29x</div>
+</div>
+<div class="pipeline-metric-card">
+<div class="pipeline-metric-label">吞吐率提升</div>
+<div class="pipeline-metric-value">129%</div>
+</div>
+</div>
+<div class="pipeline-info-text">
+<strong>关键观察：</strong><br/>无流水线模式：每条指令独占 4 个连续周期，指令间完全串行，4 条指令耗时 16 周期。<br/>有流水线模式：不同指令的不同阶段重叠执行，4 条指令仅需 7 周期（= 4 + (4-1)）。<br/>流水线「填满」后（周期 4 起），每个周期都有一条指令完成——这就是吞吐率大幅提升的原因。</div>
+</div>
+<script>
+/*
+ * 流水线甘特图对比演示 (runoob)
+ * 使用 Chart.js 横向堆叠条形图（indexAxis: 'y'）绘制甘特图，
+ * 对比无流水线（串行）vs 有流水线（4级）两种模式。
+ * 每个色块代表一个阶段：IF(取指/蓝色)、ID(译码/黄色)、EX(执行/绿色)、WB(写回/橙色)
+ */
+
+// Chart.js 全局暗色主题设置
+Chart.defaults.color = '#8b949e';
+
+// ----- 数据定义 -----
+// 4 条指令，每条指令 4 个阶段，使用 [start, end] 浮点格式
+
+// 无流水线（串行）: I1=[0-4], I2=[4-8], I3=[8-12], I4=[12-16]
+var serialIF = [[0,1], [4,5], [8,9],   [12,13]];
+var serialID = [[1,2], [5,6], [9,10],  [13,14]];
+var serialEX = [[2,3], [6,7], [10,11], [14,15]];
+var serialWB = [[3,4], [7,8], [11,12], [15,16]];
+
+// 有流水线: I1=[0-4], I2=[1-5], I3=[2-6], I4=[3-7]
+var pipeIF = [[0,1], [1,2], [2,3], [3,4]];
+var pipeID = [[1,2], [2,3], [3,4], [4,5]];
+var pipeEX = [[2,3], [3,4], [4,5], [5,6]];
+var pipeWB = [[3,4], [4,5], [5,6], [6,7]];
+
+// 指令标签（y 轴）
+var instrLabels = ['指令 I1', '指令 I2', '指令 I3', '指令 I4'];
+
+// 共用 dataset 配置
+function buildDatasets(dataIF, dataID, dataEX, dataWB) {
+  return [
+    { label: 'IF 取指', data: dataIF, backgroundColor: '#58a6ff', borderColor: '#58a6ff', borderWidth: 1, borderSkipped: false },
+    { label: 'ID 译码', data: dataID, backgroundColor: '#e3b341', borderColor: '#e3b341', borderWidth: 1, borderSkipped: false },
+    { label: 'EX 执行', data: dataEX, backgroundColor: '#3fb950', borderColor: '#3fb950', borderWidth: 1, borderSkipped: false },
+    { label: 'WB 写回', data: dataWB, backgroundColor: '#f78166', borderColor: '#f78166', borderWidth: 1, borderSkipped: false }
+  ];
+}
+
+// 共用 chart options
+function buildOptions(maxX) {
+  return {
+    indexAxis: 'y',
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      x: {
+        stacked: false,
+        min: 0,
+        max: maxX,
+        title: { display: true, text: '时钟周期', color: '#8b949e' },
+        ticks: { stepSize: 1, color: '#8b949e' },
+        grid: { color: '#21262d' }
+      },
+      y: {
+        stacked: true,
+        ticks: { color: '#c9d1d9' },
+        grid: { display: false }
+      }
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: function(ctx) {
+            var start = ctx.raw[0];
+            var end = ctx.raw[1];
+            return ctx.dataset.label + ': 周期 ' + start + ' ~ ' + end;
+          }
+        }
+      }
+    }
+  };
+}
+
+// ----- 创建无流水线甘特图 -----
+var ctxSerial = document.getElementById('chartSerial').getContext('2d');
+new Chart(ctxSerial, {
+  type: 'bar',
+  data: {
+    labels: instrLabels,
+    datasets: buildDatasets(serialIF, serialID, serialEX, serialWB)
+  },
+  options: buildOptions(16)
+});
+
+// ----- 创建有流水线甘特图 -----
+var ctxPipeline = document.getElementById('chartPipeline').getContext('2d');
+new Chart(ctxPipeline, {
+  type: 'bar',
+  data: {
+    labels: instrLabels,
+    datasets: buildDatasets(pipeIF, pipeID, pipeEX, pipeWB)
+  },
+  options: buildOptions(7)
+});
+</script>
+<hr/>
+<h2>各级流水线深度对比</h2>
+<p>流水线的「级数」决定了理论的加速上限，但级数越多，冒险问题也越严重：</p>
+<table class="reference">
+<tr><th>CPU 型号</th><th>流水线级数</th><th>特点</th></tr>
+<tr><td>经典 RISC（如 MIPS）</td><td>5 级</td><td>简洁高效，适合教学。经典五级流水线：IF、ID、EX、MEM、WB</td></tr>
+<tr><td>Intel Pentium 4（NetBurst）</td><td>20~31 级</td><td>超长流水线，追求高频率。但分支预测失败时损失惨重，最终被放弃</td></tr>
+<tr><td>Intel Core 系列（自 2006 起）</td><td>14~19 级</td><td>较短流水线 + 高 IPC，平衡了频率和效率</td></tr>
+<tr><td>Apple M1（2020）</td><td>8 级（解码）</td><td>超宽架构（8 发射），低频高 IPC，能效比极佳</td></tr>
+</table>
+<p>可以看到，流水线深度是一个权衡：级数太多，单次分支预测失败的代价太大；级数太少，频率上不去。</p>
+<p>现代 CPU 设计的主流趋势是<span class="marked">「宽而浅」</span>——适中的流水线深度 + 超宽的发射宽度（每个周期能开始执行多条指令），而不是一味追求级数。</p>
+其他扩展
+</div>
+</div>
+<div class="archive-list" style="display:none;font-size: 14px;line-height: 1.8;margin-top: 20px;padding: 10px;">
+<div class="archive-list-item">
+<div class="post-intro" id="ai-info" style="width: 100%;">AI 思考中...</div>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../computer-organization/clock-frequency.html" rel="prev">时钟频率是什么意思</a> </div>
+<div class="next-design-link"><a href="../computer-organization/multi-core-processors.html" rel="next">多核心是怎么回事</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="sidebar-box">
+</div>
+笔记列表
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>点我分享笔记</h3>
+&lt;p style="font-size:14px;"&gt;笔记需要是本篇文章的内容扩展！&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;文章投稿，可点击这里&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;注册邀请码获取方式&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; 分享笔记前必须&lt;a href=";.html" class="runoob-pop"&gt;登录&lt;/a&gt;！&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;注册邀请码获取方式&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=";.html" id="cancel-comment-reply-link">取消</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="31884"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>分享笔记</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">昵称</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">昵称 (必填)</span></li>
+<li class="form-inline"><label class="hide" for="email">邮箱</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">邮箱 (必填)</span></li>
+<li class="form-inline"><label class="hide" for="url">引用地址</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">引用地址</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  31884;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 31884, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":31884},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+</div>
+</div>
+<!-- 右边栏 -->
+<div class="fivecol last right-column">
+<style>
+.sidebar-tree .double-li {
+    width:300px;
+}
+.sidebar-tree .double-li li {
+    width: 44%;
+    line-height: 1.5em;
+    border-bottom: 1px solid #ccc;
+    float: left;
+    display: inline;
+}
+</style>
+<div class="sidebar-box re-box re-box-large">
+<div class="sidebar-box recommend-here" style="margin: 0 auto;">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;"> <i aria-hidden="true" class="fa fa-list"></i> 分类导航</a>
+</div>
+<div class="sidebar-box sidebar-cate">
+<div class="sidebar-tree">
+<ul><li style="margin: 0;"><a class="tit" href="#"> Python / 数据科学</a><ul class="double-li"><li><a href="../python3/python3-tutorial.html" title="Python 教程">Python 教程</a></li><li><a href="../python/python-tutorial.html" title="Python2.x 教程">Python2.x 教程</a></li><li><a href="../fastapi/fastapi-tutorial.html" title="FastAPI 教程">FastAPI 教程</a></li><li><a href="../flask/flask-tutorial.html" title="Flask 教程">Flask 教程</a></li><li><a href="../django/django-tutorial.html" title="Django 教程">Django 教程</a></li><li><a href="../numpy/numpy-tutorial.html" title="NumPy 教程">NumPy 教程</a></li><li><a href="../pandas/pandas-tutorial.html" title="Pandas 教程">Pandas 教程</a></li><li><a href="../scipy/scipy-tutorial.html" title="SciPy 教程">SciPy 教程</a></li><li><a href="../matplotlib/matplotlib-tutorial.html" title="Matplotlib 教程">Matplotlib 教程</a></li><li><a href="../dash/dash-tutorial.html" title="Dash 教程">Dash 教程</a></li><li><a href="../jupyter-notebook/jupyter-notebook-tutorial.html" title="Jupyter Notebook 教程">Jupyter Notebook 教程</a></li><li><a href="../pillow/pillow-tutorial.html" title="Pillow 教程">Pillow 教程</a></li><li><a href="../qt/qt-tutorial.html" title="量化交易">量化交易</a></li><li><a href="../r/r-tutorial.html" title="R 教程">R 教程</a></li><li><a href="../julia/julia-tutorial.html" title="Julia 教程">Julia 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> AI / 智能开发</a><ul class="double-li"><li><a href="../ai-agent/ai-agent-tutorial.html" title="AI Agent（智能体）">AI Agent（智能体）</a></li><li><a href="../ai/ai-tutorial.html" title="AI（人工智能）">AI（人工智能）</a></li><li><a href="../codex/codex-tutorial.html" title="Codex 教程">Codex 教程</a></li><li><a href="../vibe-coding/vibe-coding-tutorial.html" title="Vibe Coding 教程">Vibe Coding 教程</a></li><li><a href="../claude-code/claude-code-tutorial.html" title="Claude Code">Claude Code</a></li><li><a href="../opencode/opencode-tutorial.html" title="OpenCode">OpenCode</a></li><li><a href="../skills/skills-tutorial.html" title="Skills（技能）">Skills（技能）</a></li><li><a href="../ollama/ollama-tutorial.html" title="Ollama 教程">Ollama 教程</a></li><li><a href="../hermes-agent/hermes-agent-tutorial.html" title="Hermes Agent">Hermes Agent</a></li><li><a href="../deepseek-harness/deepseek-harness-tutorial.html" title="DeepSeek Harness">DeepSeek Harness</a></li><li><a href="../pi-agent/pi-agent-tutorial.html" title="Pi Agent">Pi Agent</a></li><li><a href="../ai-math/ai-math-tutorial.html" title="AI 数学基础">AI 数学基础</a></li><li><a href="../tensorflow/tensorflow-tutorial.html" title="TensorFlow 教程">TensorFlow 教程</a></li><li><a href="../pytorch/pytorch-tutorial.html" title="PyTorch 教程">PyTorch 教程</a></li><li><a href="../sklearn/sklearn-tutorial.html" title="Scikit-learn 教程">Scikit-learn 教程</a></li><li><a href="../ml/ml-tutorial.html" title="机器 教程">机器 教程</a></li><li><a href="../langchain/langchain-tutorial.html" title="LangChain">LangChain</a></li><li><a href="../nlp/nlp-tutorial.html" title="自然语言处理 NLP">自然语言处理 NLP</a></li><li><a href="../opencv/opencv-tutorial.html" title="OpenCV 教程">OpenCV 教程</a></li><li><a href="../selenium/selenium-tutorial.html" title="Selenium 教程">Selenium 教程</a></li><li><a href="../playwright/playwright-tutorial.html" title="Playwright 教程">Playwright 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 前端开发</a><ul class="double-li"><li><a href="../html/html-tutorial.html" title="HTML 教程">HTML 教程</a></li><li><a href="../html/html5-intro.html" title="HTML5 教程">HTML5 教程</a></li><li><a href="../css/css-tutorial.html" title="CSS 教程">CSS 教程</a></li><li><a href="../css3/css3-tutorial.html" title="CSS3 教程">CSS3 教程</a></li><li><a href="../js/js-tutorial.html" title="JavaScript 教程">JavaScript 教程</a></li><li><a href="../htmldom/htmldom-tutorial.html" title="HTML DOM 教程">HTML DOM 教程</a></li><li><a href="../typescript/ts-tutorial.html" title="TypeScript 教程">TypeScript 教程</a></li><li><a href="../ajax/ajax-tutorial.html" title="AJAX 教程">AJAX 教程</a></li><li><a href="../json/json-tutorial.html" title="JSON 教程">JSON 教程</a></li><li><a href="../tailwindcss/tailwindcss-tutorial.html" title="Tailwind CSS 教程">Tailwind CSS 教程</a></li><li><a href="../bootstrap4/bootstrap4-tutorial.html" title="Bootstrap4 教程">Bootstrap4 教程</a></li><li><a href="../bootstrap5/bootstrap5-tutorial.html" title="Bootstrap5 教程">Bootstrap5 教程</a></li><li><a href="../foundation/foundation-tutorial.html" title="Foundation 教程">Foundation 教程</a></li><li><a href="../vue2/vue-tutorial.html" title="Vue.js 教程">Vue.js 教程</a></li><li><a href="../vue3/vue3-tutorial.html" title="Vue3 教程">Vue3 教程</a></li><li><a href="../react/react-tutorial.html" title="React 教程">React 教程</a></li><li><a href="../nextjs/nextjs-tutorial.html" title="Next.js 教程">Next.js 教程</a></li><li><a href="../angularjs/angularjs-tutorial.html" title="AngularJS 教程">AngularJS 教程</a></li><li><a href="../angularjs2/angularjs2-tutorial.html" title="Angular 教程">Angular 教程</a></li><li><a href="../jquery/jquery-tutorial.html" title="jQuery 教程">jQuery 教程</a></li><li><a href="../jqueryui/jqueryui-tutorial.html" title="jQuery UI 教程">jQuery UI 教程</a></li><li><a href="../jeasyui/jqueryeasyui-tutorial.html" title="jQuery EasyUI 教程">jQuery EasyUI 教程</a></li><li><a href="../echarts/echarts-tutorial.html" title="ECharts 教程">ECharts 教程</a></li><li><a href="../chartjs/chartjs-tutorial.html" title="Chart.js 教程">Chart.js 教程</a></li><li><a href="../highcharts/highcharts-tutorial.html" title="Highcharts 教程">Highcharts 教程</a></li><li><a href="../googleapi/google-maps-basic.html" title="Google 地图 教程">Google 地图 教程</a></li><li><a href="../svg/svg-tutorial.html" title="SVG 教程">SVG 教程</a></li><li><a href="../font-awesome/fontawesome-tutorial.html" title="Font Awesome 教程">Font Awesome 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 后端开发</a><ul class="double-li"><li><a href="../nodejs/nodejs-tutorial.html" title="Node.js 教程">Node.js 教程</a></li><li><a href="../electron/electron-tutorial.html" title="Electron 教程">Electron 教程</a></li><li><a href="../php/php-tutorial.html" title="PHP 教程">PHP 教程</a></li><li><a href="../java/java-tutorial.html" title="Java 教程">Java 教程</a></li><li><a href="../go/go-tutorial.html" title="Go 教程">Go 教程</a></li><li><a href="../rust/rust-tutorial.html" title="Rust 教程">Rust 教程</a></li><li><a href="../csharp/csharp-tutorial.html" title="C# 教程">C# 教程</a></li><li><a href="../servlet/servlet-tutorial.html" title="Servlet 教程">Servlet 教程</a></li><li><a href="../jsp/jsp-tutorial.html" title="JSP 教程">JSP 教程</a></li><li><a href="../asp/asp-tutorial.html" title="ASP 教程">ASP 教程</a></li><li><a href="../appml/appml-tutorial.html" title="AppML 教程">AppML 教程</a></li><li><a href="../vbscript/vbscript-tutorial.html" title="VBScript 教程">VBScript 教程</a></li><li><a href="../swagger/swagger-tutorial.html" title="Swagger 教程">Swagger 教程</a></li><li><a href="../restfulapi/restful-api-tutorial.html" title="RESTful API 教程">RESTful API 教程</a></li><li><a href="../docker/docker-tutorial.html" title="Docker 教程">Docker 教程</a></li><li><a href="../linux/linux-tutorial.html" title="Linux 教程">Linux 教程</a></li><li><a href="../w3cnote/zookeeper-tutorial.html" title="ZooKeeper 教程">ZooKeeper 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 数据库</a><ul class="double-li"><li><a href="../sql/sql-tutorial.html" title="SQL 教程">SQL 教程</a></li><li><a href="../mysql/mysql-tutorial.html" title="MySQL 教程">MySQL 教程</a></li><li><a href="../postgresql/postgresql-tutorial.html" title="PostgreSQL 教程">PostgreSQL 教程</a></li><li><a href="../sqlite/sqlite-tutorial.html" title="SQLite 教程">SQLite 教程</a></li><li><a href="../mongodb/mongodb-tutorial.html" title="MongoDB 教程">MongoDB 教程</a></li><li><a href="../redis/redis-tutorial.html" title="Redis 教程">Redis 教程</a></li><li><a href="../memcached/memcached-tutorial.html" title="Memcached 教程">Memcached 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 移动开发</a><ul class="double-li"><li><a href="../w3cnote/android-tutorial-intro.html" title="Android 教程">Android 教程</a></li><li><a href="../flutter/flutter-tutorial.html" title="Flutter 教程">Flutter 教程</a></li><li><a href="../ionic/ionic-tutorial.html" title="Ionic 教程">Ionic 教程</a></li><li><a href="../jquerymobile/jquerymobile-tutorial.html" title="jQuery Mobile 教程">jQuery Mobile 教程</a></li><li><a href="../swift/swift-tutorial.html" title="Swift 教程">Swift 教程</a></li><li><a href="../kotlin/kotlin-tutorial.html" title="Kotlin 教程">Kotlin 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> DevOps / 工程化</a><ul class="double-li"><li><a href="../git/git-tutorial.html" title="Git 教程">Git 教程</a></li><li><a href="../svn/svn-tutorial.html" title="SVN 教程">SVN 教程</a></li><li><a href="../cmake/cmake-tutorial.html" title="CMake 教程">CMake 教程</a></li><li><a href="../maven/maven-tutorial.html" title="Maven 教程">Maven 教程</a></li><li><a href="../vscode/vscode-tutorial.html" title="VS Code 教程">VS Code 教程</a></li><li><a href="../obsidian/obsidian-tutorial.html" title="Obsidian 教程">Obsidian 教程</a></li><li><a href="../pycharm/pycharm-tutorial.html" title="PyCharm 教程">PyCharm 教程</a></li><li><a href="../eclipse/eclipse-tutorial.html" title="Eclipse 教程">Eclipse 教程</a></li><li><a href="../markdown/md-tutorial.html" title="Markdown 教程">Markdown 教程</a></li><li><a href="../latex/latex-tutorial.html" title="LaTeX 教程">LaTeX 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 编程语言</a><ul class="double-li"><li><a href="../c/c-tutorial.html" title="C 教程">C 教程</a></li><li><a href="../cplusplus/cpp-tutorial.html" title="C++ 教程">C++ 教程</a></li><li><a href="../zig/zig-tutorial.html" title="Zig 教程">Zig 教程</a></li><li><a href="../scala/scala-tutorial.html" title="Scala 教程">Scala 教程</a></li><li><a href="../ruby/ruby-tutorial.html" title="Ruby 教程">Ruby 教程</a></li><li><a href="../perl/perl-tutorial.html" title="Perl 教程">Perl 教程</a></li><li><a href="../lua/lua-tutorial.html" title="Lua 教程">Lua 教程</a></li><li><a href="../dart/dart-tutorial.html" title="Dart 教程">Dart 教程</a></li><li><a href="../assembly/assembly-tutorial.html" title="汇编语言 教程">汇编语言 教程</a></li><li><a href="../w3cnote/verilog-tutorial.html" title="Verilog 教程">Verilog 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 计算机基础</a><ul class="double-li"><li><a href="../computer-organization/computer-organization-tutorial.html" title="计算机组成原理">计算机组成原理</a></li><li><a href="../data-structures/data-structures-tutorial.html" title="数据结构与算法">数据结构与算法</a></li><li><a href="../c-dsa/c-dsa-tutorial.html" title="C 语言数据结构与算法">C 语言数据结构与算法</a></li><li><a href="../design-pattern/design-pattern-tutorial.html" title="设计模式">设计模式</a></li><li><a href="../python-design-pattern/python-design-pattern-tutorial.html" title="Python 设计模式">Python 设计模式</a></li><li><a href="../regexp/regexp-tutorial.html" title="正则表达式">正则表达式</a></li><li><a href="../http/http-tutorial.html" title="HTTP 教程">HTTP 教程</a></li><li><a href="../tcpip/tcpip-tutorial.html" title="TCP/IP 教程">TCP/IP 教程</a></li><li><a href="../np/np-tutorial.html" title="网络协议">网络协议</a></li><li><a href="../w3c/w3c-tutorial.html" title="W3C 教程">W3C 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> XML / Web Service</a><ul class="double-li"><li><a href="../xml/xml-tutorial.html" title="XML 教程">XML 教程</a></li><li><a href="../dtd/dtd-tutorial.html" title="DTD 教程">DTD 教程</a></li><li><a href="../dom/dom-tutorial.html" title="XML DOM 教程">XML DOM 教程</a></li><li><a href="../xsl/xsl-tutorial.html" title="XSLT 教程">XSLT 教程</a></li><li><a href="../xpath/xpath-tutorial.html" title="XPath 教程">XPath 教程</a></li><li><a href="../xquery/xquery-tutorial.html" title="XQuery 教程">XQuery 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XLink 教程">XLink 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XPointer 教程">XPointer 教程</a></li><li><a href="../schema/schema-tutorial.html" title="XML Schema 教程">XML Schema 教程</a></li><li><a href="../xslfo/xslfo-tutorial.html" title="XSL-FO 教程">XSL-FO 教程</a></li><li><a href="../webservices/webservices-tutorial.html" title="Web Service 教程">Web Service 教程</a></li><li><a href="../wsdl/wsdl-tutorial.html" title="WSDL 教程">WSDL 教程</a></li><li><a href="../soap/soap-tutorial.html" title="SOAP 教程">SOAP 教程</a></li><li><a href="../rss/rss-tutorial.html" title="RSS 教程">RSS 教程</a></li><li><a href="../rdf/rdf-tutorial.html" title="RDF 教程">RDF 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> .NET</a><ul class="double-li"><li><a href="../aspnet/aspnet-tutorial.html" title="ASP.NET 教程">ASP.NET 教程</a></li><li><a href="../aspnet/mvc-intro.html" title="MVC 教程">MVC 教程</a></li><li><a href="../aspnet/razor-intro.html" title="Razor 教程">Razor 教程</a></li><li><a href="../aspnet/aspnet-intro.html" title="Web Forms 教程">Web Forms 教程</a></li><li><a href="../aspnet/webpages-intro.html" title="Web Pages 教程">Web Pages 教程</a></li><li><a href="../powershell/powershell-tutorial.html" title="PowerShell 教程">PowerShell 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 网站建设</a><ul class="double-li"><li><a href="../web/web-buildingprimer.html" title="网站建设指南">网站建设指南</a></li><li><a href="../browsers/browser-information.html" title="浏览器信息">浏览器信息</a></li><li><a href="../hosting/hosting-tutorial.html" title="网站主机教程">网站主机教程</a></li><li><a href="../quality/quality-tutorial.html" title="网站品质">网站品质</a></li></ul></li></ul> </div>
+</div>
+</div>
+<br/>
+<div class="sidebar-box re-box re-box-large">
+</div>
+</div></div>
+</div>
+<script>
+var aid = 31884;
+function coll() {
+	$.post( '/wp-content/themes/runoob/option/user/userinfo.php', {aid:aid, action:"collarticle", opt:'add'},function( data ) {
+		if(data.error==0) {
+			$("#content").find("h1:first").find("a").attr("href","javascript:void(0);");
+			$("#content").find("h1:first").find("img").attr("src","http://www.runoob.com/wp-content/themes/runoob/assets/img/coll2.png").css({width:32+"px",height:32+"px"});
+		}
+		alert(data.msg);
+	},'json');
+}
+
+(function () {
+    // 1. 仅 HTML 页面
+    if (!document.contentType || !document.contentType.includes('text/html')) return;
+
+    // 2. 容器判断
+    var container = document.querySelector('.article-intro');
+    if (!container) return;
+
+    var h1 = container.querySelector('h1');
+    if (!h1) return;
+
+    // 3. URL 判断
+    var url = window.location.href.toLowerCase();
+    var version = null;
+
+    if (url.includes('/python3/')) {
+        version = 'Python3.x';
+    } else if (url.includes('/python/')) {
+        version = 'Python2.x';
+    }
+
+    if (!version) return;
+
+    // 4. 防重复
+    if (h1.querySelector('.py-version-badge')) return;
+
+    // 5. 创建标签
+    var badge = document.createElement('span');
+    badge.className = 'py-version-badge';
+    badge.innerText = version;
+
+    // 6. 样式（核心：float 实现右上角）
+    badge.style.float = 'right';
+    badge.style.fontSize = '12px';
+    badge.style.padding = '2px 8px';
+    badge.style.borderRadius = '999px';
+
+   // 自适应亮/暗色 + 渐变背景（增强版）
+	badge.style.color = 'inherit';
+
+	// 渐变背景（低透明度，不影响暗黑模式）
+	if (version.includes('3')) {
+		badge.style.background = 'linear-gradient(90deg, rgba(79,172,254,0.15), rgba(0,242,254,0.15))';
+	} else {
+		badge.style.background = 'linear-gradient(90deg, rgba(161,140,209,0.15), rgba(251,194,235,0.15))';
+	}
+
+	// 边框弱化（更精致）
+	badge.style.border = '1px solid rgba(127,127,127,0.3)';
+
+	// 提升可读性
+	badge.style.opacity = '0.95';
+
+    // 微调位置（更贴近“右上角”）
+    badge.style.marginTop = '4px';
+    badge.style.marginLeft = '10px';
+
+    // 7. 插入到 h1 最前面（让 float 生效更稳定）
+    h1.insertBefore(badge, h1.firstChild);
+
+})();
+</script>
+<!-- 反馈对话框开始 -->
+<script src="../wp-content/themes/runoob/assets/js/runoob-article-dir.min.js"></script>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

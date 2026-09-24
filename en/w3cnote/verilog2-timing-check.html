@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>3.4 Verilog Timing Check | Runoob Tutorial</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="./verilog2-timing-check.html" rel="canonical"/>
+<meta content="3.4 Verilog 时序检查" name="keywords"/>
+<meta content="关键词： setup hold recovery removal width period 指定路径延迟，目的是让仿真的时序更加接近实际数字电路的时序。利用时序约束对数字设计进行时序仿真，检查设计是否存在违反（violation）时序约束的地方，并加以修改，也是数字设计中不可或缺的过程。 Verilog 提供了一些系统任务，用于时序检查。这些系统任务只能在 specify 块中调用。下面就介绍 6 种常用的用于时序检查的系统任务：$se.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div><!-- 导航栏 -->
+<!--  内容  -->
+<div class="container main">
+<div class="row">
+<!--  Android 基础入门教程 start  -->
+<div class="col left-column" style="display:none;">
+<div class="tab">Verilog 高级教程</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+</div>
+</div>
+</div>
+<!--  Android 基础入门教程 end  -->
+<div class="col middle-column big-middle-column">
+<div class="article">
+<div class="article-heading">
+<h2>3.4 Verilog Timing Check</h2> <h3><em>Category</em> <a href="../w3cnote_genre/verilog2.html" title="Verilog 教程高级篇">Verilog Tutorial Advanced</a> </h3>
+</div>
+<div class="article-body note-body">
+<div class="article-intro">
+<!-- ad start-->
+<!-- ad end-->
+<h3>Keywords: setup hold recovery removal width period</h3>
+<p>Specifying path delays is intended to make the simulation timing closer to the timing of actual digital circuits. Using timing constraints to perform timing simulation on digital designs, checking whether the design has violations of timing constraints, and then modifying it, is also an indispensable process in digital design.</p><p>Verilog provides some system tasks for timing checks. These system tasks can only be called inside specify blocks. The following introduces 6 commonly used system tasks for timing checks: $setup, $hold, $recovery, $removal, $width, and $period.</p>
+<h3>$setup, $hold</h3><p>The system task $setup is used to check the setup time constraint of components in a design, and $hold is used to check the hold time constraint. Their usage format is as follows:</p>
+<pre>
+$setup(data_event, ref_event, setup_limit);</pre>
+<ul><li>data_event: the signal being checked, to determine whether it violates the constraint</li><li>ref_event: the reference signal used for checking, usually the clock signal edge</li><li>setup_limit: the configured minimum setup time</li></ul><p>If<strong>T( ref_event - data_event) &lt; setup_limit</strong>, then a report of the existence of<strong>violation</strong>will be printed.</p>
+<pre>$hold(ref_event, data_event, hold_limit);</pre><ul><li>data_event: the signal being checked, to determine whether it violates the constraint</li><li>ref_event: the reference signal used for checking, usually the clock signal edge</li><li>hold_limit: the configured minimum hold time</li></ul>
+<p>If<strong>T( data_event - ref_event ) &lt; hold_limit</strong>, then a report of the existence of<strong>violation</strong>will be printed.</p>
+<p><strong>Note:</strong>The positions of the input ports of $setup and $hold are different.</p>
+<p>Verilog provides system tasks for checking setup time and hold time simultaneously:</p><pre>
+$setuphold (ref_event, data_event, setup_limit, hold_limit);</pre>
+<p>The following completes an operation of multiplying a number by 15 to illustrate the usage of $setup and $hold.</p><p>In Verilog, multiplying a variable by a constant is usually done by shift-and-add. For example, multiplying the variable num by 15 can be expressed as:</p>
+<pre>num x 15 = (num &lt;&lt; 3) + (num &lt;&lt; 2) + (num &lt;&lt; 1) + num</pre><p>This operation requires 3 adders. Below, the adder is modeled and path delays are specified.</p><p>For the functional description of the full adder, refer to<a href="./verilog-assign.html" rel="noopener" target="_blank">Section 3.1 of the Verilog Tutorial</a>。</p>
+<div class="example"><h2 class="example">Example</h2> <div class="example_code">
+<span style="color: #00008B; font-style: italic;">//single-bit full adder, specify path delays</span><br/>
+<span style="color: #A52A2A; font-weight: bold;">module</span> full_adder1<span style="color: #9F79EE;">(</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">input</span>   Ai<span style="color: #5D478B;">,</span> Bi<span style="color: #5D478B;">,</span> Ci<span style="color: #5D478B;">,</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">output</span>  So<span style="color: #5D478B;">,</span> Co<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+<br/>
+   <span style="color: #A52A2A; font-weight: bold;">assign</span> So <span style="color: #5D478B;">=</span> Ai <span style="color: #5D478B;">^</span> Bi <span style="color: #5D478B;">^</span> Ci <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">assign</span> Co <span style="color: #5D478B;">=</span> <span style="color: #9F79EE;">(</span>Ai <span style="color: #5D478B;">&amp;</span> Bi<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">|</span> <span style="color: #9F79EE;">(</span>Ci <span style="color: #5D478B;">&amp;</span> <span style="color: #9F79EE;">(</span>Ai <span style="color: #5D478B;">|</span> Bi<span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+<br/>
+   <span style="color: #A52A2A; font-weight: bold;">specify</span><br/>
+      <span style="color: #9F79EE;">(</span>Ai<span style="color: #5D478B;">,</span> Bi<span style="color: #5D478B;">,</span> Ci <span style="color: #5D478B;">*&gt;</span> So<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1.1</span> <span style="color: #5D478B;">;</span><br/>
+      <span style="color: #9F79EE;">(</span>Ai<span style="color: #5D478B;">,</span> Bi     <span style="color: #5D478B;">*&gt;</span> Co<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1.3</span> <span style="color: #5D478B;">;</span><br/>
+      <span style="color: #9F79EE;">(</span>Ci         <span style="color: #5D478B;">=&gt;</span> Co<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1.2</span> <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">endspecify</span><br/>
+<span style="color: #A52A2A; font-weight: bold;">endmodule</span><br/>
+<br/>
+<span style="color: #00008B; font-style: italic;">//instantiation of 8-bit wide adder</span><br/>
+<span style="color: #A52A2A; font-weight: bold;">module</span> full_adder8<span style="color: #9F79EE;">(</span><br/>
+     <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   a <span style="color: #5D478B;">,</span>   <span style="color: #00008B; font-style: italic;">//adder1</span><br/>
+     <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   b <span style="color: #5D478B;">,</span>   <span style="color: #00008B; font-style: italic;">//adder2</span><br/>
+     <span style="color: #A52A2A; font-weight: bold;">input</span>         c <span style="color: #5D478B;">,</span>   <span style="color: #00008B; font-style: italic;">//input carry bit</span><br/>
+     <span style="color: #A52A2A; font-weight: bold;">output</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>  so <span style="color: #5D478B;">,</span>  <span style="color: #00008B; font-style: italic;">//adding result</span><br/>
+     <span style="color: #A52A2A; font-weight: bold;">output</span>        co    <span style="color: #00008B; font-style: italic;">//output carry bit</span><br/>
+     <span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+<br/>
+   <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>      co_temp <span style="color: #5D478B;">;</span><br/>
+   full_adder1  u_adder0<span style="color: #9F79EE;">(</span><br/>
+                         .Ai     <span style="color: #9F79EE;">(</span>a<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+                         .Bi     <span style="color: #9F79EE;">(</span>b<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+                         .Ci     <span style="color: #9F79EE;">(</span>c<span style="color: #5D478B;">==</span><span style="color: #ff0055;">1'b1</span> <span style="color: #5D478B;">?</span> <span style="color: #ff0055;">1'b1</span> <span style="color: #5D478B;">:</span> <span style="color: #ff0055;">1'b0</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+                         .So     <span style="color: #9F79EE;">(</span>so<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+                         .Co     <span style="color: #9F79EE;">(</span>co_temp<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+<br/>
+   <span style="color: #A52A2A; font-weight: bold;">genvar</span>          i <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">generate</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">for</span><span style="color: #9F79EE;">(</span>i<span style="color: #5D478B;">=</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">;</span> i<span style="color: #5D478B;">&lt;=</span><span style="color: #ff0055;">7</span><span style="color: #5D478B;">;</span> i<span style="color: #5D478B;">=</span>i<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><span style="color: #5D478B;">:</span> adder_gen<br/>
+         full_adder1  u_adder<span style="color: #9F79EE;">(</span><br/>
+                              .Ai     <span style="color: #9F79EE;">(</span>a<span style="color: #9F79EE;">[</span>i<span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+                              .Bi     <span style="color: #9F79EE;">(</span>b<span style="color: #9F79EE;">[</span>i<span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+                              .Ci     <span style="color: #9F79EE;">(</span>co_temp<span style="color: #9F79EE;">[</span>i<span style="color: #5D478B;">-</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+                              .So     <span style="color: #9F79EE;">(</span>so<span style="color: #9F79EE;">[</span>i<span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+                              .Co     <span style="color: #9F79EE;">(</span>co_temp<span style="color: #9F79EE;">[</span>i<span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">endgenerate</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">assign</span> co    <span style="color: #5D478B;">=</span> co_temp<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">;</span><br/>
+<span style="color: #A52A2A; font-weight: bold;">endmodule</span><br/>
+</div></div>
+<p>The 8-bit wide flip-flop is described as follows. Path delays are specified in the flip-flop, and setup and hold time timing checks are added.</p><p>The setup time is set to 2ns, and the hold time is set to 3ns.</p>
+<div class="example"><h2 class="example">Example</h2> <div class="example_code">
+<span style="color: #A52A2A; font-weight: bold;">module</span> D8<span style="color: #9F79EE;">(</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">input</span>       <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   d <span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">input</span>               clk <span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">output</span> <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>    q<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+<br/>
+   <span style="color: #A52A2A; font-weight: bold;">always</span> <span style="color: #5D478B;">@</span><span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">posedge</span> clk<span style="color: #9F79EE;">)</span><br/>
+     q <span style="color: #5D478B;">&lt;=</span> d <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">specify</span><br/>
+      $setup<span style="color: #9F79EE;">(</span>d<span style="color: #5D478B;">,</span> <span style="color: #A52A2A; font-weight: bold;">posedge</span> clk<span style="color: #5D478B;">,</span> <span style="color: #ff0055;">2</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+      $hold<span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">posedge</span> clk<span style="color: #5D478B;">,</span> d<span style="color: #5D478B;">,</span> <span style="color: #ff0055;">3</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+      <span style="color: #9F79EE;">(</span>d<span style="color: #5D478B;">,</span>clk <span style="color: #5D478B;">*&gt;</span> q<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">0.3</span> <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">endspecify</span><br/>
+<span style="color: #A52A2A; font-weight: bold;">endmodule</span><br/>
+</div></div><p>In the testbench, complete the multiply-by-15 operation and output it to the next stage register within one cycle.</p>
+<div class="example"><h2 class="example">Example</h2> <div class="example_code">
+<span style="color: #008800;">`timescale</span> <span style="color: #ff0055;">1ns</span><span style="color: #5D478B;">/</span><span style="color: #ff0055;">1ns</span><br/>
+<span style="color: #A52A2A; font-weight: bold;">module</span> test <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">reg</span>  <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   a <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">reg</span>  <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   b <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   so <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">wire</span>         co <span style="color: #5D478B;">;</span><br/>
+<br/>
+   <span style="color: #A52A2A; font-weight: bold;">parameter</span>    CYCLE_10NS <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">10ns</span><span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">reg</span>          clk <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">initial</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+      clk <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">0</span> <span style="color: #5D478B;">;</span><br/>
+      <span style="color: #5D478B;">#</span> <span style="color: #ff0055;">111</span> <span style="color: #5D478B;">;</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">forever</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+          <span style="color: #5D478B;">#</span><span style="color: #9F79EE;">(</span>CYCLE_10NS<span style="color: #5D478B;">/</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">)</span> clk <span style="color: #5D478B;">=</span> <span style="color: #5D478B;">~</span>clk <span style="color: #5D478B;">;</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+<br/>
+   <span style="color: #00008B; font-style: italic;">//number to be multiplied by 15</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>    num <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">0</span> <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">always</span> <span style="color: #5D478B;">@</span><span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">posedge</span> clk<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+      num<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">&lt;=</span> num<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">+</span> <span style="color: #ff0055;">1</span> <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+<br/>
+   <span style="color: #00008B; font-style: italic;">// num * 8 + num * 4</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>    adder1 <span style="color: #5D478B;">;</span><br/>
+   full_adder8  u1_adder8<span style="color: #9F79EE;">(</span><br/>
+               .a      <span style="color: #9F79EE;">(</span>num<span style="color: #5D478B;">&lt;&lt;</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .b      <span style="color: #9F79EE;">(</span>num<span style="color: #5D478B;">&lt;&lt;</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .c      <span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1'b0</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .so     <span style="color: #9F79EE;">(</span>adder1<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .co     <span style="color: #9F79EE;">(</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+   <span style="color: #00008B; font-style: italic;">//num * 2 + num</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>    adder2 <span style="color: #5D478B;">;</span><br/>
+   full_adder8  u2_adder8<span style="color: #9F79EE;">(</span><br/>
+               .a      <span style="color: #9F79EE;">(</span>num<span style="color: #5D478B;">&lt;&lt;</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .b      <span style="color: #9F79EE;">(</span>num<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .c      <span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1'b0</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .so     <span style="color: #9F79EE;">(</span>adder2<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .co     <span style="color: #9F79EE;">(</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+   <span style="color: #00008B; font-style: italic;">//num x 15</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>    adder3 <span style="color: #5D478B;">;</span><br/>
+   full_adder8  u3_adder8<span style="color: #9F79EE;">(</span><br/>
+               .a      <span style="color: #9F79EE;">(</span>adder1<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .b      <span style="color: #9F79EE;">(</span>adder2<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .c      <span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1'b0</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .so     <span style="color: #9F79EE;">(</span>adder3<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .co     <span style="color: #9F79EE;">(</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+   <br/>
+   <span style="color: #00008B; font-style: italic;">//store the result</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>    res_mul15 <span style="color: #5D478B;">;</span><br/>
+   D8   data_store<span style="color: #9F79EE;">(</span><br/>
+               .d       <span style="color: #9F79EE;">(</span>adder3<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .clk     <span style="color: #9F79EE;">(</span>clk<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .q       <span style="color: #9F79EE;">(</span>res_mul15<span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+<br/>
+   <span style="color: #A52A2A; font-weight: bold;">initial</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">forever</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+         <span style="color: #5D478B;">#</span><span style="color: #ff0055;">100</span><span style="color: #5D478B;">;</span><br/>
+         <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span><span style="color: #9932CC;">$time</span> <span style="color: #5D478B;">&gt;=</span> <span style="color: #ff0055;">1000</span><span style="color: #9F79EE;">)</span>  <span style="color: #9932CC;">$finish</span> <span style="color: #5D478B;">;</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+<span style="color: #A52A2A; font-weight: bold;">endmodule</span> <span style="color: #00008B; font-style: italic;">// test</span><br/>
+</div></div><p>The simulation report then shows printed messages with setup/hold violations. Some screenshots are as follows.</p>
+<p><img decoding="async" src="../wp-content/uploads/2021/05/v-timing-check-1.png"/></p>
+<p>The waveform at the time of the violation is captured as shown below.</p><p><img decoding="async" src="../wp-content/uploads/2021/05/v-timing-check-2.png"/></p>
+<p>The analysis is as follows:</p><ul><li>(1) Both setup time and hold time have violations. Although the output result, which is delayed by one clock cycle after the variable num is multiplied by 15 in the simulation, is correct, the actual circuit is very dangerous.</li><li>(2) The setup time of the signal in the waveform is 166-164.4 = 1.6 ns, which is less than the configured 2ns, so a violation is reported.</li><li>(3) The hold time of the signal in the waveform is 168.2-166 = 2.2 ns, which is less than the configured 3ns, so a violation is reported.</li><li>(4) The red part in the figure is the intermediate process of signal d changing. Because different bits of the signal have different delays, multiple different results may appear in the middle.</li></ul>
+<h3>Timing optimization</h3><p>Hold time timing optimization is generally not easy to control at the RTL level description; it belongs to the work scope of backend design engineers, so it will not be discussed here.</p><p>This time, we mainly briefly discuss the optimization problem when setup time does not meet the constraint conditions. From the previous section '3.3 Setup Time and Hold Time', we know that the setup time constraint expression is:</p>
+<pre>Tcq + Tcomb + Tsu &lt;= Tclk + Tskew （1）</pre><ul><li>Tcq: delay from the register clock terminal to the Q terminal;</li><li>Tcomb: combinational logic delay in the data path;</li><li>Tsu: setup time;</li><li>Tclk: clock period;</li><li>Tskew: clock skew.</li></ul>
+<p>Optimizing this inequality can be considered from the following aspects:</p><ul><li>(1) Select process components with good timing characteristics; the smaller the values of Tcq and Tsu, the better;</li><li>(2) Optimize the combinational logic so that the combinational logic delay Tcomb is as small as possible;</li><li>(3) Reduce the operating clock frequency and increase the clock period Tclk;</li><li>(4) Increase the clock skew Tskew. However, excessive clock skew can cause other problems, such as hold time violations or functional logic errors.</li></ul><p>When performing timing optimization at the RTL level, only methods (2) and (3) can be considered.</p><p>For example, changing the operating clock period from 10ns to 20ns in the above simulation will avoid the setup violation.</p><p>Alternatively, adjust the logic so that the 3 addition operations originally completed in one cycle are distributed over two cycles, with an additional register stage added in between for buffering, to reduce timing pressure. At the same time, the change period of variable num should also become twice the original duration.</p>
+<p>The testbench is modified as follows:</p>
+<div class="example"><h2 class="example">Example</h2> <div class="example_code">
+<span style="color: #008800;">`timescale</span> <span style="color: #ff0055;">1ns</span><span style="color: #5D478B;">/</span><span style="color: #ff0055;">1ns</span><br/>
+<span style="color: #008800;">`define</span> LOGIC_BUF<br/>
+<span style="color: #A52A2A; font-weight: bold;">module</span> test <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">parameter</span>    CYCLE_10NS <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">10ns</span><span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">reg</span>          clk <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">initial</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+      clk <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">0</span> <span style="color: #5D478B;">;</span><br/>
+      <span style="color: #5D478B;">#</span> <span style="color: #ff0055;">111</span> <span style="color: #5D478B;">;</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">forever</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+          <span style="color: #5D478B;">#</span><span style="color: #9F79EE;">(</span>CYCLE_10NS<span style="color: #5D478B;">/</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">)</span> clk <span style="color: #5D478B;">=</span> <span style="color: #5D478B;">~</span>clk <span style="color: #5D478B;">;</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+<br/>
+   <span style="color: #A52A2A; font-weight: bold;">reg</span>          slow_flag <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">0</span> <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">always</span> <span style="color: #5D478B;">@</span><span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">posedge</span> clk<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+<span style="color: #008800;">`ifdef</span> LOGIC_BUF<br/>
+      slow_flag <span style="color: #5D478B;">&lt;=</span> <span style="color: #5D478B;">~</span>slow_flag <span style="color: #5D478B;">;</span><br/>
+`<span style="color: #A52A2A; font-weight: bold;">else</span><br/>
+      slow_flag <span style="color: #5D478B;">&lt;=</span> <span style="color: #ff0055;">1'b1</span> <span style="color: #5D478B;">;</span><br/>
+<span style="color: #008800;">`endif</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+<br/>
+   <span style="color: #A52A2A; font-weight: bold;">reg</span>  <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>    num <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">0</span> <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">always</span> <span style="color: #5D478B;">@</span><span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">posedge</span> clk<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">if</span><span style="color: #9F79EE;">(</span>slow_flag<span style="color: #9F79EE;">)</span><br/>
+        num<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">&lt;=</span> num<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">+</span> <span style="color: #ff0055;">1</span> <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+<br/>
+   <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>    adder1 <span style="color: #5D478B;">;</span><br/>
+   full_adder8  u1_adder8<span style="color: #9F79EE;">(</span><br/>
+               .a      <span style="color: #9F79EE;">(</span>num<span style="color: #5D478B;">&lt;&lt;</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .b      <span style="color: #9F79EE;">(</span>num<span style="color: #5D478B;">&lt;&lt;</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .c      <span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1'b0</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .so     <span style="color: #9F79EE;">(</span>adder1<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .co     <span style="color: #9F79EE;">(</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+<br/>
+   <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>    adder2 <span style="color: #5D478B;">;</span><br/>
+   full_adder8  u2_adder8<span style="color: #9F79EE;">(</span><br/>
+               .a      <span style="color: #9F79EE;">(</span>num<span style="color: #5D478B;">&lt;&lt;</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .b      <span style="color: #9F79EE;">(</span>num<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .c      <span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1'b0</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .so     <span style="color: #9F79EE;">(</span>adder2<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .co     <span style="color: #9F79EE;">(</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+<br/>
+   <span style="color: #00008B; font-style: italic;">//====== for better time=========</span><br/>
+   <span style="color: #00008B; font-style: italic;">//adding buffer</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>    adder1_r<span style="color: #5D478B;">,</span> adder2_r <span style="color: #5D478B;">;</span><br/>
+   D8   adder1_buf<span style="color: #9F79EE;">(</span><br/>
+               .d       <span style="color: #9F79EE;">(</span>adder1<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .clk     <span style="color: #9F79EE;">(</span>clk<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .q       <span style="color: #9F79EE;">(</span>adder1_r<span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+   D8   adder2_buf<span style="color: #9F79EE;">(</span><br/>
+               .d       <span style="color: #9F79EE;">(</span>adder2<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .clk     <span style="color: #9F79EE;">(</span>clk<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .q       <span style="color: #9F79EE;">(</span>adder2_r<span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+<br/>
+<span style="color: #008800;">`ifdef</span> LOGIC_BUF<br/>
+   <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>         adder1_t       <span style="color: #5D478B;">=</span> adder1_r <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>         adder2_t       <span style="color: #5D478B;">=</span> adder2_r <span style="color: #5D478B;">;</span><br/>
+`<span style="color: #A52A2A; font-weight: bold;">else</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>         adder1_t       <span style="color: #5D478B;">=</span> adder1 <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>         adder2_t       <span style="color: #5D478B;">=</span> adder2 <span style="color: #5D478B;">;</span><br/>
+<span style="color: #008800;">`endif</span><br/>
+<br/>
+   <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>    adder3 <span style="color: #5D478B;">;</span><br/>
+   full_adder8  u3_adder8<span style="color: #9F79EE;">(</span><br/>
+               .a      <span style="color: #9F79EE;">(</span>adder1_t<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .b      <span style="color: #9F79EE;">(</span>adder2_t<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .c      <span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1'b0</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .so     <span style="color: #9F79EE;">(</span>adder3<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .co     <span style="color: #9F79EE;">(</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+<br/>
+   <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>    res_mul15 <span style="color: #5D478B;">;</span><br/>
+   D8   data_store<span style="color: #9F79EE;">(</span><br/>
+               .d       <span style="color: #9F79EE;">(</span>adder3<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .clk     <span style="color: #9F79EE;">(</span>clk<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .q       <span style="color: #9F79EE;">(</span>res_mul15<span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+<br/>
+   <span style="color: #A52A2A; font-weight: bold;">initial</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">forever</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+         <span style="color: #5D478B;">#</span><span style="color: #ff0055;">100</span><span style="color: #5D478B;">;</span><br/>
+         <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span><span style="color: #9932CC;">$time</span> <span style="color: #5D478B;">&gt;=</span> <span style="color: #ff0055;">1000</span><span style="color: #9F79EE;">)</span>  <span style="color: #9932CC;">$finish</span> <span style="color: #5D478B;">;</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+<br/>
+<span style="color: #A52A2A; font-weight: bold;">endmodule</span> <span style="color: #00008B; font-style: italic;">// test</span><br/>
+</div></div><p>At this time, there are no more violations in the simulation report. The simulation screenshot is as follows.</p><p>As can be seen from the figure, the time during which the signal arrives early and remains stable can reach 8.6 ns, fully meeting the setup time timing requirement.</p><p>The fundamental principle of this method is to distribute the timing of multiple signal transitions across multiple cycles to meet timing constraint requirements. In addition, pipelined design, parallel design, etc., can also optimize timing.</p>
+<p><img decoding="async" src="../wp-content/uploads/2021/05/v-timing-check-3.png"/></p>
+<h3>$recovery, $removal</h3><p>The concepts of setup time and hold time both appear in the design of synchronous circuits.</p><p>For flip-flops with asynchronous reset, the asynchronous reset signal also needs to satisfy recovery time and removal time in order to effectively reset and release the reset, preventing metastability.</p><p>When releasing reset, the reset signal needs to return to the non-reset state a period of time before the active clock edge arrives. This period is the recovery time. It is similar to the setup time of a flip-flop under a synchronous clock.</p><p>When resetting, the reset signal needs to remain unchanged for a period of time after the active clock edge arrives. This period is the removal time. It is similar to the hold time of a flip-flop under a synchronous clock.</p><p>The schematic diagram of recovery and removal time is as follows.</p>
+<p><img decoding="async" src="../wp-content/uploads/2021/05/v-timing-check-4.png"/></p>
+<p>The system tasks $recovery and $removal are used to check recovery and removal time, respectively. Their usage is as follows:</p>
+<pre>$recovery (ref_event, data_event, recovery_limit) ;</pre><ul><li>ref_event: the reference signal used for checking, usually the edge of a clear or reset signal;</li><li>data_event: the signal being checked, usually the clock signal edge.</li><li>recovery_limit: the configured minimum recovery time.</li></ul>
+<p>When ref_event (reset) &lt; data_event (clock) and T(data_event - ref_event) &lt; recovery_limit, that is, if the reset signal does not satisfy the recovery time before the clock signal arrives, a violation will be printed in the report.</p>
+<pre>$removal (ref_event, data_event, removal_limit) ;</pre><ul><li>ref_event: the reference signal used for checking, usually the edge of a clear or reset signal;</li><li>data_event: the signal being checked, usually the clock signal edge.</li><li>removal_limit: the configured minimum removal time.</li></ul>
+<p>When ref_event (reset) &gt; data_event (clock) and T(ref_event - data_event) &gt; removal_limit, that is, if the reset signal does not satisfy the removal time after the clock signal arrives, a violation will be printed in the report.</p>
+<p>Verilog provides system tasks that check both revomal and recovery:</p><pre>
+$recrem (ref_event, data_event, recovery_limit, removal_limit);</pre>
+<h3>$width, $period</h3><p>Some digital designs, such as flash memory, also need to check pulse width or period. For this, Verilog provides system tasks $width and $period respectively. The usage is as follows:</p>
+<pre>$width(ref_event, time_limit) ;</pre><ul><li>ref_event: edge-triggered event</li><li>time_limit: minimum pulse width</li></ul>
+<p>$width is used to check the time from the edge-triggered event ref_event to the next opposite transition edge, commonly used for pulse width checking. If the time between two opposite transition edges is less than time_limit, a violation is reported.</p>
+<pre>$period(ref_event, time_limit) ;</pre><p>$period is used to check the time from the edge-triggered event ref_event to the next same-direction transition edge, commonly used for clock period checking. If the time between two same-direction transition edges is less than time_limit, the report will print a violation.</p>
+<p><img decoding="async" src="../wp-content/uploads/2021/05/v-timing-check-5.png"/></p>
+<p>The specify block for checking the width and period of signal CLK is described as follows:</p>
+<div class="example"><h2 class="example">Example</h2> <div class="example_code">
+   <span style="color: #A52A2A; font-weight: bold;">specify</span><br/>
+      $width<span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">posedge</span> CLK<span style="color: #5D478B;">,</span> <span style="color: #ff0055;">10</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span>  <br/>
+      $period<span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">posedge</span> CLK<span style="color: #5D478B;">,</span> <span style="color: #ff0055;">20</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">endspecify</span><br/>
+</div></div>
+<h3>This chapter source code download</h3><p>
+<a class="download" href="../wp-content/uploads/2021/05/v3.4_timing_check.zip">Download</a> </p> </div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link">← <a href="./verilog2-setup-hold-time.html" rel="prev">3.3 Verilog Setup and Hold Time</a> </div>
+<div class="next-design-link"><a href="./verilog2-sdf.html" rel="next">3.5 Verilog Delay Back-annotation</a> →</div>
+</div>
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>Click me to share notes</h3>
+&lt;p style="font-size:14px;"&gt;The note must be an extension of this article's content!&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;To submit an article, click here&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;How to obtain registration invitation code&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; You must &lt;a href=".." class="runoob-pop"&gt;login&lt;/a&gt; before sharing notes!&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;How to obtain registration invitation code&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=".." id="cancel-comment-reply-link">Cancel</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="23701"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>Share Notes</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">Nickname</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">Nickname (required)</span></li>
+<li class="form-inline"><label class="hide" for="email">Email</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">Email (required)</span></li>
+<li class="form-inline"><label class="hide" for="url">Reference address</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">Reference address</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  23701;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 23701, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":23701},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+<style>
+@media screen and (max-width: 768px) {
+	#w3cnote-ad728 {
+		display: none;
+	}
+}
+p.note-author {
+    border-bottom: 1px solid #ddd;
+    font-size: 18px;
+    font-weight: bold;
+    color: #78a15a;
+    padding-bottom: 2px;
+    margin-bottom: 4px;
+}
+</style>
+<script>
+var aid = 23701;
+</script>
+</div>
+</div>
+<div class="listcol last right-column">
+<script type="text/javascript">
+jQuery(document).ready(function ($){
+	var total = $(".membership li").length;
+	var left_list = '';
+	href = window.location.href;
+	
+	$(".membership li").each(function(index, value){
+
+		left_list += $(this).html();
+
+		cur_href = $(this).find("a").attr("href");
+		cur_obj = $(this);
+		
+		if(href.match(cur_href) != null) {
+			if(index==0) {
+				$(".previous-design-link").hide();
+			}
+			if(index==(total-1)) {
+				$(".next-design-link").hide();
+			}
+			prev_href = cur_obj.prev("li").find("a").attr("href");
+			prev_title = cur_obj.prev("li").find("a").attr("title");
+
+			next_href = cur_obj.next("li").find("a").attr("href");
+			next_title = cur_obj.next("li").find("a").attr("title");
+			if(prev_title) {
+				$(".previous-design-link a").attr("href", prev_href);
+				$(".previous-design-link a").attr("title", prev_title);
+				$(".previous-design-link a").text(prev_title);
+			} else {
+				$(".previous-design-link").html("");
+			}
+
+			if(next_title) {
+				$(".next-design-link a").attr("href", next_href);
+				$(".next-design-link a").attr("title", next_title);
+				$(".next-design-link a").text(next_title);
+			} else {
+				$(".next-design-link").html("");
+			}
+		}
+	});
+
+	$("#leftcolumn").html(left_list);
+});
+	</script>
+<div class="sidebar-box cate-list">
+<div class="sidebar-box recommend-here list-link">
+<a href="#">Verilog 高级教程</a> </div>
+<ul class="membership">
+<li><a data-id="23639" href="./verilog2-tutorial.html" target="_top" title="0.1 数字逻辑设计">0.1 数字逻辑设计</a></li>
+<li><a data-id="23641" href="./verilog2-codestyle.html" target="_top" title="0.2 Verilog 编码风格">0.2 Verilog 编码风格</a></li>
+<li><a data-id="23644" href="./verilog2-codeguide.html" target="_top" title="0.3 Verilog 代码规范">0.3 Verilog 代码规范</a></li>
+<li><a data-id="23645" href="./verilog2-gate.html" target="_top" title="1.1 Verilog 门的类型">1.1 Verilog 门的类型</a></li>
+<li><a data-id="23648" href="./verilog2-level-modeling.html" target="_top" title="1.2 Verilog 开关级建模">1.2 Verilog 开关级建模</a></li>
+<li><a data-id="23656" href="./verilog2-gate-delay.html" target="_top" title="1.3 Verilog 门延迟">1.3 Verilog 门延迟</a></li>
+<li><a data-id="23673" href="./verilog2-udp.html" target="_top" title="2.1 Verilog UDP 基础知识">2.1 Verilog UDP 基础知识</a></li>
+<li><a data-id="23674" href="./verilog2-udp-logic.html" target="_top" title="2.2 Verilog 组合逻辑 UDP">2.2 Verilog 组合逻辑 UDP</a></li>
+<li><a data-id="23677" href="./verilog2-udp-timing.html" target="_top" title="2.3 Verilog 时序逻辑 UDP">2.3 Verilog 时序逻辑 UDP</a></li>
+<li><a data-id="23685" href="./verilog2-delay-type.html" target="_top" title="3.1 Verilog 延迟模型">3.1 Verilog 延迟模型</a></li>
+<li><a data-id="23690" href="./verilog2-specify.html" target="_top" title="3.2 Verilog specify 块语句">3.2 Verilog specify 块语句</a></li>
+<li><a data-id="23692" href="./verilog2-setup-hold-time.html" target="_top" title="3.3 Verilog 建立时间和保持时间">3.3 Verilog 建立时间和保持时间</a></li>
+<li>
+	3.4 Verilog 时序检查	</li>
+<li><a data-id="23708" href="./verilog2-sdf.html" target="_top" title="3.5 Verilog 延迟反标注">3.5 Verilog 延迟反标注</a></li>
+<li><a data-id="23714" href="./verilog-sync.html" target="_top" title="4.1 Verilog 同步与异步">4.1 Verilog 同步与异步</a></li>
+<li><a data-id="23725" href="./verilog2-slow2fast.html" target="_top" title="4.2 Verilog 跨时钟域传输：慢到快">4.2 Verilog 跨时钟域传输：慢到快</a></li>
+<li><a data-id="23729" href="./verilog2-fast2slow.html" target="_top" title="4.3 Verilog 跨时钟域传输：快到慢">4.3 Verilog 跨时钟域传输：快到慢</a></li>
+<li><a data-id="23731" href="./verilog2-fifo.html" target="_top" title="4.4 Verilog FIFO 设计">4.4 Verilog FIFO 设计</a></li>
+<li><a data-id="23739" href="./verilog2-reset.html" target="_top" title="5.1 Verilog 复位简介">5.1 Verilog 复位简介</a></li>
+<li><a data-id="23743" href="./verilog2-clock.html" target="_top" title="5.2 Verilog 时钟简介">5.2 Verilog 时钟简介</a></li>
+<li><a data-id="23757" href="./verilog2-clock-division.html" target="_top" title="5.3 Verilog 时钟分频">5.3 Verilog 时钟分频</a></li>
+<li><a data-id="23768" href="./verilog2-clock-switch.html" target="_top" title="5.4 Verilog 时钟切换">5.4 Verilog 时钟切换</a></li>
+<li><a data-id="23779" href="./verilog2-low-power.html" target="_top" title="6.1 Verilog 低功耗简介">6.1 Verilog 低功耗简介</a></li>
+<li><a data-id="23788" href="./verilog2-lower-power-design.html" target="_top" title="6.2 Verilog 系统级低功耗设计">6.2 Verilog 系统级低功耗设计</a></li>
+<li><a data-id="23792" href="./verilog2-rtl-low-power-design-1.html" target="_top" title="6.3 Verilog  RTL 级低功耗设计（上）">6.3 Verilog  RTL 级低功耗设计（上）</a></li>
+<li><a data-id="23796" href="./verilog2-rtl-low-power-design-2.html" target="_top" title="6.4 Verilog RTL 级低功耗设计（下）">6.4 Verilog RTL 级低功耗设计（下）</a></li>
+<li><a data-id="23806" href="./verilog2-display.html" target="_top" title="7.1 Verilog 显示任务">7.1 Verilog 显示任务</a></li>
+<li><a data-id="23813" href="./verilog2-file.html" target="_top" title="7.2 Verilog 文件操作">7.2 Verilog 文件操作</a></li>
+<li><a data-id="23825" href="./verilog2-random.html" target="_top" title="7.3 Verilog 随机数及概率分布">7.3 Verilog 随机数及概率分布</a></li>
+<li><a data-id="23847" href="./verilog2-real2int.html" target="_top" title="7.4 Verilog 实数整数转换">7.4 Verilog 实数整数转换</a></li>
+<li><a data-id="23851" href="./verilog2-other-task.html" target="_top" title="7.5 Verilog 其他系统任务">7.5 Verilog 其他系统任务</a></li>
+<li><a data-id="23862" href="./verilog2-pli-intro.html" target="_top" title="8.1 Verilog  PLI 简介">8.1 Verilog  PLI 简介</a></li>
+<li><a data-id="23865" href="./verilog2-tf.html" target="_top" title="8.2 Verilog TF 子程序">8.2 Verilog TF 子程序</a></li>
+<li><a data-id="23869" href="./verilog2-tf-sub.html" target="_top" title="8.3 Verilog TF 子程序列表">8.3 Verilog TF 子程序列表</a></li>
+<li><a data-id="23870" href="./verilog2-acc.html" target="_top" title="8.4 Verilog ACC 子程序">8.4 Verilog ACC 子程序</a></li>
+<li><a data-id="23872" href="./verilog2-acc-sub.html" target="_top" title="8.5 Verilog ACC 子程序列表">8.5 Verilog ACC 子程序列表</a></li>
+<li><a data-id="23876" href="./verilog2-logic-sumarry.html" target="_top" title="9.1 Verilog 逻辑综合">9.1 Verilog 逻辑综合</a></li>
+<li><a data-id="23882" href="./verilog2-integrated-design.html" target="_top" title="9.2 Verilog 可综合性设计">9.2 Verilog 可综合性设计</a></li>
+</ul></div> </div>
+</div>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+</div><script src="../../lang-switcher.js"></script>
+</body>
+</html>

@@ -1,0 +1,1878 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Vector Database | Rookie Tutorial</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<link href="../manifest.webmanifest.html" rel="manifest"/>
+<meta content="#10151c" name="theme-color"/>
+<link href="../pwa/icon-192.png.html" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="application-name"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="../ai/ai-vector-database.html" rel="canonical"/>
+<meta content="向量数据库" name="keywords"/>
+<meta content="向量数据库   在 AI 时代，我们处理的数据形态发生了根本变化。  传统数据库存储的是结构化数据：数字、字符串、日期。  AI 应用处理的是语义：一段文本的含义、一张图片的内容、一段语音的意思，这些语义信息被表示成向量——一串浮点数，比如 [0.123, -0.456, 0.789, ...]。  向量数据库就是专门用来存储、索引、查询这些向量的数据库，没有它，RAG（检索增强生成）做不了，语义搜索实现不了，推荐系统也无法高效运行。 .." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div>
+<!-- 导航栏 -->
+<style>
+/* 主题切换按钮 */
+/* ===== 主题变量（核心）===== */
+:root {
+  --theme-bg: #ffffff;
+  --theme-border: #e5e7eb;
+  --theme-icon: #333;
+  --theme-hover: #f3f4f6;
+}
+
+.dark {
+  --theme-bg: #1f2937;
+  --theme-border: #374151;
+  --theme-icon: #e5e7eb;
+  --theme-hover: #374151;
+}
+
+/* ===== 按钮容器 ===== */
+.nav-theme-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== 按钮本体 ===== */
+.nav-theme-toggle button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  border-radius: 6px;
+  border: 1px solid var(--theme-border);
+
+  background: var(--theme-bg);
+  color: var(--theme-icon);
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* ===== 图标大小 ===== */
+.nav-theme-toggle i {
+  font-size: 14px;
+}
+
+/* ===== hover 效果 ===== */
+.nav-theme-toggle button:hover {
+  background: var(--theme-hover);
+  transform: translateY(-1px);
+}
+
+/* ===== 点击反馈 ===== */
+.nav-theme-toggle button:active {
+  transform: scale(0.95);
+}
+
+/* ===== 当前激活态（可选）===== */
+.nav-theme-toggle button.active {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+</style>
+<!-- 导航栏 -->
+<nav aria-label="主导航" class="container navigation">
+<div class="row">
+<div class="col nav">
+<!-- PC 导航 -->
+<ul class="pc-nav" id="runoob-detail-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../js/js-tutorial.html">JavaScript</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a data-id="vue" href="#">Vue</a></li>
+<li><a href="../react/react-tutorial.html">React</a></li>
+<li><a href="../python3/python3-tutorial.html">Python3</a></li>
+<li><a href="../java/java-tutorial.html">Java</a></li>
+<li><a href="../cprogramming/c-tutorial.html">C</a></li>
+<li><a href="../cplusplus/cpp-tutorial.html">C++</a></li>
+<li><a href="../csharp/csharp-tutorial.html">C#</a></li>
+<li><a data-id="aiNav" href="#">AI</a></li>
+<li><a href="../go/go-tutorial.html">Go</a></li>
+<li><a href="../sql/sql-tutorial.html">SQL</a></li>
+<li><a href="../linux/linux-tutorial.html">Linux</a></li>
+<li><a href="../vscode/vscode-tutorial.html">VS Code</a></li>
+<li><a data-id="bootstrap" href="#">Bootstrap</a></li>
+<li><a href="../git/git-tutorial.html">Git</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<!-- 主题切换按钮，固定在最右侧 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+<!-- 移动端导航 -->
+<ul class="mobile-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a href="../js/js-tutorial.html">JS</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<li><a class="search-reveal" href="#">搜索</a></li>
+<!-- 移动端主题切换 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon-mobile" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun-mobile" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<!-- 二级导航 -->
+<!--  内容  -->
+<div class="container main">
+<!-- 中间 -->
+<div class="row">
+<div class="runoob-col-md2">
+<div class="left-column">
+<div class="tab" style="overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
+<i aria-hidden="true" class="fa fa-list"></i>
+<span>AI 入门教程</span>
+</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+<a data-p="par" href="../ai/ai-tutorial.html" target="_top" title="AI 入门教程">
+			AI 入门教程			</a>
+<a data-p="par" href="../ai/ai-into.html" target="_top" title="AI 简介">
+			AI 简介			</a>
+<a href="../ai/agi-intro.html" target="_top" title="AGI 简介">AGI 简介</a>
+<a href="../ai/llm-intro.html" target="_top" title="大模型相关概念">大模型相关概念</a> <a data-p="par" href="../ai/ai-prompt.html" target="_top" title="Prompt 提示词">
+			Prompt 提示词			</a>
+<a data-p="par" href="../ai/ai-tools.html" target="_top" title="AI 工具全景">
+			AI 工具全景			</a>
+<a data-p="par" href="../ai/how-ai-works.html" target="_top" title="AI 工作原理">
+			AI 工作原理			</a>
+<a data-p="par" href="../ai/ai-ethics.html" target="_top" title="AI 伦理与安全">
+			AI 伦理与安全			</a>
+<a data-p="par" href="../ai/ai-use-cases.html" target="_top" title="AI 应用场景">
+			AI 应用场景			</a>
+<a data-p="par" href="../ai/ai-industry.html" target="_top" title="AI 行业生态">
+			AI 行业生态			</a>
+<a data-p="par" href="../ai/prompt-engineering-advance.html" target="_top" title="Prompt 工程进阶">
+			Prompt 工程进阶			</a>
+<a data-p="par" href="../ai/ai-api-development.html" target="_top" title="AI API 开发">
+			AI API 开发			</a>
+<a data-p="par" href="../ai/ai-rag.html" target="_top" title="RAG 检索增强生成">
+			RAG 检索增强生成			</a>
+<a href="../ai/ai-agent.html" target="_top" title="AI 智能体">AI 智能体</a> <a data-p="par" href="../ai/ai-multimodal.html" target="_top" title="AI 多模态">
+			AI 多模态			</a>
+<a data-p="par" href="../ai/ai-workflow-auto.html" target="_top" title="AI 工作流自动化">
+			AI 工作流自动化			</a>
+<a data-p="par" href="../ai/ai-product-design.html" target="_top" title="AI 产品设计">
+			AI 产品设计			</a>
+<a data-p="par" href="../ai/ai-local-model-deployment.html" target="_top" title="本地模型部署">
+			本地模型部署			</a>
+<a data-p="par" href="../ai/ai-security.html" target="_top" title="AI 安全进阶">
+			AI 安全进阶			</a>
+<a data-p="par" href="../ai/ai-transformer.html" target="_top" title="Transformer 深度解析">
+			Transformer 深度解析			</a>
+<a data-p="par" href="../ai/ai-fine-tuning.html" target="_top" title="模型微调 Fine-tuning">
+			模型微调 Fine-tuning			</a>
+<a data-p="par" href="../ai/ai-rlhf.html" target="_top" title="RLHF 对齐训练">
+			RLHF 对齐训练			</a>
+<a data-p="par" href="../ai/ai-vector-database.html" target="_top" title="向量数据库">
+			向量数据库			</a>
+<a data-p="par" href="../ai/ai-deployment.html" target="_top" title="AI 工程化部署">
+			AI 工程化部署			</a>
+<a data-p="par" href="../ai/ai-deep-learning.html" target="_top" title="深度学习基础">
+			深度学习基础			</a>
+<a data-p="par" href="../ai/ai-computer-vision.html" target="_top" title="计算机视觉 AI">
+			计算机视觉 AI			</a>
+<a data-p="par" href="../ai/ai-nlp-advanced.html" target="_top" title="NLP 进阶技术">
+			NLP 进阶技术			</a>
+<a data-p="par" href="../ai/ai-frontier-research.html" target="_top" title="前沿研究动态">
+			前沿研究动态			</a>
+<a data-p="par" href="../ai/ai-system-architecture.html" target="_top" title="AI 系统架构">
+			AI 系统架构			</a>
+<a data-p="par" href="../ai/ai-evaluation.html" target="_top" title="AI 评测与安全研究">
+			AI 评测与安全研究			</a>
+</div>
+</div>
+</div>
+</div> <div class="col middle-column">
+<div class="article">
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../ai/ai-rlhf.html" rel="prev">RLHF Alignment Training</a> </div>
+<div class="next-design-link"><a href="../ai/ai-deployment.html" rel="next">AI Engineering Deployment</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="article-body">
+<div class="article-intro" id="content">
+<h1>Vector Database</h1>
+<p>In the AI era, the form of data we process has undergone fundamental changes.</p>
+<p>Traditional databases store structured data: numbers, strings, dates.</p>
+<p>AI applications process semantics: the meaning of a piece of text, the content of an image, the meaning of a voice clip. This semantic information is represented as vectors—a sequence of floating-point numbers, e.g., [0.123, -0.456, 0.789, ...].</p>
+<p>A vector database is a database specifically designed to store, index, and query these vectors. Without it, RAG (Retrieval-Augmented Generation) cannot work, semantic search cannot be implemented, and recommendation systems cannot run efficiently.</p>
+<p><img decoding="async" src="../wp-content/uploads/2026/06/55d6a8baff534e58acd9db3d3fec3514a4354163-1200x628-1.png"/></p>
+<blockquote>
+<p>Core Value of Vector Databases:<span class="marked">Find the top K results most similar to a query vector within milliseconds from millions or even billions of vectors.</span>。</p>
+</blockquote>
+<hr/>
+<h2>Challenges of Vector Similarity Search</h2>
+<p>Only by understanding the nature of the problem can you understand why specialized algorithms are needed.</p>
+<h3>Complexity Problem of Brute-Force Search</h3>
+<p>The simplest approach is brute-force search: compute the similarity between the query vector and every vector in the database, sort, and take the top K.</p>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># Brute-force Search Demo: Simple but Inefficient</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">import</span> numpy <span style="color: Green;font-weight:bold;">as</span> np<br/>
+<span style="color: Green;font-weight:bold;">from</span> typing <span style="color: Green;font-weight:bold;">import</span> List<span style="color: Gray;">,</span> Tuple<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> l2_distance<span style="color: Olive;">(</span>v1: np.<span style="color: #05a;">ndarray</span><span style="color: Gray;">,</span> v2: np.<span style="color: #05a;">ndarray</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">float</span>:<br/>
+    <span style="color: #a11;">"""Compute L2 Euclidean distance: the smaller, the more similar."""</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> np.<span style="color: #05a;">sqrt</span><span style="color: Olive;">(</span>np.<span style="color: Teal;">sum</span><span style="color: Olive;">(</span><span style="color: Olive;">(</span>v1 - v2<span style="color: Olive;">)</span> ** <span style="color: Maroon;">2</span><span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> brute_force_search<span style="color: Olive;">(</span><br/>
+    query: np.<span style="color: #05a;">ndarray</span><span style="color: Gray;">,</span><br/>
+    vectors: List<span style="color: Olive;">[</span>np.<span style="color: #05a;">ndarray</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span><br/>
+    top_k: <span style="color: Teal;">int</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">5</span><br/>
+<span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> List<span style="color: Olive;">[</span>Tuple<span style="color: Olive;">[</span><span style="color: Teal;">int</span><span style="color: Gray;">,</span> <span style="color: Teal;">float</span><span style="color: Olive;">]</span><span style="color: Olive;">]</span>:<br/>
+    <span style="color: #a11;">"""<br/>Brute-force search: compute distances to all vectors, sort, and return Top K<br/>Advantages: simple and accurate, 100% recall<br/>Disadvantages: extremely slow with large data volumes<br/>
+    """</span><br/>
+    <span style="color: #a50"># Compute distance to each vector</span><br/>
+    distances <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+    <span style="color: Green;font-weight:bold;">for</span> idx<span style="color: Gray;">,</span> vec <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">enumerate</span><span style="color: Olive;">(</span>vectors<span style="color: Olive;">)</span>:<br/>
+        dist <span style="color: Gray;">=</span> l2_distance<span style="color: Olive;">(</span>query<span style="color: Gray;">,</span> vec<span style="color: Olive;">)</span><br/>
+        distances.<span style="color: #05a;">append</span><span style="color: Olive;">(</span><span style="color: Olive;">(</span>idx<span style="color: Gray;">,</span> dist<span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># Sort by distance, take top K</span><br/>
+    distances.<span style="color: #05a;">sort</span><span style="color: Olive;">(</span>key<span style="color: Gray;">=</span><span style="color: Green;font-weight:bold;">lambda</span> x: x<span style="color: Olive;">[</span><span style="color: Maroon;">1</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> distances<span style="color: Olive;">[</span>:top_k<span style="color: Olive;">]</span><br/>
+<br/>
+<br/>
+<span style="color: #a50"># Generate 10,000 random 128-dimensional vectors (simulating a vector database)</span><br/>
+np.<span style="color: #05a;">random</span>.<span style="color: #05a;">seed</span><span style="color: Olive;">(</span><span style="color: Maroon;">42</span><span style="color: Olive;">)</span><br/>
+vector_count <span style="color: Gray;">=</span> <span style="color: Maroon;">10000</span><br/>
+dimension <span style="color: Gray;">=</span> <span style="color: Maroon;">128</span><br/>
+vectors <span style="color: Gray;">=</span> <span style="color: Olive;">[</span>np.<span style="color: #05a;">random</span>.<span style="color: #05a;">randn</span><span style="color: Olive;">(</span>dimension<span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>vector_count<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+<br/>
+<span style="color: #a50"># Generate a query vector</span><br/>
+query_vector <span style="color: Gray;">=</span> np.<span style="color: #05a;">random</span>.<span style="color: #05a;">randn</span><span style="color: Olive;">(</span>dimension<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># Execute brute-force search</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Searching Top 5 among {vector_count} vectors..."</span><span style="color: Olive;">)</span><br/>
+results <span style="color: Gray;">=</span> brute_force_search<span style="color: Olive;">(</span>query_vector<span style="color: Gray;">,</span> vectors<span style="color: Gray;">,</span> top_k<span style="color: Gray;">=</span><span style="color: Maroon;">5</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Search results:"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">for</span> idx<span style="color: Gray;">,</span> dist <span style="color: Green;font-weight:bold;">in</span> results:<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  Vector {idx:4d}, distance = {dist:.4f}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># Output looks like:</span><br/>
+<span style="color: #a50"># Searching Top 5 among 10,000 vectors...</span><br/>
+<span style="color: #a50"># Search results:</span><br/>
+<span style="color: #a50">#   Vector 8236, distance = 13.3986</span><br/>
+<span style="color: #a50">#   Vector 8946, distance = 13.5604</span><br/>
+<span style="color: #a50">#   Vector 9891, distance = 13.5688</span><br/>
+<span style="color: #a50">#   Vector 5172, distance = 13.5987</span><br/>
+<span style="color: #a50">#   Vector 5223, distance = 13.6081</span><br/>
+</div>
+</div>
+<p>The problem with brute-force search is obvious: every query has to traverse all vectors.</p>
+<p>If there are 1 million vectors, each query requires computing 1 million distances.</p>
+<p>If there are 1 billion vectors, each query requires 1 billion calculations—this is completely unacceptable in production.</p>
+<h3>The "Curse of Dimensionality" in High-Dimensional Space</h3>
+<p>To make matters worse, vectors are usually high-dimensional.</p>
+<p>OpenAI's text-embedding-3-small is 1536-dimensional, and large is 3072-dimensional.</p>
+<p>In high-dimensional spaces, traditional spatial indexing methods (such as KD-Tree) experience a sharp drop in efficiency, sometimes even slower than brute-force search.</p>
+<table class="reference">
+<tr><th>Data size</th><th>Brute-force search time (estimated)</th><th>Acceptable?</th></tr>
+<tr><td>10 thousand</td><td>~1 millisecond</td><td>Acceptable</td></tr>
+<tr><td>1 million</td><td>~100 milliseconds</td><td>A bit slow</td></tr>
+<tr><td>10 million</td><td>~1 second</td><td>Too slow</td></tr>
+<tr><td>100 million</td><td>~10 seconds</td><td>Completely unacceptable</td></tr>
+<tr><td>1 billion</td><td>~100 seconds</td><td>Unusable</td></tr>
+</table>
+<p>This is why we need<span class="marked">approximate nearest neighbor (ANN) algorithms</span>: sacrificing 100% accuracy for a 100x or even 1000x speedup.</p>
+<hr/>
+<h2>Approximate Nearest Neighbor (ANN) Algorithms</h2>
+<p>The core idea of ANN algorithms:<span class="marked">Build an index structure so that queries don't need to traverse all vectors</span>。</p>
+<p>There are three mainstream algorithms: HNSW, IVF, and PQ.</p>
+<h3>HNSW: Hierarchical Navigable Small World Graph</h3>
+<p>HNSW (Hierarchical Navigable Small World) is one of the most popular algorithms today. It is inspired by the six degrees of separation theory—any two people in the world can be connected through at most 6 intermediaries.</p>
+<p>HNSW uses a multi-layer sparse small-world graph. It quickly coarsely locates from the top-layer sparse nodes, then descends layer by layer to the bottom full-data layer for fine-grained search. By using hierarchical jumps, it greatly reduces the number of distance calculations, achieving fast, high-recall approximate nearest neighbor search.</p>
+<p><img alt="HNSW 分层小世界图结构示意图" decoding="async" src="../wp-content/uploads/2026/06/1ziU6_KIDqfmaDXKA1cMa8w.webp"/></p>
+<p>
+<strong>Hierarchical structure:</strong>The bottom layer, Layer 0, stores all vectors; the higher the layer, the fewer nodes, acting as a fast track. The same vector is vertically linked across layers with dashed lines.</p>
+<p><strong>Search process (blue line path):</strong></p>
+<ul>
+<li>Coarse search starts at the top-layer entry, finding the point closest to the query vector in that layer.</li>
+<li>Vertically descend to the middle layer and coarsely locate again.</li>
+<li>Fall to Layer 0, the full-data layer, for fine-grained traversal, and output the nearest neighbor.</li></ul>
+<p>
+<strong>Core principle:</strong>High layers quickly narrow the search range, while the bottom layer provides precise matching. It optimizes brute-force search to logarithmic complexity, offering high speed and high recall, making it a mainstream vector search algorithm.</p>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># Simplified demo of HNSW principles (not a production implementation)</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">import</span> numpy <span style="color: Green;font-weight:bold;">as</span> np<br/>
+<span style="color: Green;font-weight:bold;">import</span> <span style="color: #05a;">random</span><br/>
+<span style="color: Green;font-weight:bold;">from</span> typing <span style="color: Green;font-weight:bold;">import</span> List<span style="color: Gray;">,</span> Dict<span style="color: Gray;">,</span> Set<span style="color: Gray;">,</span> Tuple<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> SimpleHNSW:<br/>
+    <span style="color: #a11;">"""Simplified HNSW, only for demonstrating the principles"""</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> dim: <span style="color: Teal;">int</span><span style="color: Gray;">,</span> max_level: <span style="color: Teal;">int</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">3</span><span style="color: Gray;">,</span> ef_construction: <span style="color: Teal;">int</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">5</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">dim</span> <span style="color: Gray;">=</span> dim<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">max_level</span> <span style="color: Gray;">=</span> max_level  <span style="color: #a50"># Maximum number of layers</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">ef_construction</span> <span style="color: Gray;">=</span> ef_construction  <span style="color: #a50"># Number of candidates considered when building the graph</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">levels</span>: List<span style="color: Olive;">[</span>Dict<span style="color: Olive;">[</span><span style="color: Teal;">int</span><span style="color: Gray;">,</span> np.<span style="color: #05a;">ndarray</span><span style="color: Olive;">]</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">{</span><span style="color: Olive;">}</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>max_level<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">edges</span>: List<span style="color: Olive;">[</span>Dict<span style="color: Olive;">[</span><span style="color: Teal;">int</span><span style="color: Gray;">,</span> Set<span style="color: Olive;">[</span><span style="color: Teal;">int</span><span style="color: Olive;">]</span><span style="color: Olive;">]</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">{</span><span style="color: Olive;">}</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>max_level<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">next_id</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">0</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">enter_point</span> <span style="color: Gray;">=</span> <span style="color: Teal;">None</span>  <span style="color: #a50"># Entry point (a point at the top layer)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> _random_level<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">int</span>:<br/>
+        <span style="color: #a11;">"""Randomly select a level: the higher the level, the lower the probability"""</span><br/>
+        level <span style="color: Gray;">=</span> <span style="color: Maroon;">0</span><br/>
+        <span style="color: Green;font-weight:bold;">while</span> <span style="color: #05a;">random</span>.<span style="color: #05a;">random</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span> <span style="color: Gray;">&lt;</span> <span style="color: Maroon;">0.5</span> <span style="color: Green;font-weight:bold;">and</span> level <span style="color: Gray;">&lt;</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">max_level</span> - <span style="color: Maroon;">1</span>:<br/>
+            level +<span style="color: Gray;">=</span> <span style="color: Maroon;">1</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> level<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> _distance<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> v1: np.<span style="color: #05a;">ndarray</span><span style="color: Gray;">,</span> v2: np.<span style="color: #05a;">ndarray</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">float</span>:<br/>
+        <span style="color: #a11;">"""L2 distance"""</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> np.<span style="color: #05a;">sqrt</span><span style="color: Olive;">(</span>np.<span style="color: Teal;">sum</span><span style="color: Olive;">(</span><span style="color: Olive;">(</span>v1 - v2<span style="color: Olive;">)</span> ** <span style="color: Maroon;">2</span><span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> _search_layer<span style="color: Olive;">(</span><br/>
+        <span style="color: Teal;">self</span><span style="color: Gray;">,</span><br/>
+        query: np.<span style="color: #05a;">ndarray</span><span style="color: Gray;">,</span><br/>
+        level: <span style="color: Teal;">int</span><span style="color: Gray;">,</span><br/>
+        entry: <span style="color: Teal;">int</span><span style="color: Gray;">,</span><br/>
+        ef: <span style="color: Teal;">int</span><br/>
+    <span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> List<span style="color: Olive;">[</span>Tuple<span style="color: Olive;">[</span><span style="color: Teal;">float</span><span style="color: Gray;">,</span> <span style="color: Teal;">int</span><span style="color: Olive;">]</span><span style="color: Olive;">]</span>:<br/>
+        <span style="color: #a11;">"""Search in a layer: starting from entry, greedily find ef closest points"""</span><br/>
+        <span style="color: Green;font-weight:bold;">if</span> entry <span style="color: Green;font-weight:bold;">not</span> <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">levels</span><span style="color: Olive;">[</span>level<span style="color: Olive;">]</span>:<br/>
+            <span style="color: Green;font-weight:bold;">return</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+<br/>
+        visited <span style="color: Gray;">=</span> <span style="color: Teal;">set</span><span style="color: Olive;">(</span><span style="color: Olive;">[</span>entry<span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+        candidates <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span>._distance<span style="color: Olive;">(</span>query<span style="color: Gray;">,</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">levels</span><span style="color: Olive;">[</span>level<span style="color: Olive;">]</span><span style="color: Olive;">[</span>entry<span style="color: Olive;">]</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span> entry<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+        result <span style="color: Gray;">=</span> <span style="color: Teal;">list</span><span style="color: Olive;">(</span>candidates<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">while</span> candidates:<br/>
+            <span style="color: #a50"># Take out the current closest candidate</span><br/>
+            candidates.<span style="color: #05a;">sort</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+            dist<span style="color: Gray;">,</span> current <span style="color: Gray;">=</span> candidates.<span style="color: #05a;">pop</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Olive;">)</span><br/>
+<br/>
+            <span style="color: #a50"># Traverse neighbors</span><br/>
+            <span style="color: Green;font-weight:bold;">if</span> current <span style="color: Green;font-weight:bold;">not</span> <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">edges</span><span style="color: Olive;">[</span>level<span style="color: Olive;">]</span>:<br/>
+                <span style="color: Green;font-weight:bold;">continue</span><br/>
+<br/>
+            <span style="color: Green;font-weight:bold;">for</span> neighbor <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">edges</span><span style="color: Olive;">[</span>level<span style="color: Olive;">]</span><span style="color: Olive;">[</span>current<span style="color: Olive;">]</span>:<br/>
+                <span style="color: Green;font-weight:bold;">if</span> neighbor <span style="color: Green;font-weight:bold;">in</span> visited:<br/>
+                    <span style="color: Green;font-weight:bold;">continue</span><br/>
+                visited.<span style="color: #05a;">add</span><span style="color: Olive;">(</span>neighbor<span style="color: Olive;">)</span><br/>
+<br/>
+                neighbor_dist <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>._distance<span style="color: Olive;">(</span>query<span style="color: Gray;">,</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">levels</span><span style="color: Olive;">[</span>level<span style="color: Olive;">]</span><span style="color: Olive;">[</span>neighbor<span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+<br/>
+                <span style="color: #a50"># Add to candidates and result set</span><br/>
+                candidates.<span style="color: #05a;">append</span><span style="color: Olive;">(</span><span style="color: Olive;">(</span>neighbor_dist<span style="color: Gray;">,</span> neighbor<span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+                result.<span style="color: #05a;">append</span><span style="color: Olive;">(</span><span style="color: Olive;">(</span>neighbor_dist<span style="color: Gray;">,</span> neighbor<span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<br/>
+            <span style="color: #a50"># Keep the result set size no larger than ef</span><br/>
+            result.<span style="color: #05a;">sort</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+            result <span style="color: Gray;">=</span> result<span style="color: Olive;">[</span>:ef<span style="color: Olive;">]</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">return</span> result<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> add<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> vector: np.<span style="color: #05a;">ndarray</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">int</span>:<br/>
+        <span style="color: #a11;">"""Add a vector"""</span><br/>
+        vec_id <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">next_id</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">next_id</span> +<span style="color: Gray;">=</span> <span style="color: Maroon;">1</span><br/>
+<br/>
+        <span style="color: #a50"># Randomly determine which layers this vector appears in</span><br/>
+        max_level_for_vec <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>._random_level<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># Store the vector in all layers (in actual implementations, the full vector is usually stored only at the bottom layer)</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> level <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>max_level_for_vec + <span style="color: Maroon;">1</span><span style="color: Olive;">)</span>:<br/>
+            <span style="color: Teal;">self</span>.<span style="color: #05a;">levels</span><span style="color: Olive;">[</span>level<span style="color: Olive;">]</span><span style="color: Olive;">[</span>vec_id<span style="color: Olive;">]</span> <span style="color: Gray;">=</span> vector<br/>
+            <span style="color: Teal;">self</span>.<span style="color: #05a;">edges</span><span style="color: Olive;">[</span>level<span style="color: Olive;">]</span><span style="color: Olive;">[</span>vec_id<span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: Teal;">set</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># If it's the first point, set it as the entry</span><br/>
+        <span style="color: Green;font-weight:bold;">if</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">enter_point</span> <span style="color: Green;font-weight:bold;">is</span> <span style="color: Teal;">None</span>:<br/>
+            <span style="color: Teal;">self</span>.<span style="color: #05a;">enter_point</span> <span style="color: Gray;">=</span> vec_id<br/>
+            <span style="color: Green;font-weight:bold;">return</span> vec_id<br/>
+<br/>
+        <span style="color: #a50"># Search from the top layer downward to find the insertion position in each layer</span><br/>
+        current_entry <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">enter_point</span><br/>
+<br/>
+        <span style="color: #a50"># First search in layers above max_level_for_vec, updating the entry</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> level <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span>.<span style="color: #05a;">max_level</span> - <span style="color: Maroon;">1</span><span style="color: Gray;">,</span> max_level_for_vec<span style="color: Gray;">,</span> -<span style="color: Maroon;">1</span><span style="color: Olive;">)</span>:<br/>
+            <span style="color: Green;font-weight:bold;">if</span> current_entry <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">levels</span><span style="color: Olive;">[</span>level<span style="color: Olive;">]</span>:<br/>
+                layer_result <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>._search_layer<span style="color: Olive;">(</span>vector<span style="color: Gray;">,</span> level<span style="color: Gray;">,</span> current_entry<span style="color: Gray;">,</span> <span style="color: Maroon;">1</span><span style="color: Olive;">)</span><br/>
+                <span style="color: Green;font-weight:bold;">if</span> layer_result:<br/>
+                    current_entry <span style="color: Gray;">=</span> layer_result<span style="color: Olive;">[</span><span style="color: Maroon;">0</span><span style="color: Olive;">]</span><span style="color: Olive;">[</span><span style="color: Maroon;">1</span><span style="color: Olive;">]</span><br/>
+<br/>
+        <span style="color: #a50"># In layers up to max_level_for_vec, establish connections</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> level <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>max_level_for_vec<span style="color: Gray;">,</span> -<span style="color: Maroon;">1</span><span style="color: Gray;">,</span> -<span style="color: Maroon;">1</span><span style="color: Olive;">)</span>:<br/>
+            <span style="color: #a50"># Search for the closest ef_construction points in this layer</span><br/>
+            layer_result <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>._search_layer<span style="color: Olive;">(</span>vector<span style="color: Gray;">,</span> level<span style="color: Gray;">,</span> current_entry<span style="color: Gray;">,</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">ef_construction</span><span style="color: Olive;">)</span><br/>
+<br/>
+            <span style="color: #a50"># Connect to these points (simplified: bidirectional connection)</span><br/>
+            <span style="color: Green;font-weight:bold;">for</span> dist<span style="color: Gray;">,</span> neighbor_id <span style="color: Green;font-weight:bold;">in</span> layer_result:<br/>
+                <span style="color: Teal;">self</span>.<span style="color: #05a;">edges</span><span style="color: Olive;">[</span>level<span style="color: Olive;">]</span><span style="color: Olive;">[</span>vec_id<span style="color: Olive;">]</span>.<span style="color: #05a;">add</span><span style="color: Olive;">(</span>neighbor_id<span style="color: Olive;">)</span><br/>
+                <span style="color: Teal;">self</span>.<span style="color: #05a;">edges</span><span style="color: Olive;">[</span>level<span style="color: Olive;">]</span><span style="color: Olive;">[</span>neighbor_id<span style="color: Olive;">]</span>.<span style="color: #05a;">add</span><span style="color: Olive;">(</span>vec_id<span style="color: Olive;">)</span><br/>
+<br/>
+            <span style="color: #a50"># Update the entry for the next layer</span><br/>
+            <span style="color: Green;font-weight:bold;">if</span> layer_result:<br/>
+                current_entry <span style="color: Gray;">=</span> layer_result<span style="color: Olive;">[</span><span style="color: Maroon;">0</span><span style="color: Olive;">]</span><span style="color: Olive;">[</span><span style="color: Maroon;">1</span><span style="color: Olive;">]</span><br/>
+<br/>
+        <span style="color: #a50"># Update the top-layer entry</span><br/>
+        <span style="color: Green;font-weight:bold;">if</span> max_level_for_vec <span style="color: Gray;">&gt;</span> <span style="color: Teal;">self</span>._random_level<span style="color: Olive;">(</span><span style="color: Olive;">)</span>:  <span style="color: #a50"># Simplified check</span><br/>
+            <span style="color: Teal;">self</span>.<span style="color: #05a;">enter_point</span> <span style="color: Gray;">=</span> vec_id<br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">return</span> vec_id<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> search<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> query: np.<span style="color: #05a;">ndarray</span><span style="color: Gray;">,</span> top_k: <span style="color: Teal;">int</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">5</span><span style="color: Gray;">,</span> ef: <span style="color: Teal;">int</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">10</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> List<span style="color: Olive;">[</span>Tuple<span style="color: Olive;">[</span><span style="color: Teal;">int</span><span style="color: Gray;">,</span> <span style="color: Teal;">float</span><span style="color: Olive;">]</span><span style="color: Olive;">]</span>:<br/>
+        <span style="color: #a11;">"""Search Top K nearest neighbors"""</span><br/>
+        <span style="color: Green;font-weight:bold;">if</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">enter_point</span> <span style="color: Green;font-weight:bold;">is</span> <span style="color: Teal;">None</span>:<br/>
+            <span style="color: Green;font-weight:bold;">return</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+<br/>
+        current_entry <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">enter_point</span><br/>
+<br/>
+        <span style="color: #a50"># From the top level down to the first level</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> level <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span>.<span style="color: #05a;">max_level</span> - <span style="color: Maroon;">1</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0</span><span style="color: Gray;">,</span> -<span style="color: Maroon;">1</span><span style="color: Olive;">)</span>:<br/>
+            <span style="color: Green;font-weight:bold;">if</span> current_entry <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">levels</span><span style="color: Olive;">[</span>level<span style="color: Olive;">]</span>:<br/>
+                layer_result <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>._search_layer<span style="color: Olive;">(</span>query<span style="color: Gray;">,</span> level<span style="color: Gray;">,</span> current_entry<span style="color: Gray;">,</span> <span style="color: Maroon;">1</span><span style="color: Olive;">)</span><br/>
+                <span style="color: Green;font-weight:bold;">if</span> layer_result:<br/>
+                    current_entry <span style="color: Gray;">=</span> layer_result<span style="color: Olive;">[</span><span style="color: Maroon;">0</span><span style="color: Olive;">]</span><span style="color: Olive;">[</span><span style="color: Maroon;">1</span><span style="color: Olive;">]</span><br/>
+<br/>
+        <span style="color: #a50"># Search ef points at the bottom level, then return Top K</span><br/>
+        layer_result <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>._search_layer<span style="color: Olive;">(</span>query<span style="color: Gray;">,</span> <span style="color: Maroon;">0</span><span style="color: Gray;">,</span> current_entry<span style="color: Gray;">,</span> ef<span style="color: Olive;">)</span><br/>
+        layer_result.<span style="color: #05a;">sort</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">return</span> <span style="color: Olive;">[</span><span style="color: Olive;">(</span>vec_id<span style="color: Gray;">,</span> dist<span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> dist<span style="color: Gray;">,</span> vec_id <span style="color: Green;font-weight:bold;">in</span> layer_result<span style="color: Olive;">[</span>:top_k<span style="color: Olive;">]</span><span style="color: Olive;">]</span><br/>
+<br/>
+<br/>
+<span style="color: #a50"># Test</span><br/>
+np.<span style="color: #05a;">random</span>.<span style="color: #05a;">seed</span><span style="color: Olive;">(</span><span style="color: Maroon;">42</span><span style="color: Olive;">)</span><br/>
+dim <span style="color: Gray;">=</span> <span style="color: Maroon;">128</span><br/>
+hnsw <span style="color: Gray;">=</span> SimpleHNSW<span style="color: Olive;">(</span>dim<span style="color: Gray;">=</span>dim<span style="color: Gray;">,</span> max_level<span style="color: Gray;">=</span><span style="color: Maroon;">3</span><span style="color: Gray;">,</span> ef_construction<span style="color: Gray;">=</span><span style="color: Maroon;">5</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># Add 100 vectors</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Building HNSW index (adding 100 vectors)..."</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">for</span> i <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Maroon;">100</span><span style="color: Olive;">)</span>:<br/>
+    vec <span style="color: Gray;">=</span> np.<span style="color: #05a;">random</span>.<span style="color: #05a;">randn</span><span style="color: Olive;">(</span>dim<span style="color: Olive;">)</span><br/>
+    hnsw.<span style="color: #05a;">add</span><span style="color: Olive;">(</span>vec<span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Index construction complete, entry point = {hnsw.enter_point}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># Generate query vector</span><br/>
+query <span style="color: Gray;">=</span> np.<span style="color: #05a;">random</span>.<span style="color: #05a;">randn</span><span style="color: Olive;">(</span>dim<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># Search</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>Executing HNSW search..."</span><span style="color: Olive;">)</span><br/>
+results <span style="color: Gray;">=</span> hnsw.<span style="color: #05a;">search</span><span style="color: Olive;">(</span>query<span style="color: Gray;">,</span> top_k<span style="color: Gray;">=</span><span style="color: Maroon;">5</span><span style="color: Gray;">,</span> ef<span style="color: Gray;">=</span><span style="color: Maroon;">10</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Search results:"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">for</span> vec_id<span style="color: Gray;">,</span> dist <span style="color: Green;font-weight:bold;">in</span> results:<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  Vector {vec_id:3d}, distance = {dist:.4f}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># Output similar to:</span><br/>
+<span style="color: #a50"># Building HNSW index (adding 100 vectors)...</span><br/>
+<span style="color: #a50"># Index construction complete, entry point = 54</span><br/>
+<span style="color: #a50">#</span><br/>
+<span style="color: #a50"># Executing HNSW search...</span><br/>
+<span style="color: #a50"># Search results:</span><br/>
+<span style="color: #a50">#   Vector  86, distance = 13.7515</span><br/>
+<span style="color: #a50">#   Vector  30, distance = 13.8651</span><br/>
+<span style="color: #a50">#   Vector  28, distance = 14.0754</span><br/>
+<span style="color: #a50">#   Vector  56, distance = 14.1106</span><br/>
+<span style="color: #a50">#   Vector  34, distance = 14.2131</span><br/>
+</div>
+</div>
+<p>Advantages of HNSW:</p>
+<ul>
+<li><p>1. <strong>Fast query</strong>: Usually only a few nodes need to be visited to find the nearest neighbor.</p></li>
+<li>
+<p>2. <strong>Fast construction</strong>: Vectors can be added incrementally without rebuilding the entire index.</p></li>
+<li>
+<p>3. <strong>Simple parameters</strong>: Mainly adjust ef_construction (graph quality) and ef (search quality).</p></li></ul>
+<h3>IVF: Inverted File Index</h3>
+<p>The idea of IVF (Inverted File) is "divide and conquer".</p>
+<p>Steps:</p>
+<ul>
+<li>
+<p>1. <strong>Clustering</strong>: Divide the vector space into K "buckets" (using K-Means clustering).</p></li>
+<li>
+<p>2. <strong>Indexing</strong>: Each vector is assigned to its nearest bucket.</p></li>
+<li>
+<p>3. <strong>Query</strong>: First find the N buckets closest to the query vector, then search only within these N buckets.</p></li></ul>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># Simplified demonstration of IVF principle</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">import</span> numpy <span style="color: Green;font-weight:bold;">as</span> np<br/>
+<span style="color: Green;font-weight:bold;">from</span> typing <span style="color: Green;font-weight:bold;">import</span> List<span style="color: Gray;">,</span> Tuple<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> SimpleIVF:<br/>
+    <span style="color: #a11;">"""Simplified IVF, only for demonstrating the principle"""</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> dim: <span style="color: Teal;">int</span><span style="color: Gray;">,</span> nlist: <span style="color: Teal;">int</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">10</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">dim</span> <span style="color: Gray;">=</span> dim<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">nlist</span> <span style="color: Gray;">=</span> nlist  <span style="color: #a50"># Number of cluster centers (number of buckets)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">centroids</span>: np.<span style="color: #05a;">ndarray</span> <span style="color: Gray;">=</span> <span style="color: Teal;">None</span>  <span style="color: #a50"># Cluster centers</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">inverted_lists</span>: List<span style="color: Olive;">[</span>List<span style="color: Olive;">[</span>Tuple<span style="color: Olive;">[</span><span style="color: Teal;">int</span><span style="color: Gray;">,</span> np.<span style="color: #05a;">ndarray</span><span style="color: Olive;">]</span><span style="color: Olive;">]</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">[</span><span style="color: Olive;">]</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>nlist<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">next_id</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">0</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> _l2_distance<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> v1: np.<span style="color: #05a;">ndarray</span><span style="color: Gray;">,</span> v2: np.<span style="color: #05a;">ndarray</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">float</span>:<br/>
+        <span style="color: #a11;">"""L2 distance"""</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> np.<span style="color: #05a;">sqrt</span><span style="color: Olive;">(</span>np.<span style="color: Teal;">sum</span><span style="color: Olive;">(</span><span style="color: Olive;">(</span>v1 - v2<span style="color: Olive;">)</span> ** <span style="color: Maroon;">2</span><span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> _find_nearest_centroid<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> vector: np.<span style="color: #05a;">ndarray</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">int</span>:<br/>
+        <span style="color: #a11;">"""Find the nearest cluster center"""</span><br/>
+        distances <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Teal;">self</span>._l2_distance<span style="color: Olive;">(</span>vector<span style="color: Gray;">,</span> c<span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> c <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">centroids</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> <span style="color: Teal;">int</span><span style="color: Olive;">(</span>np.<span style="color: #05a;">argmin</span><span style="color: Olive;">(</span>distances<span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> fit<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> vectors: List<span style="color: Olive;">[</span>np.<span style="color: #05a;">ndarray</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""Initialize cluster centers with K-Means (simplified: random selection)"""</span><br/>
+        <span style="color: #a50"># Simplified: randomly select nlist vectors as initial centers</span><br/>
+        <span style="color: #a50"># In actual implementation, K-Means iteration should be used</span><br/>
+        indices <span style="color: Gray;">=</span> np.<span style="color: #05a;">random</span>.<span style="color: #05a;">choice</span><span style="color: Olive;">(</span><span style="color: Teal;">len</span><span style="color: Olive;">(</span>vectors<span style="color: Olive;">)</span><span style="color: Gray;">,</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">nlist</span><span style="color: Gray;">,</span> replace<span style="color: Gray;">=</span><span style="color: Teal;">False</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">centroids</span> <span style="color: Gray;">=</span> np.<span style="color: #05a;">array</span><span style="color: Olive;">(</span><span style="color: Olive;">[</span>vectors<span style="color: Olive;">[</span>i<span style="color: Olive;">]</span> <span style="color: Green;font-weight:bold;">for</span> i <span style="color: Green;font-weight:bold;">in</span> indices<span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> add<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> vector: np.<span style="color: #05a;">ndarray</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">int</span>:<br/>
+        <span style="color: #a11;">"""Add vector"""</span><br/>
+        vec_id <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">next_id</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">next_id</span> +<span style="color: Gray;">=</span> <span style="color: Maroon;">1</span><br/>
+<br/>
+        <span style="color: #a50"># Find the nearest bucket</span><br/>
+        centroid_idx <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>._find_nearest_centroid<span style="color: Olive;">(</span>vector<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># Put it into this bucket</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">inverted_lists</span><span style="color: Olive;">[</span>centroid_idx<span style="color: Olive;">]</span>.<span style="color: #05a;">append</span><span style="color: Olive;">(</span><span style="color: Olive;">(</span>vec_id<span style="color: Gray;">,</span> vector<span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">return</span> vec_id<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> search<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> query: np.<span style="color: #05a;">ndarray</span><span style="color: Gray;">,</span> top_k: <span style="color: Teal;">int</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">5</span><span style="color: Gray;">,</span> nprobe: <span style="color: Teal;">int</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">3</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> List<span style="color: Olive;">[</span>Tuple<span style="color: Olive;">[</span><span style="color: Teal;">int</span><span style="color: Gray;">,</span> <span style="color: Teal;">float</span><span style="color: Olive;">]</span><span style="color: Olive;">]</span>:<br/>
+        <span style="color: #a11;">"""<br/>Search Top K<br/>nprobe: how many buckets to search (more is more accurate, but slower)<br/>
+        """</span><br/>
+        <span style="color: #a50"># Find the nearest nprobe buckets</span><br/>
+        centroid_distances <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><br/>
+            <span style="color: Olive;">(</span><span style="color: Teal;">self</span>._l2_distance<span style="color: Olive;">(</span>query<span style="color: Gray;">,</span> c<span style="color: Olive;">)</span><span style="color: Gray;">,</span> i<span style="color: Olive;">)</span><br/>
+            <span style="color: Green;font-weight:bold;">for</span> i<span style="color: Gray;">,</span> c <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">enumerate</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span>.<span style="color: #05a;">centroids</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Olive;">]</span><br/>
+        centroid_distances.<span style="color: #05a;">sort</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+        nearest_centroids <span style="color: Gray;">=</span> <span style="color: Olive;">[</span>i <span style="color: Green;font-weight:bold;">for</span> dist<span style="color: Gray;">,</span> i <span style="color: Green;font-weight:bold;">in</span> centroid_distances<span style="color: Olive;">[</span>:nprobe<span style="color: Olive;">]</span><span style="color: Olive;">]</span><br/>
+<br/>
+        <span style="color: #a50"># Search only in these nprobe buckets</span><br/>
+        candidates <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> centroid_idx <span style="color: Green;font-weight:bold;">in</span> nearest_centroids:<br/>
+            <span style="color: Green;font-weight:bold;">for</span> vec_id<span style="color: Gray;">,</span> vec <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">inverted_lists</span><span style="color: Olive;">[</span>centroid_idx<span style="color: Olive;">]</span>:<br/>
+                dist <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>._l2_distance<span style="color: Olive;">(</span>query<span style="color: Gray;">,</span> vec<span style="color: Olive;">)</span><br/>
+                candidates.<span style="color: #05a;">append</span><span style="color: Olive;">(</span><span style="color: Olive;">(</span>dist<span style="color: Gray;">,</span> vec_id<span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># Sort and return Top K</span><br/>
+        candidates.<span style="color: #05a;">sort</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> <span style="color: Olive;">[</span><span style="color: Olive;">(</span>vec_id<span style="color: Gray;">,</span> dist<span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> dist<span style="color: Gray;">,</span> vec_id <span style="color: Green;font-weight:bold;">in</span> candidates<span style="color: Olive;">[</span>:top_k<span style="color: Olive;">]</span><span style="color: Olive;">]</span><br/>
+<br/>
+<br/>
+<span style="color: #a50"># Test</span><br/>
+np.<span style="color: #05a;">random</span>.<span style="color: #05a;">seed</span><span style="color: Olive;">(</span><span style="color: Maroon;">42</span><span style="color: Olive;">)</span><br/>
+dim <span style="color: Gray;">=</span> <span style="color: Maroon;">128</span><br/>
+<br/>
+<span style="color: #a50"># Generate 1000 vectors</span><br/>
+vectors <span style="color: Gray;">=</span> <span style="color: Olive;">[</span>np.<span style="color: #05a;">random</span>.<span style="color: #05a;">randn</span><span style="color: Olive;">(</span>dim<span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Maroon;">1000</span><span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+<br/>
+<span style="color: #a50"># Build IVF index</span><br/>
+ivf <span style="color: Gray;">=</span> SimpleIVF<span style="color: Olive;">(</span>dim<span style="color: Gray;">=</span>dim<span style="color: Gray;">,</span> nlist<span style="color: Gray;">=</span><span style="color: Maroon;">20</span><span style="color: Olive;">)</span><br/>
+ivf.<span style="color: #05a;">fit</span><span style="color: Olive;">(</span>vectors<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># Add vectors</span><br/>
+<span style="color: Green;font-weight:bold;">for</span> vec <span style="color: Green;font-weight:bold;">in</span> vectors:<br/>
+    ivf.<span style="color: #05a;">add</span><span style="color: Olive;">(</span>vec<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"IVF index construction complete, bucket count = {ivf.nlist}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">for</span> i <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>ivf.<span style="color: #05a;">nlist</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  Bucket {i:2d}: {len(ivf.inverted_lists[i])} vectors"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># Query</span><br/>
+query <span style="color: Gray;">=</span> np.<span style="color: #05a;">random</span>.<span style="color: #05a;">randn</span><span style="color: Olive;">(</span>dim<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>Executing IVF search (nprobe=3)..."</span><span style="color: Olive;">)</span><br/>
+results <span style="color: Gray;">=</span> ivf.<span style="color: #05a;">search</span><span style="color: Olive;">(</span>query<span style="color: Gray;">,</span> top_k<span style="color: Gray;">=</span><span style="color: Maroon;">5</span><span style="color: Gray;">,</span> nprobe<span style="color: Gray;">=</span><span style="color: Maroon;">3</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Search results:"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">for</span> vec_id<span style="color: Gray;">,</span> dist <span style="color: Green;font-weight:bold;">in</span> results:<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  Vector {vec_id:3d}, distance = {dist:.4f}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># Output similar to:</span><br/>
+<span style="color: #a50"># IVF index construction complete, bucket count = 20</span><br/>
+<span style="color: #a50">#   Bucket  0: 63 vectors</span><br/>
+<span style="color: #a50">#   Bucket  1: 56 vectors</span><br/>
+<span style="color: #a50">#   ...</span><br/>
+<span style="color: #a50">#</span><br/>
+<span style="color: #a50"># Executing IVF search (nprobe=3)...</span><br/>
+<span style="color: #a50"># Search results:</span><br/>
+<span style="color: #a50">#   Vector 863, distance = 13.5409</span><br/>
+<span style="color: #a50">#   Vector 189, distance = 13.7083</span><br/>
+<span style="color: #a50">#   Vector 491, distance = 13.8628</span><br/>
+<span style="color: #a50">#   Vector 264, distance = 13.9812</span><br/>
+<span style="color: #a50">#   Vector 781, distance = 14.0021</span><br/>
+</div>
+</div>
+<p>The advantage of IVF is its small memory footprint, and you can dynamically adjust the nprobe parameter at query time to balance speed and accuracy.</p>
+<h3>PQ: Product Quantization</h3>
+<p>PQ (Product Quantization) is a compression algorithm.</p>
+<p>Core idea:</p>
+<ul>
+<li>
+<p>1. <strong>Splitting</strong>: Split the high-dimensional vector into multiple smaller segments (subvectors).</p></li>
+<li>
+<p>2. <strong>Quantization</strong>: Cluster each small segment independently, and replace the original vector with the cluster center's ID.</p></li>
+<li>
+<p>3. <strong>Lookup</strong>: At query time, use a lookup table to quickly compute approximate distances.</p></li></ul>
+<p>For example, a 128-dimensional vector is split into 8 segments of 16 dimensions each, and each segment is quantized with 256 centers. As a result, each vector only needs 8 bytes of storage (originally 128 * 4 = 512 bytes).</p>
+<h3>IVF-PQ Combination</h3>
+<p>In production environments, IVF and PQ are usually combined:</p>
+<p>IVF is responsible for "bucketing" to reduce the search scope, and PQ is responsible for "compression" to reduce memory and computation.</p>
+<table class="reference">
+<tr><th>Algorithm</th><th>Speed</th><th>Accuracy</th><th>Memory</th><th>Applicable scenarios</th></tr>
+<tr><td>Brute-force search</td><td>慢</td><td>100%</td><td>高</td><td>Small data size, needs 100% accuracy</td></tr>
+<tr><td>HNSW</td><td>Extremely fast</td><td>高</td><td>中</td><td>Query-intensive, needs low latency</td></tr>
+<tr><td>IVF</td><td>快</td><td>中</td><td>低</td><td>Large-scale data, acceptable small accuracy loss</td></tr>
+<tr><td>IVF-PQ</td><td>Very fast</td><td>中</td><td>Extremely low</td><td>Ultra-large-scale data, memory constrained</td></tr>
+</table>
+<hr/>
+<h2>Similarity Metrics</h2>
+<p>There are many ways to compute "similarity", and choosing the right metric is important.</p>
+<h3>Cosine Similarity</h3>
+<p>Cosine similarity measures the angle between the directions of two vectors, with a range of [-1, 1].</p>
+<p>The closer the value is to 1, the more similar; the closer to -1, the more opposite.</p>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># Cosine similarity computation</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">import</span> numpy <span style="color: Green;font-weight:bold;">as</span> np<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> cosine_similarity<span style="color: Olive;">(</span>v1: np.<span style="color: #05a;">ndarray</span><span style="color: Gray;">,</span> v2: np.<span style="color: #05a;">ndarray</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">float</span>:<br/>
+    <span style="color: #a11;">"""<br/>Cosine similarity = (v1 · v2) / (|v1| * |v2|)<br/>Range [-1, 1], closer to 1 means more similar<br/>
+    """</span><br/>
+    dot_product <span style="color: Gray;">=</span> np.<span style="color: #05a;">dot</span><span style="color: Olive;">(</span>v1<span style="color: Gray;">,</span> v2<span style="color: Olive;">)</span><br/>
+    norm1 <span style="color: Gray;">=</span> np.<span style="color: #05a;">linalg</span>.<span style="color: #05a;">norm</span><span style="color: Olive;">(</span>v1<span style="color: Olive;">)</span><br/>
+    norm2 <span style="color: Gray;">=</span> np.<span style="color: #05a;">linalg</span>.<span style="color: #05a;">norm</span><span style="color: Olive;">(</span>v2<span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> dot_product / <span style="color: Olive;">(</span>norm1 * norm2<span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: #a50"># Test</span><br/>
+np.<span style="color: #05a;">random</span>.<span style="color: #05a;">seed</span><span style="color: Olive;">(</span><span style="color: Maroon;">42</span><span style="color: Olive;">)</span><br/>
+v1 <span style="color: Gray;">=</span> np.<span style="color: #05a;">array</span><span style="color: Olive;">(</span><span style="color: Olive;">[</span><span style="color: Maroon;">1</span><span style="color: Gray;">,</span> <span style="color: Maroon;">2</span><span style="color: Gray;">,</span> <span style="color: Maroon;">3</span><span style="color: Gray;">,</span> <span style="color: Maroon;">4</span><span style="color: Gray;">,</span> <span style="color: Maroon;">5</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+v2 <span style="color: Gray;">=</span> np.<span style="color: #05a;">array</span><span style="color: Olive;">(</span><span style="color: Olive;">[</span><span style="color: Maroon;">2</span><span style="color: Gray;">,</span> <span style="color: Maroon;">4</span><span style="color: Gray;">,</span> <span style="color: Maroon;">6</span><span style="color: Gray;">,</span> <span style="color: Maroon;">8</span><span style="color: Gray;">,</span> <span style="color: Maroon;">10</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span>  <span style="color: #a50"># Same direction</span><br/>
+v3 <span style="color: Gray;">=</span> np.<span style="color: #05a;">array</span><span style="color: Olive;">(</span><span style="color: Olive;">[</span>-<span style="color: Maroon;">1</span><span style="color: Gray;">,</span> -<span style="color: Maroon;">2</span><span style="color: Gray;">,</span> -<span style="color: Maroon;">3</span><span style="color: Gray;">,</span> -<span style="color: Maroon;">4</span><span style="color: Gray;">,</span> -<span style="color: Maroon;">5</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span>  <span style="color: #a50"># Opposite direction</span><br/>
+v4 <span style="color: Gray;">=</span> np.<span style="color: #05a;">random</span>.<span style="color: #05a;">randn</span><span style="color: Olive;">(</span><span style="color: Maroon;">5</span><span style="color: Olive;">)</span>  <span style="color: #a50"># Random</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"v1 = {v1}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"v2 = {v2}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"v3 = {v3}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"v4 = {v4}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"cosine(v1, v2) = {cosine_similarity(v1, v2):.4f}  (same direction, should be 1.0)"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"cosine(v1, v3) = {cosine_similarity(v1, v3):.4f}  (opposite direction, should be -1.0)"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"cosine(v1, v4) = {cosine_similarity(v1, v4):.4f}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># Output:</span><br/>
+<span style="color: #a50"># v1 = [1 2 3 4 5]</span><br/>
+<span style="color: #a50"># v2 = [ 2  4  6  8 10]</span><br/>
+<span style="color: #a50"># v3 = [-1 -2 -3 -4 -5]</span><br/>
+<span style="color: #a50"># v4 = [ 0.4967 -0.1383  0.6477  1.5230 -0.2342]</span><br/>
+<span style="color: #a50">#</span><br/>
+<span style="color: #a50"># cosine(v1, v2) = 1.0000  (same direction, should be 1.0)</span><br/>
+<span style="color: #a50"># cosine(v1, v3) = -1.0000  (opposite direction, should be -1.0)</span><br/>
+<span style="color: #a50"># cosine(v1, v4) = 0.2143</span><br/>
+</div>
+</div>
+<p>Cosine similarity's characteristic: it doesn't care about the length of the vector, only the direction. This is common in text embeddings, because the "semantics" of text is unrelated to length.</p>
+<h3>L2 Euclidean Distance</h3>
+<p>L2 distance is the straight-line distance between two points in space; the smaller, the more similar.</p>
+<h3>Inner Product (Dot Product)</h3>
+<p>Inner product = v1 · v2. If the vectors are normalized, the inner product equals cosine similarity.</p>
+<h3>Selection Guide</h3>
+<table class="reference">
+<tr><th>Metric</th><th>Value range</th><th>When to choose</th><th>Typical use cases</th></tr>
+<tr><td>Cosine similarity</td><td>[-1, 1]</td><td>Only cares about direction, not length</td><td>Text embeddings, semantic search</td></tr>
+<tr><td>L2 distance</td><td>[0, ∞)</td><td>Spatial position matters</td><td>Image features, recommendation systems</td></tr>
+<tr><td>Inner product</td><td>(-∞, ∞)</td><td>Vectors are normalized, or length is meaningful</td><td>Certain specific embedding models</td></tr>
+</table>
+<blockquote>
+<p>Most embedding models (e.g., OpenAI's text-embedding series) output normalized vectors; in this case<span class="marked">cosine similarity = inner product</span>, so it doesn't matter which one you use.</p>
+</blockquote>
+<hr/>
+<h2>Comparison of Mainstream Vector Databases</h2>
+<p>Vector databases fall into three categories: local libraries (FAISS), lightweight open-source (Chroma, Qdrant), and enterprise-grade (Milvus, Pinecone, Weaviate).</p>
+<h3>FAISS: A Local Library from Facebook</h3>
+<p>FAISS is not a complete database, but a C++ library (with Python bindings).</p>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># FAISS basic usage demonstration</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">import</span> numpy <span style="color: Green;font-weight:bold;">as</span> np<br/>
+<br/>
+<span style="color: #a50"># Note: You need to install FAISS first to run it</span><br/>
+<span style="color: #a50"># pip install faiss-cpu  (CPU version)</span><br/>
+<span style="color: #a50"># or</span><br/>
+<span style="color: #a50"># pip install faiss-gpu  (GPU version)</span><br/>
+<br/>
+<span style="color: #a50"># Below is a typical FAISS usage example (code sample, not actually executed)</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> faiss_example<span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""FAISS usage example"""</span><br/>
+    <span style="color: #a50"># 1. Prepare data</span><br/>
+    dimension <span style="color: Gray;">=</span> <span style="color: Maroon;">128</span><br/>
+    nb <span style="color: Gray;">=</span> <span style="color: Maroon;">10000</span>  <span style="color: #a50"># Number of database vectors</span><br/>
+    nq <span style="color: Gray;">=</span> <span style="color: Maroon;">10</span>  <span style="color: #a50"># Number of query vectors</span><br/>
+<br/>
+    np.<span style="color: #05a;">random</span>.<span style="color: #05a;">seed</span><span style="color: Olive;">(</span><span style="color: Maroon;">42</span><span style="color: Olive;">)</span><br/>
+    xb <span style="color: Gray;">=</span> np.<span style="color: #05a;">random</span>.<span style="color: #05a;">random</span><span style="color: Olive;">(</span><span style="color: Olive;">(</span>nb<span style="color: Gray;">,</span> dimension<span style="color: Olive;">)</span><span style="color: Olive;">)</span>.<span style="color: #05a;">astype</span><span style="color: Olive;">(</span><span style="color: #a11;">'float32'</span><span style="color: Olive;">)</span>  <span style="color: #a50"># Database</span><br/>
+    xq <span style="color: Gray;">=</span> np.<span style="color: #05a;">random</span>.<span style="color: #05a;">random</span><span style="color: Olive;">(</span><span style="color: Olive;">(</span>nq<span style="color: Gray;">,</span> dimension<span style="color: Olive;">)</span><span style="color: Olive;">)</span>.<span style="color: #05a;">astype</span><span style="color: Olive;">(</span><span style="color: #a11;">'float32'</span><span style="color: Olive;">)</span>  <span style="color: #a50"># Query</span><br/>
+<br/>
+    <span style="color: #a50"># 2. Create index (IVF example)</span><br/>
+    <span style="color: Green;font-weight:bold;">import</span> faiss<br/>
+<br/>
+    nlist <span style="color: Gray;">=</span> <span style="color: Maroon;">100</span>  <span style="color: #a50"># Number of cluster centers</span><br/>
+    quantizer <span style="color: Gray;">=</span> faiss.<span style="color: #05a;">IndexFlatL2</span><span style="color: Olive;">(</span>dimension<span style="color: Olive;">)</span>  <span style="color: #a50"># Quantizer</span><br/>
+    index <span style="color: Gray;">=</span> faiss.<span style="color: #05a;">IndexIVFFlat</span><span style="color: Olive;">(</span>quantizer<span style="color: Gray;">,</span> dimension<span style="color: Gray;">,</span> nlist<span style="color: Gray;">,</span> faiss.<span style="color: #05a;">METRIC_L2</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 3. Train index</span><br/>
+    index.<span style="color: #05a;">train</span><span style="color: Olive;">(</span>xb<span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 4. Add vectors</span><br/>
+    index.<span style="color: #05a;">add</span><span style="color: Olive;">(</span>xb<span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 5. Set nprobe for search</span><br/>
+    index.<span style="color: #05a;">nprobe</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">10</span><br/>
+<br/>
+    <span style="color: #a50"># 6. Search Top 5</span><br/>
+    k <span style="color: Gray;">=</span> <span style="color: Maroon;">5</span><br/>
+    distances<span style="color: Gray;">,</span> indices <span style="color: Gray;">=</span> index.<span style="color: #05a;">search</span><span style="color: Olive;">(</span>xq<span style="color: Gray;">,</span> k<span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Query results (Top 5 for the first 2 queries):"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">for</span> i <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Teal;">min</span><span style="color: Olive;">(</span><span style="color: Maroon;">2</span><span style="color: Gray;">,</span> nq<span style="color: Olive;">)</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Query {i}:"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> j <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>k<span style="color: Olive;">)</span>:<br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  Index {indices[i][j]}, distance {distances[i][j]:.4f}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">return</span> index<br/>
+<br/>
+<br/>
+<span style="color: #a50"># HNSW index example</span><br/>
+<span style="color: Green;font-weight:bold;">def</span> faiss_hnsw_example<span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""FAISS HNSW index"""</span><br/>
+    <span style="color: Green;font-weight:bold;">import</span> faiss<br/>
+<br/>
+    dimension <span style="color: Gray;">=</span> <span style="color: Maroon;">128</span><br/>
+    index <span style="color: Gray;">=</span> faiss.<span style="color: #05a;">IndexHNSWFlat</span><span style="color: Olive;">(</span>dimension<span style="color: Gray;">,</span> <span style="color: Maroon;">32</span><span style="color: Olive;">)</span>  <span style="color: #a50"># 32 = M parameter (number of connections per node)</span><br/>
+    index.<span style="color: #05a;">hnsw</span>.<span style="color: #05a;">efConstruction</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">40</span>  <span style="color: #a50"># ef during graph construction</span><br/>
+    index.<span style="color: #05a;">hnsw</span>.<span style="color: #05a;">efSearch</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">16</span>  <span style="color: #a50"># ef during search</span><br/>
+<br/>
+    <span style="color: #a50"># Add data...</span><br/>
+    <span style="color: #a50"># index.add(xb)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">return</span> index<br/>
+<br/>
+<br/>
+<span style="color: #a50"># If FAISS is installed, you can uncomment the lines below to run</span><br/>
+<span style="color: #a50"># faiss_example()</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"FAISS example code: This is a typical usage of FAISS."</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Key steps: create index → train → add vectors → search."</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Common FAISS index types:"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - IndexFlatL2: brute-force search (accurate but slow)"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - IndexIVFFlat: IVF bucketed search"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - IndexIVFPQ: IVF + PQ compression"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - IndexHNSWFlat: HNSW graph index"</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<p>FAISS features:</p>
+<ul>
+<li>
+<p>1. <strong>Extremely fast</strong>: C++ implementation, optimized to the extreme.</p></li>
+<li>
+<p>2. <strong>Full-featured</strong>: Supports almost all mainstream ANN algorithms.</p></li>
+<li>
+<p>3. <strong>Local</strong>: No network, no persistence (you need to save the index file yourself).</p></li></ul>
+<p>Applicable scenarios: offline batch processing, not wanting to set up a service, relatively small data volume.</p>
+<h3>Chroma: Lightweight and Local-First</h3>
+<p>Chroma is a simple and easy-to-use vector database designed to "make AI application development faster."</p>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># Chroma basic usage demonstration</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: #a50"># Install: pip install chromadb</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> chroma_example<span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""Chroma usage example"""</span><br/>
+    <span style="color: Green;font-weight:bold;">import</span> chromadb<br/>
+    <span style="color: Green;font-weight:bold;">from</span> chromadb.<span style="color: #05a;">utils</span> <span style="color: Green;font-weight:bold;">import</span> embedding_functions<br/>
+<br/>
+    <span style="color: #a50"># 1. Initialize client (local mode, data saved to disk)</span><br/>
+    client <span style="color: Gray;">=</span> chromadb.<span style="color: #05a;">PersistentClient</span><span style="color: Olive;">(</span>path<span style="color: Gray;">=</span><span style="color: #a11;">"./runoob-chroma-db"</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 2. Create or get a collection</span><br/>
+    collection <span style="color: Gray;">=</span> client.<span style="color: #05a;">get_or_create_collection</span><span style="color: Olive;">(</span><br/>
+        name<span style="color: Gray;">=</span><span style="color: #a11;">"runoob_docs"</span><span style="color: Gray;">,</span><br/>
+        metadata<span style="color: Gray;">=</span><span style="color: Olive;">{</span><span style="color: #a11;">"description"</span>: <span style="color: #a11;">"Runoob tutorial document collection"</span><span style="color: Olive;">}</span><br/>
+    <span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 3. Add documents (Chroma handles embedding automatically)</span><br/>
+    <span style="color: #a50"># You can use OpenAI, Cohere, etc., or provide your own vectors</span><br/>
+    documents <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><br/>
+        <span style="color: #a11;">"Python is an interpreted, high-level, general-purpose programming language."</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">"JavaScript is a lightweight, interpreted programming language."</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">"Vector databases are used to store and retrieve vector embeddings."</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">"RAG, or Retrieval-Augmented Generation, is a technique that combines retrieval with generation."</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">"HNSW is an approximate nearest neighbor algorithm based on a hierarchical small-world graph."</span><br/>
+    <span style="color: Olive;">]</span><br/>
+<br/>
+    metadatas <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><br/>
+        <span style="color: Olive;">{</span><span style="color: #a11;">"category"</span>: <span style="color: #a11;">"programming"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"language"</span>: <span style="color: #a11;">"Python"</span><span style="color: Olive;">}</span><span style="color: Gray;">,</span><br/>
+        <span style="color: Olive;">{</span><span style="color: #a11;">"category"</span>: <span style="color: #a11;">"programming"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"language"</span>: <span style="color: #a11;">"JavaScript"</span><span style="color: Olive;">}</span><span style="color: Gray;">,</span><br/>
+        <span style="color: Olive;">{</span><span style="color: #a11;">"category"</span>: <span style="color: #a11;">"database"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"topic"</span>: <span style="color: #a11;">"vector"</span><span style="color: Olive;">}</span><span style="color: Gray;">,</span><br/>
+        <span style="color: Olive;">{</span><span style="color: #a11;">"category"</span>: <span style="color: #a11;">"ai"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"topic"</span>: <span style="color: #a11;">"rag"</span><span style="color: Olive;">}</span><span style="color: Gray;">,</span><br/>
+        <span style="color: Olive;">{</span><span style="color: #a11;">"category"</span>: <span style="color: #a11;">"algorithm"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"topic"</span>: <span style="color: #a11;">"hnsw"</span><span style="color: Olive;">}</span><br/>
+    <span style="color: Olive;">]</span><br/>
+<br/>
+    ids <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: #a11;">"doc1"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"doc2"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"doc3"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"doc4"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"doc5"</span><span style="color: Olive;">]</span><br/>
+<br/>
+    <span style="color: #a50"># Add (using mock vectors here; in practice, use an embedding model)</span><br/>
+    <span style="color: Green;font-weight:bold;">import</span> numpy <span style="color: Green;font-weight:bold;">as</span> np<br/>
+    np.<span style="color: #05a;">random</span>.<span style="color: #05a;">seed</span><span style="color: Olive;">(</span><span style="color: Maroon;">42</span><span style="color: Olive;">)</span><br/>
+    embeddings <span style="color: Gray;">=</span> <span style="color: Olive;">[</span>np.<span style="color: #05a;">random</span>.<span style="color: #05a;">randn</span><span style="color: Olive;">(</span><span style="color: Maroon;">128</span><span style="color: Olive;">)</span>.<span style="color: #05a;">tolist</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Maroon;">5</span><span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+<br/>
+    collection.<span style="color: #05a;">add</span><span style="color: Olive;">(</span><br/>
+        documents<span style="color: Gray;">=</span>documents<span style="color: Gray;">,</span><br/>
+        metadatas<span style="color: Gray;">=</span>metadatas<span style="color: Gray;">,</span><br/>
+        ids<span style="color: Gray;">=</span>ids<span style="color: Gray;">,</span><br/>
+        embeddings<span style="color: Gray;">=</span>embeddings  <span style="color: #a50"># If not provided, Chroma uses the default embed function</span><br/>
+    <span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"There are {collection.count()} documents in the collection"</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 4. Query</span><br/>
+    query_embedding <span style="color: Gray;">=</span> np.<span style="color: #05a;">random</span>.<span style="color: #05a;">randn</span><span style="color: Olive;">(</span><span style="color: Maroon;">128</span><span style="color: Olive;">)</span>.<span style="color: #05a;">tolist</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+    results <span style="color: Gray;">=</span> collection.<span style="color: #05a;">query</span><span style="color: Olive;">(</span><br/>
+        query_embeddings<span style="color: Gray;">=</span><span style="color: Olive;">[</span>query_embedding<span style="color: Olive;">]</span><span style="color: Gray;">,</span><br/>
+        n_results<span style="color: Gray;">=</span><span style="color: Maroon;">3</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a50"># Metadata filtering can be added</span><br/>
+        <span style="color: #a50"># where={"category": "ai"}</span><br/>
+    <span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>Query results:"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">for</span> i <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Teal;">len</span><span style="color: Olive;">(</span>results<span style="color: Olive;">[</span><span style="color: #a11;">'ids'</span><span style="color: Olive;">]</span><span style="color: Olive;">[</span><span style="color: Maroon;">0</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"ID: {results['ids'][0][i]}"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Document: {results['documents']</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Distance: {results['distances']</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"---"</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">return</span> collection<br/>
+<br/>
+<br/>
+<span style="color: #a50"># If Chroma is installed, you can uncomment the lines below to run</span><br/>
+<span style="color: #a50"># chroma_example()</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Chroma example code: simple design, works out of the box."</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Chroma features:"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - Simple: friendly API, get started in minutes"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - Local-first: can persist to disk or run in memory"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - Built-in embeddings: supports OpenAI, Cohere, Sentence-Transformers"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - Supports metadata filtering: can filter by metadata during queries"</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<h3>Qdrant: Production-Grade Open Source</h3>
+<p>Qdrant is a vector database written in Rust, with good performance and full features.</p>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># Qdrant basic usage demo</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: #a50"># Install: pip install qdrant-client</span><br/>
+<span style="color: #a50"># Start service: docker run -p 6333:6333 qdrant/qdrant</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> qdrant_example<span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""Qdrant usage example"""</span><br/>
+    <span style="color: Green;font-weight:bold;">from</span> qdrant_client <span style="color: Green;font-weight:bold;">import</span> QdrantClient<br/>
+    <span style="color: Green;font-weight:bold;">from</span> qdrant_client.<span style="color: #05a;">models</span> <span style="color: Green;font-weight:bold;">import</span> Distance<span style="color: Gray;">,</span> VectorParams<span style="color: Gray;">,</span> PointStruct<span style="color: Gray;">,</span> Filter<span style="color: Gray;">,</span> FieldCondition<span style="color: Gray;">,</span> MatchValue<br/>
+<br/>
+    <span style="color: #a50"># 1. Connect client</span><br/>
+    client <span style="color: Gray;">=</span> QdrantClient<span style="color: Olive;">(</span>host<span style="color: Gray;">=</span><span style="color: #a11;">"localhost"</span><span style="color: Gray;">,</span> port<span style="color: Gray;">=</span><span style="color: Maroon;">6333</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 2. Create collection</span><br/>
+    client.<span style="color: #05a;">recreate_collection</span><span style="color: Olive;">(</span><br/>
+        collection_name<span style="color: Gray;">=</span><span style="color: #a11;">"runoob_collection"</span><span style="color: Gray;">,</span><br/>
+        vectors_config<span style="color: Gray;">=</span>VectorParams<span style="color: Olive;">(</span><br/>
+            size<span style="color: Gray;">=</span><span style="color: Maroon;">128</span><span style="color: Gray;">,</span><br/>
+            distance<span style="color: Gray;">=</span>Distance.<span style="color: #05a;">COSINE</span>  <span style="color: #a50"># or L2, DOT</span><br/>
+        <span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a50"># Optional: configure HNSW index parameters</span><br/>
+        <span style="color: #a50"># hnsw_config=HnswConfig(m=16, ef_construct=100)</span><br/>
+    <span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 3. Add points</span><br/>
+    <span style="color: Green;font-weight:bold;">import</span> numpy <span style="color: Green;font-weight:bold;">as</span> np<br/>
+    np.<span style="color: #05a;">random</span>.<span style="color: #05a;">seed</span><span style="color: Olive;">(</span><span style="color: Maroon;">42</span><span style="color: Olive;">)</span><br/>
+<br/>
+    points <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><br/>
+        PointStruct<span style="color: Olive;">(</span><br/>
+            <span style="color: Teal;">id</span><span style="color: Gray;">=</span>i<span style="color: Gray;">,</span><br/>
+            vector<span style="color: Gray;">=</span>np.<span style="color: #05a;">random</span>.<span style="color: #05a;">randn</span><span style="color: Olive;">(</span><span style="color: Maroon;">128</span><span style="color: Olive;">)</span>.<span style="color: #05a;">tolist</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+            payload<span style="color: Gray;">=</span><span style="color: Olive;">{</span><br/>
+                <span style="color: #a11;">"text"</span>: f<span style="color: #a11;">"Content of document {i}"</span><span style="color: Gray;">,</span><br/>
+                <span style="color: #a11;">"category"</span>: <span style="color: #a11;">"tech"</span> <span style="color: Green;font-weight:bold;">if</span> i % <span style="color: Maroon;">2</span> <span style="color: Gray;">==</span> <span style="color: Maroon;">0</span> <span style="color: Green;font-weight:bold;">else</span> <span style="color: #a11;">"life"</span><span style="color: Gray;">,</span><br/>
+                <span style="color: #a11;">"author"</span>: f<span style="color: #a11;">"author_{i % 3}"</span><br/>
+            <span style="color: Olive;">}</span><br/>
+        <span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> i <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Maroon;">100</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Olive;">]</span><br/>
+<br/>
+    client.<span style="color: #05a;">upsert</span><span style="color: Olive;">(</span><br/>
+        collection_name<span style="color: Gray;">=</span><span style="color: #a11;">"runoob_collection"</span><span style="color: Gray;">,</span><br/>
+        points<span style="color: Gray;">=</span>points<br/>
+    <span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 4. Query</span><br/>
+    query_vector <span style="color: Gray;">=</span> np.<span style="color: #05a;">random</span>.<span style="color: #05a;">randn</span><span style="color: Olive;">(</span><span style="color: Maroon;">128</span><span style="color: Olive;">)</span>.<span style="color: #05a;">tolist</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+    results <span style="color: Gray;">=</span> client.<span style="color: #05a;">search</span><span style="color: Olive;">(</span><br/>
+        collection_name<span style="color: Gray;">=</span><span style="color: #a11;">"runoob_collection"</span><span style="color: Gray;">,</span><br/>
+        query_vector<span style="color: Gray;">=</span>query_vector<span style="color: Gray;">,</span><br/>
+        limit<span style="color: Gray;">=</span><span style="color: Maroon;">5</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a50"># Filtering can be added</span><br/>
+        <span style="color: #a50"># query_filter=Filter(</span><br/>
+        <span style="color: #a50">#     must=[</span><br/>
+        <span style="color: #a50">#         FieldCondition(key="category", match=MatchValue(value="tech"))</span><br/>
+        <span style="color: #a50">#     ]</span><br/>
+        <span style="color: #a50"># )</span><br/>
+    <span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Query results:"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">for</span> result <span style="color: Green;font-weight:bold;">in</span> results:<br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"ID: {result.id}, Score: {result.score:.4f}"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Payload: {result.payload}"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"---"</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">return</span> client<br/>
+<br/>
+<br/>
+<span style="color: #a50"># If Qdrant is running, you can uncomment the lines below to run</span><br/>
+<span style="color: #a50"># qdrant_example()</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Qdrant example code: Rust implementation, comprehensive features."</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Qdrant features:"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - Good performance: Rust + HNSW"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - Full features: supports filtering, grouping, aggregation, pagination"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - Easy deployment: one-click start with Docker"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - Supports sharding: can scale horizontally"</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<h3>Mainstream Vector Database Comparison Table</h3>
+<table class="reference">
+<tr><th>Product</th><th>Type</th><th>Deployment</th><th>Features</th><th>Use cases</th></tr>
+<tr><td>FAISS</td><td>Local library</td><td>无</td><td>Extremely fast, full-featured, requires self-maintenance</td><td>Offline processing, don't want to set up a service</td></tr>
+<tr><td>Chroma</td><td>Lightweight</td><td>Local/Server</td><td>Simple and easy to use, Python-first</td><td>Prototyping, small projects</td></tr>
+<tr><td>Qdrant</td><td>Open source</td><td>Docker/K8s</td><td>Good performance, full features, Rust</td><td>Production environment, medium scale</td></tr>
+<tr><td>Milvus</td><td>Open source</td><td>Distributed</td><td>Enterprise-grade, most complete features</td><td>Large-scale production environment</td></tr>
+<tr><td>Weaviate</td><td>Open source</td><td>Docker/K8s</td><td>Modular, good ecosystem</td><td>Need flexible composition of features</td></tr>
+<tr><td>Pinecone</td><td>Cloud service</td><td>SaaS</td><td>Fully managed, scale on demand</td><td>Don't want to operate, quick launch</td></tr>
+</table>
+<hr/>
+<h2>Embedding Model Selection</h2>
+<p>Vector databases are just infrastructure; what truly determines results is the embedding model.</p>
+<h3>Comparison of Mainstream Embedding Models</h3>
+<table class="reference">
+<tr><th>Model</th><th>Dimensions</th><th>Features</th><th>Price</th></tr>
+<tr><td>OpenAI text-embedding-3-small</td><td>1536</td><td>High cost-performance, good overall quality</td><td>$0.00002 / 1K tokens</td></tr>
+<tr><td>OpenAI text-embedding-3-large</td><td>3072</td><td>Highest quality, high dimensions</td><td>$0.00013 / 1K tokens</td></tr>
+<tr><td>Cohere Embed v3</td><td>1024</td><td>Good multilingual support</td><td>$0.0001 / 1K tokens</td></tr>
+<tr><td>bge-large-zh-v1.5</td><td>1024</td><td>Good for Chinese, open source and free</td><td>Free</td></tr>
+<tr><td>bge-m3</td><td>1024</td><td>Multilingual, multi-functional</td><td>Free</td></tr>
+<tr><td>gte-large</td><td>1024</td><td>Balanced choice, open source</td><td>Free</td></tr>
+</table>
+<h3>Dimensions vs. Performance Trade-off</h3>
+<p>The higher the dimensions, the better the results usually, but:</p>
+<ul>
+<li>
+<p>1. <strong>Storage is more expensive</strong>: 3072 dimensions take up twice as much space as 1536 dimensions.</p></li>
+<li>
+<p>2. <strong>Computation is slower</strong>: Distance computation cost is proportional to dimensionality.</p></li>
+<li>
+<p>3. <strong>Larger index</strong>: HNSW/IVF indexes will also be larger.</p></li></ul>
+<blockquote>
+<p>Recommendation:<span class="marked">First test with a low-dimensional model; if it's not enough, move to a higher dimension.</span>. In most scenarios, 1536 dimensions is already good enough.</p>
+</blockquote>
+<hr/>
+<h2>Hybrid Search</h2>
+<p>Pure vector search is sometimes not good enough, because it only matches "semantics", not "keywords".</p>
+<p>Hybrid search = vector search + keyword search, then fuse the results.</p>
+<h3>BM25 Sparse Retrieval</h3>
+<p>BM25 is a classic algorithm in traditional search, measuring the degree of keyword matching.</p>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># BM25 keyword search demo</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">import</span> <span style="color: #05a;">math</span><br/>
+<span style="color: Green;font-weight:bold;">from</span> typing <span style="color: Green;font-weight:bold;">import</span> List<span style="color: Gray;">,</span> Dict<span style="color: Gray;">,</span> Set<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> SimpleBM25:<br/>
+    <span style="color: #a11;">"""Simplified BM25 implementation"""</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> k1: <span style="color: Teal;">float</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">1.5</span><span style="color: Gray;">,</span> b: <span style="color: Teal;">float</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">0.75</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">k1</span> <span style="color: Gray;">=</span> k1<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">b</span> <span style="color: Gray;">=</span> b<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">documents</span>: List<span style="color: Olive;">[</span>List<span style="color: Olive;">[</span><span style="color: Teal;">str</span><span style="color: Olive;">]</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">doc_lengths</span>: List<span style="color: Olive;">[</span><span style="color: Teal;">int</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">avg_doc_length</span>: <span style="color: Teal;">float</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">0</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">term_freqs</span>: List<span style="color: Olive;">[</span>Dict<span style="color: Olive;">[</span><span style="color: Teal;">str</span><span style="color: Gray;">,</span> <span style="color: Teal;">int</span><span style="color: Olive;">]</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">doc_freq</span>: Dict<span style="color: Olive;">[</span><span style="color: Teal;">str</span><span style="color: Gray;">,</span> <span style="color: Teal;">int</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: Olive;">{</span><span style="color: Olive;">}</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">num_docs</span>: <span style="color: Teal;">int</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">0</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> _tokenize<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> text: <span style="color: Teal;">str</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> List<span style="color: Olive;">[</span><span style="color: Teal;">str</span><span style="color: Olive;">]</span>:<br/>
+        <span style="color: #a11;">"""Simple tokenization (by spaces and punctuation)"""</span><br/>
+        <span style="color: #a50"># Simplified: convert to lowercase, split by non-alphanumeric characters</span><br/>
+        <span style="color: Green;font-weight:bold;">import</span> <span style="color: #05a;">re</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> <span style="color: Olive;">[</span>t.<span style="color: #05a;">lower</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> t <span style="color: Green;font-weight:bold;">in</span> <span style="color: #05a;">re</span>.<span style="color: #05a;">findall</span><span style="color: Olive;">(</span>r<span style="color: #a11;">'<span style="color: #000099; font-weight: bold;">\w</span>+'</span><span style="color: Gray;">,</span> text<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> fit<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> documents: List<span style="color: Olive;">[</span><span style="color: Teal;">str</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""Build index"""</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">documents</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">doc_lengths</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">term_freqs</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">doc_freq</span> <span style="color: Gray;">=</span> <span style="color: Olive;">{</span><span style="color: Olive;">}</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">num_docs</span> <span style="color: Gray;">=</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>documents<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">for</span> doc <span style="color: Green;font-weight:bold;">in</span> documents:<br/>
+            tokens <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>._tokenize<span style="color: Olive;">(</span>doc<span style="color: Olive;">)</span><br/>
+            <span style="color: Teal;">self</span>.<span style="color: #05a;">documents</span>.<span style="color: #05a;">append</span><span style="color: Olive;">(</span>tokens<span style="color: Olive;">)</span><br/>
+            <span style="color: Teal;">self</span>.<span style="color: #05a;">doc_lengths</span>.<span style="color: #05a;">append</span><span style="color: Olive;">(</span><span style="color: Teal;">len</span><span style="color: Olive;">(</span>tokens<span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<br/>
+            <span style="color: #a50"># Count term frequency</span><br/>
+            tf: Dict<span style="color: Olive;">[</span><span style="color: Teal;">str</span><span style="color: Gray;">,</span> <span style="color: Teal;">int</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: Olive;">{</span><span style="color: Olive;">}</span><br/>
+            <span style="color: Green;font-weight:bold;">for</span> <span style="color: #05a;">token</span> <span style="color: Green;font-weight:bold;">in</span> tokens:<br/>
+                tf<span style="color: Olive;">[</span><span style="color: #05a;">token</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> tf.<span style="color: #05a;">get</span><span style="color: Olive;">(</span><span style="color: #05a;">token</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0</span><span style="color: Olive;">)</span> + <span style="color: Maroon;">1</span><br/>
+            <span style="color: Teal;">self</span>.<span style="color: #05a;">term_freqs</span>.<span style="color: #05a;">append</span><span style="color: Olive;">(</span>tf<span style="color: Olive;">)</span><br/>
+<br/>
+            <span style="color: #a50"># Update document frequency</span><br/>
+            <span style="color: Green;font-weight:bold;">for</span> <span style="color: #05a;">token</span> <span style="color: Green;font-weight:bold;">in</span> tf.<span style="color: #05a;">keys</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+                <span style="color: Teal;">self</span>.<span style="color: #05a;">doc_freq</span><span style="color: Olive;">[</span><span style="color: #05a;">token</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">doc_freq</span>.<span style="color: #05a;">get</span><span style="color: Olive;">(</span><span style="color: #05a;">token</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0</span><span style="color: Olive;">)</span> + <span style="color: Maroon;">1</span><br/>
+<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">avg_doc_length</span> <span style="color: Gray;">=</span> <span style="color: Teal;">sum</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span>.<span style="color: #05a;">doc_lengths</span><span style="color: Olive;">)</span> / <span style="color: Teal;">self</span>.<span style="color: #05a;">num_docs</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> score<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> query: <span style="color: Teal;">str</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> List<span style="color: Olive;">[</span><span style="color: Teal;">float</span><span style="color: Olive;">]</span>:<br/>
+        <span style="color: #a11;">"""Calculate BM25 score for each document"""</span><br/>
+        query_tokens <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>._tokenize<span style="color: Olive;">(</span>query<span style="color: Olive;">)</span><br/>
+        scores <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Maroon;">0.0</span><span style="color: Olive;">]</span> * <span style="color: Teal;">self</span>.<span style="color: #05a;">num_docs</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">for</span> <span style="color: #05a;">token</span> <span style="color: Green;font-weight:bold;">in</span> query_tokens:<br/>
+            <span style="color: Green;font-weight:bold;">if</span> <span style="color: #05a;">token</span> <span style="color: Green;font-weight:bold;">not</span> <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">doc_freq</span>:<br/>
+                <span style="color: Green;font-weight:bold;">continue</span><br/>
+<br/>
+            <span style="color: #a50"># IDF calculation</span><br/>
+            df <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">doc_freq</span><span style="color: Olive;">[</span><span style="color: #05a;">token</span><span style="color: Olive;">]</span><br/>
+            idf <span style="color: Gray;">=</span> <span style="color: #05a;">math</span>.<span style="color: #05a;">log</span><span style="color: Olive;">(</span><span style="color: Maroon;">1</span> + <span style="color: Olive;">(</span><span style="color: Teal;">self</span>.<span style="color: #05a;">num_docs</span> - df + <span style="color: Maroon;">0.5</span><span style="color: Olive;">)</span> / <span style="color: Olive;">(</span>df + <span style="color: Maroon;">0.5</span><span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<br/>
+            <span style="color: #a50"># Calculate score for each document</span><br/>
+            <span style="color: Green;font-weight:bold;">for</span> doc_idx <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span>.<span style="color: #05a;">num_docs</span><span style="color: Olive;">)</span>:<br/>
+                doc_len <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">doc_lengths</span><span style="color: Olive;">[</span>doc_idx<span style="color: Olive;">]</span><br/>
+                tf <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">term_freqs</span><span style="color: Olive;">[</span>doc_idx<span style="color: Olive;">]</span>.<span style="color: #05a;">get</span><span style="color: Olive;">(</span><span style="color: #05a;">token</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0</span><span style="color: Olive;">)</span><br/>
+<br/>
+                <span style="color: #a50"># BM25 core formula</span><br/>
+                numerator <span style="color: Gray;">=</span> tf * <span style="color: Olive;">(</span><span style="color: Teal;">self</span>.<span style="color: #05a;">k1</span> + <span style="color: Maroon;">1</span><span style="color: Olive;">)</span><br/>
+                denominator <span style="color: Gray;">=</span> tf + <span style="color: Teal;">self</span>.<span style="color: #05a;">k1</span> * <span style="color: Olive;">(</span><span style="color: Maroon;">1</span> - <span style="color: Teal;">self</span>.<span style="color: #05a;">b</span> + <span style="color: Teal;">self</span>.<span style="color: #05a;">b</span> * doc_len / <span style="color: Teal;">self</span>.<span style="color: #05a;">avg_doc_length</span><span style="color: Olive;">)</span><br/>
+                scores<span style="color: Olive;">[</span>doc_idx<span style="color: Olive;">]</span> +<span style="color: Gray;">=</span> idf * numerator / denominator<br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">return</span> scores<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> search<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> query: <span style="color: Teal;">str</span><span style="color: Gray;">,</span> top_k: <span style="color: Teal;">int</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">5</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> List<span style="color: Olive;">[</span>Dict<span style="color: Olive;">]</span>:<br/>
+        <span style="color: #a11;">"""Search Top K"""</span><br/>
+        scores <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">score</span><span style="color: Olive;">(</span>query<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># Sort</span><br/>
+        results <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><br/>
+            <span style="color: Olive;">{</span><span style="color: #a11;">"doc_idx"</span>: i<span style="color: Gray;">,</span> <span style="color: #a11;">"score"</span>: s<span style="color: Olive;">}</span><br/>
+            <span style="color: Green;font-weight:bold;">for</span> i<span style="color: Gray;">,</span> s <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">enumerate</span><span style="color: Olive;">(</span>scores<span style="color: Olive;">)</span><br/>
+        <span style="color: Olive;">]</span><br/>
+        results.<span style="color: #05a;">sort</span><span style="color: Olive;">(</span>key<span style="color: Gray;">=</span><span style="color: Green;font-weight:bold;">lambda</span> x: x<span style="color: Olive;">[</span><span style="color: #a11;">"score"</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span> reverse<span style="color: Gray;">=</span><span style="color: Teal;">True</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">return</span> results<span style="color: Olive;">[</span>:top_k<span style="color: Olive;">]</span><br/>
+<br/>
+<br/>
+<span style="color: #a50"># Test</span><br/>
+documents <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><br/>
+    <span style="color: #a11;">"Python is a programming language, easy to learn."</span><span style="color: Gray;">,</span><br/>
+    <span style="color: #a11;">"JavaScript is used for web development, usable on both frontend and backend."</span><span style="color: Gray;">,</span><br/>
+    <span style="color: #a11;">"Vector databases are used to store and retrieve vector embeddings."</span><span style="color: Gray;">,</span><br/>
+    <span style="color: #a11;">"There are many types of databases, such as relational databases and NoSQL databases."</span><span style="color: Gray;">,</span><br/>
+    <span style="color: #a11;">"HNSW is an approximate nearest neighbor search algorithm."</span><br/>
+<span style="color: Olive;">]</span><br/>
+<br/>
+bm25 <span style="color: Gray;">=</span> SimpleBM25<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+bm25.<span style="color: #05a;">fit</span><span style="color: Olive;">(</span>documents<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># Search</span><br/>
+query <span style="color: Gray;">=</span> <span style="color: #a11;">"database"</span><br/>
+results <span style="color: Gray;">=</span> bm25.<span style="color: #05a;">search</span><span style="color: Olive;">(</span>query<span style="color: Gray;">,</span> top_k<span style="color: Gray;">=</span><span style="color: Maroon;">5</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Query:<span style="color: #000099; font-weight: bold;">\"</span>{query}<span style="color: #000099; font-weight: bold;">\"</span>"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"BM25 search results:"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">for</span> r <span style="color: Green;font-weight:bold;">in</span> results:<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  Document {r['doc_idx']}: {documents[r['doc_idx']]}"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"    Score = {r['score']:.4f}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># Output similar to:</span><br/>
+<span style="color: #a50"># Query: "database"</span><br/>
+<span style="color: #a50"># BM25 search results:</span><br/>
+<span style="color: #a50">#   Document 2: Vector databases are used to store and retrieve vector embeddings.</span><br/>
+<span style="color: #a50">#     Score = 0.7134</span><br/>
+<span style="color: #a50">#   Document 3: There are many types of databases, such as relational databases and NoSQL databases.</span><br/>
+<span style="color: #a50">#     Score = 0.6148</span><br/>
+<span style="color: #a50">#   ...</span><br/>
+</div>
+</div>
+<h3>RRF: Reciprocal Rank Fusion</h3>
+<p>RRF (Reciprocal Rank Fusion) is a simple and effective method for fusing multiple search results.</p>
+<p>Formula: score = 1 / (k + rank), where k is usually 60.</p>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># RRF fusion demo</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">from</span> typing <span style="color: Green;font-weight:bold;">import</span> List<span style="color: Gray;">,</span> Dict<span style="color: Gray;">,</span> Any<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> rrf_fuse<span style="color: Olive;">(</span><br/>
+    result_lists: List<span style="color: Olive;">[</span>List<span style="color: Olive;">[</span>Any<span style="color: Olive;">]</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span><br/>
+    k: <span style="color: Teal;">int</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">60</span><br/>
+<span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> Dict<span style="color: Olive;">[</span>Any<span style="color: Gray;">,</span> <span style="color: Teal;">float</span><span style="color: Olive;">]</span>:<br/>
+    <span style="color: #a11;">"""<br/>RRF fusion: for each result list, add scores using 1/(k + rank)<br/>result_lists: multiple sorted result lists<br/>
+    """</span><br/>
+    scores: Dict<span style="color: Olive;">[</span>Any<span style="color: Gray;">,</span> <span style="color: Teal;">float</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: Olive;">{</span><span style="color: Olive;">}</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">for</span> results <span style="color: Green;font-weight:bold;">in</span> result_lists:<br/>
+        <span style="color: Green;font-weight:bold;">for</span> rank<span style="color: Gray;">,</span> item <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">enumerate</span><span style="color: Olive;">(</span>results<span style="color: Olive;">)</span>:<br/>
+            score <span style="color: Gray;">=</span> <span style="color: Maroon;">1.0</span> / <span style="color: Olive;">(</span>k + rank<span style="color: Olive;">)</span><br/>
+            scores<span style="color: Olive;">[</span>item<span style="color: Olive;">]</span> <span style="color: Gray;">=</span> scores.<span style="color: #05a;">get</span><span style="color: Olive;">(</span>item<span style="color: Gray;">,</span> <span style="color: Maroon;">0</span><span style="color: Olive;">)</span> + score<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">return</span> scores<br/>
+<br/>
+<br/>
+<span style="color: #a50"># Example: vector search results and BM25 search results</span><br/>
+vector_results <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: #a11;">"doc3"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"doc1"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"doc4"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"doc2"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"doc5"</span><span style="color: Olive;">]</span>  <span style="color: #a50"># Vector search considers doc3 most relevant</span><br/>
+bm25_results <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: #a11;">"doc2"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"doc4"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"doc3"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"doc5"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"doc1"</span><span style="color: Olive;">]</span>    <span style="color: #a50"># BM25 considers doc2 most relevant</span><br/>
+<br/>
+<span style="color: #a50"># RRF fusion</span><br/>
+fused <span style="color: Gray;">=</span> rrf_fuse<span style="color: Olive;">(</span><span style="color: Olive;">[</span>vector_results<span style="color: Gray;">,</span> bm25_results<span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># Sort</span><br/>
+final_rank <span style="color: Gray;">=</span> <span style="color: Teal;">sorted</span><span style="color: Olive;">(</span>fused.<span style="color: #05a;">items</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span> key<span style="color: Gray;">=</span><span style="color: Green;font-weight:bold;">lambda</span> x: x<span style="color: Olive;">[</span><span style="color: Maroon;">1</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span> reverse<span style="color: Gray;">=</span><span style="color: Teal;">True</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Vector search results:"</span><span style="color: Gray;">,</span> vector_results<span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"BM25 search results:"</span><span style="color: Gray;">,</span> bm25_results<span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Final ranking after RRF fusion:"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">for</span> doc<span style="color: Gray;">,</span> score <span style="color: Green;font-weight:bold;">in</span> final_rank:<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  {doc}: {score:.6f}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># Output:</span><br/>
+<span style="color: #a50"># Vector search results: ['doc3', 'doc1', 'doc4', 'doc2', 'doc5']</span><br/>
+<span style="color: #a50"># BM25 search results: ['doc2', 'doc4', 'doc3', 'doc5', 'doc1']</span><br/>
+<span style="color: #a50">#</span><br/>
+<span style="color: #a50"># Final ranking after RRF fusion:</span><br/>
+<span style="color: #a50">#   doc3: 0.032787</span><br/>
+<span style="color: #a50">#   doc2: 0.032787</span><br/>
+<span style="color: #a50">#   doc4: 0.032520</span><br/>
+<span style="color: #a50">#   doc1: 0.016393</span><br/>
+<span style="color: #a50">#   doc5: 0.016393</span><br/>
+</div>
+</div>
+<h3>Fusion Weight Tuning</h3>
+<p>Besides RRF, weighted linear fusion can also be used:</p>
+<p>final_score = α * vector_score + (1 - α) * bm25_score</p>
+<p>α is the weight for vector search, which needs to be tuned based on actual data.</p>
+<hr/>
+<h2>Re-ranking</h2>
+<p>Hybrid search can be further improved: first recall a batch of candidates, then re-rank with a more powerful model.</p>
+<h3>Cross-Encoder Principles</h3>
+<p>Bi-Encoder (for retrieval): encode query and document separately, compare with similarity.</p>
+<p>Cross-Encoder (for reranking): concatenate query and document as input to the model, directly output a relevance score.</p>
+<p>Cross-Encoder is more accurate but slower, so it is suitable for reranking only the top 50-100 candidates.</p>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># Re-ranking process demo</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> reranking_pipeline_example<span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""<br/>Two-stage retrieval process:<br/>1. Coarse retrieval: use vector search to quickly find the Top 100<br/>2. Fine ranking: use Cross-Encoder to rerank the Top 100<br/>
+    """</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Two-stage retrieval process:"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Stage 1: Coarse retrieval (vector search)"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - Goal: fast, low latency"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - Method: HNSW/IVF vector search"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - Output: Top 100 candidates"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Stage 2: Fine ranking (Cross-Encoder)"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - Goal: accurate, high quality"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - Method: Cross-Encoder pairwise scoring"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - Output: final Top 10"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Typical configuration:"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - Retrieval stage: HNSW efSearch = 128, recall 100"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - Reranking stage: use bge-reranker or Cohere Rerank"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Why not directly use Cross-Encoder to search everything?"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - Cross-Encoder is too slow; searching 1 million documents is unrealistic"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - Vector search over 1 million is fast, and Cross-Encoder reranking over 100 is also fast"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: #a50"># Cohere Rerank API example (pseudocode)</span><br/>
+<span style="color: Green;font-weight:bold;">def</span> cohere_rerank_example<span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""<br/>Cohere Rerank API usage example<br/>
+    """</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Typical usage of the Cohere Rerank API:"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">'''<br/>
+    import cohere<br/>
+<br/>
+    co = cohere.Client(api_key="your-api-key")<br/>
+<br/>query = "What is a vector database?"<br/>
+    documents = [<br/>"Content of document 1...",<br/>"Content of document 2...",<br/>...  # top 100 candidates<br/>
+    ]<br/>
+<br/>
+    results = co.rerank(<br/>
+        query=query,<br/>
+        documents=documents,<br/>
+        top_n=10,<br/>
+        model="rerank-english-v3.0"<br/>
+    )<br/>
+<br/>
+    for r in results:<br/>
+        print(r.index, r.relevance_score, documents[r.index])<br/>
+    '''</span><span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+reranking_pipeline_example<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<h3>Performance vs. Latency Trade-off</h3>
+<table class="reference">
+<tr><th>Approach</th><th>Quality</th><th>Speed</th><th>Cost</th><th>Applicable scenario</th></tr>
+<tr><td>Pure vector search</td><td>中</td><td>Extremely fast</td><td>低</td><td>For extremely high speed requirements</td></tr>
+<tr><td>Hybrid search</td><td>Medium-high</td><td>快</td><td>中</td><td>Balanced choice</td></tr>
+<tr><td>Vector + reranking</td><td>高</td><td>中</td><td>Medium-high</td><td>Pursuing quality</td></tr>
+<tr><td>Hybrid + reranking</td><td>Highest</td><td>Medium-slow</td><td>高</td><td>Quality first</td></tr>
+</table>
+<hr/>
+<h2>Production Environment Optimization</h2>
+<p>From demo to production, there are many details to pay attention to.</p>
+<h3>Index Sharding Strategies</h3>
+<p>When data volume exceeds single-machine capacity, sharding is needed:</p>
+<ul>
+<li>
+<p>1. <strong>Shard by ID</strong>: Simple, but queries need to search all shards.</p></li><li>
+<p>2. <strong>Shard by vector clustering</strong>: Only search a few relevant shards during queries.</p></li></ul>
+<h3>Metadata Filtering</h3>
+<p>In production environments, metadata filtering is almost always combined.</p>
+<p>Two strategies:</p>
+<ul>
+<li>
+<p>1. <strong>Pre-filtering</strong>: First filter by metadata, then perform vector search.</p></li><li>
+<p>2. <strong>Post-filtering</strong>: First perform vector search, then filter by metadata.</p></li></ul>
+<p>Selection principle: if many vectors remain after filtering, use pre-filtering; if few remain, use post-filtering.</p>
+<h3>Incremental Updates</h3>
+<p>Most vector databases support incremental addition, but note:</p>
+<ul>
+<li>
+<p>1. <strong>Batch addition</strong>: Add in batches, not one by one.</p></li><li>
+<p>2. <strong>Index rebuilding</strong>: Some indexes (e.g., IVF) need periodic retraining.</p></li><li>
+<p>3. <strong>Version management</strong>: Keep old index versions so you can roll back on updates.</p></li></ul>
+<h3>Monitoring Metrics</h3>
+<p>Production environments should monitor:</p>
+<ul>
+<li>
+<p>1. <strong>Query latency</strong>：P50、P95、P99。</p></li>
+<li>
+<p>2. <strong>Recall rate</strong>: Regularly check the quality of Top K results.</p></li>
+<li>
+<p>3. <strong>Index size</strong>: Memory/disk usage.</p></li>
+<li>
+<p>4. <strong>QPS</strong>Queries per second.</p></li></ul>
+Other extensions
+</div>
+</div>
+<div class="archive-list" style="display:none;font-size: 14px;line-height: 1.8;margin-top: 20px;padding: 10px;">
+<div class="archive-list-item">
+<div class="post-intro" id="ai-info" style="width: 100%;">AI thinking...</div>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../ai/ai-rlhf.html" rel="prev">RLHF alignment training</a> </div>
+<div class="next-design-link"><a href="../ai/ai-deployment.html" rel="next">AI engineering deployment</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="sidebar-box">
+</div>
+Note list
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>Click to Share Notes</h3>
+&lt;p style="font-size:14px;"&gt;Notes need to be an extension of this article's content!&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;Article submission, click here&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;How to get registration invitation code&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; Must &lt;a href=";.html" class="runoob-pop"&gt;login&lt;/a&gt; before sharing notes!&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;How to get registration invitation code&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=";.html" id="cancel-comment-reply-link">Cancel</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="31519"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>Share notes</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">Nickname</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">Nickname (required)</span></li>
+<li class="form-inline"><label class="hide" for="email">Email</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">Email (required)</span></li>
+<li class="form-inline"><label class="hide" for="url">Reference URL</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">引用地址</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  31519;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 31519, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":31519},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+</div>
+</div>
+<!-- 右边栏 -->
+<div class="fivecol last right-column">
+<style>
+.sidebar-tree .double-li {
+    width:300px;
+}
+.sidebar-tree .double-li li {
+    width: 44%;
+    line-height: 1.5em;
+    border-bottom: 1px solid #ccc;
+    float: left;
+    display: inline;
+}
+</style>
+<div class="sidebar-box re-box re-box-large">
+<div class="sidebar-box recommend-here" style="margin: 0 auto;">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;"> <i aria-hidden="true" class="fa fa-list"></i> 分类导航</a>
+</div>
+<div class="sidebar-box sidebar-cate">
+<div class="sidebar-tree">
+<ul><li style="margin: 0;"><a class="tit" href="#"> Python / 数据科学</a><ul class="double-li"><li><a href="../python3/python3-tutorial.html" title="Python 教程">Python 教程</a></li><li><a href="../python/python-tutorial.html" title="Python2.x 教程">Python2.x 教程</a></li><li><a href="../fastapi/fastapi-tutorial.html" title="FastAPI 教程">FastAPI 教程</a></li><li><a href="../flask/flask-tutorial.html" title="Flask 教程">Flask 教程</a></li><li><a href="../django/django-tutorial.html" title="Django 教程">Django 教程</a></li><li><a href="../numpy/numpy-tutorial.html" title="NumPy 教程">NumPy 教程</a></li><li><a href="../pandas/pandas-tutorial.html" title="Pandas 教程">Pandas 教程</a></li><li><a href="../scipy/scipy-tutorial.html" title="SciPy 教程">SciPy 教程</a></li><li><a href="../matplotlib/matplotlib-tutorial.html" title="Matplotlib 教程">Matplotlib 教程</a></li><li><a href="../dash/dash-tutorial.html" title="Dash 教程">Dash 教程</a></li><li><a href="../jupyter-notebook/jupyter-notebook-tutorial.html" title="Jupyter Notebook 教程">Jupyter Notebook 教程</a></li><li><a href="../pillow/pillow-tutorial.html" title="Pillow 教程">Pillow 教程</a></li><li><a href="../qt/qt-tutorial.html" title="量化交易">量化交易</a></li><li><a href="../r/r-tutorial.html" title="R 教程">R 教程</a></li><li><a href="../julia/julia-tutorial.html" title="Julia 教程">Julia 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> AI / 智能开发</a><ul class="double-li"><li><a href="../ai-agent/ai-agent-tutorial.html" title="AI Agent（智能体）">AI Agent（智能体）</a></li><li><a href="../ai/ai-tutorial.html" title="AI（人工智能）">AI（人工智能）</a></li><li><a href="../codex/codex-tutorial.html" title="Codex 教程">Codex 教程</a></li><li><a href="../vibe-coding/vibe-coding-tutorial.html" title="Vibe Coding 教程">Vibe Coding 教程</a></li><li><a href="../claude-code/claude-code-tutorial.html" title="Claude Code">Claude Code</a></li><li><a href="../opencode/opencode-tutorial.html" title="OpenCode">OpenCode</a></li><li><a href="../skills/skills-tutorial.html" title="Skills（技能）">Skills（技能）</a></li><li><a href="../ollama/ollama-tutorial.html" title="Ollama 教程">Ollama 教程</a></li><li><a href="../hermes-agent/hermes-agent-tutorial.html" title="Hermes Agent">Hermes Agent</a></li><li><a href="../deepseek-harness/deepseek-harness-tutorial.html" title="DeepSeek Harness">DeepSeek Harness</a></li><li><a href="../pi-agent/pi-agent-tutorial.html" title="Pi Agent">Pi Agent</a></li><li><a href="../ai-math/ai-math-tutorial.html" title="AI 数学基础">AI 数学基础</a></li><li><a href="../tensorflow/tensorflow-tutorial.html" title="TensorFlow 教程">TensorFlow 教程</a></li><li><a href="../pytorch/pytorch-tutorial.html" title="PyTorch 教程">PyTorch 教程</a></li><li><a href="../sklearn/sklearn-tutorial.html" title="Scikit-learn 教程">Scikit-learn 教程</a></li><li><a href="../ml/ml-tutorial.html" title="机器 教程">机器 教程</a></li><li><a href="../langchain/langchain-tutorial.html" title="LangChain">LangChain</a></li><li><a href="../nlp/nlp-tutorial.html" title="自然语言处理 NLP">自然语言处理 NLP</a></li><li><a href="../opencv/opencv-tutorial.html" title="OpenCV 教程">OpenCV 教程</a></li><li><a href="../selenium/selenium-tutorial.html" title="Selenium 教程">Selenium 教程</a></li><li><a href="../playwright/playwright-tutorial.html" title="Playwright 教程">Playwright 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 前端开发</a><ul class="double-li"><li><a href="../html/html-tutorial.html" title="HTML 教程">HTML 教程</a></li><li><a href="../html/html5-intro.html" title="HTML5 教程">HTML5 教程</a></li><li><a href="../css/css-tutorial.html" title="CSS 教程">CSS 教程</a></li><li><a href="../css3/css3-tutorial.html" title="CSS3 教程">CSS3 教程</a></li><li><a href="../js/js-tutorial.html" title="JavaScript 教程">JavaScript 教程</a></li><li><a href="../htmldom/htmldom-tutorial.html" title="HTML DOM 教程">HTML DOM 教程</a></li><li><a href="../typescript/ts-tutorial.html" title="TypeScript 教程">TypeScript 教程</a></li><li><a href="../ajax/ajax-tutorial.html" title="AJAX 教程">AJAX 教程</a></li><li><a href="../json/json-tutorial.html" title="JSON 教程">JSON 教程</a></li><li><a href="../tailwindcss/tailwindcss-tutorial.html" title="Tailwind CSS 教程">Tailwind CSS 教程</a></li><li><a href="../bootstrap4/bootstrap4-tutorial.html" title="Bootstrap4 教程">Bootstrap4 教程</a></li><li><a href="../bootstrap5/bootstrap5-tutorial.html" title="Bootstrap5 教程">Bootstrap5 教程</a></li><li><a href="../foundation/foundation-tutorial.html" title="Foundation 教程">Foundation 教程</a></li><li><a href="../vue2/vue-tutorial.html" title="Vue.js 教程">Vue.js 教程</a></li><li><a href="../vue3/vue3-tutorial.html" title="Vue3 教程">Vue3 教程</a></li><li><a href="../react/react-tutorial.html" title="React 教程">React 教程</a></li><li><a href="../nextjs/nextjs-tutorial.html" title="Next.js 教程">Next.js 教程</a></li><li><a href="../angularjs/angularjs-tutorial.html" title="AngularJS 教程">AngularJS 教程</a></li><li><a href="../angularjs2/angularjs2-tutorial.html" title="Angular 教程">Angular 教程</a></li><li><a href="../jquery/jquery-tutorial.html" title="jQuery 教程">jQuery 教程</a></li><li><a href="../jqueryui/jqueryui-tutorial.html" title="jQuery UI 教程">jQuery UI 教程</a></li><li><a href="../jeasyui/jqueryeasyui-tutorial.html" title="jQuery EasyUI 教程">jQuery EasyUI 教程</a></li><li><a href="../echarts/echarts-tutorial.html" title="ECharts 教程">ECharts 教程</a></li><li><a href="../chartjs/chartjs-tutorial.html" title="Chart.js 教程">Chart.js 教程</a></li><li><a href="../highcharts/highcharts-tutorial.html" title="Highcharts 教程">Highcharts 教程</a></li><li><a href="../googleapi/google-maps-basic.html" title="Google 地图 教程">Google 地图 教程</a></li><li><a href="../svg/svg-tutorial.html" title="SVG 教程">SVG 教程</a></li><li><a href="../font-awesome/fontawesome-tutorial.html" title="Font Awesome 教程">Font Awesome 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 后端开发</a><ul class="double-li"><li><a href="../nodejs/nodejs-tutorial.html" title="Node.js 教程">Node.js 教程</a></li><li><a href="../electron/electron-tutorial.html" title="Electron 教程">Electron 教程</a></li><li><a href="../php/php-tutorial.html" title="PHP 教程">PHP 教程</a></li><li><a href="../java/java-tutorial.html" title="Java 教程">Java 教程</a></li><li><a href="../go/go-tutorial.html" title="Go 教程">Go 教程</a></li><li><a href="../rust/rust-tutorial.html" title="Rust 教程">Rust 教程</a></li><li><a href="../csharp/csharp-tutorial.html" title="C# 教程">C# 教程</a></li><li><a href="../servlet/servlet-tutorial.html" title="Servlet 教程">Servlet 教程</a></li><li><a href="../jsp/jsp-tutorial.html" title="JSP 教程">JSP 教程</a></li><li><a href="../asp/asp-tutorial.html" title="ASP 教程">ASP 教程</a></li><li><a href="../appml/appml-tutorial.html" title="AppML 教程">AppML 教程</a></li><li><a href="../vbscript/vbscript-tutorial.html" title="VBScript 教程">VBScript 教程</a></li><li><a href="../swagger/swagger-tutorial.html" title="Swagger 教程">Swagger 教程</a></li><li><a href="../restfulapi/restful-api-tutorial.html" title="RESTful API 教程">RESTful API 教程</a></li><li><a href="../docker/docker-tutorial.html" title="Docker 教程">Docker 教程</a></li><li><a href="../linux/linux-tutorial.html" title="Linux 教程">Linux 教程</a></li><li><a href="../w3cnote/zookeeper-tutorial.html" title="ZooKeeper 教程">ZooKeeper 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 数据库</a><ul class="double-li"><li><a href="../sql/sql-tutorial.html" title="SQL 教程">SQL 教程</a></li><li><a href="../mysql/mysql-tutorial.html" title="MySQL 教程">MySQL 教程</a></li><li><a href="../postgresql/postgresql-tutorial.html" title="PostgreSQL 教程">PostgreSQL 教程</a></li><li><a href="../sqlite/sqlite-tutorial.html" title="SQLite 教程">SQLite 教程</a></li><li><a href="../mongodb/mongodb-tutorial.html" title="MongoDB 教程">MongoDB 教程</a></li><li><a href="../redis/redis-tutorial.html" title="Redis 教程">Redis 教程</a></li><li><a href="../memcached/memcached-tutorial.html" title="Memcached 教程">Memcached 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 移动开发</a><ul class="double-li"><li><a href="../w3cnote/android-tutorial-intro.html" title="Android 教程">Android 教程</a></li><li><a href="../flutter/flutter-tutorial.html" title="Flutter 教程">Flutter 教程</a></li><li><a href="../ionic/ionic-tutorial.html" title="Ionic 教程">Ionic 教程</a></li><li><a href="../jquerymobile/jquerymobile-tutorial.html" title="jQuery Mobile 教程">jQuery Mobile 教程</a></li><li><a href="../swift/swift-tutorial.html" title="Swift 教程">Swift 教程</a></li><li><a href="../kotlin/kotlin-tutorial.html" title="Kotlin 教程">Kotlin 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> DevOps / 工程化</a><ul class="double-li"><li><a href="../git/git-tutorial.html" title="Git 教程">Git 教程</a></li><li><a href="../svn/svn-tutorial.html" title="SVN 教程">SVN 教程</a></li><li><a href="../cmake/cmake-tutorial.html" title="CMake 教程">CMake 教程</a></li><li><a href="../maven/maven-tutorial.html" title="Maven 教程">Maven 教程</a></li><li><a href="../vscode/vscode-tutorial.html" title="VS Code 教程">VS Code 教程</a></li><li><a href="../obsidian/obsidian-tutorial.html" title="Obsidian 教程">Obsidian 教程</a></li><li><a href="../pycharm/pycharm-tutorial.html" title="PyCharm 教程">PyCharm 教程</a></li><li><a href="../eclipse/eclipse-tutorial.html" title="Eclipse 教程">Eclipse 教程</a></li><li><a href="../markdown/md-tutorial.html" title="Markdown 教程">Markdown 教程</a></li><li><a href="../latex/latex-tutorial.html" title="LaTeX 教程">LaTeX 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 编程语言</a><ul class="double-li"><li><a href="../c/c-tutorial.html" title="C 教程">C 教程</a></li><li><a href="../cplusplus/cpp-tutorial.html" title="C++ 教程">C++ 教程</a></li><li><a href="../zig/zig-tutorial.html" title="Zig 教程">Zig 教程</a></li><li><a href="../scala/scala-tutorial.html" title="Scala 教程">Scala 教程</a></li><li><a href="../ruby/ruby-tutorial.html" title="Ruby 教程">Ruby 教程</a></li><li><a href="../perl/perl-tutorial.html" title="Perl 教程">Perl 教程</a></li><li><a href="../lua/lua-tutorial.html" title="Lua 教程">Lua 教程</a></li><li><a href="../dart/dart-tutorial.html" title="Dart 教程">Dart 教程</a></li><li><a href="../assembly/assembly-tutorial.html" title="汇编语言 教程">汇编语言 教程</a></li><li><a href="../w3cnote/verilog-tutorial.html" title="Verilog 教程">Verilog 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 计算机基础</a><ul class="double-li"><li><a href="../computer-organization/computer-organization-tutorial.html" title="计算机组成原理">计算机组成原理</a></li><li><a href="../data-structures/data-structures-tutorial.html" title="数据结构与算法">数据结构与算法</a></li><li><a href="../c-dsa/c-dsa-tutorial.html" title="C 语言数据结构与算法">C 语言数据结构与算法</a></li><li><a href="../design-pattern/design-pattern-tutorial.html" title="设计模式">设计模式</a></li><li><a href="../python-design-pattern/python-design-pattern-tutorial.html" title="Python 设计模式">Python 设计模式</a></li><li><a href="../regexp/regexp-tutorial.html" title="正则表达式">正则表达式</a></li><li><a href="../http/http-tutorial.html" title="HTTP 教程">HTTP 教程</a></li><li><a href="../tcpip/tcpip-tutorial.html" title="TCP/IP 教程">TCP/IP 教程</a></li><li><a href="../np/np-tutorial.html" title="网络协议">网络协议</a></li><li><a href="../w3c/w3c-tutorial.html" title="W3C 教程">W3C 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> XML / Web Service</a><ul class="double-li"><li><a href="../xml/xml-tutorial.html" title="XML 教程">XML 教程</a></li><li><a href="../dtd/dtd-tutorial.html" title="DTD 教程">DTD 教程</a></li><li><a href="../dom/dom-tutorial.html" title="XML DOM 教程">XML DOM 教程</a></li><li><a href="../xsl/xsl-tutorial.html" title="XSLT 教程">XSLT 教程</a></li><li><a href="../xpath/xpath-tutorial.html" title="XPath 教程">XPath 教程</a></li><li><a href="../xquery/xquery-tutorial.html" title="XQuery 教程">XQuery 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XLink 教程">XLink 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XPointer 教程">XPointer 教程</a></li><li><a href="../schema/schema-tutorial.html" title="XML Schema 教程">XML Schema 教程</a></li><li><a href="../xslfo/xslfo-tutorial.html" title="XSL-FO 教程">XSL-FO 教程</a></li><li><a href="../webservices/webservices-tutorial.html" title="Web Service 教程">Web Service 教程</a></li><li><a href="../wsdl/wsdl-tutorial.html" title="WSDL 教程">WSDL 教程</a></li><li><a href="../soap/soap-tutorial.html" title="SOAP 教程">SOAP 教程</a></li><li><a href="../rss/rss-tutorial.html" title="RSS 教程">RSS 教程</a></li><li><a href="../rdf/rdf-tutorial.html" title="RDF 教程">RDF 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> .NET</a><ul class="double-li"><li><a href="../aspnet/aspnet-tutorial.html" title="ASP.NET 教程">ASP.NET 教程</a></li><li><a href="../aspnet/mvc-intro.html" title="MVC 教程">MVC 教程</a></li><li><a href="../aspnet/razor-intro.html" title="Razor 教程">Razor 教程</a></li><li><a href="../aspnet/aspnet-intro.html" title="Web Forms 教程">Web Forms 教程</a></li><li><a href="../aspnet/webpages-intro.html" title="Web Pages 教程">Web Pages 教程</a></li><li><a href="../powershell/powershell-tutorial.html" title="PowerShell 教程">PowerShell 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 网站建设</a><ul class="double-li"><li><a href="../web/web-buildingprimer.html" title="网站建设指南">网站建设指南</a></li><li><a href="../browsers/browser-information.html" title="浏览器信息">浏览器信息</a></li><li><a href="../hosting/hosting-tutorial.html" title="网站主机教程">网站主机教程</a></li><li><a href="../quality/quality-tutorial.html" title="网站品质">网站品质</a></li></ul></li></ul> </div>
+</div>
+</div>
+<br/>
+<div class="sidebar-box re-box re-box-large">
+</div>
+</div></div>
+</div>
+<script>
+var aid = 31519;
+function coll() {
+	$.post( '/wp-content/themes/runoob/option/user/userinfo.php', {aid:aid, action:"collarticle", opt:'add'},function( data ) {
+		if(data.error==0) {
+			$("#content").find("h1:first").find("a").attr("href","javascript:void(0);");
+			$("#content").find("h1:first").find("img").attr("src","http://www.runoob.com/wp-content/themes/runoob/assets/img/coll2.png").css({width:32+"px",height:32+"px"});
+		}
+		alert(data.msg);
+	},'json');
+}
+
+(function () {
+    // 1. 仅 HTML 页面
+    if (!document.contentType || !document.contentType.includes('text/html')) return;
+
+    // 2. 容器判断
+    var container = document.querySelector('.article-intro');
+    if (!container) return;
+
+    var h1 = container.querySelector('h1');
+    if (!h1) return;
+
+    // 3. URL 判断
+    var url = window.location.href.toLowerCase();
+    var version = null;
+
+    if (url.includes('/python3/')) {
+        version = 'Python3.x';
+    } else if (url.includes('/python/')) {
+        version = 'Python2.x';
+    }
+
+    if (!version) return;
+
+    // 4. 防重复
+    if (h1.querySelector('.py-version-badge')) return;
+
+    // 5. 创建标签
+    var badge = document.createElement('span');
+    badge.className = 'py-version-badge';
+    badge.innerText = version;
+
+    // 6. 样式（核心：float 实现右上角）
+    badge.style.float = 'right';
+    badge.style.fontSize = '12px';
+    badge.style.padding = '2px 8px';
+    badge.style.borderRadius = '999px';
+
+   // 自适应亮/暗色 + 渐变背景（增强版）
+	badge.style.color = 'inherit';
+
+	// 渐变背景（低透明度，不影响暗黑模式）
+	if (version.includes('3')) {
+		badge.style.background = 'linear-gradient(90deg, rgba(79,172,254,0.15), rgba(0,242,254,0.15))';
+	} else {
+		badge.style.background = 'linear-gradient(90deg, rgba(161,140,209,0.15), rgba(251,194,235,0.15))';
+	}
+
+	// 边框弱化（更精致）
+	badge.style.border = '1px solid rgba(127,127,127,0.3)';
+
+	// 提升可读性
+	badge.style.opacity = '0.95';
+
+    // 微调位置（更贴近“右上角”）
+    badge.style.marginTop = '4px';
+    badge.style.marginLeft = '10px';
+
+    // 7. 插入到 h1 最前面（让 float 生效更稳定）
+    h1.insertBefore(badge, h1.firstChild);
+
+})();
+</script>
+<!-- 反馈对话框开始 -->
+<script src="../wp-content/themes/runoob/assets/js/runoob-article-dir.min.js"></script>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

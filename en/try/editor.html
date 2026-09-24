@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Run Online - Runoob Mirror</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; height: 100vh; display: flex; flex-direction: column; }
+  .toolbar { background: #4CAF50; color: #fff; padding: 8px 16px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+  .toolbar h1 { font-size: 16px; font-weight: 600; }
+  .toolbar .lang { background: rgba(255,255,255,0.2); padding: 2px 10px; border-radius: 10px; font-size: 12px; }
+  .toolbar button { background: #fff; color: #4CAF50; border: none; padding: 6px 18px; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 600; }
+  .toolbar button:hover { background: #e8f5e9; }
+  .toolbar .ext { margin-left: auto; font-size: 12px; opacity: 0.9; }
+  .main { flex: 1; display: flex; overflow: hidden; }
+  .pane { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .pane-header { background: #e0e0e0; padding: 6px 12px; font-size: 12px; color: #555; font-weight: 600; border-bottom: 1px solid #ccc; }
+  #code { flex: 1; width: 100%; border: none; padding: 12px; font-family: 'SF Mono', Monaco, 'Courier New', monospace; font-size: 13px; line-height: 1.6; resize: none; outline: none; background: #1e1e1e; color: #d4d4d4; }
+  #output { flex: 1; width: 100%; border: none; background: #fff; }
+  #output-pre { flex: 1; padding: 12px; font-family: 'SF Mono', Monaco, 'Courier New', monospace; font-size: 13px; white-space: pre-wrap; word-break: break-all; overflow: auto; background: #fff; margin: 0; }
+  .divider { width: 4px; background: #ccc; cursor: col-resize; flex-shrink: 0; }
+  .notice { padding: 20px; color: #666; font-size: 14px; line-height: 1.8; }
+  .notice a { color: #4CAF50; }
+  .loading { padding: 20px; color: #888; }
+</style>
+</head>
+<body>
+<div class="toolbar">
+<h1>Run Online</h1>
+<span class="lang" id="langLabel">—</span>
+<button onclick="runCode()">▶ 运行</button>
+<span class="ext" id="extInfo"></span>
+</div>
+<div class="main">
+<div class="pane">
+<div class="pane-header">代码</div>
+<textarea id="code" spellcheck="false"></textarea>
+</div>
+<div class="divider"></div>
+<div class="pane">
+<div class="pane-header">运行结果</div>
+<div id="resultArea" style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+<pre id="output-pre" style="display:none;"></pre>
+<iframe id="output" style="display:none;"></iframe>
+<div class="notice" id="notice" style="display:none;"></div>
+</div>
+</div>
+</div>
+<script>
+// ===== 语言配置 =====
+const LANGS = {
+  html:       { label: 'HTML',       type: 'iframe' },
+  css:        { label: 'CSS',        type: 'css' },
+  javascript: { label: 'JavaScript', type: 'js' },
+  js:         { label: 'JavaScript', type: 'js' },
+  python:     { label: 'Python',     type: 'pyodide' },
+  py:         { label: 'Python',     type: 'pyodide' },
+  java:       { label: 'Java',       type: 'external', url: 'https://onecompiler.com/java' },
+  c:          { label: 'C',          type: 'external', url: 'https://onecompiler.com/c' },
+  cpp:        { label: 'C++',        type: 'external', url: 'https://onecompiler.com/cpp' },
+  csharp:     { label: 'C#',         type: 'external', url: 'https://onecompiler.com/csharp' },
+  php:        { label: 'PHP',        type: 'external', url: 'https://onecompiler.com/php' },
+  go:         { label: 'Go',         type: 'external', url: 'https://onecompiler.com/go' },
+  rust:       { label: 'Rust',       type: 'external', url: 'https://onecompiler.com/rust' },
+  ruby:       { label: 'Ruby',       type: 'external', url: 'https://onecompiler.com/ruby' },
+  perl:       { label: 'Perl',       type: 'external', url: 'https://onecompiler.com/perl' },
+  swift:      { label: 'Swift',      type: 'external', url: 'https://onecompiler.com/swift' },
+  kotlin:     { label: 'Kotlin',     type: 'external', url: 'https://onecompiler.com/kotlin' },
+  scala:      { label: 'Scala',      type: 'external', url: 'https://onecompiler.com/scala' },
+  lua:        { label: 'Lua',        type: 'external', url: 'https://onecompiler.com/lua' },
+  bash:       { label: 'Bash',       type: 'external', url: 'https://onecompiler.com/bash' },
+  shell:      { label: 'Shell',      type: 'external', url: 'https://onecompiler.com/bash' },
+  r:          { label: 'R',          type: 'external', url: 'https://onecompiler.com/r' },
+  typescript: { label: 'TypeScript', type: 'external', url: 'https://onecompiler.com/typescript' },
+  xml:        { label: 'XML',        type: 'text' },
+  json:       { label: 'JSON',       type: 'text' },
+  text:       { label: '文本',       type: 'text' },
+};
+
+let currentLang = 'html';
+let pyodide = null;
+
+// ===== 读取代码 =====
+function loadCode() {
+  let code = '', lang = 'html';
+  // 优先 URL hash
+  const hash = window.location.hash.slice(1);
+  if (hash) {
+    const params = new URLSearchParams(hash);
+    if (params.get('code')) {
+      try { code = decodeURIComponent(escape(atob(params.get('code')))); } catch(e) {}
+    }
+    if (params.get('lang')) lang = params.get('lang');
+  }
+  // 回退 localStorage
+  if (!code) {
+    const b64 = localStorage.getItem('tryit_code');
+    if (b64) { try { code = decodeURIComponent(escape(atob(b64))); } catch(e) {} }
+    const l = localStorage.getItem('tryit_lang');
+    if (l) lang = l;
+  }
+  if (!code) code = '<!-- 没有可运行的代码 -->';
+  currentLang = (lang || 'html').toLowerCase();
+  if (!LANGS[currentLang]) currentLang = 'html';
+  document.getElementById('code').value = code;
+  document.getElementById('langLabel').textContent = LANGS[currentLang].label;
+  const cfg = LANGS[currentLang];
+  const ext = document.getElementById('extInfo');
+  if (cfg.type === 'pyodide') ext.textContent = '基于 Pyodide (WebAssembly)，首次加载约 10MB';
+  else if (cfg.type === 'external') ext.textContent = '需跳转到在线 IDE 运行';
+  else if (cfg.type === 'text') ext.textContent = '仅展示代码';
+  else ext.textContent = '纯前端运行，无需联网';
+}
+
+// ===== 运行 =====
+function runCode() {
+  const code = document.getElementById('code').value;
+  const cfg = LANGS[currentLang];
+  const iframe = document.getElementById('output');
+  const pre = document.getElementById('output-pre');
+  const notice = document.getElementById('notice');
+  iframe.style.display = 'none';
+  pre.style.display = 'none';
+  notice.style.display = 'none';
+
+  if (cfg.type === 'iframe') {
+    iframe.style.display = 'block';
+    iframe.srcdoc = code;
+  }
+  else if (cfg.type === 'css') {
+    iframe.style.display = 'block';
+    iframe.srcdoc = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${code}</style></head><body>
+      <h1>CSS 预览标题</h1>
+      <p>这是一个示例段落，用于预览 CSS 效果。</p>
+      <div style="padding:10px;margin:10px 0;border:1px solid #ccc;">示例容器</div>
+      <ul><li>列表项 1</li><li>列表项 2</li></ul>
+      <a href="#">示例链接</a>
+      <button>示例按钮</button>
+    <script src="../../lang-switcher.js"></script>
+</body></html>`;
+  }
+  else if (cfg.type === 'js') {
+    iframe.style.display = 'block';
+    iframe.srcdoc = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:monospace;padding:10px;white-space:pre-wrap;}</style></head><body>
+      <div id="out"></div>
+      <script>
+        (function(){
+          var out = document.getElementById('out');
+          var logs = [];
+          ['log','error','warn','info'].forEach(function(m){
+            var orig = console[m];
+            console[m] = function(){ logs.push(Array.from(arguments).map(String).join(' ')); };
+          });
+          try {
+            ${code}
+          } catch(e) {
+            logs.push('错误: ' + e.message);
+          }
+          out.textContent = logs.join('\\n');
+        })();
+      <\/script></body></html>`;
+  }
+  else if (cfg.type === 'pyodide') {
+    pre.style.display = 'block';
+    pre.textContent = '正在加载 Pyodide 运行环境（首次约 10MB）...';
+    runPython(code);
+  }
+  else if (cfg.type === 'external') {
+    notice.style.display = 'block';
+    notice.innerHTML = `<p><strong>${cfg.label}</strong> 代码需要服务端运行环境，静态页面无法直接执行。</p>
+      <p>你可以：</p>
+      <ol>
+        <li>点击下方按钮，将代码复制到 <a href="${cfg.url}" target="_blank">OneCompiler（${cfg.label} 在线 IDE）</a> 运行</li>
+        <li>或直接复制左侧代码到任意在线编译器运行</li>
+      </ol>
+      <button onclick="copyCode()" style="margin-top:10px;padding:8px 16px;background:#4CAF50;color:#fff;border:none;border-radius:4px;cursor:pointer;">复制代码</button>`;
+  }
+  else {
+    pre.style.display = 'block';
+    pre.textContent = code;
+  }
+}
+
+// ===== Python (Pyodide) =====
+async function runPython(code) {
+  const pre = document.getElementById('output-pre');
+  try {
+    if (!pyodide) {
+      pre.textContent = '正在加载 Pyodide...';
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js';
+      await new Promise((res, rej) => { script.onload = res; script.onerror = rej; document.head.appendChild(script); });
+      pyodide = await loadPyodide();
+    }
+    pyodide.runPython(`
+      import sys, io
+      sys.stdout = io.StringIO()
+      sys.stderr = sys.stdout
+    `);
+    try {
+      pyodide.runPython(code);
+    } catch(e) {
+      pyodide.runPython(`print("""${String(e.message).replace(/"/g,'\\"')}""")`);
+    }
+    const output = pyodide.runPython('sys.stdout.getvalue()');
+    pre.textContent = output || '(无输出)';
+  } catch(e) {
+    pre.textContent = 'Pyodide 加载失败: ' + e.message + '\n\n请检查网络连接，或复制代码到 https://onecompiler.com/python 运行。';
+  }
+}
+
+function copyCode() {
+  const code = document.getElementById('code').value;
+  navigator.clipboard.writeText(code).then(() => {
+    alert('代码已复制到剪贴板');
+  });
+}
+
+// ===== 分栏拖拽 =====
+(function(){
+  const divider = document.querySelector('.divider');
+  const left = divider.previousElementSibling;
+  let dragging = false;
+  divider.addEventListener('mousedown', e => { dragging = true; e.preventDefault(); });
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const rect = document.querySelector('.main').getBoundingClientRect();
+    const pct = ((e.clientX - rect.left) / rect.width) * 100;
+    left.style.flex = '0 0 ' + Math.max(20, Math.min(80, pct)) + '%';
+  });
+  document.addEventListener('mouseup', () => dragging = false);
+})();
+
+// 初始化
+loadCode();
+// 自动运行（外部语言不自动）
+if (LANGS[currentLang].type !== 'external') {
+  setTimeout(runCode, 100);
+} else {
+  runCode();
+}
+</script>
+</body>
+</html>

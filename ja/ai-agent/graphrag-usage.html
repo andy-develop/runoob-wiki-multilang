@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GraphRAG入門チュートリアル | 菜鸟教程</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<link href="../manifest.webmanifest.html" rel="manifest"/>
+<meta content="#10151c" name="theme-color"/>
+<link href="../pwa/icon-192.png.html" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="application-name"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="../ai-agent/graphrag-usage.html" rel="canonical"/>
+<meta content="GraphRAG 入门教程" name="keywords"/>
+<meta content="GraphRAG 入门教程 GraphRAG 是微软研究院开源的一种结构化、层次化的检索增强生成（RAG）系统，与传统 RAG 使用纯文本向量检索不同，GraphRAG 先用大模型从原始文档中抽取出实体和关系，构建知识图谱，再基于图结构进行检索和问答。 本教程面向零基础读者，带你从安装开始，完整走完 文档 → 知识图谱 → 查询问答 的全流程，模型使用 qwen-plus，Embedding 使用阿里云通义的 text-embeddin.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div>
+<!-- 导航栏 -->
+<style>
+/* 主题切换按钮 */
+/* ===== 主题变量（核心）===== */
+:root {
+  --theme-bg: #ffffff;
+  --theme-border: #e5e7eb;
+  --theme-icon: #333;
+  --theme-hover: #f3f4f6;
+}
+
+.dark {
+  --theme-bg: #1f2937;
+  --theme-border: #374151;
+  --theme-icon: #e5e7eb;
+  --theme-hover: #374151;
+}
+
+/* ===== 按钮容器 ===== */
+.nav-theme-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== 按钮本体 ===== */
+.nav-theme-toggle button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  border-radius: 6px;
+  border: 1px solid var(--theme-border);
+
+  background: var(--theme-bg);
+  color: var(--theme-icon);
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* ===== 图标大小 ===== */
+.nav-theme-toggle i {
+  font-size: 14px;
+}
+
+/* ===== hover 效果 ===== */
+.nav-theme-toggle button:hover {
+  background: var(--theme-hover);
+  transform: translateY(-1px);
+}
+
+/* ===== 点击反馈 ===== */
+.nav-theme-toggle button:active {
+  transform: scale(0.95);
+}
+
+/* ===== 当前激活态（可选）===== */
+.nav-theme-toggle button.active {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+</style>
+<!-- 导航栏 -->
+<nav aria-label="主导航" class="container navigation">
+<div class="row">
+<div class="col nav">
+<!-- PC 导航 -->
+<ul class="pc-nav" id="runoob-detail-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../js/js-tutorial.html">JavaScript</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a data-id="vue" href="#">Vue</a></li>
+<li><a href="../react/react-tutorial.html">React</a></li>
+<li><a href="../python3/python3-tutorial.html">Python3</a></li>
+<li><a href="../java/java-tutorial.html">Java</a></li>
+<li><a href="../cprogramming/c-tutorial.html">C</a></li>
+<li><a href="../cplusplus/cpp-tutorial.html">C++</a></li>
+<li><a href="../csharp/csharp-tutorial.html">C#</a></li>
+<li><a data-id="aiNav" href="#">AI</a></li>
+<li><a href="../go/go-tutorial.html">Go</a></li>
+<li><a href="../sql/sql-tutorial.html">SQL</a></li>
+<li><a href="../linux/linux-tutorial.html">Linux</a></li>
+<li><a href="../vscode/vscode-tutorial.html">VS Code</a></li>
+<li><a data-id="bootstrap" href="#">Bootstrap</a></li>
+<li><a href="../git/git-tutorial.html">Git</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<!-- 主题切换按钮，固定在最右侧 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+<!-- 移动端导航 -->
+<ul class="mobile-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a href="../js/js-tutorial.html">JS</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<li><a class="search-reveal" href="#">搜索</a></li>
+<!-- 移动端主题切换 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon-mobile" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun-mobile" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<!-- 二级导航 -->
+<!--  内容  -->
+<div class="container main">
+<!-- 中间 -->
+<div class="row">
+<div class="runoob-col-md2">
+<div class="left-column">
+<div class="tab" style="overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
+<i aria-hidden="true" class="fa fa-list"></i>
+<span>AI Agent 教程</span>
+</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+<a data-p="par" href="../ai-agent/ai-agent-tutorial.html" target="_top" title="AI Agent(智能体) 教程">
+			AI Agent(智能体) 教程			</a>
+<a data-p="par" href="../ai-agent/ai-agent-intro.html" target="_top" title="AI Agent 简介">
+			AI Agent 简介			</a>
+<a data-p="par" href="../ai-agent/ai-agent-core.html" target="_top" title="AI Agent  核心组件">
+			AI Agent  核心组件			</a>
+<a href="../ai-agent/ai-terminology.html" target="_top" title="AI Agent 术语">AI Agent 术语</a>
+<a href="../ai-agent/ai-agent-working-principle.html" target="_top" title="AI Agent 工作原理">AI Agent 工作原理</a>
+<a href="../ai-agent/ai-architecture.html" target="_top" title="AI 底层架构">AI 底层架构</a>
+<a href="../ai-agent/ai-agent-llm.html" target="_top" title="大语言模型基础">大语言模型基础</a>
+<a href="../ai-agent/llm-multimodal.html" target="_top" title="大模型多模态">大模型多模态</a>
+<a href="../ai-agent/prompt-engineering.html" target="_top" title="提示词工程">提示词工程</a>
+<a href="../ai-agent/token-intro.html" target="_top" title="Token (词元)">Token (词元)</a>
+<a href="../ai-agent/reasoning-planning.html" target="_top" title="推理与规划">推理与规划</a>
+<a href="../ai-agent/vector-database.html" target="_top" title="向量数据库">向量数据库</a>
+<a href="../ai-agent/retrieval-augmented-generation.html" target="_top" title="RAG 与知识检索">RAG 与知识检索</a>
+<a href="../ai-agent/agent-context-engineering.html" target="_top" title="Agent 上下文工程">Agent 上下文工程</a>
+<a href="../ai-agent/agent-architecture.html" target="_top" title="Agent 架构">Agent 架构</a>
+<br/>
+<h2 class="left"> <span class="left_h2">智能体工具</span></h2> <a data-p="par" href="../ai-agent/first-ai-agent.html" target="_top" title="第一个 AI Agent">
+			第一个 AI Agent			</a>
+<a href="../ai-agent/ai-monkeycode.html" target="_top" title="AI 开发平台"> AI 开发平台</a>
+<a href="../ai-agent/openclaw-clawdbot-tutorial.html" target="_top" title="OpenClaw (Clawdbot) 教程"> OpenClaw (Clawdbot) 教程</a>
+<a href="../ai-agent/openclaw-quickstart.html" target="_top" title="OpenClaw 快速上手"> OpenClaw 快速上手</a>
+<a href="../ai-agent/qoderwork.html" target="_top" title="QoderWork 教程"> QoderWork 教程</a>
+<a href="../ai-agent/qoderwake-usage.html" target="_top" title="QoderWake 教程"> QoderWake 教程</a>
+<a href="../ai-agent/workbuddy-usage.html" target="_top" title="WorkBuddy 入门教程"> WorkBuddy 入门教程</a>
+<a href="../ai-agent/ai-workflow.html" target="_top" title="AI 工作流"> AI 工作流</a>
+<a data-p="par" href="../ai-agent/crewai-agent.html" target="_top" title="CrewAI 构建智能体">
+			CrewAI 构建智能体			</a>
+<a data-p="par" href="../ai-agent/langchain-agent.html" target="_top" title="LangChain 制作智能体">
+			LangChain 制作智能体			</a>
+<a href="../ai-agent/langgraph-quick-start.html" target="_top" title="LangGraph 入门教程">LangGraph 入门教程</a>
+<a href="../ai-agent/deep-agents-usage.html" target="_top" title="Deep Agents 入门教程">Deep Agents 入门教程</a>
+<a href="../ai-agent/graphrag-usage.html" target="_top" title="GraphRAG 入门教程">GraphRAG 入门教程</a>
+<a href="../ai-agent/harness-engineering.html" target="_top" title="Harness Engineering">Harness Engineering</a>
+<a href="../ai-agent/hermes-agent.html" target="_top" title="Hermes Agent">Hermes Agent</a>
+<a href="../ai-agent/loop-engineering.html" target="_top" title="Loop Engineering">Loop Engineering</a>
+<a href="../ai-agent/vibe-coding-start.html" target="_top" title="Vibe Coding 入门教程">Vibe Coding</a>
+<a href="../ai-agent/dify-usage.html" title="Dify 入门教程">Dify 入门教程</a>
+<a href="../ai-agent/n8n-usage.html" title="n8n 入门教程">n8n 入门教程 </a>
+<a href="../ai-agent/pi-coding-agent.html" title="Pi Coding Agent">Pi Coding Agent </a>
+<br/><h2 class="left"> <span class="left_h2">Python 实现智能体</span></h2>
+<a href="../ai-agent/python-ai-agent.html" target="_top" title="Python 实现 AI Agent">Python 实现 AI Agent</a>
+<a href="../ai-agent/ai-agent-function-calling.html" target="_top" title="工具调用">工具调用</a>
+<a href="../ai-agent/ai-agent-memory-system-design.html" target="_top" title="记忆系统">记忆系统</a>
+<a data-p="par" href="../ai-agent/ai-agent-python-setup.html" target="_top" title="Python 智能体环境配置">
+			Python 智能体环境配置			</a>
+<a data-p="par" href="../ai-agent/ai-agent-answer-demo.html" target="_top" title="AI Agent 问答实例">
+			AI Agent 问答实例			</a>
+<a data-p="par" href="../ai-agent/python-reasoning-planning.html" target="_top" title="Python 实现推理与规划">
+			推理与规划			</a>
+<a data-p="par" href="../ai-agent/python-rag.html" target="_top" title="Python 实现 RAG 与知识检索">
+			RAG 与知识检索			</a>
+<a data-p="par" href="../ai-agent/multi-agent-system.html" target="_top" title="多智能体系统（Multi-Agent System）">
+			多智能体系统			</a>
+<a data-p="par" href="../ai-agent/tools-integration.html" target="_top" title="AI Agent 工具与外部集成">
+			工具与外部集成			</a>
+<a data-p="par" href="../ai-agent/multimodal-agent.html" target="_top" title="多模态 Agent">
+			多模态 Agent			</a>
+<a data-p="par" href="../ai-agent/evaluation-safety-alignment.html" target="_top" title="Agent 评估、安全与对齐">
+			评估、安全与对齐			</a>
+<a data-p="par" href="../ai-agent/production-deployment.html" target="_top" title="AI Agent 生产部署与工程化">
+			生产部署与工程化			</a>
+<a data-p="par" href="../ai-agent/vertical-applications.html" target="_top" title="AI Agent 垂直应用场景">
+			垂直应用场景			</a>
+<a data-p="par" href="../ai-agent/hugging-face-transformers.html" target="_top" title="Hugging Face Transformers">
+			Hugging Face Transformers			</a>
+</div>
+</div>
+</div>
+</div> <div class="col middle-column">
+<div class="article">
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../ai-agent/deep-agents-usage.html" rel="prev">Deep Agents入門チュートリアル</a> </div>
+<div class="next-design-link"><a href="../ai-agent/loop-engineering.html" rel="next">Loop Engineering（ループエンジニアリング）</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="article-body">
+<div class="article-intro" id="content">
+<h1>GraphRAG入門チュートリアル</h1>
+<p>GraphRAGは、マイクロソフトリサーチがオープンソース化した、構造化・階層化された検索拡張生成（RAG）システムです。従来のRAGがプレーンテキストのベクトル検索を使用するのとは異なり、GraphRAGはまず大規模言語モデルを使って元のドキュメントからエンティティと関係を抽出し、知識グラフを構築してから、グラフ構造に基づいて検索とQAを行います。</p>
+<p>本チュートリアルは初心者向けで、インストールから始めて、以下の全フローを完全に進めます。<span class="marked">ドキュメント → 知識グラフ → クエリQA</span>モデルには<span class="marked">qwen-plus</span>、EmbeddingにはAlibaba Cloud通義の<span class="marked">text-embedding-v4</span>。</p>
+<p><img decoding="async" src="../wp-content/uploads/2026/06/1f29417e-fd9e-4919-8b3f-921e3c7384b8.webp"/></p>
+<hr/>
+<h2>GraphRAGとは</h2>
+<p>GraphRAGを理解するには、まず従来のRAGより優れている点を理解する必要があります。</p>
+<h3>従来のRAGの限界</h3>
+<p>従来のRAG（Baseline RAG）のワークフローは、ドキュメントを小さなチャンクに分割 → ベクトルを生成 → 質問が来たらベクトル類似度で最も関連する数チャンクを検索 → モデルに渡して回答を生成する、というものです。</p>
+<p>この方法は「精密検索」タイプの問題には効果的ですが、次の2つのシナリオではパフォーマンスが低下します。</p>
+<ul>
+<li><strong>ドキュメント横断的な関連推論</strong>：回答が異なるドキュメントに散らばった情報を結び付ける必要がある場合、ベクトル類似度はそのような「関係」を表現できません。例：「A社のCEOとB社の創業者にはどのような接点がありますか？」</li>
+<li><strong>全体的な要約の問題</strong>：質問がコーパス全体のマクロな要約を求める場合、いくつかのテキスト断片では全体像をカバーできません。例：「この一連の財務報告書の中で最も重要なリスクポイントは何ですか？」</li>
+</ul>
+<h3>GraphRAGがこの2つの問題をどう解決するか</h3>
+<p>GraphRAGの核となる考え方は次のとおりです。<strong>テキストチャンクを直接検索するのではなく、まず知識グラフを構築し、そのグラフ構造に基づいて検索します。</strong>。</p>
+<p>プロセス全体は2つの段階に分かれます。</p>
+<table class="reference">
+<thead>
+<tr><th>段階</th><th>処理内容</th><th>出力内容</th></tr>
+</thead>
+<tbody>
+<tr><td><span class="tag1">インデックス（Index）</span></td><td>LLMを使用してドキュメントを読み取り、エンティティ（人物、場所、組織など）と関係を抽出して知識グラフを構築し、その後Leidenアルゴリズムでグラフを階層クラスタリングし、各コミュニティの要約を生成します。</td><td>知識グラフ＋コミュニティ要約＋ベクトルインデックス</td></tr>
+<tr><td><span class="tag1 blue">クエリ（Query）</span></td><td>ユーザーが質問したとき、質問のタイプに応じて異なる検索戦略を選択し、グラフデータ、コミュニティ要約、元のテキスト断片をまとめてLLMコンテキストに注入して回答を生成します。</td><td>出典根拠付きの構造化された回答</td></tr>
+</tbody>
+</table>
+<blockquote><p>GraphRAGのインデックス段階では、多数のLLM APIを呼び出し、各テキストに対してエンティティ抽出と要約を行うため、<strong>Token消費は従来のRAGよりはるかに多くなります。</strong>。初回使用時は、まず小さなドキュメント（数千文字以内）でプロセスをテストし、問題がないことを確認してから大規模なコーパスを処理することをお勧めします。</p></blockquote>
+<h3>4つのクエリモードの比較</h3>
+<table class="reference">
+<thead>
+<tr><th>クエリモード</th><th>検索戦略</th><th>適した問題タイプ</th><th>リソース消費</th></tr>
+</thead>
+<tbody>
+<tr><td><span class="tag1">Global Search</span></td><td>Map-Reduceですべてのコミュニティ要約を走査</td><td>全体的・要約的な問題。例：「このドキュメント群の中心テーマは何か」</td><td>高（LLMを並行して複数回呼び出し）</td></tr>
+<tr><td><span class="tag1 blue">Local Search</span></td><td>関連エンティティから出発し、隣接ノードと関連テキストを拡張</td><td>特定のエンティティに関する問題。例「ある人物の主な関係ネットワーク」</td><td>中</td></tr>
+<tr><td><span class="tag1 green">DRIFT Search</span></td><td>Local Search＋コミュニティ情報による反復的な追加質問</td><td>広い文脈を必要とするエンティティ関連の問題。深さと広さを両立</td><td>中高</td></tr>
+<tr><td><span class="tag1 purple">Basic Search</span></td><td>標準ベクトル類似度（従来のRAGと同じ）</td><td>単純な精密検索。効果比較用</td><td>低</td></tr>
+</tbody>
+</table>
+<hr/>
+<h2>環境要件</h2>
+<p>始める前に、お使いの環境が以下の条件を満たしていることを確認してください。</p>
+<table class="reference">
+<thead>
+<tr><th>依存関係</th><th>バージョン要件</th><th>説明</th></tr>
+</thead>
+<tbody>
+<tr><td>Python</td><td>3.10 ~ 3.12</td><td>公式サポート範囲。3.13は当面サポートされていません</td></tr>
+<tr><td>pip</td><td>最新版</td><td>まず<code>pip install --upgrade pip</code></td></tr>
+<tr><td>Alibaba Cloud百炼 APIキー</td><td>—</td><td>在 <a href="https://bailian.console.aliyun.com/cn-beijing?userCode=i5mn5r7m&amp;tab=model#/api-key" target="_blank">bailian.console.aliyun.com/</a>申請</td></tr>
+<tr><td>ディスク容量</td><td>≥ 2GB</td><td>インデックス生成物（Parquetファイル、ベクトルストア）は多くの容量を占有します。</td></tr>
+</tbody>
+</table>
+<hr/>
+<h2>インストール</h2>
+<p>GraphRAGはPyPIで公開されています。システム環境を汚さないよう、Python仮想環境へのインストールを推奨します。</p>
+<h3>プロジェクトディレクトリを作成し、仮想環境を初期化する</h3>
+<pre>
+mkdir graphrag_demo
+cd graphrag_demo
+python -m venv .venv
+</pre>
+<blockquote>以下のコマンドも使用できます：<a href="../python3/uv-tutorial.html" target="_blank">uvコマンド</a>を使用してPythonバージョンを指定します：<pre>uv venv --python 3.12</pre></blockquote>
+<h3>仮想環境をアクティベートする</h3>
+<p>macOS / Linux：</p>
+<pre>
+source .venv/bin/activate
+</pre>
+<p>Windows：</p>
+<pre>
+.venv\Scripts\activate
+</pre>
+<h3>GraphRAGをインストールする</h3>
+<pre>
+pip install graphrag
+</pre>
+<p>インストール完了後に検証します：</p>
+<pre>
+graphrag --help
+</pre><p>いくつかの<span class="marked">graphrag</span>コマンド情報が出力され、出力は次のようになります：</p>
+<p><img decoding="async" src="../wp-content/uploads/2026/06/runoob_1781351784984.png"/></p>
+<blockquote><p>GraphRAGは自動的にLiteLLM、LanceDB、pandas、numpyなどの依存関係をインストールします。初回インストールには時間がかかる場合があります（通常1〜3分）。お待ちください。</p></blockquote>
+<hr/>
+<h2>ワークスペースを初期化する</h2>
+<p>実行：<code>graphrag init</code>コマンドの実行により、GraphRAGは現在のディレクトリに設定ファイルとディレクトリ構造を生成します。</p>
+<pre>
+graphrag init
+</pre><p>モデルの設定を求められます。そのままEnterキーでデフォルトにしておき、後で変更します：</p>
+<pre>Specify the default chat model to use [gpt-4.1]: 
+Specify the default embedding model to use [text-embedding-3-large]: </pre>
+<p>初期化時にデフォルトのChatモデルとEmbeddingモデルの入力を求められますが、そのままEnterキーでスキップして、後で手動で変更します。<code>settings.yaml</code>。</p>
+<p>初期化が完了すると、ディレクトリ構造は次のようになります：</p>
+<pre>
+graphrag_demo/
+├── .env                  # 存放 API Key 环境变量
+├── settings.yaml         # 核心配置文件
+├── input/                # 存放待处理的文本文件
+├── output/               # 索引产物输出目录（自动生成）
+└── prompts/              # Prompt 模板目录（自动生成）
+</pre>
+<blockquote><p>GraphRAGのマイナーバージョンをアップグレードするたびに、再実行することをお勧めします。<code>graphrag init --force</code>設定形式を更新してください。そうしないと、設定構造の変更により実行エラーが発生する可能性があります。このコマンドは既存の<code>settings.yaml</code>とpromptsを上書きするため、先にバックアップすることをお勧めします。</p></blockquote>
+<hr/>
+<h2>テストドキュメントを準備する</h2>
+<p>GraphRAGは<code>.txt</code>、<code>.csv</code>、<code>.json</code>形式のドキュメントをサポートしており、処理対象の全ファイルは<code>input/</code>ディレクトリに配置します。</p>
+<p>公式推奨のテストドキュメントであるチャールズ・ディケンズの『クリスマス・キャロル』をProject Gutenbergから直接ダウンロードします：</p>
+<pre>
+curl https://static.jyshare.com/download/pg24022.txt -o ./input/book.txt
+</pre>
+<p>ネットワークに接続できない場合は、自分で中国語のテストテキストを作成することもできます。内容が豊富であるほど（多数の人物、場所、出来事の関係を含む）、GraphRAGの知識グラフの効果がより顕著になります：</p>
+<p>ファイルは<span class="marked">input</span>ディレクトリに配置し、ファイル名は<span class="marked">demo.txt</span>：</p>
+<pre>SpaceX 太空探索技术公司成立于 2002 年，由埃隆·马斯克（Elon Musk）在美国加利福尼亚州霍桑市创办。
+公司目标是大幅降低太空运输成本，最终实现人类移民火星。
+
+马斯克早年联合创立了 PayPal，2002 年以 15 亿美元出售给 eBay，随后将个人资产投入 SpaceX。
+联合创始人中，汤姆·穆勒（Tom Mueller）担任推进系统首席设计师，主导了 Merlin 和 Raptor 发动机的研发。
+格温·肖特维尔（Gwynne Shotwell）于 2002 年加入，2008 年起担任总裁兼 COO，负责公司日常运营和商业拓展。
+
+2008 年，猎鹰 1 号（Falcon 1）在经历三次失败后首次成功入轨，成为首个由私营公司研制的液体轨道火箭。
+2010 年，猎鹰 9 号（Falcon 9）首飞成功，同年龙飞船（Dragon）完成首次商业发射与回收。
+2012 年，龙飞船成为首个对接国际空间站的商业航天器。
+
+2015 年 12 月，猎鹰 9 号一级火箭首次实现陆地垂直回收，开创了火箭重复使用的新纪元。
+此后 SpaceX 累计完成超过 200 次火箭回收，单枚助推器最高复用次数达到 20 次以上。
+
+2020 年，载人龙飞船（Crew Dragon）将 NASA 宇航员送入国际空间站，标志着商业载人航天时代的开始。
+Starlink 星链项目自 2019 年启动，截至 2024 年已在轨部署超过 5000 颗卫星，覆盖全球超过 60 个国家和地区。
+
+Starship 星舰是 SpaceX 正在研发的超重型运载系统，由超重助推器（Super Heavy）和星舰飞船组成，
+设计目标为完全可重复使用，近地轨道运力超过 100 吨，是 NASA 阿尔忒弥斯登月计划的指定着陆器。
+
+竞争对手方面，SpaceX 主要面临来自蓝色起源（Blue Origin）和联合发射联盟（ULA）的压力。
+蓝色起源由亚马逊创始人杰夫·贝索斯创立，专注亚轨道旅游和重型火箭 New Glenn 的研发。
+ULA 由洛克希德·马丁和波音合资成立，长期承担美国军方卫星发射任务。</pre>
+<p><img decoding="async" src="../wp-content/uploads/2026/06/runoob_1781352153283.png"/></p>
+<hr/>
+<h2>qwen-plusとEmbeddingモデルを設定する</h2>
+<p>これはこのチュートリアル全体で最も重要なステップです。変更する必要があるのは<code>.env</code> 和 <code>settings.yaml</code>2つのファイルです。</p>
+<h3>ステップ1：APIキーを設定する</h3>
+<p>開きます：<code>.env</code>ファイルにあなたのAPIキーを入力してください：</p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: #666666; font-style: italic;"># ファイルパス：.env</span><br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># Alibaba Cloud百炼 APIキー</span><br/>
+<span style="color: #007800;">DASHSCOPE_API_KEY</span>=sk-your-dashscope-api-key-here<br/>
+</div>
+</div>
+<h3>ステップ2：settings.yamlを変更する</h3>
+<p>開きます：<code>settings.yaml</code>内容全体を次の設定に置き換えます。</p>
+<p>GraphRAG 2.xはLiteLLMを使用して各社のモデルを統一的に呼び出します。<code><span class="marked">model_provider: openai</span></code>組み合わせることで<code>api_base</code>リクエストを任意のOpenAI互換インターフェースに転送できます：</p>
+<pre>
+completion_models:
+  default_completion_model:
+    model_provider: openai
+    model: qwen-plus                              # 中文抽取稳定，成本低于 qwen-plus
+    auth_method: api_key
+    api_key: ${DASHSCOPE_API_KEY}
+    api_base: https://dashscope.aliyuncs.com/compatible-mode/v1
+    call_args:
+      temperature: 0                              # 提高结构化稳定性
+      max_tokens: 4096
+    retry:
+      type: exponential_backoff
+      max_retries: 5
+      base_delay: 2
+
+embedding_models:
+  default_embedding_model:
+    model_provider: openai
+    model: text-embedding-v4                      # 通义向量模型
+    auth_method: api_key
+    api_key: ${DASHSCOPE_API_KEY}
+    api_base: https://dashscope.aliyuncs.com/compatible-mode/v1
+    retry:
+      type: exponential_backoff
+      max_retries: 5
+
+input:
+  type: text
+
+input_storage:
+  type: file
+  base_dir: input
+
+chunking:
+  type: tokens
+  size: 600                                       # 中文推荐 500~800
+  overlap: 100
+  encoding_model: o200k_base
+
+output_storage:
+  type: file
+  base_dir: output
+
+reporting:
+  type: file
+  base_dir: logs
+
+cache:
+  type: json
+  storage:
+    type: file
+    base_dir: cache
+
+vector_store:
+  type: lancedb
+  db_uri: output/lancedb
+
+embed_text:
+  embedding_model_id: default_embedding_model    # 注意不要带逗号
+  batch_size: 10                                 # 百炼 embedding 单次最多10条
+  batch_max_tokens: 6000
+  concurrency: 1                                 # 避免并发触发限流
+
+extract_graph:
+  completion_model_id: default_completion_model
+  entity_types: []                               # 自动识别实体
+  max_gleanings: 3                               # 提高关系补抽成功率
+
+summarize_descriptions:
+  completion_model_id: default_completion_model
+  max_length: 500
+
+cluster_graph:
+  max_cluster_size: 20                           # 降低社区数量
+
+extract_claims:
+  enabled: false
+
+community_reports:
+  completion_model_id: default_completion_model
+  max_length: 1500
+  max_input_length: 4000                         # 防止生成阶段过慢
+
+snapshots:
+  graphml: true                                  # 导出图结构
+  embeddings: false
+
+local_search:
+  completion_model_id: default_completion_model
+  embedding_model_id: default_embedding_model
+  top_k_entities: 10
+
+global_search:
+  completion_model_id: default_completion_model
+  map_max_length: 500
+  reduce_max_length: 1500</pre>
+<blockquote><p><strong>QwenのJSON出力について：</strong>GraphRAGはエンティティ抽出段階で、モデルが安定してJSON形式を返すことを必要とします。QwenはJSONモードをサポートしており、<code>temperature</code>0に設定すると、出力の安定性がさらに向上し、解析失敗の確率が減ります。それでもJSON解析エラーが発生する場合は、試しに<code>call_args</code>に追加してください<code>response_format: {type: json_object}</code>。</p></blockquote>
+<hr/>
+<h2>インデックスを開始する</h2>
+<p>設定が完了したら、インデックスコマンドを実行すると、GraphRAGは自動的に読み取ります<code>input/</code>ディレクトリ内のすべてのファイルを読み取り、qwen-plusを呼び出してエンティティ抽出、関係識別、要約生成を行い、最終的に完全な知識グラフを構築します。</p>
+<pre>
+graphrag index
+</pre>
+<p>次のような進捗出力が表示されます：</p>
+<pre>
+⠹ GraphRAG Indexer
+├── Loading Input (text) - 1 files loaded
+├── create_base_text_units
+├── extract_graph
+│   └── Entity Extraction: 100%|████████████| 12/12 [02:34&lt;00:00]
+├── summarize_descriptions
+├── cluster_graph
+├── community_reports
+└── generate_text_embeddings
+All workflows completed successfully.
+</pre>
+<p>インデックスが完了すると、<code>output/</code>ディレクトリ内に一連のParquetファイルが生成されます：</p>
+<table class="reference">
+<thead>
+<tr><th>ファイル</th><th>内容</th></tr>
+</thead>
+<tbody>
+<tr><td><code>entities.parquet</code></td><td>抽出されたすべてのエンティティ（名前、タイプ、説明、ベクトル）</td></tr>
+<tr><td><code>relationships.parquet</code></td><td>エンティティ間の関係（ソースエンティティ、ターゲットエンティティ、関係の説明、重み）</td></tr>
+<tr><td><code>communities.parquet</code></td><td>Leidenクラスタリングによって生成されたコミュニティ（階層構造）</td></tr>
+<tr><td><code>community_reports.parquet</code></td><td>各コミュニティの要約レポート（Global Searchの核となるデータ）</td></tr>
+<tr><td><code>text_units.parquet</code></td><td>元のテキストブロック（Local Searchの参照ソース）</td></tr>
+<tr><td><code>lancedb/</code></td><td>ベクトルデータベース。各種エンティティとテキストブロックのベクトルを格納します。</td></tr>
+</tbody>
+</table>
+<blockquote><p><strong>インデックス時間の参考：</strong>数千字の中文ドキュメント（約10〜20個のテキストブロック）の場合、qwen-plusを使用すると約3〜10分かかります。10万字以上の大規模なドキュメントセットの場合は、数時間かかる可能性があります。最初に小さいドキュメントでフローを一通り実行してから、大規模なデータを処理することをお勧めします。</p></blockquote>
+<hr/>
+<h2>クエリを実行する</h2>
+<p>インデックスが完了すると、知識グラフに対してクエリを実行できます。GraphRAGはCLIとPython APIの2つの方法を提供します。</p>
+<h3>CLIクエリ</h3>
+<p>グローバル検索（マクロ的な問題に適しています）：</p>
+<pre>
+graphrag query "文档中涉及的主要组织和人物有哪些？它们之间有什么关系？"
+</pre>
+<p>ローカル検索（特定のエンティティに関する問題に適しています）。追加<code>--method local</code>：</p>
+<pre>
+graphrag query "SpaceX 公司的主要业务和合作伙伴有哪些？" --method local
+</pre>
+<p>DRIFT検索（深さと広さの両方を兼顾）：</p>
+<pre>
+graphrag query "埃隆·马斯克的职业背景和主要贡献是什么？" --method drift
+</pre>
+<p>基本ベクトル検索（従来のRAGとの比較）：</p>
+<pre>
+graphrag query "Starship 星舰的设计目标和能力是什么？" --method basic
+</pre>
+<h3>Python APIクエリ</h3>
+<p>コード内でGraphRAGクエリを呼び出すため、アプリケーションへの統合に適しています。</p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: #a50"># ファイルパス：query_demo.py</span><br/>
+<span style="color: #a50"># GraphRAG Python APIを使用してクエリを実行</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">import</span> asyncio<br/>
+<span style="color: Green;font-weight:bold;">from</span> graphrag.<span style="color: #05a;">api</span> <span style="color: Green;font-weight:bold;">import</span> GraphRagConfig<span style="color: Gray;">,</span> search<br/>
+<br/>
+async <span style="color: Green;font-weight:bold;">def</span> run_query<span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a50"># 設定ファイルをロード（現在のディレクトリからsettings.yamlを読み取る）</span><br/>
+    config <span style="color: Gray;">=</span> GraphRagConfig.<span style="color: #05a;">from_yaml</span><span style="color: Olive;">(</span><span style="color: #a11;">"settings.yaml"</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># ── グローバル検索の例 ──────────────────────────────</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">60</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"【Global Search】グローバルな問題"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">60</span><span style="color: Olive;">)</span><br/>
+<br/>
+    global_result <span style="color: Gray;">=</span> await search<span style="color: Olive;">(</span><br/>
+        config<span style="color: Gray;">=</span>config<span style="color: Gray;">,</span><br/>
+        query<span style="color: Gray;">=</span><span style="color: #a11;">"ドキュメント内で言及されている主要な企業と人物の関係ネットワークはどのようなものですか？"</span><span style="color: Gray;">,</span><br/>
+        method<span style="color: Gray;">=</span><span style="color: #a11;">"global"</span><span style="color: Gray;">,</span>            <span style="color: #a50"># Global Searchを使用</span><br/>
+    <span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>global_result.<span style="color: #05a;">response</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># ── ローカル検索の例 ──────────────────────────────</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">60</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"【Local Search】特定のエンティティに関する問題"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">60</span><span style="color: Olive;">)</span><br/>
+<br/>
+    local_result <span style="color: Gray;">=</span> await search<span style="color: Olive;">(</span><br/>
+        config<span style="color: Gray;">=</span>config<span style="color: Gray;">,</span><br/>
+        query<span style="color: Gray;">=</span><span style="color: #a11;">"SpaceXの創業チームの背景と主要製品は何ですか？"</span><span style="color: Gray;">,</span><br/>
+        method<span style="color: Gray;">=</span><span style="color: #a11;">"local"</span><span style="color: Gray;">,</span>             <span style="color: #a50"># Local Searchを使用</span><br/>
+    <span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>local_result.<span style="color: #05a;">response</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 検索されたソース情報を表示（オプション）</span><br/>
+    <span style="color: Green;font-weight:bold;">if</span> <span style="color: Teal;">hasattr</span><span style="color: Olive;">(</span>local_result<span style="color: Gray;">,</span> <span style="color: #a11;">"context_data"</span><span style="color: Olive;">)</span>:<br/>
+        entities <span style="color: Gray;">=</span> local_result.<span style="color: #05a;">context_data</span>.<span style="color: #05a;">get</span><span style="color: Olive;">(</span><span style="color: #a11;">"entities"</span><span style="color: Gray;">,</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"関連エンティティの検索数：{len(entities)}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">if</span> __name__ <span style="color: Gray;">==</span> <span style="color: #a11;">"__main__"</span>:<br/>
+    asyncio.<span style="color: #05a;">run</span><span style="color: Olive;">(</span>run_query<span style="color: Olive;">(</span><span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<pre>
+python query_demo.py
+</pre>
+<pre>
+============================================================
+【Global Search】全局性问题
+============================================================
+根据文档内容，主要涉及以下公司和人物关系网络：
+
+**公司层面：**
+- SpaceX 公司：主要角色，覆盖商业发射、载人航天、卫星互联网三大方向
+- NASA：重要合作伙伴，阿尔忒弥斯登月计划 Starship 着陆器供应商
+- 蓝色起源 / 联合发射联盟：主要竞争对手
+
+**人物层面：**
+- 马斯克（创始人）：PayPal 联合创始人，SpaceX CEO 兼首席工程师
+- 汤姆·穆勒（联合创始人）：推进系统首席设计师，Merlin 和 Raptor 发动机之父
+- 格温·肖特维尔：总裁兼 COO，负责公司商业运营
+
+**关键关系：**
+SpaceX 与 NASA 于 2020 年建立战略合作关系，
+三家公司（SpaceX、蓝色起源、ULA）在商业航天发射市场形成竞争格局...
+
+============================================================
+【Local Search】针对特定实体的问题
+============================================================
+SpaceX 公司成立于 2002 年，创始团队包括：
+- 马斯克：PayPal 联合创始人，SpaceX CEO 兼首席工程师，航天领域超二十年经验
+- 汤姆·穆勒：推进系统首席设计师，主导 Merlin 和 Raptor 发动机研发
+
+主要产品：
+1. 猎鹰 9 号：全球首个实现垂直回收的轨道级火箭，已完成 200 次以上回收
+2. Starship 星舰：超重型运载系统，近地轨道运力超 100 吨，完全可重复使用
+
+检索到相关实体数量：12
+</pre>
+<hr/>
+<h2>プロンプト自動チューニング</h2>
+<p>GraphRAG公式は、自分のデータを処理する前に、まずPromptの自動チューニングを実行することを強く推奨しています。</p>
+<p>自動チューニングでは、LLMにドキュメントの一部を読み取らせ、データ領域に特化したエンティティ抽出Promptを生成するため、知識グラフの構築品質が向上します。</p>
+<pre>
+graphrag prompt-tune --config settings.yaml --root . --language Chinese
+</pre>
+<p>チューニングが完了すると、<code>prompts/</code>ディレクトリ内のPromptファイルが自動的に更新されます。ドキュメントが中国語の場合は、...を追加します<code>--language Chinese</code>パラメータを追加すると、生成されるPromptも中国語になり、中国語エンティティ抽出の精度が向上します。</p>
+<blockquote><p>Promptのチューニング自体もLLMのTokenを消費します（少量のドキュメントに対してクイックインデックスを1回実行するのとほぼ同じです）。デフォルトのPromptを使い続けるのではなく、データセットを変更するたびに再チューニングすることをお勧めします。</p></blockquote>
+<hr/>
+<h2>よく使うCLIコマンド早見表</h2>
+<p>以下は、GraphRAGの日常的な使用で最も一般的なコマンドです。</p>
+<table class="reference">
+<thead>
+<tr><th>コマンド</th><th>説明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>graphrag init</code></td><td>ワークスペースを初期化して、...を生成します<code>.env</code>、<code>settings.yaml</code>、<code>input/</code></td></tr>
+<tr><td><code>graphrag init --force</code></td><td>強制的に再初期化（バージョンアップ後に使用）。既存の設定を上書きします。</td></tr>
+<tr><td><code>graphrag index</code></td><td>对 <code>input/</code>ディレクトリのドキュメントに対して完全なインデックス処理を実行します</td></tr>
+<tr><td><code>graphrag index --resume</code></td><td>前回の中断箇所からインデックスを再開（LLM呼び出しはキャッシュされ、Tokenを重複して消費しません）</td></tr>
+<tr><td><code>graphrag index --update</code></td><td>増分インデックス。新しく追加されたドキュメントのみを処理します。</td></tr>
+<tr><td><code>graphrag query "问题"</code></td><td>Global Searchクエリ（デフォルトモード）</td></tr>
+<tr><td><code>graphrag query "问题" --method local</code></td><td>Local Searchクエリ</td></tr>
+<tr><td><code>graphrag query "问题" --method drift</code></td><td>DRIFT Searchクエリ</td></tr>
+<tr><td><code>graphrag query "问题" --method basic</code></td><td>Basic Search（ベクトル検索）</td></tr>
+<tr><td><code>graphrag prompt-tune</code></td><td>Promptの自動チューニング（新しいデータセットを処理する前に実行することを推奨）</td></tr>
+</tbody>
+</table>
+<hr/>
+<h2>settings.yamlの全フィールド説明</h2>
+<p>以下、<code>settings.yaml</code>で最もよく使われる設定項目を詳しく説明し、さらに調整しやすくします。</p>
+<h3>モデル関連</h3>
+<table class="reference">
+<thead>
+<tr><th>フィールド</th><th>型</th><th>説明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>model_provider</code></td><td>string</td><td>モデルプロバイダー。OpenAI互換インターフェースを使用する場合は、...と入力します<code>openai</code></td></tr>
+<tr><td><code>model</code></td><td>string</td><td>モデル名。Qwenの場合は、...と入力します<code>qwen-plus 或 qwen-max</code></td></tr>
+<tr><td><code>api_key</code></td><td>string</td><td>APIキー。...を使用することをお勧めします<code>${ENV_VAR}</code>環境変数を参照します</td></tr>
+<tr><td><code>api_base</code></td><td>string</td><td>APIエンドポイント。Qwenの場合は、<code>https://dashscope.aliyuncs.com/compatible-mode/v1</code></td></tr>
+<tr><td><code>call_args.temperature</code></td><td>float</td><td>生成温度。インデックス段階では安定性を高めるために0に設定することを推奨</td></tr>
+<tr><td><code>call_args.max_tokens</code></td><td>int</td><td>1回の生成における最大Token数</td></tr>
+<tr><td><code>retry.max_retries</code></td><td>int</td><td>リクエスト失敗時の最大再試行回数</td></tr>
+</tbody>
+</table>
+<h3>チャンク関連</h3>
+<table class="reference">
+<thead>
+<tr><th>フィールド</th><th>説明</th><th>推奨値</th></tr>
+</thead>
+<tbody>
+<tr><td><code>chunking.size</code></td><td>各テキストブロックの最大Token数</td><td>英語：1200〜1500；中国語：600〜1000</td></tr>
+<tr><td><code>chunking.overlap</code></td><td>隣接するブロック間の重複Token数。エンティティが境界で途切れるのを防ぎます。</td><td>50~150</td></tr>
+<tr><td><code>chunking.type</code></td><td><code>tokens</code>（Token単位で分割）または<code>sentence</code>（文単位で分割）</td><td>通常は...を使用します<code>tokens</code></td></tr>
+</tbody>
+</table>
+<h3>エンティティ抽出関連</h3>
+<table class="reference">
+<thead>
+<tr><th>フィールド</th><th>説明</th><th>推奨</th></tr>
+</thead>
+<tbody>
+<tr><td><code>extract_graph.entity_types</code></td><td>モデルに重点的に抽出するエンティティタイプのリストを伝えます</td><td>自身のビジネス領域に合わせてカスタマイズします。例：<code>person, company, product, technology</code></td></tr>
+<tr><td><code>extract_graph.max_gleanings</code></td><td>各テキストブロックに対して最大で何回追加質問するか（追加質問により再現率は向上しますが、より多くのTokenを消費します）</td><td>コストを重視する場合は1、品質を追求する場合は2に設定します</td></tr>
+</tbody>
+</table>
+<hr/>
+<h2>よくある質問</h2>
+<h3>インデックス作成が途中で失敗したらどうすればよいですか？</h3>
+<p>GraphRAGは毎回のLLM呼び出しの結果をキャッシュします。失敗したら、直接再実行します<code>graphrag index</code>、正常に処理されたテキストブロックはキャッシュから読み取られるため、Tokenを重複して消費しません。</p>
+<p>特定のステップから再開したい場合は、...を使用します<code>--resume</code>パラメータ：</p>
+<pre>
+graphrag index --resume
+</pre>
+<h3>JSON解析エラーが発生した場合の対処法は？</h3>
+<p>エンティティ抽出段階では、モデルに厳密にJSON形式で返すよう要求します。もし...が発生した場合<code>JSONDecodeError</code>、以下の方法を試すことができます：</p>
+<ul>
+<li>在 <code>call_args</code>に追加します<code>response_format: {type: json_object}</code>（モデルがこのパラメータをサポートしている必要があります）</li>
+<li>将 <code>temperature</code>0に設定します</li>
+<li>将 <code>max_gleanings</code>0に設定します（追加質問を減らし、エラー発生確率を下げます）</li>
+<li>実行します<code>graphrag prompt-tune</code>Promptを再チューニングして、モデルに出力形式をよりよく認識させます</li>
+</ul>
+<h3>Global SearchとLocal Searchのどちらを選ぶべきですか？</h3>
+<table class="reference">
+<thead>
+<tr><th>質問タイプ</th><th>推奨モード</th><th>例</th></tr>
+</thead>
+<tbody>
+<tr><td>要約的、全体的</td><td>Global Search</td><td>"このドキュメント群の核心的なテーマは何ですか？""すべての人物関係ネットワークの全体像"</td></tr>
+<tr><td>特定のエンティティ向け</td><td>Local Search</td><td>"マスクの経歴は？""ファルコン9ロケットの主な技術的特徴"</td></tr>
+<tr><td>深さと広さの両方が必要な場合</td><td>DRIFT Search</td><td>"ある人物と周囲のエコシステムとの関連分析"</td></tr>
+<tr><td>単純で正確な検索</td><td>Basic Search</td><td>"SpaceXは何年に設立されましたか？"</td></tr>
+</tbody>
+</table>
+<h3>Token消費が多すぎる場合の制御方法は？</h3>
+<ul>
+<li>将 <code>chunking.size</code>適切に大きく設定します（テキストブロックが少ないほどLLM呼び出しが少なくなります）</li>
+<li>将 <code>extract_graph.max_gleanings</code>0または1に設定します</li>
+<li>在 <code>entity_types</code>には、ビジネスに最も関連するエンティティタイプのみを保持します</li>
+<li>インデックス段階ではより安価なモデルを使用し、クエリ段階では必要に応じてより高性能なモデルに切り替えます</li>
+</ul>
+<blockquote><p>GraphRAGは「非対称モデル構成」戦略を提供します：<code>completion_models</code>に複数のモデルを定義し、インデックス段階ではコストの低いモデルを使用し、クエリ段階では重要なクエリに対してより高性能なモデルを使用することで、コストと品質のバランスを取ります。</p></blockquote>
+<h3>中国語ドキュメントをどう処理しますか？</h3>
+<p>中国語のドキュメントを処理する際、以下の点に注意する必要があります：</p>
+<ul>
+<li>確認します<code>input.encoding: utf-8</code>（デフォルトでUTF-8です）</li>
+<li>小さく設定します<code>chunking.size</code>（中国語の文字は情報密度が高いため、600〜1000 Tokenで十分です）</li>
+<li>実行します<code>graphrag prompt-tune --language Chinese</code>中国語のPromptを生成します</li>
+<li><code>entity_types</code>中国語特有のタイプを適宜追加できます。例：<code>government_agency</code>（政府機関）、<code>policy</code>（政策）</li>
+</ul>
+<hr/>
+<h2>関連資料</h2>
+<table class="reference">
+<thead>
+<tr><th>トピック</th><th>説明</th><th>リンク</th></tr>
+</thead>
+<tbody>
+<tr><td>公式完全ドキュメント</td><td>すべての設定項目の詳細な説明を含む</td><td><a href="https://microsoft.github.io/graphrag" rel="noopener" target="_blank">microsoft.github.io/graphrag</a></td></tr>
+<tr><td>設定リファレンス</td><td>settings.yaml 全フィールド説明</td><td><a href="https://microsoft.github.io/graphrag/config/yaml/" rel="noopener" target="_blank">microsoft.github.io/graphrag/config/yaml/</a></td></tr>
+<tr><td>モデル選定ガイド</td><td>各種LLMへの接続方法（LiteLLMの使い方を含む）</td><td><a href="https://microsoft.github.io/graphrag/config/models/" rel="noopener" target="_blank">microsoft.github.io/graphrag/config/models/</a></td></tr>
+<tr><td>クエリエンジン詳細解説</td><td>4つのクエリモードの原理とパラメータチューニング</td><td><a href="https://microsoft.github.io/graphrag/query/overview/" rel="noopener" target="_blank">microsoft.github.io/graphrag/query/overview/</a></td></tr>
+<tr><td>Prompt チューニングガイド</td><td>自動チューニングと手動チューニングのPromptの完全な説明</td><td><a href="https://microsoft.github.io/graphrag/prompt_tuning/overview/" rel="noopener" target="_blank">microsoft.github.io/graphrag/prompt_tuning/overview/</a></td></tr>
+<tr><td>可視化ガイド</td><td>公式ツールを使用した知識グラフの可視化</td><td><a href="https://microsoft.github.io/graphrag/visualization_guide/" rel="noopener" target="_blank">microsoft.github.io/graphrag/visualization_guide/</a></td></tr>
+<tr><td>GraphRAG 論文</td><td>マイクロソフトリサーチの原著論文、基本原理の理解</td><td><a href="https://arxiv.org/pdf/2404.16130" rel="noopener" target="_blank">arxiv.org/pdf/2404.16130</a></td></tr>
+</tbody>
+</table> その他の拡張
+</div>
+</div>
+<div class="archive-list" style="display:none;font-size: 14px;line-height: 1.8;margin-top: 20px;padding: 10px;">
+<div class="archive-list-item">
+<div class="post-intro" id="ai-info" style="width: 100%;">AI 思考中...</div>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../ai-agent/deep-agents-usage.html" rel="prev">Deep Agents 入門チュートリアル</a> </div>
+<div class="next-design-link"><a href="../ai-agent/loop-engineering.html" rel="next">Loop Engineering（ループエンジニアリング）</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="sidebar-box">
+</div>
+ノートリスト
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>クリックしてノートを共有</h3>
+&lt;p style="font-size:14px;"&gt;ノートはこの記事の内容の拡張である必要があります！&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;記事投稿はこちらをクリック&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; ノートを共有する前に&lt;a href=";.html" class="runoob-pop"&gt;ログイン&lt;/a&gt;が必要です！&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=";.html" id="cancel-comment-reply-link">キャンセル</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="31434"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>ノートを共有</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">ニックネーム</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">ニックネーム（必須）</span></li>
+<li class="form-inline"><label class="hide" for="email">メールアドレス</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">メールアドレス（必須）</span></li>
+<li class="form-inline"><label class="hide" for="url">引用アドレス</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">引用アドレス</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  31434;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 31434, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":31434},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+</div>
+</div>
+<!-- 右边栏 -->
+<div class="fivecol last right-column">
+<style>
+.sidebar-tree .double-li {
+    width:300px;
+}
+.sidebar-tree .double-li li {
+    width: 44%;
+    line-height: 1.5em;
+    border-bottom: 1px solid #ccc;
+    float: left;
+    display: inline;
+}
+</style>
+<div class="sidebar-box re-box re-box-large">
+<div class="sidebar-box recommend-here" style="margin: 0 auto;">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;"> <i aria-hidden="true" class="fa fa-list"></i> 分类导航</a>
+</div>
+<div class="sidebar-box sidebar-cate">
+<div class="sidebar-tree">
+<ul><li style="margin: 0;"><a class="tit" href="#"> Python / 数据科学</a><ul class="double-li"><li><a href="../python3/python3-tutorial.html" title="Python 教程">Python 教程</a></li><li><a href="../python/python-tutorial.html" title="Python2.x 教程">Python2.x 教程</a></li><li><a href="../fastapi/fastapi-tutorial.html" title="FastAPI 教程">FastAPI 教程</a></li><li><a href="../flask/flask-tutorial.html" title="Flask 教程">Flask 教程</a></li><li><a href="../django/django-tutorial.html" title="Django 教程">Django 教程</a></li><li><a href="../numpy/numpy-tutorial.html" title="NumPy 教程">NumPy 教程</a></li><li><a href="../pandas/pandas-tutorial.html" title="Pandas 教程">Pandas 教程</a></li><li><a href="../scipy/scipy-tutorial.html" title="SciPy 教程">SciPy 教程</a></li><li><a href="../matplotlib/matplotlib-tutorial.html" title="Matplotlib 教程">Matplotlib 教程</a></li><li><a href="../dash/dash-tutorial.html" title="Dash 教程">Dash 教程</a></li><li><a href="../jupyter-notebook/jupyter-notebook-tutorial.html" title="Jupyter Notebook 教程">Jupyter Notebook 教程</a></li><li><a href="../pillow/pillow-tutorial.html" title="Pillow 教程">Pillow 教程</a></li><li><a href="../qt/qt-tutorial.html" title="量化交易">量化交易</a></li><li><a href="../r/r-tutorial.html" title="R 教程">R 教程</a></li><li><a href="../julia/julia-tutorial.html" title="Julia 教程">Julia 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> AI / 智能开发</a><ul class="double-li"><li><a href="../ai-agent/ai-agent-tutorial.html" title="AI Agent（智能体）">AI Agent（智能体）</a></li><li><a href="../ai/ai-tutorial.html" title="AI（人工智能）">AI（人工智能）</a></li><li><a href="../codex/codex-tutorial.html" title="Codex 教程">Codex 教程</a></li><li><a href="../vibe-coding/vibe-coding-tutorial.html" title="Vibe Coding 教程">Vibe Coding 教程</a></li><li><a href="../claude-code/claude-code-tutorial.html" title="Claude Code">Claude Code</a></li><li><a href="../opencode/opencode-tutorial.html" title="OpenCode">OpenCode</a></li><li><a href="../skills/skills-tutorial.html" title="Skills（技能）">Skills（技能）</a></li><li><a href="../ollama/ollama-tutorial.html" title="Ollama 教程">Ollama 教程</a></li><li><a href="../hermes-agent/hermes-agent-tutorial.html" title="Hermes Agent">Hermes Agent</a></li><li><a href="../deepseek-harness/deepseek-harness-tutorial.html" title="DeepSeek Harness">DeepSeek Harness</a></li><li><a href="../pi-agent/pi-agent-tutorial.html" title="Pi Agent">Pi Agent</a></li><li><a href="../ai-math/ai-math-tutorial.html" title="AI 数学基础">AI 数学基础</a></li><li><a href="../tensorflow/tensorflow-tutorial.html" title="TensorFlow 教程">TensorFlow 教程</a></li><li><a href="../pytorch/pytorch-tutorial.html" title="PyTorch 教程">PyTorch 教程</a></li><li><a href="../sklearn/sklearn-tutorial.html" title="Scikit-learn 教程">Scikit-learn 教程</a></li><li><a href="../ml/ml-tutorial.html" title="机器 教程">机器 教程</a></li><li><a href="../langchain/langchain-tutorial.html" title="LangChain">LangChain</a></li><li><a href="../nlp/nlp-tutorial.html" title="自然语言处理 NLP">自然语言处理 NLP</a></li><li><a href="../opencv/opencv-tutorial.html" title="OpenCV 教程">OpenCV 教程</a></li><li><a href="../selenium/selenium-tutorial.html" title="Selenium 教程">Selenium 教程</a></li><li><a href="../playwright/playwright-tutorial.html" title="Playwright 教程">Playwright 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 前端开发</a><ul class="double-li"><li><a href="../html/html-tutorial.html" title="HTML 教程">HTML 教程</a></li><li><a href="../html/html5-intro.html" title="HTML5 教程">HTML5 教程</a></li><li><a href="../css/css-tutorial.html" title="CSS 教程">CSS 教程</a></li><li><a href="../css3/css3-tutorial.html" title="CSS3 教程">CSS3 教程</a></li><li><a href="../js/js-tutorial.html" title="JavaScript 教程">JavaScript 教程</a></li><li><a href="../htmldom/htmldom-tutorial.html" title="HTML DOM 教程">HTML DOM 教程</a></li><li><a href="../typescript/ts-tutorial.html" title="TypeScript 教程">TypeScript 教程</a></li><li><a href="../ajax/ajax-tutorial.html" title="AJAX 教程">AJAX 教程</a></li><li><a href="../json/json-tutorial.html" title="JSON 教程">JSON 教程</a></li><li><a href="../tailwindcss/tailwindcss-tutorial.html" title="Tailwind CSS 教程">Tailwind CSS 教程</a></li><li><a href="../bootstrap4/bootstrap4-tutorial.html" title="Bootstrap4 教程">Bootstrap4 教程</a></li><li><a href="../bootstrap5/bootstrap5-tutorial.html" title="Bootstrap5 教程">Bootstrap5 教程</a></li><li><a href="../foundation/foundation-tutorial.html" title="Foundation 教程">Foundation 教程</a></li><li><a href="../vue2/vue-tutorial.html" title="Vue.js 教程">Vue.js 教程</a></li><li><a href="../vue3/vue3-tutorial.html" title="Vue3 教程">Vue3 教程</a></li><li><a href="../react/react-tutorial.html" title="React 教程">React 教程</a></li><li><a href="../nextjs/nextjs-tutorial.html" title="Next.js 教程">Next.js 教程</a></li><li><a href="../angularjs/angularjs-tutorial.html" title="AngularJS 教程">AngularJS 教程</a></li><li><a href="../angularjs2/angularjs2-tutorial.html" title="Angular 教程">Angular 教程</a></li><li><a href="../jquery/jquery-tutorial.html" title="jQuery 教程">jQuery 教程</a></li><li><a href="../jqueryui/jqueryui-tutorial.html" title="jQuery UI 教程">jQuery UI 教程</a></li><li><a href="../jeasyui/jqueryeasyui-tutorial.html" title="jQuery EasyUI 教程">jQuery EasyUI 教程</a></li><li><a href="../echarts/echarts-tutorial.html" title="ECharts 教程">ECharts 教程</a></li><li><a href="../chartjs/chartjs-tutorial.html" title="Chart.js 教程">Chart.js 教程</a></li><li><a href="../highcharts/highcharts-tutorial.html" title="Highcharts 教程">Highcharts 教程</a></li><li><a href="../googleapi/google-maps-basic.html" title="Google 地图 教程">Google 地图 教程</a></li><li><a href="../svg/svg-tutorial.html" title="SVG 教程">SVG 教程</a></li><li><a href="../font-awesome/fontawesome-tutorial.html" title="Font Awesome 教程">Font Awesome 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 后端开发</a><ul class="double-li"><li><a href="../nodejs/nodejs-tutorial.html" title="Node.js 教程">Node.js 教程</a></li><li><a href="../electron/electron-tutorial.html" title="Electron 教程">Electron 教程</a></li><li><a href="../php/php-tutorial.html" title="PHP 教程">PHP 教程</a></li><li><a href="../java/java-tutorial.html" title="Java 教程">Java 教程</a></li><li><a href="../go/go-tutorial.html" title="Go 教程">Go 教程</a></li><li><a href="../rust/rust-tutorial.html" title="Rust 教程">Rust 教程</a></li><li><a href="../csharp/csharp-tutorial.html" title="C# 教程">C# 教程</a></li><li><a href="../servlet/servlet-tutorial.html" title="Servlet 教程">Servlet 教程</a></li><li><a href="../jsp/jsp-tutorial.html" title="JSP 教程">JSP 教程</a></li><li><a href="../asp/asp-tutorial.html" title="ASP 教程">ASP 教程</a></li><li><a href="../appml/appml-tutorial.html" title="AppML 教程">AppML 教程</a></li><li><a href="../vbscript/vbscript-tutorial.html" title="VBScript 教程">VBScript 教程</a></li><li><a href="../swagger/swagger-tutorial.html" title="Swagger 教程">Swagger 教程</a></li><li><a href="../restfulapi/restful-api-tutorial.html" title="RESTful API 教程">RESTful API 教程</a></li><li><a href="../docker/docker-tutorial.html" title="Docker 教程">Docker 教程</a></li><li><a href="../linux/linux-tutorial.html" title="Linux 教程">Linux 教程</a></li><li><a href="../w3cnote/zookeeper-tutorial.html" title="ZooKeeper 教程">ZooKeeper 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 数据库</a><ul class="double-li"><li><a href="../sql/sql-tutorial.html" title="SQL 教程">SQL 教程</a></li><li><a href="../mysql/mysql-tutorial.html" title="MySQL 教程">MySQL 教程</a></li><li><a href="../postgresql/postgresql-tutorial.html" title="PostgreSQL 教程">PostgreSQL 教程</a></li><li><a href="../sqlite/sqlite-tutorial.html" title="SQLite 教程">SQLite 教程</a></li><li><a href="../mongodb/mongodb-tutorial.html" title="MongoDB 教程">MongoDB 教程</a></li><li><a href="../redis/redis-tutorial.html" title="Redis 教程">Redis 教程</a></li><li><a href="../memcached/memcached-tutorial.html" title="Memcached 教程">Memcached 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 移动开发</a><ul class="double-li"><li><a href="../w3cnote/android-tutorial-intro.html" title="Android 教程">Android 教程</a></li><li><a href="../flutter/flutter-tutorial.html" title="Flutter 教程">Flutter 教程</a></li><li><a href="../ionic/ionic-tutorial.html" title="Ionic 教程">Ionic 教程</a></li><li><a href="../jquerymobile/jquerymobile-tutorial.html" title="jQuery Mobile 教程">jQuery Mobile 教程</a></li><li><a href="../swift/swift-tutorial.html" title="Swift 教程">Swift 教程</a></li><li><a href="../kotlin/kotlin-tutorial.html" title="Kotlin 教程">Kotlin 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> DevOps / 工程化</a><ul class="double-li"><li><a href="../git/git-tutorial.html" title="Git 教程">Git 教程</a></li><li><a href="../svn/svn-tutorial.html" title="SVN 教程">SVN 教程</a></li><li><a href="../cmake/cmake-tutorial.html" title="CMake 教程">CMake 教程</a></li><li><a href="../maven/maven-tutorial.html" title="Maven 教程">Maven 教程</a></li><li><a href="../vscode/vscode-tutorial.html" title="VS Code 教程">VS Code 教程</a></li><li><a href="../obsidian/obsidian-tutorial.html" title="Obsidian 教程">Obsidian 教程</a></li><li><a href="../pycharm/pycharm-tutorial.html" title="PyCharm 教程">PyCharm 教程</a></li><li><a href="../eclipse/eclipse-tutorial.html" title="Eclipse 教程">Eclipse 教程</a></li><li><a href="../markdown/md-tutorial.html" title="Markdown 教程">Markdown 教程</a></li><li><a href="../latex/latex-tutorial.html" title="LaTeX 教程">LaTeX 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 编程语言</a><ul class="double-li"><li><a href="../c/c-tutorial.html" title="C 教程">C 教程</a></li><li><a href="../cplusplus/cpp-tutorial.html" title="C++ 教程">C++ 教程</a></li><li><a href="../zig/zig-tutorial.html" title="Zig 教程">Zig 教程</a></li><li><a href="../scala/scala-tutorial.html" title="Scala 教程">Scala 教程</a></li><li><a href="../ruby/ruby-tutorial.html" title="Ruby 教程">Ruby 教程</a></li><li><a href="../perl/perl-tutorial.html" title="Perl 教程">Perl 教程</a></li><li><a href="../lua/lua-tutorial.html" title="Lua 教程">Lua 教程</a></li><li><a href="../dart/dart-tutorial.html" title="Dart 教程">Dart 教程</a></li><li><a href="../assembly/assembly-tutorial.html" title="汇编语言 教程">汇编语言 教程</a></li><li><a href="../w3cnote/verilog-tutorial.html" title="Verilog 教程">Verilog 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 计算机基础</a><ul class="double-li"><li><a href="../computer-organization/computer-organization-tutorial.html" title="计算机组成原理">计算机组成原理</a></li><li><a href="../data-structures/data-structures-tutorial.html" title="数据结构与算法">数据结构与算法</a></li><li><a href="../c-dsa/c-dsa-tutorial.html" title="C 语言数据结构与算法">C 语言数据结构与算法</a></li><li><a href="../design-pattern/design-pattern-tutorial.html" title="设计模式">设计模式</a></li><li><a href="../python-design-pattern/python-design-pattern-tutorial.html" title="Python 设计模式">Python 设计模式</a></li><li><a href="../regexp/regexp-tutorial.html" title="正则表达式">正则表达式</a></li><li><a href="../http/http-tutorial.html" title="HTTP 教程">HTTP 教程</a></li><li><a href="../tcpip/tcpip-tutorial.html" title="TCP/IP 教程">TCP/IP 教程</a></li><li><a href="../np/np-tutorial.html" title="网络协议">网络协议</a></li><li><a href="../w3c/w3c-tutorial.html" title="W3C 教程">W3C 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> XML / Web Service</a><ul class="double-li"><li><a href="../xml/xml-tutorial.html" title="XML 教程">XML 教程</a></li><li><a href="../dtd/dtd-tutorial.html" title="DTD 教程">DTD 教程</a></li><li><a href="../dom/dom-tutorial.html" title="XML DOM 教程">XML DOM 教程</a></li><li><a href="../xsl/xsl-tutorial.html" title="XSLT 教程">XSLT 教程</a></li><li><a href="../xpath/xpath-tutorial.html" title="XPath 教程">XPath 教程</a></li><li><a href="../xquery/xquery-tutorial.html" title="XQuery 教程">XQuery 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XLink 教程">XLink 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XPointer 教程">XPointer 教程</a></li><li><a href="../schema/schema-tutorial.html" title="XML Schema 教程">XML Schema 教程</a></li><li><a href="../xslfo/xslfo-tutorial.html" title="XSL-FO 教程">XSL-FO 教程</a></li><li><a href="../webservices/webservices-tutorial.html" title="Web Service 教程">Web Service 教程</a></li><li><a href="../wsdl/wsdl-tutorial.html" title="WSDL 教程">WSDL 教程</a></li><li><a href="../soap/soap-tutorial.html" title="SOAP 教程">SOAP 教程</a></li><li><a href="../rss/rss-tutorial.html" title="RSS 教程">RSS 教程</a></li><li><a href="../rdf/rdf-tutorial.html" title="RDF 教程">RDF 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> .NET</a><ul class="double-li"><li><a href="../aspnet/aspnet-tutorial.html" title="ASP.NET 教程">ASP.NET 教程</a></li><li><a href="../aspnet/mvc-intro.html" title="MVC 教程">MVC 教程</a></li><li><a href="../aspnet/razor-intro.html" title="Razor 教程">Razor 教程</a></li><li><a href="../aspnet/aspnet-intro.html" title="Web Forms 教程">Web Forms 教程</a></li><li><a href="../aspnet/webpages-intro.html" title="Web Pages 教程">Web Pages 教程</a></li><li><a href="../powershell/powershell-tutorial.html" title="PowerShell 教程">PowerShell 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 网站建设</a><ul class="double-li"><li><a href="../web/web-buildingprimer.html" title="网站建设指南">网站建设指南</a></li><li><a href="../browsers/browser-information.html" title="浏览器信息">浏览器信息</a></li><li><a href="../hosting/hosting-tutorial.html" title="网站主机教程">网站主机教程</a></li><li><a href="../quality/quality-tutorial.html" title="网站品质">网站品质</a></li></ul></li></ul> </div>
+</div>
+</div>
+<br/>
+<div class="sidebar-box re-box re-box-large">
+</div>
+</div></div>
+</div>
+<script>
+var aid = 31434;
+function coll() {
+	$.post( '/wp-content/themes/runoob/option/user/userinfo.php', {aid:aid, action:"collarticle", opt:'add'},function( data ) {
+		if(data.error==0) {
+			$("#content").find("h1:first").find("a").attr("href","javascript:void(0);");
+			$("#content").find("h1:first").find("img").attr("src","http://www.runoob.com/wp-content/themes/runoob/assets/img/coll2.png").css({width:32+"px",height:32+"px"});
+		}
+		alert(data.msg);
+	},'json');
+}
+
+(function () {
+    // 1. 仅 HTML 页面
+    if (!document.contentType || !document.contentType.includes('text/html')) return;
+
+    // 2. 容器判断
+    var container = document.querySelector('.article-intro');
+    if (!container) return;
+
+    var h1 = container.querySelector('h1');
+    if (!h1) return;
+
+    // 3. URL 判断
+    var url = window.location.href.toLowerCase();
+    var version = null;
+
+    if (url.includes('/python3/')) {
+        version = 'Python3.x';
+    } else if (url.includes('/python/')) {
+        version = 'Python2.x';
+    }
+
+    if (!version) return;
+
+    // 4. 防重复
+    if (h1.querySelector('.py-version-badge')) return;
+
+    // 5. 创建标签
+    var badge = document.createElement('span');
+    badge.className = 'py-version-badge';
+    badge.innerText = version;
+
+    // 6. 样式（核心：float 实现右上角）
+    badge.style.float = 'right';
+    badge.style.fontSize = '12px';
+    badge.style.padding = '2px 8px';
+    badge.style.borderRadius = '999px';
+
+   // 自适应亮/暗色 + 渐变背景（增强版）
+	badge.style.color = 'inherit';
+
+	// 渐变背景（低透明度，不影响暗黑模式）
+	if (version.includes('3')) {
+		badge.style.background = 'linear-gradient(90deg, rgba(79,172,254,0.15), rgba(0,242,254,0.15))';
+	} else {
+		badge.style.background = 'linear-gradient(90deg, rgba(161,140,209,0.15), rgba(251,194,235,0.15))';
+	}
+
+	// 边框弱化（更精致）
+	badge.style.border = '1px solid rgba(127,127,127,0.3)';
+
+	// 提升可读性
+	badge.style.opacity = '0.95';
+
+    // 微调位置（更贴近“右上角”）
+    badge.style.marginTop = '4px';
+    badge.style.marginLeft = '10px';
+
+    // 7. 插入到 h1 最前面（让 float 生效更稳定）
+    h1.insertBefore(badge, h1.firstChild);
+
+})();
+</script>
+<!-- 反馈对话框开始 -->
+<script src="../wp-content/themes/runoob/assets/js/runoob-article-dir.min.js"></script>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

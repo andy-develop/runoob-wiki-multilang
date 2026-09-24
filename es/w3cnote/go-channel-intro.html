@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Explicación detallada de Go Channel | Tutorial para principiantes</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="./go-channel-intro.html" rel="canonical"/>
+<meta content="Go Channel 详解" name="keywords"/>
+<meta content="Channel类型blockingBuffered ChannelsRangeselecttimeoutTimer和Tickerclose同步参考资料 Channel是Go中的一个核心类型，你可以把它看成一个管道，通过它并发核心单元就可以发送或者接收数据进行通讯(communication)。 它的操作符是箭头 &amp;lt;- 。   ch.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div><!-- 导航栏 -->
+<!--  内容  -->
+<div class="container main">
+<div class="row">
+<div class="col middle-column big-middle-column">
+<div class="article">
+<div class="article-heading">
+<h2>Explicación detallada de Go Channel</h2> <h3><em>Categoría</em> <a href="../w3cnote_genre/code.html" title="编程技术">Tecnología de programación</a> </h3>
+</div>
+<div class="article-body note-body">
+<div class="article-intro">
+<!-- ad start-->
+<!-- ad end-->
+<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="../index.html"><span class="toc-text">Tipo Channel</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="../index.html"><span class="toc-text">blocking</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="../index.html"><span class="toc-text">Buffered Channels</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="../index.html"><span class="toc-text">Range</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="../index.html"><span class="toc-text">select</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="../index.html"><span class="toc-text">timeout</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="../index.html"><span class="toc-text">Timer y Ticker</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="../index.html"><span class="toc-text">close</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="../index.html"><span class="toc-text">Sincronización</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="../index.html"><span class="toc-text">Referencias</span></a></li></ol>
+<p>Channel es un tipo central en Go. Puedes verlo como una tubería (pipe) a través de la cual las unidades centrales concurrentes pueden enviar o recibir datos para comunicarse (communication).</p>
+<p>Su operador es la flecha<strong>&lt;-</strong> 。 </p>
+<pre>ch &lt;- v    // 发送值v到Channel ch中
+v := &lt;-ch  // 从Channel ch中接收数据，并将数据赋值给v</pre>
+<p>(La dirección de la flecha es el flujo de los datos).</p>
+<p>Al igual que los tipos de datos map y slice, un channel debe crearse antes de usarse:</p>
+<pre>ch := make(chan int)</pre>
+<hr/>
+<h2 id="Channel类型">Tipo Channel</h2>
+<p>El formato de definición del tipo Channel es el siguiente:</p>
+<pre>ChannelType = ( "chan" | "chan" "&lt;-" | "&lt;-" "chan" ) ElementType .</pre>
+<p>Incluye tres tipos de definición. El opcional<code>&lt;-</code>representa la dirección del channel. Si no se especifica la dirección, entonces el Channel es bidireccional; puede tanto recibir datos como enviarlos.</p>
+<pre>chan T          // 可以接收和发送类型为 T 的数据
+chan&lt;- float64  // 只可以用来发送 float64 类型的数据
+&lt;-chan int      // 只可以用来接收 int 类型的数据</pre>
+<p><code>&lt;-</code>Siempre se asocia preferentemente con el tipo más a la izquierda.</p>
+<pre>
+chan&lt;- chan int    // 等价 chan&lt;- (chan int)
+chan&lt;- &lt;-chan int  // 等价 chan&lt;- (&lt;-chan int)
+&lt;-chan &lt;-chan int  // 等价 &lt;-chan (&lt;-chan int)
+chan (&lt;-chan int)</pre>
+<p>Uso<code>make</code>Inicializa el Channel y se puede establecer la capacidad:</p>
+<pre>make(chan int, 100)</pre>
+<p>La capacidad (capacity) representa el número máximo de elementos que puede contener el Channel, y representa el tamaño del búfer del Channel.<br/>Si no se establece la capacidad, o si la capacidad se establece en 0, significa que el Channel no tiene búfer; solo cuando tanto el sender como el receiver están listos, ocurre su comunicación (communication) (Blocking). Si se establece un búfer, es posible que no se bloquee; solo cuando el buffer está lleno, send se bloquea, y solo cuando el búfer está vacío, receive se bloquea. Un channel nil no se comunica.</p>
+<p>Mediante el método integrado<code>close</code>se puede cerrar el Channel.</p>
+<p>Puedes recibir/enviar (receive/send) datos desde/hacia un channel en múltiples goroutines, sin necesidad de considerar medidas de sincronización adicionales.</p>
+<p>El Channel puede actuar como una cola FIFO (primero en entrar, primero en salir). El orden de los datos recibidos y el de los datos enviados es consistente.</p>
+<p>El receive de un channel soporta<em>multi-valued assignment</em>, como `v, ok := &lt;-ch`</p>
+<pre>v, ok := &lt;-ch</pre>
+<p>Esto se puede usar para comprobar si el Channel ya ha sido cerrado.</p>
+<ol>
+<li><strong>La sentencia send</strong><br/>La sentencia send se usa para enviar datos al Channel, como<code>ch &lt;- 3</code>。<br/>Su definición es la siguiente:</li>
+</ol>
+<pre>SendStmt = Channel "&lt;-" Expression .
+Channel  = Expression .</pre>
+<p>Antes de que comience la comunicación (communication), el channel y la expression deben evaluarse primero; por ejemplo, en el siguiente caso, (3+4) se calcula primero como 7 y luego se envía al channel.</p>
+<pre>c := make(chan int)
+defer close(c)
+go func() { c &lt;- 3 + 4 }()
+i := &lt;-c
+fmt.Println(i)</pre>
+<p>La comunicación (communication) se mantiene bloqueada hasta que el send se ejecuta (proceed). Como se dijo antes, en un channel sin búfer, el send solo se ejecuta cuando el receiver está listo. Si hay un búfer y el búfer no está lleno, el send se ejecutará.</p>
+<p>Enviar datos a un channel que ya ha sido cerrado causará panic.<strong>run-time panic</strong>。</p>
+<p>Enviar datos a un channel nil se bloqueará permanentemente.</p>
+<ol>
+<li>El operador receive<br/><code>&lt;-ch</code>Se usa para recibir datos del channel ch. Esta expresión se bloqueará (block) hasta que haya datos disponibles para recibir.</li>
+</ol>
+<p>Recibir datos de un channel nil se bloqueará siempre.</p>
+<p>Recibir datos de un channel cerrado no se bloquea, sino que retorna inmediatamente; después de recibir todos los datos ya enviados, devuelve el valor cero (zero value) del tipo del elemento.</p>
+<p>Como se mencionó antes, puedes usar un parámetro de retorno adicional para comprobar si el channel está cerrado.</p>
+<pre>x, ok := &lt;-ch
+x, ok = &lt;-ch
+var x, ok = &lt;-ch</pre>
+<hr/>
+<p>Si OK es false, indica que la x recibida es el valor cero producido, y que este channel está cerrado o vacío.</p>
+<h2 id="blocking">blocking</h2>
+<p>Por defecto, el envío y la recepción se bloquean hasta que la otra parte esté lista. Este método se puede usar para sincronizar goroutines, sin necesidad de usar bloqueos explícitos o variables de condición.</p>
+<p>Como en el ejemplo oficial,<code>x, y := &lt;-c, &lt;-c</code>Esta línea esperará hasta que el resultado del cálculo se envíe al channel.</p>
+<pre>import "fmt"
+func sum(s []int, c chan int) {
+    sum := 0
+    for _, v := range s {
+        sum += v
+    }
+    c &lt;- sum // send sum to c
+}
+func main() {
+    s := []int{7, 2, 8, -9, 4, 0}
+    c := make(chan int)
+    go sum(s[:len(s)/2], c)
+    go sum(s[len(s)/2:], c)
+    x, y := &lt;-c, &lt;-c // receive from c
+    fmt.Println(x, y, x+y)
+}</pre><hr/><h2 id="Buffered_Channels">Buffered Channels</h2>
+<p>El segundo parámetro de make especifica el tamaño del búfer:<code>ch := make(chan int, 100)</code>。</p>
+<p>Mediante el uso del búfer, se puede evitar el bloqueo en la medida de lo posible y mejorar el rendimiento de la aplicación.</p><hr/>
+<h2 id="Range">Range</h2>
+<p><code>for …… range</code>La sentencia puede procesar el Channel.</p>
+<pre>func main() {
+    go func() {
+        time.Sleep(1 * time.Hour)
+    }()
+    c := make(chan int)
+    go func() {
+        for i := 0; i &lt; 10; i = i + 1 {
+            c &lt;- i
+        }
+        close(c)
+    }()
+    for i := range c {
+        fmt.Println(i)
+    }
+    fmt.Println("Finished")
+}</pre>
+<p><code>range c</code>El valor de iteración producido es el valor enviado en el Channel; iterará hasta que el channel sea cerrado. En el ejemplo anterior, si se<code>close(c)</code>comenta,<code>for …… range</code>esa línea.</p><hr/>
+<h2 id="select">select</h2>
+<p><code>select</code>La sentencia elige un conjunto de posibles operaciones send y receive para procesar. Es similar a<code>switch</code>, pero solo se usa para manejar operaciones de comunicación (communication).<br/>Su<code>case</code>case puede ser una sentencia send, o una sentencia receive, o también<code>default</code>。</p>
+<p><code>receive</code>La sentencia puede asignar el valor a una o dos variables. Debe ser una operación receive.</p>
+<p>Se permite como máximo un<code>default case</code>que puede colocarse en cualquier posición de la lista de casos, aunque la mayoría de las veces lo ponemos al final.</p>
+<pre>import "fmt"
+func fibonacci(c, quit chan int) {
+    x, y := 0, 1
+    for {
+        select {
+        case c &lt;- x:
+            x, y = y, x+y
+        case &lt;-quit:
+            fmt.Println("quit")
+            return
+        }
+    }
+}
+func main() {
+    c := make(chan int)
+    quit := make(chan int)
+    go func() {
+        for i := 0; i &lt; 10; i++ {
+            fmt.Println(&lt;-c)
+        }
+        quit &lt;- 0
+    }()
+    fibonacci(c, quit)
+}</pre>
+<p>Si hay múltiples casos que procesar al mismo tiempo, por ejemplo, si hay múltiples channels que pueden recibir datos, entonces Go elegirá un caso de manera pseudoaleatoria (pseudo-random) para procesar. Si no hay ningún caso que procesar, entonces elegirá<code>default</code>para procesar, si<code>default case</code>existe.<code>default case</code>Si no hay<code>select</code>, entonces</p>
+<p>la sentencia select se bloqueará hasta que algún caso necesite ser procesado.</p>
+<p><code>select</code>La sentencia<code>switch</code>es igual que la sentencia switch; no es un bucle, solo elegirá un caso para procesar. Si quieres procesar el channel continuamente, puedes agregar un bucle for infinito alrededor:</p>
+<pre>for {
+    select {
+    case c &lt;- x:
+        x, y = y, x+y
+    case &lt;-quit:
+        fmt.Println("quit")
+        return
+    }
+}</pre>
+<h3 id="timeout">timeout</h3>
+<p><code>select</code>Una aplicación muy importante es el manejo de tiempos de espera (timeout). Como mencionamos antes, si no hay ningún caso que procesar, la sentencia select se bloqueará indefinidamente. En este momento, podemos necesitar una operación de tiempo de espera para manejar la situación de timeout.<br/>En el siguiente ejemplo, enviaremos un dato al channel c1 después de 2 segundos, pero<code>select</code>el tiempo de espera se establece en 1 segundo, por lo que imprimiremos<code>timeout 1</code>, en lugar de<code>result 1</code>。</p>
+<pre>import "time"
+import "fmt"
+func main() {
+    c1 := make(chan string, 1)
+    go func() {
+        time.Sleep(time.Second * 2)
+        c1 &lt;- "result 1"
+    }()
+    select {
+    case res := &lt;-c1:
+        fmt.Println(res)
+    case &lt;-time.After(time.Second * 1):
+        fmt.Println("timeout 1")
+    }
+}</pre>
+<p>En realidad, esto utiliza el método<code>time.After</code>método, que devuelve un<code>&lt;-chan Time</code>canal unidireccional de tipo `&lt;-chan Time`; en el tiempo especificado, envía la hora actual al channel devuelto.</p><hr/>
+<h2 id="Timer和Ticker">Timer y Ticker</h2>
+<p>Veamos dos Channels relacionados con el tiempo.<br/>Un timer es un temporizador que representa un evento único en el futuro. Puedes decirle al timer cuánto tiempo quieres esperar; proporciona un Channel que entrega un valor de tiempo en ese momento futuro. En el siguiente ejemplo, la segunda línea se bloqueará durante aproximadamente 2 segundos, hasta que llegue el momento y continúe la ejecución.</p>
+<pre>timer1 := time.NewTimer(time.Second * 2)
+&lt;-timer1.C
+fmt.Println("Timer 1 expired")</pre>
+<p>Por supuesto, si solo quieres esperar simplemente, puedes usar<code>time.Sleep</code>para lograrlo.</p>
+<p>También puedes usar<code>timer.Stop</code>para detener el temporizador.</p>
+<pre>timer2 := time.NewTimer(time.Second)
+go func() {
+    &lt;-timer2.C
+    fmt.Println("Timer 2 expired")
+}()
+stop2 := timer2.Stop()
+if stop2 {
+    fmt.Println("Timer 2 stopped")
+}</pre>
+<p><code>ticker</code>Es un temporizador que se activa periódicamente; envía un evento (la hora actual) al Channel en un intervalo (interval), y el receptor del Channel puede leer eventos del Channel a intervalos fijos. En el siguiente ejemplo, el ticker se activa cada 500 milisegundos; puedes observar el tiempo de salida.</p>
+<pre>ticker := time.NewTicker(time.Millisecond * 500)
+go func() {
+    for t := range ticker.C {
+        fmt.Println("Tick at", t)
+    }
+}()</pre>
+<p>Al igual que timer, el ticker también puede<code>Stop</code>detenerse mediante el método. Una vez que se detiene, el receptor ya no recibirá datos del channel.</p>
+<h2 id="close">close</h2>
+<p>El método integrado close se puede usar para cerrar el channel.</p>
+<p>Resumamos las operaciones del sender y del receiver después de que el channel se cierra.<br/>Si el channel c ya está cerrado, continuar enviando datos a él causará panic.<code>panic: send on closed channel</code>:</p>
+<pre>import "time"
+func main() {
+    go func() {
+        time.Sleep(time.Hour)
+    }()
+    c := make(chan int, 10)
+    c &lt;- 1
+    c &lt;- 2
+    close(c)
+    c &lt;- 3
+}</pre>
+<p>Pero de este channel cerrado no solo se pueden leer los datos ya enviados, sino que también se puede leer continuamente el valor cero:</p>
+<pre>c := make(chan int, 10)
+c &lt;- 1
+c &lt;- 2
+close(c)
+fmt.Println(&lt;-c) //1
+fmt.Println(&lt;-c) //2
+fmt.Println(&lt;-c) //0
+fmt.Println(&lt;-c) //0</pre>
+<p>Pero si se utiliza<code>range</code>la lectura con range, el bucle for saldrá después de que el channel se cierre:</p>
+<pre>c := make(chan int, 10)
+c &lt;- 1
+c &lt;- 2
+close(c)
+for i := range c {
+    fmt.Println(i)
+}</pre>
+<p>Mediante<code>i, ok := &lt;-c</code>se puede ver el estado del Channel, para determinar si el valor es el valor cero o un valor leído normalmente.</p>
+<pre>c := make(chan int, 10)
+close(c)
+i, ok := &lt;-c
+fmt.Printf("%d, %t", i, ok) //0, false</pre>
+<hr/>
+<h2 id="同步">Sincronización</h2>
+<p>Un channel se puede usar para la sincronización entre goroutines.<br/>En el siguiente ejemplo, la goroutine main espera a que la goroutine worker complete la tarea mediante el channel done. Después de que la worker termina la tarea, solo necesita enviar un dato al channel para notificar a la goroutine main que la tarea se ha completado.</p>
+<pre>import (
+    "fmt"
+    "time"
+)
+func worker(done chan bool) {
+    time.Sleep(time.Second)
+    // 通知任务已完成
+    done &lt;- true
+}
+func main() {
+    done := make(chan bool, 1)
+    go worker(done)
+    // 等待任务完成
+    &lt;-done
+}</pre>
+<blockquote><p>Fuente: http://colobu.com/2016/04/14/Golang-Channels/</p></blockquote>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link">← <a href="./lua-table-length.html" rel="prev">Calcular la longitud de table en Lua</a> </div>
+<div class="next-design-link"><a href="./cpp-two-colon-usage.html" rel="next">El uso de :: en C++</a> →</div>
+</div>
+<style>
+@media screen and (max-width: 768px) {
+	#w3cnote-ad728 {
+		display: none;
+	}
+}
+p.note-author {
+    border-bottom: 1px solid #ddd;
+    font-size: 18px;
+    font-weight: bold;
+    color: #78a15a;
+    padding-bottom: 2px;
+    margin-bottom: 4px;
+}
+</style>
+<script>
+var aid = 19680;
+</script>
+</div>
+</div>
+<div class="listcol last right-column">
+<!--
+	<div class="tab tab-light-blue"> 订阅</div>
+	<div class="sidebar-box">
+		<div class="socialicons">
+			<a href="../feed.html" class="rss">RSS 订阅</a>
+		
+			<form action="..//list.qq.com/cgi-bin/qf_compose_send" method="post">
+			<input type="hidden" value="qf_booked_feedback" name="t">
+			<input type="hidden" value="4b67b6b6c1f5e792559940cab4aebb8f1126fba880bff1a8" name="id">
+			<input class="placeholder" id="feed_email" name="to" value="输入邮箱 订阅笔记" autocomplete="off">
+			<input type="submit" value="订阅" class="btn btn-primary">
+			</form>
+		
+		</div>
+ 
+	</div>
+-->
+<!--
+	<div class="sidebar-box cate-list">
+	<div class="sidebar-box recommend-here list-link">
+			<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">笔记列表</a>
+		</div>
+
+ 
+
+</div>
+-->
+<div class="sidebar-box cate-list" style="display:none;">
+<div class="sidebar-box recommend-here list-link">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">热门文章</a>
+</div>
+<div class="membership">
+<ul class="membership">
+<li><a href="https://mp.weixin.qq.com/s/ZaP6YNgKTCHYy3r2WPBBaw" target="_blank" title="2024 年 04 月 JavaScript 框架排行榜">2024 年 04 月 JavaScript 框架排行榜</a></li>
+<li><a href="https://mp.weixin.qq.com/s/JBR2twC0t6krjjuxqvhsEQ" target="_blank" title="免费、开源、好用的 SQL 客户端合集">免费、开源、好用的 SQL 客户端合集</a></li>
+<li><a href="https://mp.weixin.qq.com/s/TwV3YQjA1glyaW7TiHvhlA" target="_blank" title="优雅的代码规范，提升代码质量">优雅的代码规范，提升代码质量</a></li>
+<li><a href="https://mp.weixin.qq.com/s/CnUJ-2OHPbBKlnVpjDzavA" target="_blank" title="命令行中的趣味世界，牛也能说话，有趣又好玩">命令行中的趣味世界，牛也能说话，有趣又好玩</a></li>
+<li><a href="https://mp.weixin.qq.com/s/7NKl-mD7N8CeSNQlbKDEWA" target="_blank" title="2024 年 05 月编程语言排行榜，Fortran 进入前 10 名，发生了什么？">2024 年 05 月编程语言排行榜，Fortran 进入前 10 名，发生了什么？</a></li>
+<li><a href="https://mp.weixin.qq.com/s/yWlSVDKobtDhThnhirVRpw" target="_blank" title="免费开源的 IDE、数据库管理工具、SSH客户端和FTP客户端">免费开源的 IDE、数据库管理工具、SSH客户端和FTP客户端</a></li>
+</ul>
+</div>
+</div>
+<div class="sidebar-box cate-list">
+<div class="sidebar-box recommend-here list-link">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">教程列表</a>
+</div>
+<div class="cate-items">
+<a href="../ado.html">ADO 教程</a>
+<a href="../ai-agent.html">AI Agent 教程</a>
+<a href="../ai.html">AI 入门教程</a>
+<a href="../ai-math.html">AI 数学基础</a>
+<a href="../ajax.html">Ajax 教程</a>
+<a href="../android.html">Android 教程</a>
+<a href="../angularjs2.html">Angular2 教程</a>
+<a href="../angularjs.html">AngularJS 教程</a>
+<a href="../appml.html">AppML 教程</a>
+<a href="../asp.html">ASP 教程</a>
+<a href="../aspnet.html">ASP.NET 教程</a>
+<a href="../bootstrap.html">Bootstrap 教程</a>
+<a href="../bootstrap4.html">Bootstrap4 教程</a>
+<a href="../bootstrap5.html">Bootstrap5 教程</a>
+<a href="../cprogramming.html">C 教程</a>
+<a href="../c-dsa.html">C 语言数据结构与算法</a>
+<a href="../csharp.html">C# 教程</a>
+<a href="../cplusplus.html">C++ 教程</a>
+<a href="../chartjs.html">Chart.js 教程</a>
+<a href="../claude-code.html">Claude Code 教程</a>
+<a href="../cmake.html">CMake 教程</a>
+<a href="../codex.html">Codex 教程</a>
+<a href="../cssref.html">CSS 参考手册</a>
+<a href="../css.html">CSS 教程</a>
+<a href="../css3.html">CSS3 教程</a>
+<a href="../cursor.html">Cursor 教程</a>
+<a href="../dart.html">Dart 教程</a>
+<a href="../dash.html">Dash 教程</a>
+<a href="../deepseek-harness.html">DeepSeek Harness</a>
+<a href="../django.html">Django 教程</a>
+<a href="../docker.html">Docker 教程</a>
+<a href="../dtd.html">DTD 教程</a>
+<a href="../echarts.html">ECharts 教程</a>
+<a href="../eclipse.html">Eclipse 教程</a>
+<a href="../electron.html">Electron 教程</a>
+<a href="../fastapi.html">FastAPI 教程</a>
+<a href="../firebug.html">Firebug 教程</a>
+<a href="../flask.html">Flask 教程</a>
+<a href="../flutter.html">Flutter 教程</a>
+<a href="../font-awesome.html">Font Awesome 图标</a>
+<a href="../foundation.html">Foundation 教程</a>
+<a href="../git.html">Git 教程</a>
+<a href="../go.html">Go 语言教程</a>
+<a href="../googleapi.html">Google 地图 API 教程</a>
+<a href="../hermes-agent.html">Hermes Agent</a>
+<a href="../highcharts.html">Highcharts 教程</a>
+<a href="../htmldom.html">HTML DOM 教程</a>
+<a href="../tags.html">HTML 参考手册</a>
+<a href="../charsets.html">HTML 字符集</a>
+<a href="../html.html">HTML 教程</a>
+<a href="../http.html">HTTP 教程</a>
+<a href="../ionic.html">ionic 教程</a>
+<a href="../ios.html">iOS 教程</a>
+<a href="../java.html">Java 教程</a>
+<a href="../jsref.html">JavaScript 参考手册</a>
+<a href="../js.html">Javascript 教程</a>
+<a href="../jeasyui.html">jQuery EasyUI 教程</a>
+<a href="../jquerymobile.html">jQuery Mobile 教程</a>
+<a href="../jqueryui.html">jQuery UI 教程</a>
+<a href="../jquery.html">jQuery 教程</a>
+<a href="../json.html">JSON 教程</a>
+<a href="../jsp.html">JSP 教程</a>
+<a href="../julia.html">Julia 教程</a>
+<a href="../jupyter-notebook.html">Jupyter Notebook 教程</a>
+<a href="../kotlin.html">Kotlin 教程</a>
+<a href="../langchain.html">LangChain 教程</a>
+<a href="../latex.html">LaTeX 教程</a>
+<a href="../linux.html">Linux 教程</a>
+<a href="../lua.html">Lua 教程</a>
+<a href="../markdown.html">Markdown 教程</a>
+<a href="../matplotlib.html">Matplotlib 教程</a>
+<a href="../maven.html">Maven 教程</a>
+<a href="../memcached.html">Memcached 教程</a>
+<a href="../mongodb.html">MongoDB 教程</a>
+<a href="../mysql.html">MySQL 教程</a>
+<a href="../nextjs.html">Next.js 教程</a>
+<a href="../nlp.html">NLP 教程</a>
+<a href="../nodejs.html">Node.js 教程</a>
+<a href="../numpy.html">NumPy 教程</a>
+<a href="../obsidian.html">Obsidian 教程</a>
+<a href="../ollama.html">Ollama 教程</a>
+<a href="../opencode.html">OpenCode 教程</a>
+<a href="../opencv.html">OpenCV 教程</a>
+<a href="../pandas.html">Pandas 教程</a>
+<a href="../perl.html">Perl 教程</a>
+<a href="../php.html">PHP 教程</a>
+<a href="../pi-agent.html">Pi Agent</a>
+<a href="../pillow.html">Pillow 教程</a>
+<a href="../playwright.html">Playwright 教程</a>
+<a href="../postgresql.html">PostgreSQL 教程</a>
+<a href="../powershell.html">PowerShell</a>
+<a href="../pycharm.html">Pycharm 教程</a>
+<a href="../python3.html">Python 3 教程</a>
+<a href="../python.html">Python 基础教程</a>
+<a href="../python-design-pattern.html">Python 设计模式</a>
+<a href="../python-qt.html">Python 量化交易</a>
+<a href="../pytorch.html">PyTorch 教程</a>
+<a href="../r.html">R 教程</a>
+<a href="../rdf.html">RDF 教程</a>
+<a href="../react.html">React 教程</a>
+<a href="../redis.html">Redis 教程</a>
+<a href="../restfulapi.html">RESTful API</a>
+<a href="../rss.html">RSS 教程</a>
+<a href="../ruby.html">Ruby 教程</a>
+<a href="../rust.html">Rust 教程</a>
+<a href="../sass.html">Sass 教程</a>
+<a href="../scala.html">Scala 教程</a>
+<a href="../scipy.html">SciPy 教程</a>
+<a href="../selenium.html">Selenium 教程</a>
+<a href="../servlet.html">Servlet 教程</a>
+<a href="../skills.html">Skills 教程</a>
+<a href="../sklearn.html">Sklearn 教程</a>
+<a href="../soap.html">SOAP 教程</a>
+<a href="../sql.html">SQL 教程</a>
+<a href="../sqlite.html">SQLite 教程</a>
+<a href="../svg.html">SVG 教程</a>
+<a href="../svn.html">SVN 教程</a>
+<a href="../swagger.html">Swagger 教程</a>
+<a href="../swift.html">Swift 教程</a>
+<a href="../tailwindcss.html">Tailwind CSS 教程</a>
+<a href="../tcpip.html">TCP/IP 教程</a>
+<a href="../tensorflow.html">TensorFlow 教程</a>
+<a href="../typescript.html">TypeScript 教程</a>
+<a href="../uniapp.html">uni-app 教程</a>
+<a href="../vbscript.html">VBScript 教程</a>
+<a href="../vibe-coding.html">Vibe Coding 教程</a>
+<a href="../vscode.html">VSCode 教程</a>
+<a href="../vue2.html">Vue.js 教程</a>
+<a href="../vue3.html">Vue3 教程</a>
+<a href="../w3c.html">W3C 教程</a>
+<a href="../webservices.html">Web Service 教程</a>
+<a href="../wsdl.html">WSDL 教程</a>
+<a href="../xlink.html">XLink 教程</a>
+<a href="../dom.html">XML DOM 教程</a>
+<a href="../schema.html">XML Schema 教程</a>
+<a href="../xml.html">XML 教程</a>
+<a href="../xpath.html">XPath 教程</a>
+<a href="../xquery.html">XQuery 教程</a>
+<a href="../xslfo.html">XSLFO 教程</a>
+<a href="../xsl.html">XSLT 教程</a>
+<a href="../zig.html">Zig 教程</a>
+<a href="../data-structures.html">数据结构</a>
+<a href="../ml.html">机器学习</a>
+<a href="../regexp.html">正则表达式</a>
+<a href="../assembly.html">汇编语言</a>
+<a href="../quiz.html">测验</a>
+<a href="../browsers.html">浏览器</a>
+<a href="../quality.html">网站品质</a>
+<a href="../web.html">网站建设指南</a>
+<a href="../hosting.html">网站服务器教程</a>
+<a href="../np.html">网络协议</a>
+<a href="../computer-organization.html">计算机组成原理</a>
+<a href="../design-pattern.html">设计模式</a>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>シングルトンパターン | Runoob</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<link href="../manifest.webmanifest.html" rel="manifest"/>
+<meta content="#10151c" name="theme-color"/>
+<link href="../pwa/icon-192.png.html" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="application-name"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="../design-pattern/singleton-pattern.html" rel="canonical"/>
+<meta content="单例模式" name="keywords"/>
+<meta content="单例模式  单例模式（Singleton Pattern）是 Java 中最简单的设计模式之一。这种类型的设计模式属于创建型模式，它提供了一种创建对象的最佳方式。 这种模式涉及到一个单一的类，该类负责创建自己的对象，同时确保只有单个对象被创建。这个类提供了一种访问其唯一的对象的方式，可以直接访问，不需要实例化该类的对象。 单例模式是一种创建型设计模式，它确保一个类只有一个实例，并提供了一个全局访问点来访问该实例。 注意：  1、单例类只.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div>
+<!-- 导航栏 -->
+<style>
+/* 主题切换按钮 */
+/* ===== 主题变量（核心）===== */
+:root {
+  --theme-bg: #ffffff;
+  --theme-border: #e5e7eb;
+  --theme-icon: #333;
+  --theme-hover: #f3f4f6;
+}
+
+.dark {
+  --theme-bg: #1f2937;
+  --theme-border: #374151;
+  --theme-icon: #e5e7eb;
+  --theme-hover: #374151;
+}
+
+/* ===== 按钮容器 ===== */
+.nav-theme-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== 按钮本体 ===== */
+.nav-theme-toggle button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  border-radius: 6px;
+  border: 1px solid var(--theme-border);
+
+  background: var(--theme-bg);
+  color: var(--theme-icon);
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* ===== 图标大小 ===== */
+.nav-theme-toggle i {
+  font-size: 14px;
+}
+
+/* ===== hover 效果 ===== */
+.nav-theme-toggle button:hover {
+  background: var(--theme-hover);
+  transform: translateY(-1px);
+}
+
+/* ===== 点击反馈 ===== */
+.nav-theme-toggle button:active {
+  transform: scale(0.95);
+}
+
+/* ===== 当前激活态（可选）===== */
+.nav-theme-toggle button.active {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+</style>
+<!-- 导航栏 -->
+<nav aria-label="主导航" class="container navigation">
+<div class="row">
+<div class="col nav">
+<!-- PC 导航 -->
+<ul class="pc-nav" id="runoob-detail-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../js/js-tutorial.html">JavaScript</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a data-id="vue" href="#">Vue</a></li>
+<li><a href="../react/react-tutorial.html">React</a></li>
+<li><a href="../python3/python3-tutorial.html">Python3</a></li>
+<li><a href="../java/java-tutorial.html">Java</a></li>
+<li><a href="../cprogramming/c-tutorial.html">C</a></li>
+<li><a href="../cplusplus/cpp-tutorial.html">C++</a></li>
+<li><a href="../csharp/csharp-tutorial.html">C#</a></li>
+<li><a data-id="aiNav" href="#">AI</a></li>
+<li><a href="../go/go-tutorial.html">Go</a></li>
+<li><a href="../sql/sql-tutorial.html">SQL</a></li>
+<li><a href="../linux/linux-tutorial.html">Linux</a></li>
+<li><a href="../vscode/vscode-tutorial.html">VS Code</a></li>
+<li><a data-id="bootstrap" href="#">Bootstrap</a></li>
+<li><a href="../git/git-tutorial.html">Git</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<!-- 主题切换按钮，固定在最右侧 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+<!-- 移动端导航 -->
+<ul class="mobile-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a href="../js/js-tutorial.html">JS</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<li><a class="search-reveal" href="#">搜索</a></li>
+<!-- 移动端主题切换 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon-mobile" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun-mobile" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<!-- 二级导航 -->
+<!--  内容  -->
+<div class="container main">
+<!-- 中间 -->
+<div class="row">
+<div class="runoob-col-md2">
+<div class="left-column">
+<div class="tab" style="overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
+<i aria-hidden="true" class="fa fa-list"></i>
+<span>设计模式</span>
+</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+<a data-p="par" href="../design-pattern/design-pattern-tutorial.html" target="_top" title="设计模式">
+			设计模式			</a>
+<a data-p="par" href="../design-pattern/design-pattern-intro.html" target="_top" title="设计模式简介">
+			设计模式简介			</a>
+<a data-p="par" href="../design-pattern/factory-pattern.html" target="_top" title="工厂模式">
+			工厂模式			</a>
+<a data-p="par" href="../design-pattern/abstract-factory-pattern.html" target="_top" title="抽象工厂模式">
+			抽象工厂模式			</a>
+<a data-p="par" href="../design-pattern/singleton-pattern.html" target="_top" title="单例模式">
+			单例模式			</a>
+<a data-p="par" href="../design-pattern/builder-pattern.html" target="_top" title="建造者模式">
+			建造者模式			</a>
+<a data-p="par" href="../design-pattern/prototype-pattern.html" target="_top" title="原型模式">
+			原型模式			</a>
+<a data-p="par" href="../design-pattern/adapter-pattern.html" target="_top" title="适配器模式">
+			适配器模式			</a>
+<a data-p="par" href="../design-pattern/bridge-pattern.html" target="_top" title="桥接模式">
+			桥接模式			</a>
+<a data-p="par" href="../design-pattern/filter-pattern.html" target="_top" title="过滤器模式">
+			过滤器模式			</a>
+<a data-p="par" href="../design-pattern/composite-pattern.html" target="_top" title="组合模式">
+			组合模式			</a>
+<a data-p="par" href="../design-pattern/decorator-pattern.html" target="_top" title="装饰器模式">
+			装饰器模式			</a>
+<a data-p="par" href="../design-pattern/facade-pattern.html" target="_top" title="外观模式">
+			外观模式			</a>
+<a data-p="par" href="../design-pattern/flyweight-pattern.html" target="_top" title="享元模式">
+			享元模式			</a>
+<a data-p="par" href="../design-pattern/proxy-pattern.html" target="_top" title="代理模式">
+			代理模式			</a>
+<a data-p="par" href="../design-pattern/chain-of-responsibility-pattern.html" target="_top" title="责任链模式">
+			责任链模式			</a>
+<a data-p="par" href="../design-pattern/command-pattern.html" target="_top" title="命令模式">
+			命令模式			</a>
+<a data-p="par" href="../design-pattern/interpreter-pattern.html" target="_top" title="解释器模式">
+			解释器模式			</a>
+<a data-p="par" href="../design-pattern/iterator-pattern.html" target="_top" title="迭代器模式">
+			迭代器模式			</a>
+<a data-p="par" href="../design-pattern/mediator-pattern.html" target="_top" title="中介者模式">
+			中介者模式			</a>
+<a data-p="par" href="../design-pattern/memento-pattern.html" target="_top" title="备忘录模式">
+			备忘录模式			</a>
+<a data-p="par" href="../design-pattern/observer-pattern.html" target="_top" title="观察者模式">
+			观察者模式			</a>
+<a data-p="par" href="../design-pattern/state-pattern.html" target="_top" title="状态模式">
+			状态模式			</a>
+<a data-p="par" href="../design-pattern/null-object-pattern.html" target="_top" title="空对象模式">
+			空对象模式			</a>
+<a data-p="par" href="../design-pattern/strategy-pattern.html" target="_top" title="策略模式">
+			策略模式			</a>
+<a data-p="par" href="../design-pattern/template-pattern.html" target="_top" title="模板模式">
+			模板模式			</a>
+<a data-p="par" href="../design-pattern/visitor-pattern.html" target="_top" title="访问者模式">
+			访问者模式			</a>
+<a data-p="par" href="../design-pattern/mvc-pattern.html" target="_top" title="MVC 模式">
+			MVC 模式			</a>
+<a data-p="par" href="../design-pattern/business-delegate-pattern.html" target="_top" title="业务代表模式">
+			业务代表模式			</a>
+<a data-p="par" href="../design-pattern/composite-entity-pattern.html" target="_top" title="组合实体模式">
+			组合实体模式			</a>
+<a data-p="par" href="../design-pattern/data-access-object-pattern.html" target="_top" title="数据访问对象模式">
+			数据访问对象模式			</a>
+<a data-p="par" href="../design-pattern/front-controller-pattern.html" target="_top" title="前端控制器模式">
+			前端控制器模式			</a>
+<a data-p="par" href="../design-pattern/intercepting-filter-pattern.html" target="_top" title="拦截过滤器模式">
+			拦截过滤器模式			</a>
+<a data-p="par" href="../design-pattern/service-locator-pattern.html" target="_top" title="服务定位器模式">
+			服务定位器模式			</a>
+<a data-p="par" href="../design-pattern/transfer-object-pattern.html" target="_top" title="传输对象模式">
+			传输对象模式			</a>
+<br/><h2 class="left">デザインパターン<span class="left_h2">其他</span></h2> <a data-p="par" href="../design-pattern/design-pattern-resources.html" target="_top" title="设计模式资源">
+			设计模式资源			</a>
+</div>
+</div>
+</div>
+</div> <div class="col middle-column">
+<div class="article">
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../design-pattern/abstract-factory-pattern.html" rel="prev">抽象ファクトリーパターン</a> </div>
+<div class="next-design-link"><a href="../design-pattern/builder-pattern.html" rel="next">ビルダーパターン</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="article-body">
+<div class="article-intro" id="content">
+<h1>シングルトンパターン</h1>
+<p>シングルトンパターン（Singleton Pattern）は、Java で最も簡単なデザインパターンの 1 つです。このタイプのデザインパターンは生成に関するパターン（Creational Pattern）に属し、オブジェクトを作成するための最良の方法を提供します。</p>
+<p>このパターンは単一のクラスに関係します。そのクラスは自身のオブジェクトを生成する責任を持ち、同時に単一のオブジェクトだけが生成されることを保証します。このクラスは、その唯一のオブジェクトにアクセスする方法を提供し、そのクラスのオブジェクトをインスタンス化せずに直接アクセスできます。</p>
+<p>シングルトンパターンは、あるクラスが 1 つのインスタンスのみを持つことを保証し、そのインスタンスにアクセスするためのグローバルなアクセスポイントを提供する生成型デザインパターンです。</p>
+<p><b>注意：</b>
+<ul>
+<li>1、シングルトンクラスは 1 つのインスタンスのみを持つことができます。</li>
+<li>2、シングルトンクラスは自分自身で唯一のインスタンスを生成しなければなりません。</li>
+<li>3、シングルトンクラスは、このインスタンスを他のすべてのオブジェクトに提供しなければなりません。</li>
+</ul>
+</p>
+<h2 class="tutheader">概要</h2>
+<h3>シングルトンパターン（Singleton Pattern）</h3><h3>意図</h3><p>あるクラスが 1 つのインスタンスのみを持つことを保証し、そのインスタンスにアクセスするためのグローバルなアクセスポイントを提供する。</p><h3>主な解決課題</h3><p>グローバルに使用されるクラスのインスタンスを頻繁に生成・破棄する問題を解決する。</p><h3>使用するタイミング</h3><p>インスタンスの数を制御し、システムリソースを節約する必要がある場合。</p><h3>解決方法</h3><p>システムにそのシングルトンが既に存在するかどうかを確認し、存在する場合はそのインスタンスを返し、存在しない場合は新しいインスタンスを生成する。</p><h3>重要なコード</h3><p>コンストラクタは private である。</p><h3>適用例</h3><ul><li>1 つのクラスには担任の先生が 1 人だけいる。</li><li>Windows でマルチプロセス・マルチスレッド環境においてファイルを操作する場合、複数のプロセスやスレッドが同時に 1 つのファイルを操作するのを避けるため、唯一のインスタンスを通じて処理する必要があります。</li><li>デバイスマネージャーはシングルトンパターンで設計されています。例えば、コンピュータに 2 台のプリンタがある場合、同じファイルを同時に印刷することを避けます。</li></ul><h3>長所</h3><ul><li>メモリ内にインスタンスが 1 つだけ存在するため、メモリオーバーヘッドを削減します。特に、インスタンスを頻繁に生成・破棄する場合（例: 大学のホームページのページキャッシュを管理する場合）に有効です。</li><li>リソースの多重占有を避けます（例: ファイル書き込み操作）。</li></ul><h3>短所</h3><ul><li>インターフェースがなく、継承できません。</li><li>単一責任原則と矛盾します。クラスは内部ロジックのみを扱うべきであり、インスタンス化の方法を扱うべきではありません。</li></ul><h3>使用シーン</h3><ul><li>一意のシリアル番号を生成する。</li><li>WEB のカウンター。リフレッシュのたびにデータベースのカウントを増やすのを避けるため、先にキャッシュしておきます。</li><li>I/O やデータベース接続など、リソースを過度に消費するオブジェクトを作成する場合。</li></ul><h3>注意事項</h3>
+<ul><li><strong>スレッドセーフ</strong>：<code>getInstance()</code>メソッド内で同期ロック（synchronized）を使用する必要がある<code>synchronized (Singleton.class)</code>複数のスレッドが同時に進入してインスタンスが複数回生成されるのを防ぐ。</li><li><strong>遅延初期化</strong>：インスタンスは最初に<code>getInstance()</code>メソッドを呼び出したときに生成されます。</li><li><strong>シリアライズとデシリアライズ</strong>：書き換え<code>readResolve</code>メソッドを書き換えて、デシリアライズ時に新しいインスタンスが生成されないようにします。</li><li><strong>リフレクション攻撃</strong>：コンストラクタに防護コードを追加して、リフレクションによる新しいインスタンスの生成を防ぎます。</li><li><strong>クラスローダー問題</strong>：複雑なクラスローダー環境によって複数のインスタンスが発生する可能性がある問題に注意してください。</li></ul>
+<h3>構造</h3>
+<p>シングルトンパターンには、以下の主要な役割が含まれます：</p>
+<ul><li>シングルトンクラス：シングルトンインスタンスを保持するクラス。通常、コンストラクタは private として宣言されます。</li><li>静的メンバー変数：シングルトンインスタンスを格納するための静的メンバー変数。</li><li>インスタンス取得メソッド：シングルトンインスタンスを取得するための静的メソッド。</li><li>プライベートコンストラクタ：外部からシングルトンクラスを直接インスタンス化するのを防ぎます。</li><li>スレッドセーフ処理：マルチスレッド環境においてシングルトンインスタンスの生成が安全であることを保証します。</li></ul>
+<h2 class="tutheader">実装</h2>
+<p>私たちが作成するのは<i>SingleObject</i>クラスです。<i>SingleObject</i>このクラスは、private コンストラクタと、それ自身の静的インスタンスを持っています。</p>
+<p><i>SingleObject</i>このクラスは、外部がその静的インスタンスを取得するための静的メソッドを提供します。<i>SingletonPatternDemo</i>このクラスは<i>SingleObject</i>クラスを使用して<i>SingleObject</i>オブジェクトを取得します。</p><p>
+<img alt="单例模式的 UML 图" decoding="async" src="../wp-content/uploads/2014/08/62576915-36E0-4B67-B078-704699CA980A.jpg"/></p>
+<h3>ステップ 1</h3>
+<p>Singleton クラスを作成します。</p>
+<div class="example">
+<h2 class="example">SingleObject.java</h2>
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-reserved">class</span><span class="hl-code"> </span><span class="hl-identifier">SingleObject</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">SingleObject のオブジェクトを作成します。</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-types">static</span><span class="hl-code"> </span><span class="hl-identifier">SingleObject</span><span class="hl-code"> </span><span class="hl-identifier">instance</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">SingleObject</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+ 
+   </span><span class="hl-comment">//</span><span class="hl-comment">コンストラクタを private にして、このクラスがインスタンス化されないようにします。</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-identifier">SingleObject</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">唯一利用可能なオブジェクトを取得します。</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">static</span><span class="hl-code"> </span><span class="hl-identifier">SingleObject</span><span class="hl-code"> </span><span class="hl-identifier">getInstance</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-identifier">instance</span><span class="hl-code">;
+   </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">showMessage</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">System</span><span class="hl-code">.</span><span class="hl-identifier">out</span><span class="hl-code">.</span><span class="hl-identifier">println</span><span class="hl-brackets">(</span><span class="hl-quotes">"</span><span class="hl-string">Hello World!</span><span class="hl-quotes">"</span><span class="hl-brackets">)</span><span class="hl-code">;
+   </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span></div>
+</div></div>
+<h3>ステップ 2</h3>
+<p>singleton クラスから唯一のオブジェクトを取得します。</p>
+<div class="example">
+<h2 class="example">SingletonPatternDemo.java</h2>
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-reserved">class</span><span class="hl-code"> </span><span class="hl-identifier">SingletonPatternDemo</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">static</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">main</span><span class="hl-brackets">(</span><span class="hl-identifier">String</span><span class="hl-brackets">[</span><span class="hl-brackets">]</span><span class="hl-code"> </span><span class="hl-identifier">args</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">不正なコンストラクタ</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">コンパイル時エラー：コンストラクタ SingleObject() は不可視です。</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">SingleObject object = new SingleObject();</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">唯一利用可能なオブジェクトを取得します。</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">SingleObject</span><span class="hl-code"> </span><span class="hl-identifier">object</span><span class="hl-code"> = </span><span class="hl-identifier">SingleObject</span><span class="hl-code">.</span><span class="hl-identifier">getInstance</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+ 
+      </span><span class="hl-comment">//</span><span class="hl-comment">メッセージを表示します。</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">object</span><span class="hl-code">.</span><span class="hl-identifier">showMessage</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+   </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span></div>
+</div></div>
+<h3>ステップ 3</h3>
+<p>プログラムを実行し、結果を出力します：</p>
+<pre>
+Hello World!
+</pre>
+<h2 class="tutheader">シングルトンパターンのいくつかの実装方法</h2>
+<p>シングルトンパターンの実装には複数の方法があります。以下の通りです：</p>
+<h3>1、遅延初期化方式、スレッドセーフではない</h3>
+<p><b>Lazy 初期化を行うか：</b>是</p>
+<p><b>マルチスレッドセーフか：</b>否</p>
+<p><b>実装の難易度：</b>易</p>
+<p><b>説明：</b>この方法は最も基本的な実装方法です。この実装の最大の問題は、マルチスレッドをサポートしないことです。synchronized によるロックがないため、厳密な意味ではシングルトンパターンとは言えません。<br/>この方法は lazy loading（遅延ロード）が顕著ですが、スレッドセーフは要求されておらず、マルチスレッドでは正常に動作しません。</p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-reserved">class</span><span class="hl-code"> </span><span class="hl-identifier">Singleton</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-types">static</span><span class="hl-code"> </span><span class="hl-identifier">Singleton</span><span class="hl-code"> </span><span class="hl-identifier">instance</span><span class="hl-code">;  
+    </span><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-identifier">Singleton</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">static</span><span class="hl-code"> </span><span class="hl-identifier">Singleton</span><span class="hl-code"> </span><span class="hl-identifier">getInstance</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">if</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-identifier">instance</span><span class="hl-code"> == </span><span class="hl-reserved">null</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">instance</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Singleton</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;  
+        </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-identifier">instance</span><span class="hl-code">;  
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span></div>
+</div></div>
+<p><b>次に紹介するいくつかの実装方法はすべてマルチスレッドをサポートしますが、パフォーマンスに違いがあります。</b></p>
+<h3>2、遅延初期化方式、スレッドセーフ</h3>
+<p><b>Lazy 初期化を行うか：</b>是</p>
+<p><b>マルチスレッドセーフか：</b>是</p>
+<p><b>実装の難易度：</b>易</p>
+<p><b>説明：</b>この方法は優れた lazy loading を備えており、マルチスレッドでうまく動作しますが、効率が非常に低く、99% のケースでは同期は不要です。<br/>長所：最初の呼び出しでのみ初期化するため、メモリの無駄を避けます。<br/>短所：シングルトンを保証するには synchronized によるロックが必要ですが、ロックは効率に影響します。<br/>getInstance() のパフォーマンスはアプリケーションにとって重要ではありません（このメソッドはあまり頻繁に使用されません）。</p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-reserved">class</span><span class="hl-code"> </span><span class="hl-identifier">Singleton</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-types">static</span><span class="hl-code"> </span><span class="hl-identifier">Singleton</span><span class="hl-code"> </span><span class="hl-identifier">instance</span><span class="hl-code">;  
+    </span><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-identifier">Singleton</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">static</span><span class="hl-code"> </span><span class="hl-reserved">synchronized</span><span class="hl-code"> </span><span class="hl-identifier">Singleton</span><span class="hl-code"> </span><span class="hl-identifier">getInstance</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">if</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-identifier">instance</span><span class="hl-code"> == </span><span class="hl-reserved">null</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">instance</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Singleton</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;  
+        </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-identifier">instance</span><span class="hl-code">;  
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span></div>
+</div></div>
+<h3>3、即時初期化方式</h3>
+<p><b>Lazy 初期化を行うか：</b>否</p>
+<p><b>マルチスレッドセーフか：</b>是</p>
+<p><b>実装の難易度：</b>易</p>
+<p><b>説明：</b>この方法は比較的よく使われますが、ガベージオブジェクトが発生しやすいです。<br/>長所：ロックがないため、実行効率が向上します。<br/>短所：クラスロード時に初期化されるため、メモリを浪費します。<br/>これは classloader メカニズムに基づいてマルチスレッドの同期問題を回避しています。ただし、instance はクラスロード時にインスタンス化されます。クラスロードを引き起こす原因はさまざまですが、シングルトンパターンではほとんどが getInstance メソッドの呼び出しです。しかし、他の方法（または他の静的メソッド）によってクラスロードが発生する可能性も否定できないため、この時点で instance を初期化しても明らかに lazy loading の効果は得られません。</p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-reserved">class</span><span class="hl-code"> </span><span class="hl-identifier">Singleton</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-types">static</span><span class="hl-code"> </span><span class="hl-identifier">Singleton</span><span class="hl-code"> </span><span class="hl-identifier">instance</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Singleton</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;  
+    </span><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-identifier">Singleton</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">static</span><span class="hl-code"> </span><span class="hl-identifier">Singleton</span><span class="hl-code"> </span><span class="hl-identifier">getInstance</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-identifier">instance</span><span class="hl-code">;  
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span></div>
+</div></div>
+<h3>4、ダブルチェックロック/二重チェックロック（DCL、つまり double-checked locking）</h3>
+<p><b>JDK バージョン：</b>JDK 1.5 以降</p>
+<p><b>Lazy 初期化を行うか：</b>是</p>
+<p><b>マルチスレッドセーフか：</b>是</p>
+<p><b>実装の難易度：</b>やや複雑</p>
+<p><b>説明：</b>この方法は二重ロック機構を採用しており、安全で、マルチスレッド環境でも高いパフォーマンスを維持できます。<br/>getInstance() のパフォーマンスはアプリケーションにとって重要です。</p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-reserved">class</span><span class="hl-code"> </span><span class="hl-identifier">Singleton</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-reserved">volatile</span><span class="hl-code"> </span><span class="hl-types">static</span><span class="hl-code"> </span><span class="hl-identifier">Singleton</span><span class="hl-code"> </span><span class="hl-identifier">singleton</span><span class="hl-code">;  
+    </span><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-identifier">Singleton</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">static</span><span class="hl-code"> </span><span class="hl-identifier">Singleton</span><span class="hl-code"> </span><span class="hl-identifier">getSingleton</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">if</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-identifier">singleton</span><span class="hl-code"> == </span><span class="hl-reserved">null</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">synchronized</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-identifier">Singleton</span><span class="hl-code">.</span><span class="hl-reserved">class</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">if</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-identifier">singleton</span><span class="hl-code"> == </span><span class="hl-reserved">null</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">singleton</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Singleton</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;  
+            </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-identifier">singleton</span><span class="hl-code">;  
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span></div>
+</div></div>
+<h3>5、登録方式/静的内部クラス</h3>
+<p><b>Lazy 初期化を行うか：</b>是</p>
+<p><b>マルチスレッドセーフか：</b>是</p>
+<p><b>実装の難易度：</b>概要</p>
+<p><b>説明：</b>この方法は二重チェックロック方式と同じ効果を達成できますが、実装はより簡単です。静的フィールドに遅延初期化を使用する場合は、二重チェックロック方式ではなくこの方法を使用する必要があります。この方法は静的フィールドの場合にのみ適用され、二重チェックロック方式はインスタンスフィールドで遅延初期化が必要な場合に使用できます。<br/>この方法も同様に classloader メカニズムを利用して、instance を初期化する際にスレッドが1つだけであることを保証します。第3の方法と異なる点は、第3の方法では Singleton クラスがロードされれば instance がインスタンス化される（lazy loading 効果が得られない）のに対し、この方法では Singleton クラスがロードされても instance が必ずしも初期化されるわけではないことです。SingletonHolder クラスは積極的に使用されないため、明示的に getInstance メソッドを呼び出して初めて SingletonHolder クラスが明示的にロードされ、instance がインスタンス化されます。考えてみてください。instance のインスタンス化がリソースを多く消費する場合、それを遅延ロードしたいと思うでしょう。一方で、Singleton クラスのロード時にインスタンス化したくない場合もあります。なぜなら、Singleton クラスが他の場所で積極的に使用されてロードされる可能性を排除できないため、その時点で instance をインスタンス化するのは明らかに適切ではないからです。このような場合、この方法は第3の方法よりも合理的です。</p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-reserved">class</span><span class="hl-code"> </span><span class="hl-identifier">Singleton</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-types">static</span><span class="hl-code"> </span><span class="hl-reserved">class</span><span class="hl-code"> </span><span class="hl-identifier">SingletonHolder</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-types">static</span><span class="hl-code"> </span><span class="hl-types">final</span><span class="hl-code"> </span><span class="hl-identifier">Singleton</span><span class="hl-code"> </span><span class="hl-identifier">INSTANCE</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Singleton</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;  
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-identifier">Singleton</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">static</span><span class="hl-code"> </span><span class="hl-types">final</span><span class="hl-code"> </span><span class="hl-identifier">Singleton</span><span class="hl-code"> </span><span class="hl-identifier">getInstance</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-identifier">SingletonHolder</span><span class="hl-code">.</span><span class="hl-identifier">INSTANCE</span><span class="hl-code">;  
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span></div>
+</div></div>
+<h3>6、列挙型</h3>
+<p><b>JDK バージョン：</b>JDK1.5 以降</p>
+<p><b>Lazy 初期化かどうか：</b>否</p>
+<p><b>マルチスレッドセーフかどうか：</b>是</p>
+<p><b>実装難易度：</b>易</p>
+<p><b>説明：</b>この実装方法はまだ広く採用されていませんが、シングルトンパターンを実装する最良の方法です。より簡潔で、シリアライゼーションメカニズムを自動的にサポートし、複数回のインスタンス化を絶対に防ぎます。<br/>この方法は Effective Java の著者 Josh Bloch が提唱した方法であり、マルチスレッドの同期問題を回避できるだけでなく、シリアライゼーションメカニズムを自動的にサポートし、デシリアライゼーションによる新しいオブジェクトの再作成を防ぎ、複数回のインスタンス化を絶対に防ぎます。ただし、JDK1.5 以降に追加された enum 機能のため、この方法で書くとどうしても馴染みが薄く感じられ、実際の作業でもあまり使われません。<br/>リフレクション攻撃によってプライベートコンストラクタを呼び出すことはできません。</p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-identifier">enum</span><span class="hl-code"> </span><span class="hl-identifier">Singleton</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">INSTANCE</span><span class="hl-code">;  
+    </span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">whateverMethod</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span></div>
+</div></div>
+<p><b>経験談：</b>一般的には、第1種と第2種の遅延初期化方式は推奨されず、第3種の先行初期化方式を推奨します。lazy loading 効果を明確に実現する必要がある場合にのみ、第5種の登録方式を使用します。デシリアライゼーションによるオブジェクト作成が関わる場合は、第6種の列挙型方式を試すことができます。他に特別な要件がある場合は、第4種の二重チェックロック方式を検討できます。</p> その他の拡張
+</div>
+</div>
+<div class="archive-list" style="display:none;font-size: 14px;line-height: 1.8;margin-top: 20px;padding: 10px;">
+<div class="archive-list-item">
+<div class="post-intro" id="ai-info" style="width: 100%;">AI 思考中...</div>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../design-pattern/abstract-factory-pattern.html" rel="prev">抽象ファクトリパターン</a> </div>
+<div class="next-design-link"><a href="../design-pattern/builder-pattern.html" rel="next">ビルダーパターン</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="sidebar-box">
+</div>
+ノート一覧
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="title" id="comments">
+<h2 class="">
+<div class="altblock">
+<i aria-hidden="true" class="fa fa-plus-square" style="font-size:28px;margin-top: 8px;"></i>
+</div>
+<span class="mw-headline" id="qa_headline">9 件のノート</span>
+<span class="mw-headline" id="user_add_note" style="float:right;line-height: 62px;padding-right: 14px;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>ノートを書く</span>
+</h2>
+</div>
+<div id="postcomments" style="display:none;">
+<ol class="commentlist">
+<li class="comment even thread-even depth-1" id="comment-34897"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>呆的全世界疯狂</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  197***4949@qq.com</p></div><div class="upvotejs" data-commid="34897" id="runoobvote-id-34897"><a class="upvote"></a> <span class="count">94</span></div></div><div class="comt-main" id="div-comment-34897"><p>遅延初期化方式と先行初期化方式の根本的な違いは、クラス内のメソッド外で自分のオブジェクトを生成するかどうかにあります。</p>
+<p>また、オブジェクトの宣言はすべてプライベート化し、コンストラクタもすべてプライベート化する必要があります。これにより、外部から new でオブジェクトを生成してアクセスすることができなくなります。</p>
+<p>先行初期化方式はオブジェクトを宣言して作成します（お腹が空いているから）。遅延初期化方式はオブジェクトを宣言するだけで、そのクラスの getInstance() メソッドを呼び出したときに new でオブジェクトを生成します。</p><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">呆的全世界疯狂</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>呆的全世界疯狂</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  197***4949@qq.com</p></div></span>8年前 (2018-09-10)</div></div></li><!-- #comment-## -->
+<li class="comment odd alt thread-odd thread-alt depth-1" id="comment-35477"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>   deed</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  jwd***@qq.com</p></div><div class="upvotejs" data-commid="35477" id="runoobvote-id-35477"><a class="upvote"></a> <span class="count">19</span></div></div><div class="comt-main" id="div-comment-35477"><p>シングルトンパターンにおける先行初期化方式</p>
+<pre>class Singleton{
+public static String a = "11";
+private static byte[] bytes = new byte[100*88];
+
+// 这句就是饿汉模式的核心
+private static final Singleton singleton = new Singleton(); 
+
+private Singleton() {}
+public static Singleton getInstance(){
+         return singleton;
+     }
+}</pre><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">deed</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>   deed</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  jwd***@qq.com</p></div></span>8年前 (2018-09-28)</div></div></li><!-- #comment-## -->
+<li class="comment even thread-even depth-1" id="comment-37438"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>   FingerTipDancer</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  usa***shington@qq.com</p></div><div class="upvotejs" data-commid="37438" id="runoobvote-id-37438"><a class="upvote"></a> <span class="count">47</span></div></div><div class="comt-main" id="div-comment-37438"><p>リフレクションメカニズムでシングルトンパターンを破る（列挙型を除く）：</p>
+<pre>public class BreakSingleton{
+    public static void main(String[] args) throw Exception{
+        Class clazz = Class.forName("Singleton");
+        Constructor c = clazz.getDeclaredConstructor(null);
+
+        c.setAccessible(true);
+
+        Singleton s1 = c.newInstance();
+        Singleton s2 = c.newInstance();
+        //通过反射，得到的两个不同对象
+        System.out.println(s1);
+        System.out.println(s2);
+    }
+}</pre>
+<p>上記の脆弱性を回避する方法：</p>
+<pre>class Singleton{
+    private static final Singleton singleton = new Singleton(); 
+        private Singleton() {
+        //在构造器中加个逻辑判断,多次调用抛出异常
+        if(instance!= null){
+            throw new RuntimeException()
+        }
+    }
+    public static Singleton getInstance(){
+        return singleton;
+    }
+}</pre><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">FingerTipDancer</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>   FingerTipDancer</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  usa***shington@qq.com</p></div></span>8年前 (2018-11-26)</div></div></li><!-- #comment-## -->
+<li class="comment odd alt thread-odd thread-alt depth-1" id="comment-37439"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>   FingerTipDancer</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  usa***shington@qq.com</p></div><div class="upvotejs" data-commid="37439" id="runoobvote-id-37439"><a class="upvote"></a> <span class="count">36</span></div></div><div class="comt-main" id="div-comment-37439"><p>デシリアライゼーションメカニズムでシングルトンパターンを破る（列挙型を除く）：</p>
+<pre>public class BreakSingleton{
+
+  public static void main(String[] args) throws Exception{
+
+     //先根据单例模式创建对象(单例模式所以s1,s2是一样的)
+     Singleton s1=Singleton.getInstance();
+     Singleton s2=Singleton.getInstance();
+
+//将s1写入本地某个路径
+     FileOutputStream fos=new FileOutputStream("本地某个路径下文件");
+     ObjectOutputStream oos=new ObjectOutputStream(fos);
+     oos.writeObject(s1);
+     oos.close();
+     fos.close();
+
+//从本地某个路径读取写入的对象
+     ObjectInputStream ois=new ObjectInputStream(new FileInputStream("和上面的本地参数路径相同"));
+    Singleton s3=(Singleton) ois.readObject();
+     System.out.println(s1);
+     System.out.println(s2);
+     System.out.println(s3);//s3是一个新对象
+}
+ 
+}</pre>
+<p>シリアライズ可能なシングルトンパターンの脆弱性を回避する方法：</p>
+<pre>class Singleton implements Serializable{
+
+  private static final Singleton singleton = new Singleton(); 
+
+  private Singleton() {
+  }
+  public static Singleton getInstance(){
+         return singleton;
+  }
+//反序列化定义该方法，则不需要创建新对象
+  private Object readResolve() throws ObjectStreamException{
+    return singleton;
+  }
+}</pre>
+<div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">FingerTipDancer</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>   FingerTipDancer</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  usa***shington@qq.com</p></div></span>8年前 (2018-11-26)</div></div></li><!-- #comment-## -->
+<li class="comment even thread-even depth-1" id="comment-37521"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>逆光影者</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  248***1388@qq.com</p></div><div class="upvotejs" data-commid="37521" id="runoobvote-id-37521"><a class="upvote"></a> <span class="count">10</span></div></div><div class="comt-main" id="div-comment-37521"><p>登録式シングルトンパターンは、一群のシングルトンパターンを管理するもので、map 内のオブジェクトが同一であることを保証します。Spring で使用されているのもこれに類似したパターンです：</p>
+<pre>import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+public class RegisterSingleton {
+    /** * 登记式单例模式, 保证map中的对象是同一份 */
+    private static Map&lt;String, Object&gt; map;
+
+    static {
+        map = new ConcurrentHashMap&lt;&gt;();
+        map.put(RegisterSingleton.class.getName(), new RegisterSingleton());
+    }
+
+    private RegisterSingleton() {
+        System.out.println("this Constructor is called");
+    }
+
+    public static Object getInstance(String name) {
+        if (name == null) {
+            name = RegisterSingleton.class.getName();
+        }
+        if (map.get(name) == null) {
+            try {
+                map.put(name, Class.forName(name).newInstance());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return map.get(name);
+    }
+}</pre><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">逆光影者</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>逆光影者</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  248***1388@qq.com</p></div></span>8年前 (2018-11-28)</div></div></li><!-- #comment-## -->
+<li class="comment odd alt thread-odd thread-alt depth-1" id="comment-49880"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>卡卡</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  wuj***e1023@163.com</p></div><div class="upvotejs" data-commid="49880" id="runoobvote-id-49880"><a class="upvote"></a> <span class="count">17</span></div></div><div class="comt-main" id="div-comment-49880"><p>列挙型でシングルトンパターンを作成する：</p>
+<pre>public enum  EnumSingleton {
+    INSTANCE;
+    public EnumSingleton getInstance(){
+        return INSTANCE;
+    }
+}
+public class User {
+    //私有化构造函数
+    private User(){ }
+ 
+    //定义一个静态枚举类
+    static enum SingletonEnum{
+        //创建一个枚举对象，该对象天生为单例
+        INSTANCE;
+        private User user;
+        //私有化枚举的构造函数
+        private SingletonEnum(){
+            user=new User();
+        }
+        public User getInstnce(){
+            return user;
+        }
+    }
+ 
+    //对外暴露一个获取User对象的静态方法
+    public static User getInstance(){
+        return SingletonEnum.INSTANCE.getInstnce();
+    }
+}
+
+public class Test {
+    public static void main(String [] args){
+        System.out.println(User.getInstance());
+        System.out.println(User.getInstance());
+        System.out.println(User.getInstance()==User.getInstance());
+    }
+}
+
+// 结果为true</pre><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">卡卡</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>卡卡</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  wuj***e1023@163.com</p></div></span>7年前 (2020-01-07)</div></div></li><!-- #comment-## -->
+<li class="comment even thread-even depth-1" id="comment-52277"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>   mcl</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  979***991@qq.com</p></div><div class="upvotejs" data-commid="52277" id="runoobvote-id-52277"><a class="upvote"></a> <span class="count">4</span></div></div><div class="comt-main" id="div-comment-52277"><p>実は、先行初期化方式にはもう1つの変種があります：</p>
+<pre>public class LazyModel {
+    public final static LazyModel INSTANCE = new LazyModel();
+    int age ;
+    String name;
+    private LazyModel(){}
+    public int getAge() {
+        return age;
+    }
+    public void setAge(int age) {
+        this.age = age;
+    }
+    public String getName() {
+        return name;
+    }
+    public void setName(String name) {
+        this.name = name;
+    }
+}</pre><p>準備段階で LazyModel の生成がすでに完了しているため、直接使用できます。</p><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">mcl</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>   mcl</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  979***991@qq.com</p></div></span>7年前 (2020-04-02)</div></div></li><!-- #comment-## -->
+<li class="comment odd alt thread-odd thread-alt depth-1" id="comment-56009"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>   Bob</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  104***7013@qq.com</p></div><div class="upvotejs" data-commid="56009" id="runoobvote-id-56009"><a class="upvote"></a> <span class="count">24</span></div></div><div class="comt-main" id="div-comment-56009"><p>二重チェックロック/ダブルチェックロックでは、volatile キーワードを追加して、命令の並べ替えを禁止する必要があります：</p>
+<pre>public class Singleton{
+  private static volatile Singleton instance;
+  private Singleton(){}
+  public static Singleton getInstance(){
+    if(instance == null){
+    // 判断对象是否以及实例化过，没有则进入加锁代码块，此处可能有多个线程同时进来，等待类对象锁
+      synchronized(Singleton.class){
+      // 获取类对象锁，其他线程在外等待，其他线程进来再次判断，如果对象实例化了，则不需要再实例化
+        if(instance == null){
+          instance = new Singleton();
+        }
+      }
+    }
+    return instance;
+  }
+}</pre><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">Bob</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>   Bob</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  104***7013@qq.com</p></div></span>6年前 (2020-08-06)</div></div></li><!-- #comment-## -->
+<li class="comment byuser comment-author-tianqixin even thread-even depth-1" id="comment-79909"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>   RUNOOB</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  429***967@qq.com</p></div><div class="upvotejs" data-commid="79909" id="runoobvote-id-79909"><a class="upvote"></a> <span class="count">0</span></div></div><div class="comt-main" id="div-comment-79909"><p>シングルトンパターンでは、クラスが自身の唯一のインスタンスを作成し、アプリケーション全体でインスタンスが1つだけ存在することを保証します。これは通常、クラスのコンストラクタをプライベートに設定することで実現され、外部コードがそのクラスのインスタンスを作成するのを防ぎます。クラスは静的メソッドまたはプロパティを提供し、他のオブジェクトがその唯一のインスタンスにアクセスできるようにします。</p>
+<p>以下は一般的なシングルトンパターンの例です（遅延初期化方式を使用）：</p>
+<pre>public class Singleton {
+    private static Singleton instance;
+
+    private Singleton() {
+        // 私有构造函数
+    }
+
+    public static Singleton getInstance() {
+        if (instance == null) {
+            instance = new Singleton();
+        }
+        return instance;
+    }
+}</pre>
+<p>上記の例では、Singleton クラスのコンストラクタはプライベートに設定されているため、他のクラスは直接インスタンス化できません。静的メソッド getInstance() を使用して、Singleton クラスの唯一のインスタンスを取得できます。getInstance() メソッドの最初の呼び出し時に新しいインスタンスが作成され、以降の呼び出しでは作成済みのインスタンスが返されます。</p>
+<p>ただし、上記の例の遅延初期化方式による実装にはスレッド安全性の問題があります。複数のスレッドが同時に getInstance() メソッドを呼び出すと、複数のインスタンスが作成される可能性があります。この問題を解決するには、二重チェックロックや静的内部クラスによる実装など、スレッドセーフな方法を使用できます。</p>
+<p>遅延初期化方式のほかにも、先行初期化方式、静的内部クラス、列挙型など、シングルトンパターンを実装する方法があります。それぞれの方法には長所と短所があるため、特定のシナリオに適した実装方法を選択することが重要です。</p>
+<p>注意すべき点として、シングルトンパターンは状況によってはグローバル状態をもたらし、コードのテストや保守を困難にする可能性があります。そのため、シングルトンパターンを使用する際は、コード構造とテスト可能性への影響を慎重に検討し、設計要件を本当に満たしていることを確認する必要があります。</p><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">RUNOOB</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>   RUNOOB</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  429***967@qq.com</p></div></span>3年前 (2023-07-11)</div></div></li><!-- #comment-## -->
+</ol>
+<div class="pagenav">
+</div>
+</div>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style="display:none; padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>クリックしてノートを共有</h3>
+&lt;p style="font-size:14px;"&gt;ノートは本記事の内容の拡張である必要があります！&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;記事の投稿は、こちらをクリック&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; ノートを共有する前に&lt;a href=";.html" class="runoob-pop"&gt;ログイン&lt;/a&gt;が必要です！&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=";.html" id="cancel-comment-reply-link">キャンセル</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="8906"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>ノートを共有</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">ニックネーム</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">ニックネーム (必須)</span></li>
+<li class="form-inline"><label class="hide" for="email">メールアドレス</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">メールアドレス (必須)</span></li>
+<li class="form-inline"><label class="hide" for="url">引用アドレス</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">引用アドレス</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  8906;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 8906, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":8906},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+</div>
+</div>
+<!-- 右边栏 -->
+<div class="fivecol last right-column">
+<style>
+.sidebar-tree .double-li {
+    width:300px;
+}
+.sidebar-tree .double-li li {
+    width: 44%;
+    line-height: 1.5em;
+    border-bottom: 1px solid #ccc;
+    float: left;
+    display: inline;
+}
+</style>
+<div class="sidebar-box re-box re-box-large">
+<div class="sidebar-box recommend-here" style="margin: 0 auto;">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;"> <i aria-hidden="true" class="fa fa-list"></i> 分类导航</a>
+</div>
+<div class="sidebar-box sidebar-cate">
+<div class="sidebar-tree">
+<ul><li style="margin: 0;"><a class="tit" href="#"> Python / 数据科学</a><ul class="double-li"><li><a href="../python3/python3-tutorial.html" title="Python 教程">Python 教程</a></li><li><a href="../python/python-tutorial.html" title="Python2.x 教程">Python2.x 教程</a></li><li><a href="../fastapi/fastapi-tutorial.html" title="FastAPI 教程">FastAPI 教程</a></li><li><a href="../flask/flask-tutorial.html" title="Flask 教程">Flask 教程</a></li><li><a href="../django/django-tutorial.html" title="Django 教程">Django 教程</a></li><li><a href="../numpy/numpy-tutorial.html" title="NumPy 教程">NumPy 教程</a></li><li><a href="../pandas/pandas-tutorial.html" title="Pandas 教程">Pandas 教程</a></li><li><a href="../scipy/scipy-tutorial.html" title="SciPy 教程">SciPy 教程</a></li><li><a href="../matplotlib/matplotlib-tutorial.html" title="Matplotlib 教程">Matplotlib 教程</a></li><li><a href="../dash/dash-tutorial.html" title="Dash 教程">Dash 教程</a></li><li><a href="../jupyter-notebook/jupyter-notebook-tutorial.html" title="Jupyter Notebook 教程">Jupyter Notebook 教程</a></li><li><a href="../pillow/pillow-tutorial.html" title="Pillow 教程">Pillow 教程</a></li><li><a href="../qt/qt-tutorial.html" title="量化交易">量化交易</a></li><li><a href="../r/r-tutorial.html" title="R 教程">R 教程</a></li><li><a href="../julia/julia-tutorial.html" title="Julia 教程">Julia 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> AI / 智能开发</a><ul class="double-li"><li><a href="../ai-agent/ai-agent-tutorial.html" title="AI Agent（智能体）">AI Agent（智能体）</a></li><li><a href="../ai/ai-tutorial.html" title="AI（人工智能）">AI（人工智能）</a></li><li><a href="../codex/codex-tutorial.html" title="Codex 教程">Codex 教程</a></li><li><a href="../vibe-coding/vibe-coding-tutorial.html" title="Vibe Coding 教程">Vibe Coding 教程</a></li><li><a href="../claude-code/claude-code-tutorial.html" title="Claude Code">Claude Code</a></li><li><a href="../opencode/opencode-tutorial.html" title="OpenCode">OpenCode</a></li><li><a href="../skills/skills-tutorial.html" title="Skills（技能）">Skills（技能）</a></li><li><a href="../ollama/ollama-tutorial.html" title="Ollama 教程">Ollama 教程</a></li><li><a href="../hermes-agent/hermes-agent-tutorial.html" title="Hermes Agent">Hermes Agent</a></li><li><a href="../deepseek-harness/deepseek-harness-tutorial.html" title="DeepSeek Harness">DeepSeek Harness</a></li><li><a href="../pi-agent/pi-agent-tutorial.html" title="Pi Agent">Pi Agent</a></li><li><a href="../ai-math/ai-math-tutorial.html" title="AI 数学基础">AI 数学基础</a></li><li><a href="../tensorflow/tensorflow-tutorial.html" title="TensorFlow 教程">TensorFlow 教程</a></li><li><a href="../pytorch/pytorch-tutorial.html" title="PyTorch 教程">PyTorch 教程</a></li><li><a href="../sklearn/sklearn-tutorial.html" title="Scikit-learn 教程">Scikit-learn 教程</a></li><li><a href="../ml/ml-tutorial.html" title="机器 教程">机器 教程</a></li><li><a href="../langchain/langchain-tutorial.html" title="LangChain">LangChain</a></li><li><a href="../nlp/nlp-tutorial.html" title="自然语言处理 NLP">自然语言处理 NLP</a></li><li><a href="../opencv/opencv-tutorial.html" title="OpenCV 教程">OpenCV 教程</a></li><li><a href="../selenium/selenium-tutorial.html" title="Selenium 教程">Selenium 教程</a></li><li><a href="../playwright/playwright-tutorial.html" title="Playwright 教程">Playwright 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 前端开发</a><ul class="double-li"><li><a href="../html/html-tutorial.html" title="HTML 教程">HTML 教程</a></li><li><a href="../html/html5-intro.html" title="HTML5 教程">HTML5 教程</a></li><li><a href="../css/css-tutorial.html" title="CSS 教程">CSS 教程</a></li><li><a href="../css3/css3-tutorial.html" title="CSS3 教程">CSS3 教程</a></li><li><a href="../js/js-tutorial.html" title="JavaScript 教程">JavaScript 教程</a></li><li><a href="../htmldom/htmldom-tutorial.html" title="HTML DOM 教程">HTML DOM 教程</a></li><li><a href="../typescript/ts-tutorial.html" title="TypeScript 教程">TypeScript 教程</a></li><li><a href="../ajax/ajax-tutorial.html" title="AJAX 教程">AJAX 教程</a></li><li><a href="../json/json-tutorial.html" title="JSON 教程">JSON 教程</a></li><li><a href="../tailwindcss/tailwindcss-tutorial.html" title="Tailwind CSS 教程">Tailwind CSS 教程</a></li><li><a href="../bootstrap4/bootstrap4-tutorial.html" title="Bootstrap4 教程">Bootstrap4 教程</a></li><li><a href="../bootstrap5/bootstrap5-tutorial.html" title="Bootstrap5 教程">Bootstrap5 教程</a></li><li><a href="../foundation/foundation-tutorial.html" title="Foundation 教程">Foundation 教程</a></li><li><a href="../vue2/vue-tutorial.html" title="Vue.js 教程">Vue.js 教程</a></li><li><a href="../vue3/vue3-tutorial.html" title="Vue3 教程">Vue3 教程</a></li><li><a href="../react/react-tutorial.html" title="React 教程">React 教程</a></li><li><a href="../nextjs/nextjs-tutorial.html" title="Next.js 教程">Next.js 教程</a></li><li><a href="../angularjs/angularjs-tutorial.html" title="AngularJS 教程">AngularJS 教程</a></li><li><a href="../angularjs2/angularjs2-tutorial.html" title="Angular 教程">Angular 教程</a></li><li><a href="../jquery/jquery-tutorial.html" title="jQuery 教程">jQuery 教程</a></li><li><a href="../jqueryui/jqueryui-tutorial.html" title="jQuery UI 教程">jQuery UI 教程</a></li><li><a href="../jeasyui/jqueryeasyui-tutorial.html" title="jQuery EasyUI 教程">jQuery EasyUI 教程</a></li><li><a href="../echarts/echarts-tutorial.html" title="ECharts 教程">ECharts 教程</a></li><li><a href="../chartjs/chartjs-tutorial.html" title="Chart.js 教程">Chart.js 教程</a></li><li><a href="../highcharts/highcharts-tutorial.html" title="Highcharts 教程">Highcharts 教程</a></li><li><a href="../googleapi/google-maps-basic.html" title="Google 地图 教程">Google 地图 教程</a></li><li><a href="../svg/svg-tutorial.html" title="SVG 教程">SVG 教程</a></li><li><a href="../font-awesome/fontawesome-tutorial.html" title="Font Awesome 教程">Font Awesome 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 后端开发</a><ul class="double-li"><li><a href="../nodejs/nodejs-tutorial.html" title="Node.js 教程">Node.js 教程</a></li><li><a href="../electron/electron-tutorial.html" title="Electron 教程">Electron 教程</a></li><li><a href="../php/php-tutorial.html" title="PHP 教程">PHP 教程</a></li><li><a href="../java/java-tutorial.html" title="Java 教程">Java 教程</a></li><li><a href="../go/go-tutorial.html" title="Go 教程">Go 教程</a></li><li><a href="../rust/rust-tutorial.html" title="Rust 教程">Rust 教程</a></li><li><a href="../csharp/csharp-tutorial.html" title="C# 教程">C# 教程</a></li><li><a href="../servlet/servlet-tutorial.html" title="Servlet 教程">Servlet 教程</a></li><li><a href="../jsp/jsp-tutorial.html" title="JSP 教程">JSP 教程</a></li><li><a href="../asp/asp-tutorial.html" title="ASP 教程">ASP 教程</a></li><li><a href="../appml/appml-tutorial.html" title="AppML 教程">AppML 教程</a></li><li><a href="../vbscript/vbscript-tutorial.html" title="VBScript 教程">VBScript 教程</a></li><li><a href="../swagger/swagger-tutorial.html" title="Swagger 教程">Swagger 教程</a></li><li><a href="../restfulapi/restful-api-tutorial.html" title="RESTful API 教程">RESTful API 教程</a></li><li><a href="../docker/docker-tutorial.html" title="Docker 教程">Docker 教程</a></li><li><a href="../linux/linux-tutorial.html" title="Linux 教程">Linux 教程</a></li><li><a href="../w3cnote/zookeeper-tutorial.html" title="ZooKeeper 教程">ZooKeeper 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 数据库</a><ul class="double-li"><li><a href="../sql/sql-tutorial.html" title="SQL 教程">SQL 教程</a></li><li><a href="../mysql/mysql-tutorial.html" title="MySQL 教程">MySQL 教程</a></li><li><a href="../postgresql/postgresql-tutorial.html" title="PostgreSQL 教程">PostgreSQL 教程</a></li><li><a href="../sqlite/sqlite-tutorial.html" title="SQLite 教程">SQLite 教程</a></li><li><a href="../mongodb/mongodb-tutorial.html" title="MongoDB 教程">MongoDB 教程</a></li><li><a href="../redis/redis-tutorial.html" title="Redis 教程">Redis 教程</a></li><li><a href="../memcached/memcached-tutorial.html" title="Memcached 教程">Memcached 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 移动开发</a><ul class="double-li"><li><a href="../w3cnote/android-tutorial-intro.html" title="Android 教程">Android 教程</a></li><li><a href="../flutter/flutter-tutorial.html" title="Flutter 教程">Flutter 教程</a></li><li><a href="../ionic/ionic-tutorial.html" title="Ionic 教程">Ionic 教程</a></li><li><a href="../jquerymobile/jquerymobile-tutorial.html" title="jQuery Mobile 教程">jQuery Mobile 教程</a></li><li><a href="../swift/swift-tutorial.html" title="Swift 教程">Swift 教程</a></li><li><a href="../kotlin/kotlin-tutorial.html" title="Kotlin 教程">Kotlin 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> DevOps / 工程化</a><ul class="double-li"><li><a href="../git/git-tutorial.html" title="Git 教程">Git 教程</a></li><li><a href="../svn/svn-tutorial.html" title="SVN 教程">SVN 教程</a></li><li><a href="../cmake/cmake-tutorial.html" title="CMake 教程">CMake 教程</a></li><li><a href="../maven/maven-tutorial.html" title="Maven 教程">Maven 教程</a></li><li><a href="../vscode/vscode-tutorial.html" title="VS Code 教程">VS Code 教程</a></li><li><a href="../obsidian/obsidian-tutorial.html" title="Obsidian 教程">Obsidian 教程</a></li><li><a href="../pycharm/pycharm-tutorial.html" title="PyCharm 教程">PyCharm 教程</a></li><li><a href="../eclipse/eclipse-tutorial.html" title="Eclipse 教程">Eclipse 教程</a></li><li><a href="../markdown/md-tutorial.html" title="Markdown 教程">Markdown 教程</a></li><li><a href="../latex/latex-tutorial.html" title="LaTeX 教程">LaTeX 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 编程语言</a><ul class="double-li"><li><a href="../c/c-tutorial.html" title="C 教程">C 教程</a></li><li><a href="../cplusplus/cpp-tutorial.html" title="C++ 教程">C++ 教程</a></li><li><a href="../zig/zig-tutorial.html" title="Zig 教程">Zig 教程</a></li><li><a href="../scala/scala-tutorial.html" title="Scala 教程">Scala 教程</a></li><li><a href="../ruby/ruby-tutorial.html" title="Ruby 教程">Ruby 教程</a></li><li><a href="../perl/perl-tutorial.html" title="Perl 教程">Perl 教程</a></li><li><a href="../lua/lua-tutorial.html" title="Lua 教程">Lua 教程</a></li><li><a href="../dart/dart-tutorial.html" title="Dart 教程">Dart 教程</a></li><li><a href="../assembly/assembly-tutorial.html" title="汇编语言 教程">汇编语言 教程</a></li><li><a href="../w3cnote/verilog-tutorial.html" title="Verilog 教程">Verilog 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 计算机基础</a><ul class="double-li"><li><a href="../computer-organization/computer-organization-tutorial.html" title="计算机组成原理">计算机组成原理</a></li><li><a href="../data-structures/data-structures-tutorial.html" title="数据结构与算法">数据结构与算法</a></li><li><a href="../c-dsa/c-dsa-tutorial.html" title="C 语言数据结构与算法">C 语言数据结构与算法</a></li><li><a href="../design-pattern/design-pattern-tutorial.html" title="设计模式">设计模式</a></li><li><a href="../python-design-pattern/python-design-pattern-tutorial.html" title="Python 设计模式">Python 设计模式</a></li><li><a href="../regexp/regexp-tutorial.html" title="正则表达式">正则表达式</a></li><li><a href="../http/http-tutorial.html" title="HTTP 教程">HTTP 教程</a></li><li><a href="../tcpip/tcpip-tutorial.html" title="TCP/IP 教程">TCP/IP 教程</a></li><li><a href="../np/np-tutorial.html" title="网络协议">网络协议</a></li><li><a href="../w3c/w3c-tutorial.html" title="W3C 教程">W3C 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> XML / Web Service</a><ul class="double-li"><li><a href="../xml/xml-tutorial.html" title="XML 教程">XML 教程</a></li><li><a href="../dtd/dtd-tutorial.html" title="DTD 教程">DTD 教程</a></li><li><a href="../dom/dom-tutorial.html" title="XML DOM 教程">XML DOM 教程</a></li><li><a href="../xsl/xsl-tutorial.html" title="XSLT 教程">XSLT 教程</a></li><li><a href="../xpath/xpath-tutorial.html" title="XPath 教程">XPath 教程</a></li><li><a href="../xquery/xquery-tutorial.html" title="XQuery 教程">XQuery 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XLink 教程">XLink 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XPointer 教程">XPointer 教程</a></li><li><a href="../schema/schema-tutorial.html" title="XML Schema 教程">XML Schema 教程</a></li><li><a href="../xslfo/xslfo-tutorial.html" title="XSL-FO 教程">XSL-FO 教程</a></li><li><a href="../webservices/webservices-tutorial.html" title="Web Service 教程">Web Service 教程</a></li><li><a href="../wsdl/wsdl-tutorial.html" title="WSDL 教程">WSDL 教程</a></li><li><a href="../soap/soap-tutorial.html" title="SOAP 教程">SOAP 教程</a></li><li><a href="../rss/rss-tutorial.html" title="RSS 教程">RSS 教程</a></li><li><a href="../rdf/rdf-tutorial.html" title="RDF 教程">RDF 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> .NET</a><ul class="double-li"><li><a href="../aspnet/aspnet-tutorial.html" title="ASP.NET 教程">ASP.NET 教程</a></li><li><a href="../aspnet/mvc-intro.html" title="MVC 教程">MVC 教程</a></li><li><a href="../aspnet/razor-intro.html" title="Razor 教程">Razor 教程</a></li><li><a href="../aspnet/aspnet-intro.html" title="Web Forms 教程">Web Forms 教程</a></li><li><a href="../aspnet/webpages-intro.html" title="Web Pages 教程">Web Pages 教程</a></li><li><a href="../powershell/powershell-tutorial.html" title="PowerShell 教程">PowerShell 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 网站建设</a><ul class="double-li"><li><a href="../web/web-buildingprimer.html" title="网站建设指南">网站建设指南</a></li><li><a href="../browsers/browser-information.html" title="浏览器信息">浏览器信息</a></li><li><a href="../hosting/hosting-tutorial.html" title="网站主机教程">网站主机教程</a></li><li><a href="../quality/quality-tutorial.html" title="网站品质">网站品质</a></li></ul></li></ul> </div>
+</div>
+</div>
+<br/>
+<div class="sidebar-box re-box re-box-large">
+</div>
+</div></div>
+</div>
+<script>
+var aid = 8906;
+function coll() {
+	$.post( '/wp-content/themes/runoob/option/user/userinfo.php', {aid:aid, action:"collarticle", opt:'add'},function( data ) {
+		if(data.error==0) {
+			$("#content").find("h1:first").find("a").attr("href","javascript:void(0);");
+			$("#content").find("h1:first").find("img").attr("src","http://www.runoob.com/wp-content/themes/runoob/assets/img/coll2.png").css({width:32+"px",height:32+"px"});
+		}
+		alert(data.msg);
+	},'json');
+}
+
+(function () {
+    // 1. 仅 HTML 页面
+    if (!document.contentType || !document.contentType.includes('text/html')) return;
+
+    // 2. 容器判断
+    var container = document.querySelector('.article-intro');
+    if (!container) return;
+
+    var h1 = container.querySelector('h1');
+    if (!h1) return;
+
+    // 3. URL 判断
+    var url = window.location.href.toLowerCase();
+    var version = null;
+
+    if (url.includes('/python3/')) {
+        version = 'Python3.x';
+    } else if (url.includes('/python/')) {
+        version = 'Python2.x';
+    }
+
+    if (!version) return;
+
+    // 4. 防重复
+    if (h1.querySelector('.py-version-badge')) return;
+
+    // 5. 创建标签
+    var badge = document.createElement('span');
+    badge.className = 'py-version-badge';
+    badge.innerText = version;
+
+    // 6. 样式（核心：float 实现右上角）
+    badge.style.float = 'right';
+    badge.style.fontSize = '12px';
+    badge.style.padding = '2px 8px';
+    badge.style.borderRadius = '999px';
+
+   // 自适应亮/暗色 + 渐变背景（增强版）
+	badge.style.color = 'inherit';
+
+	// 渐变背景（低透明度，不影响暗黑模式）
+	if (version.includes('3')) {
+		badge.style.background = 'linear-gradient(90deg, rgba(79,172,254,0.15), rgba(0,242,254,0.15))';
+	} else {
+		badge.style.background = 'linear-gradient(90deg, rgba(161,140,209,0.15), rgba(251,194,235,0.15))';
+	}
+
+	// 边框弱化（更精致）
+	badge.style.border = '1px solid rgba(127,127,127,0.3)';
+
+	// 提升可读性
+	badge.style.opacity = '0.95';
+
+    // 微调位置（更贴近“右上角”）
+    badge.style.marginTop = '4px';
+    badge.style.marginLeft = '10px';
+
+    // 7. 插入到 h1 最前面（让 float 生效更稳定）
+    h1.insertBefore(badge, h1.firstChild);
+
+})();
+</script>
+<!-- 反馈对话框开始 -->
+<script src="../wp-content/themes/runoob/assets/js/runoob-article-dir.min.js"></script>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

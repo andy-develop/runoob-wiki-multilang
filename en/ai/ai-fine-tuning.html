@@ -1,0 +1,1824 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Model Fine-tuning | Rookie Tutorial</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<link href="../manifest.webmanifest.html" rel="manifest"/>
+<meta content="#10151c" name="theme-color"/>
+<link href="../pwa/icon-192.png.html" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="application-name"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="../ai/ai-fine-tuning.html" rel="canonical"/>
+<meta content="模型微调 Fine-tuning" name="keywords"/>
+<meta content="模型微调 Fine-tuning   当你需要一个专门用于生成电商产品描述的模型时，有三种主要选择。  	 第一种是从头训练（Pre-training from scratch）。这需要收集海量文本数据（可能是万亿级 token），租用数十块 A100 GPU 训练几个月，花费数百万美元。这是 OpenAI、Google 这些巨头做的事，对绝大多数人来说不现实。  	 第二种是 Prompt 工程。给通用大模型一个精心设计的提示词，比如.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div>
+<!-- 导航栏 -->
+<style>
+/* 主题切换按钮 */
+/* ===== 主题变量（核心）===== */
+:root {
+  --theme-bg: #ffffff;
+  --theme-border: #e5e7eb;
+  --theme-icon: #333;
+  --theme-hover: #f3f4f6;
+}
+
+.dark {
+  --theme-bg: #1f2937;
+  --theme-border: #374151;
+  --theme-icon: #e5e7eb;
+  --theme-hover: #374151;
+}
+
+/* ===== 按钮容器 ===== */
+.nav-theme-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== 按钮本体 ===== */
+.nav-theme-toggle button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  border-radius: 6px;
+  border: 1px solid var(--theme-border);
+
+  background: var(--theme-bg);
+  color: var(--theme-icon);
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* ===== 图标大小 ===== */
+.nav-theme-toggle i {
+  font-size: 14px;
+}
+
+/* ===== hover 效果 ===== */
+.nav-theme-toggle button:hover {
+  background: var(--theme-hover);
+  transform: translateY(-1px);
+}
+
+/* ===== 点击反馈 ===== */
+.nav-theme-toggle button:active {
+  transform: scale(0.95);
+}
+
+/* ===== 当前激活态（可选）===== */
+.nav-theme-toggle button.active {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+</style>
+<!-- 导航栏 -->
+<nav aria-label="主导航" class="container navigation">
+<div class="row">
+<div class="col nav">
+<!-- PC 导航 -->
+<ul class="pc-nav" id="runoob-detail-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../js/js-tutorial.html">JavaScript</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a data-id="vue" href="#">Vue</a></li>
+<li><a href="../react/react-tutorial.html">React</a></li>
+<li><a href="../python3/python3-tutorial.html">Python3</a></li>
+<li><a href="../java/java-tutorial.html">Java</a></li>
+<li><a href="../cprogramming/c-tutorial.html">C</a></li>
+<li><a href="../cplusplus/cpp-tutorial.html">C++</a></li>
+<li><a href="../csharp/csharp-tutorial.html">C#</a></li>
+<li><a data-id="aiNav" href="#">AI</a></li>
+<li><a href="../go/go-tutorial.html">Go</a></li>
+<li><a href="../sql/sql-tutorial.html">SQL</a></li>
+<li><a href="../linux/linux-tutorial.html">Linux</a></li>
+<li><a href="../vscode/vscode-tutorial.html">VS Code</a></li>
+<li><a data-id="bootstrap" href="#">Bootstrap</a></li>
+<li><a href="../git/git-tutorial.html">Git</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<!-- 主题切换按钮，固定在最右侧 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+<!-- 移动端导航 -->
+<ul class="mobile-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a href="../js/js-tutorial.html">JS</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<li><a class="search-reveal" href="#">搜索</a></li>
+<!-- 移动端主题切换 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon-mobile" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun-mobile" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<!-- 二级导航 -->
+<!--  内容  -->
+<div class="container main">
+<!-- 中间 -->
+<div class="row">
+<div class="runoob-col-md2">
+<div class="left-column">
+<div class="tab" style="overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
+<i aria-hidden="true" class="fa fa-list"></i>
+<span>AI 入门教程</span>
+</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+<a data-p="par" href="../ai/ai-tutorial.html" target="_top" title="AI 入门教程">
+			AI 入门教程			</a>
+<a data-p="par" href="../ai/ai-into.html" target="_top" title="AI 简介">
+			AI 简介			</a>
+<a href="../ai/agi-intro.html" target="_top" title="AGI 简介">AGI 简介</a>
+<a href="../ai/llm-intro.html" target="_top" title="大模型相关概念">大模型相关概念</a> <a data-p="par" href="../ai/ai-prompt.html" target="_top" title="Prompt 提示词">
+			Prompt 提示词			</a>
+<a data-p="par" href="../ai/ai-tools.html" target="_top" title="AI 工具全景">
+			AI 工具全景			</a>
+<a data-p="par" href="../ai/how-ai-works.html" target="_top" title="AI 工作原理">
+			AI 工作原理			</a>
+<a data-p="par" href="../ai/ai-ethics.html" target="_top" title="AI 伦理与安全">
+			AI 伦理与安全			</a>
+<a data-p="par" href="../ai/ai-use-cases.html" target="_top" title="AI 应用场景">
+			AI 应用场景			</a>
+<a data-p="par" href="../ai/ai-industry.html" target="_top" title="AI 行业生态">
+			AI 行业生态			</a>
+<a data-p="par" href="../ai/prompt-engineering-advance.html" target="_top" title="Prompt 工程进阶">
+			Prompt 工程进阶			</a>
+<a data-p="par" href="../ai/ai-api-development.html" target="_top" title="AI API 开发">
+			AI API 开发			</a>
+<a data-p="par" href="../ai/ai-rag.html" target="_top" title="RAG 检索增强生成">
+			RAG 检索增强生成			</a>
+<a href="../ai/ai-agent.html" target="_top" title="AI 智能体">AI 智能体</a> <a data-p="par" href="../ai/ai-multimodal.html" target="_top" title="AI 多模态">
+			AI 多模态			</a>
+<a data-p="par" href="../ai/ai-workflow-auto.html" target="_top" title="AI 工作流自动化">
+			AI 工作流自动化			</a>
+<a data-p="par" href="../ai/ai-product-design.html" target="_top" title="AI 产品设计">
+			AI 产品设计			</a>
+<a data-p="par" href="../ai/ai-local-model-deployment.html" target="_top" title="本地模型部署">
+			本地模型部署			</a>
+<a data-p="par" href="../ai/ai-security.html" target="_top" title="AI 安全进阶">
+			AI 安全进阶			</a>
+<a data-p="par" href="../ai/ai-transformer.html" target="_top" title="Transformer 深度解析">
+			Transformer 深度解析			</a>
+<a data-p="par" href="../ai/ai-fine-tuning.html" target="_top" title="模型微调 Fine-tuning">
+			模型微调 Fine-tuning			</a>
+<a data-p="par" href="../ai/ai-rlhf.html" target="_top" title="RLHF 对齐训练">
+			RLHF 对齐训练			</a>
+<a data-p="par" href="../ai/ai-vector-database.html" target="_top" title="向量数据库">
+			向量数据库			</a>
+<a data-p="par" href="../ai/ai-deployment.html" target="_top" title="AI 工程化部署">
+			AI 工程化部署			</a>
+<a data-p="par" href="../ai/ai-deep-learning.html" target="_top" title="深度学习基础">
+			深度学习基础			</a>
+<a data-p="par" href="../ai/ai-computer-vision.html" target="_top" title="计算机视觉 AI">
+			计算机视觉 AI			</a>
+<a data-p="par" href="../ai/ai-nlp-advanced.html" target="_top" title="NLP 进阶技术">
+			NLP 进阶技术			</a>
+<a data-p="par" href="../ai/ai-frontier-research.html" target="_top" title="前沿研究动态">
+			前沿研究动态			</a>
+<a data-p="par" href="../ai/ai-system-architecture.html" target="_top" title="AI 系统架构">
+			AI 系统架构			</a>
+<a data-p="par" href="../ai/ai-evaluation.html" target="_top" title="AI 评测与安全研究">
+			AI 评测与安全研究			</a>
+</div>
+</div>
+</div>
+</div> <div class="col middle-column">
+<div class="article">
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../ai/ai-transformer.html" rel="prev">Transformer In-Depth Analysis</a> </div>
+<div class="next-design-link"><a href="../ai/ai-rlhf.html" rel="next">RLHF Alignment Training</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="article-body">
+<div class="article-intro" id="content">
+<h1>Model Fine-tuning</h1>
+<p>When you need a model specifically for generating e-commerce product descriptions, there are three main options.</p>
+<ul>
+<li><p>The first is pre-training from scratch. This requires collecting massive text data (possibly trillions of tokens), renting dozens of A100 GPUs to train for months, and spending millions of dollars. This is what giants like OpenAI and Google do, and it is unrealistic for the vast majority of people.</p></li>
+<li>
+<p>The second is Prompt engineering. Give a general large model a carefully designed prompt, such as "You are a professional e-commerce copywriter. Please generate an attractive description based on the following product information..." This approach has zero cost and is immediately usable, but the problems are: you have to write long prompts every time, the results are unstable, it is easily disturbed by irrelevant input, and token consumption is high.</p></li>
+<li>
+<p>The third is fine-tuning. Take a trained general model, continue training it for a short while with your proprietary data, and let it "learn" your specific task. The resulting model retains general capabilities while performing excellently on your task, and the cost is controllable.</p></li></ul>
+<p>Comparison of the three approaches:</p>
+<table class="reference">
+<tr><th>Approach</th><th>Cost</th><th>Effectiveness</th><th>Applicable scenarios</th></tr>
+<tr><td>Pre-training from scratch</td><td>Extremely high (millions of dollars)</td><td>Fully customized</td><td>Creating a new foundation model (only for giants)</td></tr>
+<tr><td>Prompt engineering</td><td>Nearly zero</td><td>Unstable, depends on prompts</td><td>Simple tasks, quick validation</td></tr>
+<tr><td>Fine-tuning</td><td>Medium (hundreds to thousands of dollars)</td><td>Stable and professional</td><td>Domain-specific tasks, productization</td></tr>
+</table>
+<blockquote>
+<p>Use a simple analogy:</p>
+<ul>
+<li>Pre-training from scratch is like cultivating a doctor from zero by yourself, which takes more than a decade.</li>
+<li>Prompt engineering is like giving an ordinary doctor a detailed operation manual.</li>
+<li>Fine-tuning is like letting an already licensed doctor pursue specialist training for a few months and become a specialist expert.</li></ul>
+</blockquote>
+<hr/>
+<h2>Why Fine-tuning is Needed</h2>
+<p>Not all tasks need fine-tuning; first clarify when to use it and when not to.</p>
+<h3>Limitations of Prompt Engineering</h3>
+<p>Prompt engineering is powerful, but it has several ceilings that are hard to break through.</p>
+<ul>
+<li><p><strong>The first limitation is the context window limit.</strong>Your prompts and examples must fit into the model's context window (e.g., 4K, 8K, 128K, 1024K tokens). If your task requires hundreds of examples to describe clearly, the prompt cannot contain them.</p></li>
+<li>
+<p><strong>The second limitation is unstable results.</strong>The same prompt may produce very different results when phrased differently. When the model is in a "good mood" (sampling randomness), the output is good; when not, it may go completely off-topic.</p></li>
+<li>
+<p><strong>The third limitation is high inference cost.</strong>Each inference requires sending the entire long prompt in, consuming many tokens and slowing response time. In high-concurrency scenarios, costs can skyrocket.</p></li>
+<li>
+<p><strong>The fourth limitation is the forgetting problem.</strong>Although the model has read your prompt, the massive amount of pretraining data before it may still be dragging things down. For example, if you ask it to output JSON, it may still add a lot of natural language explanations.</p></li></ul>
+<h3>Applicable Scenarios for Fine-tuning</h3>
+<p>Fine-tuning is worth considering when your task matches the following characteristics.</p>
+<ul>
+<li><p>Characteristic 1: Clear task definition and fixed output format. For example, "translate technical documentation into an easy-to-understand blog," "generate ticket summaries from customer service records," "convert natural language into SQL queries."</p></li>
+<li>
+<p>Characteristic 2: You have a few hundred to a few thousand high-quality labeled data samples. Too little data won't produce results from fine-tuning, and too much is unnecessary—generally 500-5,000 samples is the ideal range.</p>
+</li>
+<li>
+<p>Characteristic 3: You need professional performance in a specific domain. For example, medical report interpretation, legal document summarization, financial news analysis. General-purpose models may not understand industry terminology and conventions; fine-tuning can help them "enter the industry."</p>
+</li>
+<li>
+<p>Characteristic 4: You are sensitive to response speed and cost. A small fine-tuned model may outperform a general large model, with 10x faster inference speed and 100x lower cost.</p>
+</li>
+<li>
+<p>Characteristic 5: You need strict adherence to output format. For example, output must be JSON, must use a specific tone, must include certain fields. Fine-tuning lets the model "remember" these requirements without having to repeat them in the prompt every time.</p>
+</li></ul>
+<h3>Cost-Benefit Analysis of Fine-tuning</h3>
+<p>Before doing fine-tuning, do the math first.</p>
+<p>Cost mainly comes from three aspects: data preparation, computing resources, and manual debugging. Data preparation usually takes the most work—you need to collect, clean, and label data. Computing resources are now very cheap; with LoRA + QLoRA, a consumer-grade GPU (RTX 3090/4090) can fine-tune 7B/13B models.</p>
+<p>Benefits are reflected in several aspects: better results, lower inference costs, faster response times, and more stable output. If your model will provide services externally, these benefits will continue to accumulate.</p>
+<p>When should you not fine-tune? If tasks change rapidly and data formats change every week, prompt engineering is more flexible. If you're only doing a one-time exploration, or you only have a few dozen samples, it's not worth fine-tuning either.</p>
+<table class="reference">
+<tr><th>Factor</th><th>Better suited for Prompt</th><th>Better suited for fine-tuning</th></tr>
+<tr><td>Data volume</td><td>&lt; 100 samples</td><td>&gt; 500 samples</td></tr>
+<tr><td>Task stability</td><td>Frequently changing</td><td>Relatively stable</td></tr>
+<tr><td>Frequency of use</td><td>Occasional use</td><td>High-frequency use</td></tr>
+<tr><td>Cost sensitivity</td><td>低</td><td>高</td></tr>
+<tr><td>Quality requirements</td><td>Good enough is fine</td><td>Pursuing the best</td></tr>
+</table>
+<hr/>
+<h2>Full Fine-tuning</h2>
+<p>First understand the most traditional fine-tuning method, then look at why we rarely use it today.</p>
+<h3>Principles and Process</h3>
+<p>The idea of full fine-tuning is simple: take all the parameters of the pretrained model and continue training on your dataset, updating all the weights.</p>
+<p>The process is roughly like this:</p>
+<ul>
+<li><p>First step: prepare the data. Organize your task data into "input-output" pairs.</p></li>
+<li>
+<p>Second step, load the pre-trained model. For example, download open-source models such as LLaMA-2-7B and Mistral-7B.</p>
+</li>
+<li>
+<p>Step three, set the training parameters. The learning rate should be set very small (e.g., 1e-5 to 5e-5), because we don't want to completely overwrite the knowledge learned during pretraining.</p>
+</li>
+<li>
+<p>Step 4: Start training. Let the model run a few epochs on your data (complete passes through the dataset several times).</p>
+</li>
+<li>
+<p>Step five, save the model. After training, you get a brand new weight file, the same size as the original model.</p>
+</li></ul>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># Full Fine-tuning Concept Demonstration (Pseudo-code, Framework-independent)</span><br/>
+<span style="color: #a50"># Show the core idea; the actual code will use HuggingFace.</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> full_finetuning_concept<span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">Demonstration of Core Concepts of Full Fine-Tuning</span><br/>
+    <span style="color: #a50"># 1. Load the pre-trained model (all parameters are trainable)</span><br/>
+    model <span style="color: Gray;">=</span> load_pretrained_model<span style="color: Olive;">(</span><span style="color: #a11;">"llama-2-7b"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: #a50"># The model has 7 billion parameters, and every parameter gets updated.</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">Total model parameters: {count_parameters(model)}</span><span style="color: Olive;">)</span><br/>
+    <span style="color: #a50"># Output: Total number of model parameters: 7000000000</span><br/>
+<br/>
+    <span style="color: #a50">2. Prepare your task-specific data.</span><br/>
+    train_data <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><br/>
+        <span style="color: Olive;">{</span><span style="color: #a11;">"input"</span>: <span style="color: #a11;">Product: Insulated cup<span style="color: #000099; font-weight: bold;">\n</span>Generate e-commerce description.</span><span style="color: Gray;">,</span><br/>
+         <span style="color: #a11;">"output"</span>: <span style="color: #a11;">This high-quality thermos cup features a 304 stainless steel inner liner and vacuum insulation technology, keeping beverages hot for up to 12 hours.</span><span style="color: Olive;">}</span><span style="color: Gray;">,</span><br/>
+        <span style="color: Olive;">{</span><span style="color: #a11;">"input"</span>: <span style="color: #a11;">Product: Wireless Earphones<span style="color: #000099; font-weight: bold;">\n</span>Generate e-commerce description.</span><span style="color: Gray;">,</span><br/>
+         <span style="color: #a11;">"output"</span>: <span style="color: #a11;">True wireless Bluetooth earphones, stable Bluetooth 5.3 connection, active noise cancellation, 24-hour battery life, comfortable to wear.</span><span style="color: Olive;">}</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a50"># ... hundreds or thousands of similar data entries</span><br/>
+    <span style="color: Olive;">]</span><br/>
+<br/>
+    <span style="color: #a50"># 3. Set the optimizer and a very small learning rate</span><br/>
+    optimizer <span style="color: Gray;">=</span> create_optimizer<span style="color: Olive;">(</span>model<span style="color: Gray;">,</span> learning_rate<span style="color: Gray;">=</span><span style="color: Maroon;">2e-5</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 4. Training loop</span><br/>
+    <span style="color: Green;font-weight:bold;">for</span> epoch <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Maroon;">3</span><span style="color: Olive;">)</span>:  <span style="color: #a50"># Usually train for 2-5 epochs</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> batch <span style="color: Green;font-weight:bold;">in</span> create_batches<span style="color: Olive;">(</span>train_data<span style="color: Olive;">)</span>:<br/>
+            <span style="color: #a50">Forward propagation</span><br/>
+            loss <span style="color: Gray;">=</span> model.<span style="color: #05a;">compute_loss</span><span style="color: Olive;">(</span>batch<span style="color: Olive;">)</span><br/>
+            <span style="color: #a50">Backpropagation, update all parameters!</span><br/>
+            loss.<span style="color: #05a;">backward</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+            optimizer.<span style="color: #05a;">step</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+            optimizer.<span style="color: #05a;">zero_grad</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">Epoch {epoch} complete</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 5. Save the complete model (7 billion parameters, approximately 13GB)</span><br/>
+    model.<span style="color: #05a;">save</span><span style="color: Olive;">(</span><span style="color: #a11;">"llama-2-7b-ecommerce-finetuned"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">Full fine-tuning complete, new model saved.</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50">This is only a concept demo; actual training requires a large amount of VRAM.</span><br/>
+</div>
+</div>
+<h3>Catastrophic Forgetting Problem</h3>
+<p>Full fine-tuning has a serious problem: catastrophic forgetting.</p>
+<p>What does it mean? When you train on your data, the model gradually "forgets" the general knowledge it learned during pretraining. It's like a person who frantically does math problems to prepare for a math exam and ends up forgetting the Chinese and English they had learned before.</p>
+<p>Why does this happen? Because full fine-tuning updates all parameters. The knowledge learned during pretraining is encoded in these parameters, and drastic modifications can destroy the original knowledge.</p>
+<p>The result is: the fine-tuned model performs well on your task, but its performance on other general tasks declines. Even worse, it may lose some basic abilities, such as following instructions and understanding complex problems.</p>
+<p>How to mitigate this? You can mix in pretraining data for joint training, but that brings us back to the old problem of "needing massive amounts of data." Alternatively, you can use regularization to constrain parameters from changing too much, but the effect is limited.</p>
+<h3>VRAM Requirement Calculation</h3>
+<p>Another problem with full fine-tuning is that the VRAM requirements are too large. Let's calculate:</p>
+<p>VRAM required to train a model = model parameters + gradients + optimizer states + activations.</p>
+<p>For a LLaMA-7B model, in full precision (FP32), 7 billion parameters × 4 bytes = 28 GB. Gradients also take 28 GB, and the optimizer states (Adam optimizer) require 56 GB (twice the gradients). Activations vary with batch size and sequence length, and need at least a few GB as well.</p>
+<p>Adding it all up, full fine-tuning a 7B model requires about 100+ GB of VRAM — this means at least 8 A100 GPUs (40GB) or 2 A100 GPUs (80GB) are needed.</p>
+<p>If half precision (FP16/BF16) is used, the memory requirement can be halved, but it still requires about 50-60 GB of VRAM. This is still not something an ordinary person can afford.</p>
+<table class="reference">
+<tr><th>Model size</th><th>Full fine-tuning VRAM (FP16)</th><th>Required GPUs</th></tr>
+<tr><td>7B</td><td>50-60 GB</td><td>2×A100 (40GB) or 1×A100 (80GB)</td></tr>
+<tr><td>13B</td><td>90-100 GB</td><td>3×A100 (40GB) or 2×A100 (80GB)</td></tr>
+<tr><td>70B</td><td>400+ GB</td><td>12×A100 (40GB) or 6×A100 (80GB)</td></tr>
+</table>
+<blockquote>
+<p>Full fine-tuning is not unusable, but it is costly and risky. Unless you have a compelling reason (e.g., a very large amount of data and a need to change the model's fundamental behavior), you should give priority to parameter-efficient fine-tuning (PEFT) methods.</p>
+</blockquote>
+<hr/>
+<h2>Parameter-Efficient Fine-tuning (PEFT)</h2>
+<p>PEFT (Parameter-Efficient Fine-Tuning) is an umbrella term for a class of methods that train only a small number of parameters. It retains the effectiveness of fine-tuning while greatly reducing cost.</p>
+<h3>Core Idea of PEFT</h3>
+<p>The core insight of PEFT is:<span class="marked">The pretrained model already contains sufficient knowledge. We don't need to modify all parameters; we only need to "adjust" a small portion of parameters to adapt to the new task.</span>。</p>
+<p>It's like a piano that has already been built. You don't need to rebuild the entire piano; you just need to fine-tune a few strings to produce the tone you want.</p>
+<p>The benefits of PEFT are obvious:</p>
+<ul>
+<li><p>First, memory requirements are greatly reduced. It used to need 60 GB, now it might only need 6 GB.</p></li>
+<li>
+<p>Second, no catastrophic forgetting. The original model parameters remain unchanged; we just add a little something new, so existing knowledge is not destroyed.</p>
+</li>
+<li>
+<p>Third, low storage cost. PEFT typically only saves a small number of newly added parameters (a few MB to a few hundred MB), without having to save the entire model.</p>
+</li>
+<li>
+<p>Fourth, it enables "task composition". Train multiple small adapters, load them on demand during inference, and one model can serve as multiple models.</p>
+</li></ul>
+<h3>Overview of Mainstream PEFT Methods</h3>
+<p>PEFT is not a single method, but a collective term for a class of methods. Let's look at several mainstream methods:</p>
+<ul>
+<li><p>The first is Adapter. Insert small neural network modules in the middle of each Transformer layer. During training, only these adapters are trained, and the original model parameters are frozen. This is an early PEFT method and is now used less.</p></li>
+<li>
+<p>The second is Prefix Tuning. Add learnable "prefix" vectors before each layer of the model. These prefix vectors occupy only a small portion, but they can guide the model's output.</p>
+</li>
+<li>
+<p>The third is Prompt Tuning. Add learnable soft prompts only at the input layer. This is the simplest method, but its effect is relatively limited.</p>
+</li>
+<li>
+<p>The fourth is LoRA (Low-Rank Adaptation). Add low-rank matrices alongside the model's attention layers. This is currently the most popular and effective PEFT method.</p>
+</li>
+<li>
+<p>The fifth is QLoRA (Quantized LoRA). On top of LoRA, it adds model quantization to further reduce memory requirements. This is today's mainstream choice.</p>
+</li></ul>
+<table class="reference">
+<tr><th>Method</th><th>Principle</th><th>Trainable parameter count</th><th>Effect</th></tr>
+<tr><td>Full fine-tuning</td><td>Update all parameters</td><td>100%</td><td>Good, but may forget</td></tr>
+<tr><td>Adapter</td><td>Insert small network</td><td>0.1%-1%</td><td>Medium</td></tr>
+<tr><td>Prefix Tuning</td><td>Add prefix vectors</td><td>0.1%-1%</td><td>Medium</td></tr>
+<tr><td>Prompt Tuning</td><td>Add soft prompts</td><td>&lt; 0.1%</td><td>Average</td></tr>
+<tr><td>LoRA</td><td>Low-rank matrix adaptation</td><td>0.1%-1%</td><td>Close to full fine-tuning</td></tr>
+<tr><td>QLoRA</td><td>Quantization + LoRA</td><td>0.1%-1%</td><td>Close to full fine-tuning</td></tr>
+</table>
+<blockquote>
+<p>Today's best practice is clear:<span class="marked">Prefer LoRA, and use QLoRA if memory is insufficient</span>. These two methods are effective, low-cost, and have a mature ecosystem, making them the optimal choice in most cases.</p>
+</blockquote>
+<hr/>
+<h2>LoRA（Low-Rank Adaptation）</h2>
+<p>LoRA is currently the most mainstream fine-tuning method, and understanding its principle is important.</p>
+<h3>Principle of Low-Rank Decomposition (Intuitive Understanding)</h3>
+<p>First, understand what "rank" is and what "low-rank" means.</p>
+<p>Suppose you have a 100 × 100 matrix, and the data inside it may not be completely random. If this data can be composed of just a few "patterns", we say the matrix has a low rank.</p>
+<p>For example: if every row is a multiple of the first row, then the rank of this matrix is 1. If every row is a linear combination of the first two rows, then the rank is 2. And so on.</p>
+<p>The core insight of LoRA is:<span class="marked">When a large model adapts to a new task, the change in weights is usually "low-rank" — that is, this change can be represented by very few parameters.</span>。</p>
+<p>This is like, although there are 1000 different e-commerce product descriptions, their writing styles may be determined by just a few core factors: tone, length, points of emphasis. You don't need 1000 different directions to describe the variation; 8, 16, or 32 is enough.</p>
+<p>So LoRA's approach is: freeze all parameters of the original model, and add two small matrices A and B next to the attention layers. A is d × r, B is r × d, where r is the rank (Rank), usually a small number like 8, 16, or 32.</p>
+<p>Original model output = original model forward pass.</p>
+<p>LoRA output = original model forward pass + (input × A × B) × scaling factor.</p>
+<p>During training, only A and B are trained; the original model parameters remain completely unchanged.</p>
+<h3>LoRA Mathematical Derivation</h3>
+<p>Don't be afraid, the mathematical derivation is simple, only a few lines.</p>
+<p>Assume a certain layer of the original model is a linear transformation: h = W₀x, where W₀ is the pretrained weight matrix with shape d × d.</p>
+<p>During fine-tuning, we want to update W₀, but not by too much. LoRA's approach is to represent the change in W₀ as the product of two small matrices: ΔW = BA.</p>
+<p>So the output after fine-tuning is: h = W₀x + (BA)x.</p>
+<p>Here B has shape d × r, A has shape r × d, and r is the rank (Rank).</p>
+<p>More precisely, the formula in the LoRA paper is:</p>
+<p>h = W₀x + α * (BA)x</p>
+<p>where α is a scaling factor, usually set to some multiple of r, so that when r is changed there is no need to readjust hyperparameters.</p>
+<p>During training, W₀ is completely frozen; only A and B are trainable.</p>
+<p>At initialization, A is initialized with a random Gaussian distribution, and B is initialized to zero, so that at the start of training the LoRA part outputs zero and does not affect the original model's behavior.</p>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># Minimal implementation of LoRA's core principle</span><br/>
+<span style="color: #a50"># No framework dependencies, pure NumPy demo</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">import</span> numpy <span style="color: Green;font-weight:bold;">as</span> np<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> LoRALayer:<br/>
+    <span style="color: #a11;">"""Minimal implementation of LoRA layer"""</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> d: <span style="color: Teal;">int</span><span style="color: Gray;">,</span> r: <span style="color: Teal;">int</span><span style="color: Gray;">,</span> alpha: <span style="color: Teal;">float</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">1.0</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""<br/>d: input/output dimension (e.g., 4096)<br/>r: rank (e.g., 8, 16, 32)<br/>alpha: scaling coefficient<br/>
+        """</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">d</span> <span style="color: Gray;">=</span> d<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">r</span> <span style="color: Gray;">=</span> r<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">alpha</span> <span style="color: Gray;">=</span> alpha<br/>
+<br/>
+        <span style="color: #a50"># Frozen original weights (simulating a pretrained model)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">W_0</span> <span style="color: Gray;">=</span> np.<span style="color: #05a;">random</span>.<span style="color: #05a;">randn</span><span style="color: Olive;">(</span>d<span style="color: Gray;">,</span> d<span style="color: Olive;">)</span> * <span style="color: Maroon;">0.01</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">W_0</span>.<span style="color: #05a;">flags</span>.<span style="color: #05a;">writeable</span> <span style="color: Gray;">=</span> <span style="color: Teal;">False</span>  <span style="color: #a50"># Marked as non-trainable</span><br/>
+<br/>
+        <span style="color: #a50"># LoRA's A and B matrices, trainable</span><br/>
+        <span style="color: #a50"># A: r × d, initialized with random Gaussian</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">A</span> <span style="color: Gray;">=</span> np.<span style="color: #05a;">random</span>.<span style="color: #05a;">randn</span><span style="color: Olive;">(</span>r<span style="color: Gray;">,</span> d<span style="color: Olive;">)</span> * <span style="color: Maroon;">0.01</span><br/>
+        <span style="color: #a50"># B: d × r, initialized to zero (doesn't affect the original model at the start of training)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">B</span> <span style="color: Gray;">=</span> np.<span style="color: #05a;">zeros</span><span style="color: Olive;">(</span><span style="color: Olive;">(</span>d<span style="color: Gray;">,</span> r<span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> forward<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> x: np.<span style="color: #05a;">ndarray</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> np.<span style="color: #05a;">ndarray</span>:<br/>
+        <span style="color: #a11;">"""Forward pass: original model output + LoRA output"""</span><br/>
+        <span style="color: #a50"># Original model output</span><br/>
+        original_output <span style="color: Gray;">=</span> x <span style="color: Gray;">@</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">W_0</span>.<span style="color: #05a;">T</span><br/>
+        <span style="color: #a50"># LoRA output: (x @ A.T) @ B.T = x @ (B @ A).T</span><br/>
+        lora_output <span style="color: Gray;">=</span> <span style="color: Olive;">(</span>x <span style="color: Gray;">@</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">A</span>.<span style="color: #05a;">T</span><span style="color: Olive;">)</span> <span style="color: Gray;">@</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">B</span>.<span style="color: #05a;">T</span><br/>
+        <span style="color: #a50"># Merged output</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> original_output + <span style="color: Teal;">self</span>.<span style="color: #05a;">alpha</span> * lora_output<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> get_trainable_params<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">dict</span>:<br/>
+        <span style="color: #a11;">"""Get trainable parameters (only A and B)"""</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> <span style="color: Olive;">{</span><span style="color: #a11;">"A"</span>: <span style="color: Teal;">self</span>.<span style="color: #05a;">A</span><span style="color: Gray;">,</span> <span style="color: #a11;">"B"</span>: <span style="color: Teal;">self</span>.<span style="color: #05a;">B</span><span style="color: Olive;">}</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> count_params<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">dict</span>:<br/>
+        <span style="color: #a11;">"""Count parameter numbers"""</span><br/>
+        total_original <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">d</span> * <span style="color: Teal;">self</span>.<span style="color: #05a;">d</span><br/>
+        total_lora <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">r</span> * <span style="color: Teal;">self</span>.<span style="color: #05a;">d</span> + <span style="color: Teal;">self</span>.<span style="color: #05a;">d</span> * <span style="color: Teal;">self</span>.<span style="color: #05a;">r</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> <span style="color: Olive;">{</span><br/>
+            <span style="color: #a11;">"original_params"</span>: total_original<span style="color: Gray;">,</span><br/>
+            <span style="color: #a11;">"lora_params"</span>: total_lora<span style="color: Gray;">,</span><br/>
+            <span style="color: #a11;">"ratio"</span>: total_lora / total_original * <span style="color: Maroon;">100</span><span style="color: Gray;">,</span><br/>
+        <span style="color: Olive;">}</span><br/>
+<br/>
+<br/>
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># Demonstrate LoRA's parameter savings</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: #a50"># Assume d = 4096 (similar to LLaMA-7B's hidden layer dimension)</span><br/>
+<span style="color: #a50"># r = 8 (commonly used rank size)</span><br/>
+d <span style="color: Gray;">=</span> <span style="color: Maroon;">4096</span><br/>
+r <span style="color: Gray;">=</span> <span style="color: Maroon;">8</span><br/>
+<br/>
+lora <span style="color: Gray;">=</span> LoRALayer<span style="color: Olive;">(</span>d<span style="color: Gray;">=</span>d<span style="color: Gray;">,</span> r<span style="color: Gray;">=</span>r<span style="color: Gray;">,</span> alpha<span style="color: Gray;">=</span>r<span style="color: Olive;">)</span><br/>
+params_info <span style="color: Gray;">=</span> lora.<span style="color: #05a;">count_params</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">Original parameter count: {params_info['original_params']:,}</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">LoRA parameter count: {params_info['lora_params']:,}</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">Parameter ratio: {params_info['ratio']:.4f}%</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># Example output:</span><br/>
+<span style="color: #a50"># Original parameter count: 16,777,216</span><br/>
+<span style="color: #a50"># LoRA parameter count: 65,536</span><br/>
+<span style="color: #a50"># Parameter ratio: 0.3906%</span><br/>
+</div>
+</div>
+<p>See, LoRA only needs to train 0.4% of the parameters, yet it can achieve results close to full fine-tuning. That's the magic of it.</p>
+<h3>Choosing r (Rank) and α Parameters</h3>
+<p>LoRA has two key hyperparameters: the rank r and the scaling coefficient α.</p>
+<p>r determines LoRA's capacity. The larger r is, the more complex changes it can represent, but the parameter count also increases.</p>
+<p>Common r values: 8, 16, 32, 64. For most tasks, r = 8 or 16 is sufficient. Going beyond r = 64 usually yields diminishing returns and increases training cost.</p>
+<p>How to choose r? A practical suggestion: try r = 8 first, and if results are poor, increase it to 16 or 32. Don't start with a very large r.</p>
+<p>α is the scaling coefficient. A common setting is α = r, so that the scale of ΔW = BA remains roughly stable. Alternatively, set α = 1 and let the user adjust it themselves.</p>
+<p>Other parameters to consider:</p>
+<p>Target modules: Which layers should LoRA be applied to? Usually it works well to only add the query and value projections (q_proj, v_proj) of the attention layers. It can also be added to more layers, but that increases the parameter count.</p>
+<p>Dropout: LoRA can add dropout to prevent overfitting; common values are 0.05 or 0.1.</p>
+<table class="reference">
+<tr><th>Parameter</th><th>Common value</th><th>Description</th></tr>
+<tr><td>r (rank)</td><td>8, 16, 32</td><td>Larger means higher capacity, but also more parameters</td></tr>
+<tr><td>alpha</td><td>r or 1</td><td>Scaling coefficient, usually set to r</td></tr>
+<tr><td>target_modules</td><td>["q_proj", "v_proj"]</td><td>Layers to apply LoRA to</td></tr>
+<tr><td>lora_dropout</td><td>0.0, 0.05, 0.1</td><td>Prevent overfitting</td></tr>
+</table>
+<h3>Merging LoRA Weights</h3>
+<p>After training LoRA, there are two options at inference time.</p>
+<ul>
+<li>
+<p>The first is to keep LoRA separate. At inference, load the original model, then load the LoRA weights, and dynamically compute the merged output. The advantage is that multiple LoRAs can be flexibly switched; the disadvantage is that inference is slightly slower (usually negligible).</p></li>
+<li>
+<p>The second is to merge the LoRA weights. Add LoRA's ΔW = BA to the original model's W₀, yielding W = W₀ + α×BA. This produces a single model file, and inference works just like a normal model.</p></li></ul>
+<p>The advantage of merging is fast inference and no special LoRA support needed. The disadvantage is that once merged, it cannot be undone, and if there are multiple LoRAs, each must be merged into a separate model file.</p>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># LoRA weight merging demonstration</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">import</span> numpy <span style="color: Green;font-weight:bold;">as</span> np<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> merge_lora_weights<span style="color: Olive;">(</span>W_0: np.<span style="color: #05a;">ndarray</span><span style="color: Gray;">,</span> A: np.<span style="color: #05a;">ndarray</span><span style="color: Gray;">,</span> B: np.<span style="color: #05a;">ndarray</span><span style="color: Gray;">,</span><br/>
+                      alpha: <span style="color: Teal;">float</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">1.0</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> np.<span style="color: #05a;">ndarray</span>:<br/>
+    <span style="color: #a11;">"""<br/>Merge LoRA weights into original weights<br/>
+    W = W_0 + alpha * (B @ A)<br/>
+<br/>Parameters:<br/>W_0: original weights (d, d)<br/>A: LoRA A matrix (r, d)<br/>B: LoRA B matrix (d, r)<br/>alpha: scaling coefficient<br/>
+<br/>Returns:<br/>Merged weights<br/>
+    """</span><br/>
+    <span style="color: #a50"># compute delta_W = alpha * (B @ A)</span><br/>
+    delta_W <span style="color: Gray;">=</span> alpha * <span style="color: Olive;">(</span>B <span style="color: Gray;">@</span> A<span style="color: Olive;">)</span><br/>
+    <span style="color: #a50"># merge into original weights</span><br/>
+    W_merged <span style="color: Gray;">=</span> W_0 + delta_W<br/>
+    <span style="color: Green;font-weight:bold;">return</span> W_merged<br/>
+<br/>
+<br/>
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># demonstrate the merging process</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+d <span style="color: Gray;">=</span> <span style="color: Maroon;">4096</span>  <span style="color: #a50"># hidden layer dimension</span><br/>
+r <span style="color: Gray;">=</span> <span style="color: Maroon;">8</span>     <span style="color: #a50"># LoRA rank</span><br/>
+<br/>
+<span style="color: #a50"># simulate original weights and LoRA weights</span><br/>
+W_0 <span style="color: Gray;">=</span> np.<span style="color: #05a;">random</span>.<span style="color: #05a;">randn</span><span style="color: Olive;">(</span>d<span style="color: Gray;">,</span> d<span style="color: Olive;">)</span> * <span style="color: Maroon;">0.01</span><br/>
+A <span style="color: Gray;">=</span> np.<span style="color: #05a;">random</span>.<span style="color: #05a;">randn</span><span style="color: Olive;">(</span>r<span style="color: Gray;">,</span> d<span style="color: Olive;">)</span> * <span style="color: Maroon;">0.01</span><br/>
+B <span style="color: Gray;">=</span> np.<span style="color: #05a;">zeros</span><span style="color: Olive;">(</span><span style="color: Olive;">(</span>d<span style="color: Gray;">,</span> r<span style="color: Olive;">)</span><span style="color: Olive;">)</span>  <span style="color: #a50"># in practice, B is the result after training</span><br/>
+<br/>
+<span style="color: #a50"># merged weights</span><br/>
+W_merged <span style="color: Gray;">=</span> merge_lora_weights<span style="color: Olive;">(</span>W_0<span style="color: Gray;">,</span> A<span style="color: Gray;">,</span> B<span style="color: Gray;">,</span> alpha<span style="color: Gray;">=</span>r<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"original weight shape: {W_0.shape}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"merged weight shape: {W_merged.shape}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"weight merging complete, can be used like a normal model"</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<hr/>
+<h2>QLoRA (Quantized LoRA)</h2>
+<p>QLoRA takes LoRA's low cost to the extreme—fine-tuning 70B models is possible on consumer-grade GPUs.</p>
+<h3>4-bit Quantization + LoRA</h3>
+<p>QLoRA's idea is simple: quantize the model to 4-bit, then perform LoRA fine-tuning on top.</p>
+<p>What is quantization? It converts floating-point numbers (FP16/BF16, each taking 2 bytes) into lower-precision representations. 4-bit quantization uses 4 bits (0.5 bytes) to represent a weight.</p>
+<p>This reduces model size by 75%: a 7B model drops from 13 GB to about 3.5 GB, a 13B model from 26 GB to about 6.5 GB, and a 70B model from 140 GB to about 35 GB.</p>
+<p>But direct quantization loses precision. QLoRA's innovation is a data type called NF4 (Normalized Float 4), which better preserves the information in neural network weights.</p>
+<p>QLoRA's approach:</p>
+<ul>
+<li>
+<p>1. Quantize the pretrained model to 4-bit (NF4 format).</p></li>
+<li>
+<p>2. Add LoRA adapters on top.</p></li>
+<li>
+<p>3. During training, the 4-bit quantized base model is completely frozen; only the LoRA FP16 weights are trained.</p></li></ul>
+<p>The result: VRAM requirements drop by another 75%, with almost no loss in performance.</p>
+<h3>bitsandbytes Library</h3>
+<p>bitsandbytes is the core library for quantization, developed by Tim Dettmers.</p>
+<p>It provides:</p>
+<ul>
+<li>
+<p>1. 4-bit quantization (NF4).</p></li>
+<li>
+<p>2. Double Quantization—quantizes the quantization constants as well, saving a bit more VRAM.</p></li>
+<li>
+<p>3. Paged Optimizer—moves some data to CPU memory when VRAM is insufficient.</p></li></ul>
+<p>Ordinary users don't need to interact directly with bitsandbytes; the peft and transformers libraries already wrap it. But it's useful to know it exists.</p>
+<h3>Consumer-Grade GPU Fine-tuning Solutions</h3>
+<p>With QLoRA, ordinary people can afford to do fine-tuning too.</p>
+<p>RTX 3090/4090 (24GB VRAM) can easily fine-tune 7B/13B models, and can even attempt 70B models (requiring longer sequence lengths or smaller batch sizes).</p>
+<p>VRAM requirement estimate:</p>
+<table class="reference">
+<tr><th>Model size</th><th>QLoRA VRAM requirement</th><th>Suitable GPU</th></tr>
+<tr><td>7B</td><td>5-8 GB</td><td>RTX 3060/4060 and above</td></tr>
+<tr><td>13B</td><td>8-12 GB</td><td>RTX 3070/4070 and above</td></tr>
+<tr><td>34B</td><td>15-20 GB</td><td>RTX 3090/4090</td></tr>
+<tr><td>70B</td><td>30-40 GB</td><td>RTX 3090/4090 × 2 or A100</td></tr>
+</table>
+<blockquote>
+<p>QLoRA is a game changer. It turned large model fine-tuning from "only big companies can do it" into "ordinary people can do it on their own gaming laptops." This is one of the most important advances in open-source AI.</p>
+</blockquote>
+<hr/>
+<h2>Training Data Preparation</h2>
+<p>Data preparation is the most time-consuming and critical part of the fine-tuning process. Garbage in, garbage out—data quality determines the upper limit of the model.</p>
+<h3>Data Formats (Alpaca, ShareGPT Formats)</h3>
+<p>There are several common data formats; choose one and keep it consistent.</p>
+<p>The first is the Alpaca format. It is one of the most popular formats, popularized by the Stanford Alpaca project.</p>
+<p>The format is: instruction (instruction), input (input, optional), output (output).</p>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># Alpaca Data Format Example</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+alpaca_data <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><br/>
+    <span style="color: Olive;">{</span><br/>
+        <span style="color: #a11;">"instruction"</span>: <span style="color: #a11;">Generate an e-commerce product description.</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">"input"</span>: <span style="color: #a11;">Product Name: Smart Sports Watch<span style="color: #000099; font-weight: bold;">\n</span>Functions: heart rate monitoring, sleep tracking, GPS positioning, 50-meter water resistance.</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">"output"</span>: <span style="color: #a11;">This smart sports watch is an ideal companion for fitness enthusiasts. It features accurate heart rate monitoring and scientific sleep tracking to help you fully understand your health status. Built-in GPS allows you to record your exercise routes without carrying your phone. With a 50-meter water resistance rating, you can wear it with confidence while swimming.</span><br/>
+    <span style="color: Olive;">}</span><span style="color: Gray;">,</span><br/>
+    <span style="color: Olive;">{</span><br/>
+        <span style="color: #a11;">"instruction"</span>: <span style="color: #a11;">Rewrite the following text into a more colloquial expression.</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">"input"</span>: <span style="color: #a11;">This product adopts advanced technology and features high performance and low power consumption.</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">"output"</span>: <span style="color: #a11;">This product uses very advanced technology, with strong performance and energy efficiency!</span><br/>
+    <span style="color: Olive;">}</span><span style="color: Gray;">,</span><br/>
+    <span style="color: #a50">More data</span><br/>
+<span style="color: Olive;">]</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">The Alpaca format contains three fields:</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">- instruction: Task instruction (required)</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">- input: extra input (optional, can be an empty string if none)</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">- output: expected output (required)</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<p>The second is the ShareGPT format. This format is used for dialogue data and supports multi-turn conversations.</p>
+<p>The format is: conversations (dialogue list), each turn has from (role) and value (content).</p>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50">ShareGPT data format example</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+sharegpt_data <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><br/>
+    <span style="color: Olive;">{</span><br/>
+        <span style="color: #a11;">"conversations"</span>: <span style="color: Olive;">[</span><br/>
+            <span style="color: Olive;">{</span><br/>
+                <span style="color: #a11;">"from"</span>: <span style="color: #a11;">"human"</span><span style="color: Gray;">,</span><br/>
+                <span style="color: #a11;">"value"</span>: <span style="color: #a11;">Hello, I'd like to learn more about your smartwatches.</span><br/>
+            <span style="color: Olive;">}</span><span style="color: Gray;">,</span><br/>
+            <span style="color: Olive;">{</span><br/>
+                <span style="color: #a11;">"from"</span>: <span style="color: #a11;">"gpt"</span><span style="color: Gray;">,</span><br/>
+                <span style="color: #a11;">"value"</span>: <span style="color: #a11;">"Hello! Our smartwatch has features such as heart rate monitoring, sleep tracking, and GPS positioning, as well as 50-meter water resistance. Is there anything specific you'd like to know?"</span><br/>
+            <span style="color: Olive;">}</span><span style="color: Gray;">,</span><br/>
+            <span style="color: Olive;">{</span><br/>
+                <span style="color: #a11;">"from"</span>: <span style="color: #a11;">"human"</span><span style="color: Gray;">,</span><br/>
+                <span style="color: #a11;">"value"</span>: <span style="color: #a11;">How is the battery life?</span><br/>
+            <span style="color: Olive;">}</span><span style="color: Gray;">,</span><br/>
+            <span style="color: Olive;">{</span><br/>
+                <span style="color: #a11;">"from"</span>: <span style="color: #a11;">"gpt"</span><span style="color: Gray;">,</span><br/>
+                <span style="color: #a11;">"value"</span>: <span style="color: #a11;">With normal use, the battery lasts 7 days; with GPS sport mode enabled, it lasts 12 hours.</span><br/>
+            <span style="color: Olive;">}</span><br/>
+        <span style="color: Olive;">]</span><br/>
+    <span style="color: Olive;">}</span><span style="color: Gray;">,</span><br/>
+    <span style="color: #a50"># ... More conversations</span><br/>
+<span style="color: Olive;">]</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">ShareGPT format is used for multi-turn conversation data:</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">- conversations: conversation list</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">- from: role (usually human and gpt)</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">- value: conversation content</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<p>There is also a simple input-output pair format, suitable for simple tasks.</p>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># Simple input-output pair format</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+simple_data <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><br/>
+    <span style="color: Olive;">{</span><br/>
+        <span style="color: #a11;">"text"</span>: <span style="color: #a11;">"User: Generate product description<span style="color: #000099; font-weight: bold;">\n</span>Product: Thermos cup<span style="color: #000099; font-weight: bold;">\n</span><span style="color: #000099; font-weight: bold;">\n</span>Assistant: This high-quality thermos cup uses..."</span><br/>
+    <span style="color: Olive;">}</span><span style="color: Gray;">,</span><br/>
+    <span style="color: Olive;">{</span><br/>
+        <span style="color: #a11;">"text"</span>: <span style="color: #a11;">"User: Generate product description<span style="color: #000099; font-weight: bold;">\n</span>Product: Wireless earbuds<span style="color: #000099; font-weight: bold;">\n</span><span style="color: #000099; font-weight: bold;">\n</span>Assistant: True wireless Bluetooth earbuds, Bluetooth 5.3..."</span><br/>
+    <span style="color: Olive;">}</span><span style="color: Gray;">,</span><br/>
+    <span style="color: #a50"># ... more data</span><br/>
+<span style="color: Olive;">]</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"This format directly concatenates all content into a single text field, which is the most flexible but also the least standardized."</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<p>Which format is best? The Alpaca format is the most common; most training frameworks support it. For conversation tasks, ShareGPT is more suitable.</p>
+<h3>Key Points for Data Cleaning</h3>
+<p>Data cleaning is much more important than you might think. 80% of your model's performance depends on data quality.</p>
+<ul>
+<li>
+<p>First, deduplication. Duplicate data will cause the model to overfit to those repeating patterns. Check and remove completely identical or highly similar data.</p></li>
+<li>
+<p>Second, filter low-quality data. Remove data that is too short, too long, poorly formatted, or has obvious errors. For example, outputs with only a few characters, or with garbled text.</p></li>
+<li>
+<p>Third, unify formats. For example, some outputs use Chinese quotation marks, some use English quotation marks; some end with a period, some don't. Try to unify them so the model learns faster.</p></li>
+<li>
+<p>Fourth, balance the distribution. If some categories of data are particularly abundant and others are scarce, the model will be biased toward the majority category. Consider oversampling the minority class, or undersampling the majority class.</p></li>
+<li>
+<p>Fifth, check for data leakage. Ensure that the test set and validation set do not appear in the training set.</p></li></ul>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># Simple example of data cleaning</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">import</span> json<br/>
+<span style="color: Green;font-weight:bold;">from</span> typing <span style="color: Green;font-weight:bold;">import</span> List<span style="color: Gray;">,</span> Dict<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> clean_alpaca_data<span style="color: Olive;">(</span>data: List<span style="color: Olive;">[</span>Dict<span style="color: Olive;">]</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> List<span style="color: Olive;">[</span>Dict<span style="color: Olive;">]</span>:<br/>
+    <span style="color: #a11;">"""Simple data cleaning function"""</span><br/>
+    cleaned <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+    seen_outputs <span style="color: Gray;">=</span> <span style="color: Teal;">set</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">for</span> item <span style="color: Green;font-weight:bold;">in</span> data:<br/>
+        <span style="color: #a50"># 1. Check whether required fields exist</span><br/>
+        <span style="color: Green;font-weight:bold;">if</span> <span style="color: #a11;">"instruction"</span> <span style="color: Green;font-weight:bold;">not</span> <span style="color: Green;font-weight:bold;">in</span> item <span style="color: Green;font-weight:bold;">or</span> <span style="color: #a11;">"output"</span> <span style="color: Green;font-weight:bold;">not</span> <span style="color: Green;font-weight:bold;">in</span> item:<br/>
+            <span style="color: Green;font-weight:bold;">continue</span><br/>
+<br/>
+        instruction <span style="color: Gray;">=</span> item<span style="color: Olive;">[</span><span style="color: #a11;">"instruction"</span><span style="color: Olive;">]</span>.<span style="color: #05a;">strip</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+        output <span style="color: Gray;">=</span> item<span style="color: Olive;">[</span><span style="color: #a11;">"output"</span><span style="color: Olive;">]</span>.<span style="color: #05a;">strip</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># 2. Filter outputs that are too short</span><br/>
+        <span style="color: Green;font-weight:bold;">if</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>output<span style="color: Olive;">)</span> <span style="color: Gray;">&lt;</span> <span style="color: Maroon;">10</span>:<br/>
+            <span style="color: Green;font-weight:bold;">continue</span><br/>
+<br/>
+        <span style="color: #a50"># 3. Filter outputs that are too long (adjust according to the task)</span><br/>
+        <span style="color: Green;font-weight:bold;">if</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>output<span style="color: Olive;">)</span> <span style="color: Gray;">&gt;</span> <span style="color: Maroon;">2000</span>:<br/>
+            <span style="color: Green;font-weight:bold;">continue</span><br/>
+<br/>
+        <span style="color: #a50"># 4. Deduplicate (approximate deduplication using the output)</span><br/>
+        <span style="color: Green;font-weight:bold;">if</span> output <span style="color: Green;font-weight:bold;">in</span> seen_outputs:<br/>
+            <span style="color: Green;font-weight:bold;">continue</span><br/>
+        seen_outputs.<span style="color: #05a;">add</span><span style="color: Olive;">(</span>output<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># 5. Simple format unification</span><br/>
+        <span style="color: #a50"># For example, change Chinese quotation marks to English quotation marks</span><br/>
+        output <span style="color: Gray;">=</span> output.<span style="color: #05a;">replace</span><span style="color: Olive;">(</span><span style="color: #a11;">""", "<span style="color: #000099; font-weight: bold;">\"</span>").replace("""</span><span style="color: Gray;">,</span> <span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\"</span>"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: #a50"># Remove leading and trailing whitespace</span><br/>
+        output <span style="color: Gray;">=</span> output.<span style="color: #05a;">strip</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+        cleaned.<span style="color: #05a;">append</span><span style="color: Olive;">(</span><span style="color: Olive;">{</span><br/>
+            <span style="color: #a11;">"instruction"</span>: instruction<span style="color: Gray;">,</span><br/>
+            <span style="color: #a11;">"input"</span>: item.<span style="color: #05a;">get</span><span style="color: Olive;">(</span><span style="color: #a11;">"input"</span><span style="color: Gray;">,</span> <span style="color: #a11;">""</span><span style="color: Olive;">)</span>.<span style="color: #05a;">strip</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+            <span style="color: #a11;">"output"</span>: output<br/>
+        <span style="color: Olive;">}</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">return</span> cleaned<br/>
+<br/>
+<br/>
+<span style="color: #a50"># Load data</span><br/>
+<span style="color: Green;font-weight:bold;">with</span> <span style="color: Teal;">open</span><span style="color: Olive;">(</span><span style="color: #a11;">"data/training_data_raw.json"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"r"</span><span style="color: Gray;">,</span> encoding<span style="color: Gray;">=</span><span style="color: #a11;">"utf-8"</span><span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">as</span> f:<br/>
+    raw_data <span style="color: Gray;">=</span> json.<span style="color: #05a;">load</span><span style="color: Olive;">(</span>f<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># Clean data</span><br/>
+cleaned_data <span style="color: Gray;">=</span> clean_alpaca_data<span style="color: Olive;">(</span>raw_data<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Raw data count: {len(raw_data)}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Cleaned data count: {len(cleaned_data)}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Filtered out {len(raw_data) - len(cleaned_data)} low-quality data entries"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># Save the cleaned data</span><br/>
+<span style="color: Green;font-weight:bold;">with</span> <span style="color: Teal;">open</span><span style="color: Olive;">(</span><span style="color: #a11;">"data/training_data_cleaned.json"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"w"</span><span style="color: Gray;">,</span> encoding<span style="color: Gray;">=</span><span style="color: #a11;">"utf-8"</span><span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">as</span> f:<br/>
+    json.<span style="color: #05a;">dump</span><span style="color: Olive;">(</span>cleaned_data<span style="color: Gray;">,</span> f<span style="color: Gray;">,</span> ensure_ascii<span style="color: Gray;">=</span><span style="color: Teal;">False</span><span style="color: Gray;">,</span> indent<span style="color: Gray;">=</span><span style="color: Maroon;">2</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Cleaned data saved to data/training_data_cleaned.json"</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<h3>Heuristic Rules for Data Volume</h3>
+<p>How much data do you need? This is one of the most frequently asked questions.</p>
+<p>The answer is: it depends on task difficulty.</p>
+<ul>
+<li>
+<p>Simple tasks (e.g., making a piece of text more conversational): 100-300 entries may be enough.</p></li>
+<li>
+<p>Medium tasks (e.g., generating summaries in a specific format): 300-1000 entries is suitable.</p></li>
+<li>
+<p>Complex tasks (e.g., Q&amp;A in professional domains): 1000-5000 entries is ideal.</p></li></ul>
+<p>Of course, more data is usually better, but with diminishing marginal returns. 1000 entries is much better than 500, but 10000 may not be much better than 5000.</p>
+<p>A practical suggestion: first prepare 500 high-quality data entries and run a trial. If the results are poor, analyze whether it's due to insufficient data, poor data quality, or hyperparameter issues, and then make targeted improvements.</p>
+<p>Data quality &gt;&gt; data quantity. 1000 carefully crafted entries work much better than 10000 hastily assembled ones.</p>
+<blockquote>
+<p>Spending more time in the data preparation phase is worthwhile. Model training is just a "press a button" matter, but data quality determines whether pressing that button is valuable.</p>
+</blockquote>
+<hr/>
+<h2>Supervised Fine-tuning (SFT) in Practice</h2>
+<p>Finally, we've reached the hands-on section. We'll use Unsloth or LLaMA-Factory to implement the complete fine-tuning workflow.</p>
+<h3>Environment Configuration</h3>
+<p>Step 1: Install the necessary libraries.</p>
+<div class="example">
+<h2 class="example">Environment Configuration</h2>
+<div class="example_code">
+<span style="color: #666666; font-style: italic;"># ============================================</span><br/>
+<span style="color: #666666; font-style: italic;"># Install dependencies (recommended to create a new conda environment)</span><br/>
+<span style="color: #666666; font-style: italic;"># ============================================</span><br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># Create a new conda environment</span><br/>
+conda create <span style="color: #660033;">-n</span> finetuning <span style="color: #007800;">python</span>=<span style="color: #000000;">3.10</span> <span style="color: #660033;">-y</span><br/>
+conda activate finetuning<br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># Install PyTorch (choose the appropriate command based on your CUDA version)</span><br/>
+<span style="color: #666666; font-style: italic;"># Visit https://pytorch.org/get-started/locally/ for the latest commands</span><br/>
+conda <span style="color: #c20cb9; font-weight: bold;">install</span> pytorch pytorch-cuda=<span style="color: #000000;">12.1</span> <span style="color: #660033;">-c</span> pytorch <span style="color: #660033;">-c</span> nvidia<br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># Install HuggingFace ecosystem libraries</span><br/>
+pip <span style="color: #c20cb9; font-weight: bold;">install</span> transformers datasets accelerate peft bitsandbytes<br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># Install Unsloth (optional, for faster training)</span><br/>
+pip <span style="color: #c20cb9; font-weight: bold;">install</span> <span style="color: #a10;">"unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git"</span><br/>
+pip <span style="color: #c20cb9; font-weight: bold;">install</span> <span style="color: #660033;">--no-deps</span> trl xformers<br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># Or use LLaMA-Factory (all-in-one training framework)</span><br/>
+<span style="color: #c20cb9; font-weight: bold;">git clone</span> <span style="color: #660033;">--depth</span> <span style="color: #000000;">1</span> https:<span style="color: #000000; font-weight: bold;">//</span>github.com<span style="color: #000000; font-weight: bold;">/</span>hiyouga<span style="color: #000000; font-weight: bold;">/</span>LLaMA-Factory.git<br/>
+<span style="color: #7a0874; font-weight: bold;">cd</span> LLaMA-Factory<br/>
+pip <span style="color: #c20cb9; font-weight: bold;">install</span> <span style="color: #660033;">-e</span> <span style="color: #a10;">".[torch,metrics]"</span><br/>
+<br/>
+<span style="color: #7a0874; font-weight: bold;">echo</span> <span style="color: #a10;">"Environment setup complete!"</span><br/>
+</div>
+</div>
+<h3>Using Unsloth/LLaMA-Factory</h3>
+<p>Unsloth is an optimized training library that is fast and memory-efficient. LLaMA-Factory is an all-in-one training framework that supports multiple models and methods.</p>
+<p>Let's first look at the code for training with Unsloth + peft:</p>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># Using Unsloth for LoRA Fine-tuning (Full Version)</span><br/>
+<span style="color: #a50"># Runs on RTX 3090/4090</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">import</span> torch<br/>
+<span style="color: Green;font-weight:bold;">from</span> datasets <span style="color: Green;font-weight:bold;">import</span> load_dataset<span style="color: Gray;">,</span> Dataset<br/>
+<span style="color: Green;font-weight:bold;">from</span> transformers <span style="color: Green;font-weight:bold;">import</span> <span style="color: Olive;">(</span><br/>
+    AutoModelForCausalLM<span style="color: Gray;">,</span><br/>
+    AutoTokenizer<span style="color: Gray;">,</span><br/>
+    TrainingArguments<span style="color: Gray;">,</span><br/>
+    BitsAndBytesConfig<span style="color: Gray;">,</span><br/>
+<span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">from</span> peft <span style="color: Green;font-weight:bold;">import</span> LoraConfig<span style="color: Gray;">,</span> get_peft_model<br/>
+<span style="color: Green;font-weight:bold;">from</span> trl <span style="color: Green;font-weight:bold;">import</span> SFTTrainer<br/>
+<span style="color: Green;font-weight:bold;">import</span> json<br/>
+<br/>
+<br/>
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># 1. Configuration Parameters</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+MODEL_NAME <span style="color: Gray;">=</span> <span style="color: #a11;">"unsloth/mistral-7b-v0.2-bnb-4bit"</span>  <span style="color: #a50"># or other models</span><br/>
+DATA_PATH <span style="color: Gray;">=</span> <span style="color: #a11;">"data/training_data_cleaned.json"</span>    <span style="color: #a50"># your data</span><br/>
+OUTPUT_DIR <span style="color: Gray;">=</span> <span style="color: #a11;">"output/runoob-ecommerce-model"</span>     <span style="color: #a50"># output directory</span><br/>
+<br/>
+<span style="color: #a50"># 4-bit quantization configuration</span><br/>
+bnb_config <span style="color: Gray;">=</span> BitsAndBytesConfig<span style="color: Olive;">(</span><br/>
+    load_in_4bit<span style="color: Gray;">=</span><span style="color: Teal;">True</span><span style="color: Gray;">,</span><br/>
+    bnb_4bit_use_double_quant<span style="color: Gray;">=</span><span style="color: Teal;">True</span><span style="color: Gray;">,</span><br/>
+    bnb_4bit_quant_type<span style="color: Gray;">=</span><span style="color: #a11;">"nf4"</span><span style="color: Gray;">,</span><br/>
+    bnb_4bit_compute_dtype<span style="color: Gray;">=</span>torch.<span style="color: #05a;">bfloat16</span><br/>
+<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># LoRA configuration</span><br/>
+lora_config <span style="color: Gray;">=</span> LoraConfig<span style="color: Olive;">(</span><br/>
+    r<span style="color: Gray;">=</span><span style="color: Maroon;">16</span><span style="color: Gray;">,</span>                    <span style="color: #a50"># Rank, 8-64 are all fine, 16 is a good starting point</span><br/>
+    lora_alpha<span style="color: Gray;">=</span><span style="color: Maroon;">16</span><span style="color: Gray;">,</span>           <span style="color: #a50"># Scaling factor, usually equal to r</span><br/>
+    target_modules<span style="color: Gray;">=</span><span style="color: Olive;">[</span>         <span style="color: #a50"># Layers to apply LoRA, these are common choices</span><br/>
+        <span style="color: #a11;">"q_proj"</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">"k_proj"</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">"v_proj"</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">"o_proj"</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">"gate_proj"</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">"up_proj"</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">"down_proj"</span><span style="color: Gray;">,</span><br/>
+    <span style="color: Olive;">]</span><span style="color: Gray;">,</span><br/>
+    lora_dropout<span style="color: Gray;">=</span><span style="color: Maroon;">0.05</span><span style="color: Gray;">,</span>       <span style="color: #a50"># Dropout to prevent overfitting</span><br/>
+    bias<span style="color: Gray;">=</span><span style="color: #a11;">"none"</span><span style="color: Gray;">,</span><br/>
+    task_type<span style="color: Gray;">=</span><span style="color: #a11;">"CAUSAL_LM"</span>    <span style="color: #a50"># Causal language model</span><br/>
+<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># Training parameters</span><br/>
+training_args <span style="color: Gray;">=</span> TrainingArguments<span style="color: Olive;">(</span><br/>
+    output_dir<span style="color: Gray;">=</span>OUTPUT_DIR<span style="color: Gray;">,</span><br/>
+    per_device_train_batch_size<span style="color: Gray;">=</span><span style="color: Maroon;">4</span><span style="color: Gray;">,</span>       <span style="color: #a50"># Batch size per GPU</span><br/>
+    per_device_eval_batch_size<span style="color: Gray;">=</span><span style="color: Maroon;">4</span><span style="color: Gray;">,</span><br/>
+    gradient_accumulation_steps<span style="color: Gray;">=</span><span style="color: Maroon;">4</span><span style="color: Gray;">,</span>       <span style="color: #a50"># Gradient accumulation, equivalent to a larger batch</span><br/>
+    learning_rate<span style="color: Gray;">=</span><span style="color: Maroon;">2e-5</span><span style="color: Gray;">,</span>                  <span style="color: #a50"># Learning rate, 2e-5 to 5e-5 is a common range</span><br/>
+    num_train_epochs<span style="color: Gray;">=</span><span style="color: Maroon;">3</span><span style="color: Gray;">,</span>                  <span style="color: #a50"># Number of epochs, 2-5 epochs is appropriate</span><br/>
+    logging_steps<span style="color: Gray;">=</span><span style="color: Maroon;">10</span><span style="color: Gray;">,</span>                    <span style="color: #a50"># Log every 10 steps</span><br/>
+    evaluation_strategy<span style="color: Gray;">=</span><span style="color: #a11;">"epoch"</span><span style="color: Gray;">,</span>         <span style="color: #a50"># Evaluate once per epoch</span><br/>
+    save_strategy<span style="color: Gray;">=</span><span style="color: #a11;">"epoch"</span><span style="color: Gray;">,</span>               <span style="color: #a50"># Save once per epoch</span><br/>
+    fp16<span style="color: Gray;">=</span><span style="color: Teal;">True</span><span style="color: Gray;">,</span>                           <span style="color: #a50"># Use mixed precision training</span><br/>
+    bf16<span style="color: Gray;">=</span><span style="color: Teal;">False</span><span style="color: Gray;">,</span>                          <span style="color: #a50"># For Ampere and newer GPUs (30/40 series), you can set bf16=True</span><br/>
+    optim<span style="color: Gray;">=</span><span style="color: #a11;">"paged_adamw_32bit"</span><span style="color: Gray;">,</span>           <span style="color: #a50"># Paged optimizer to prevent OOM</span><br/>
+    report_to<span style="color: Gray;">=</span><span style="color: #a11;">"none"</span><span style="color: Gray;">,</span>                    <span style="color: #a50"># Do not report to platforms like wandb</span><br/>
+    save_total_limit<span style="color: Gray;">=</span><span style="color: Maroon;">3</span><span style="color: Gray;">,</span>                  <span style="color: #a50"># Save at most 3 checkpoints</span><br/>
+    load_best_model_at_end<span style="color: Gray;">=</span><span style="color: Teal;">True</span><span style="color: Gray;">,</span>         <span style="color: #a50"># Finally load the best model</span><br/>
+    metric_for_best_model<span style="color: Gray;">=</span><span style="color: #a11;">"eval_loss"</span><span style="color: Gray;">,</span>   <span style="color: #a50"># Select the best model using eval loss</span><br/>
+<span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># 2. Load Data and Format</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> format_example<span style="color: Olive;">(</span>example<span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""Format Alpaca-format data into model input"""</span><br/>
+    instruction <span style="color: Gray;">=</span> example<span style="color: Olive;">[</span><span style="color: #a11;">"instruction"</span><span style="color: Olive;">]</span><br/>
+    input_text <span style="color: Gray;">=</span> example.<span style="color: #05a;">get</span><span style="color: Olive;">(</span><span style="color: #a11;">"input"</span><span style="color: Gray;">,</span> <span style="color: #a11;">""</span><span style="color: Olive;">)</span><br/>
+    output <span style="color: Gray;">=</span> example<span style="color: Olive;">[</span><span style="color: #a11;">"output"</span><span style="color: Olive;">]</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">if</span> input_text.<span style="color: #05a;">strip</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span> <span style="color: Gray;">==</span> <span style="color: #a11;">""</span>:<br/>
+        <span style="color: #a50"># Case without additional input</span><br/>
+        prompt <span style="color: Gray;">=</span> f<span style="color: #a11;">"""Below is an instruction that describes a task. Write a response that appropriately completes the request.<br/>
+<br/>
+### Instruction:<br/>
+{instruction}<br/>
+<br/>
+### Response:<br/>
+"""</span><br/>
+    <span style="color: Green;font-weight:bold;">else</span>:<br/>
+        <span style="color: #a50"># Case with additional input</span><br/>
+        prompt <span style="color: Gray;">=</span> f<span style="color: #a11;">"""Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.<br/>
+<br/>
+### Instruction:<br/>
+{instruction}<br/>
+<br/>
+### Input:<br/>
+{input_text}<br/>
+<br/>
+### Response:<br/>
+"""</span><br/>
+<br/>
+    <span style="color: #a50"># The full text is prompt + output</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> <span style="color: Olive;">{</span><br/>
+        <span style="color: #a11;">"prompt"</span>: prompt<span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">"completion"</span>: output<span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">"text"</span>: prompt + output<br/>
+    <span style="color: Olive;">}</span><br/>
+<br/>
+<br/>
+<span style="color: #a50"># Load data</span><br/>
+dataset <span style="color: Gray;">=</span> load_dataset<span style="color: Olive;">(</span><span style="color: #a11;">"json"</span><span style="color: Gray;">,</span> data_files<span style="color: Gray;">=</span>DATA_PATH<span style="color: Gray;">,</span> split<span style="color: Gray;">=</span><span style="color: #a11;">"train"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># Split training and validation sets (90% train, 10% validation)</span><br/>
+dataset <span style="color: Gray;">=</span> dataset.<span style="color: #05a;">train_test_split</span><span style="color: Olive;">(</span>test_size<span style="color: Gray;">=</span><span style="color: Maroon;">0.1</span><span style="color: Gray;">,</span> seed<span style="color: Gray;">=</span><span style="color: Maroon;">42</span><span style="color: Olive;">)</span><br/>
+train_dataset <span style="color: Gray;">=</span> dataset<span style="color: Olive;">[</span><span style="color: #a11;">"train"</span><span style="color: Olive;">]</span><br/>
+eval_dataset <span style="color: Gray;">=</span> dataset<span style="color: Olive;">[</span><span style="color: #a11;">"test"</span><span style="color: Olive;">]</span><br/>
+<br/>
+<span style="color: #a50"># Format data</span><br/>
+train_dataset <span style="color: Gray;">=</span> train_dataset.<span style="color: Teal;">map</span><span style="color: Olive;">(</span>format_example<span style="color: Olive;">)</span><br/>
+eval_dataset <span style="color: Gray;">=</span> eval_dataset.<span style="color: Teal;">map</span><span style="color: Olive;">(</span>format_example<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Training set size: {len(train_dataset)}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Validation set size: {len(eval_dataset)}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># 3. Load Model and Tokenizer</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Loading model..."</span><span style="color: Olive;">)</span><br/>
+<br/>
+tokenizer <span style="color: Gray;">=</span> AutoTokenizer.<span style="color: #05a;">from_pretrained</span><span style="color: Olive;">(</span>MODEL_NAME<span style="color: Olive;">)</span><br/>
+tokenizer.<span style="color: #05a;">pad_token</span> <span style="color: Gray;">=</span> tokenizer.<span style="color: #05a;">eos_token</span>  <span style="color: #a50"># Set pad token</span><br/>
+tokenizer.<span style="color: #05a;">padding_side</span> <span style="color: Gray;">=</span> <span style="color: #a11;">"right"</span>           <span style="color: #a50"># Pad from the right</span><br/>
+<br/>
+model <span style="color: Gray;">=</span> AutoModelForCausalLM.<span style="color: #05a;">from_pretrained</span><span style="color: Olive;">(</span><br/>
+    MODEL_NAME<span style="color: Gray;">,</span><br/>
+    quantization_config<span style="color: Gray;">=</span>bnb_config<span style="color: Gray;">,</span><br/>
+    device_map<span style="color: Gray;">=</span><span style="color: #a11;">"auto"</span><span style="color: Gray;">,</span><br/>
+    trust_remote_code<span style="color: Gray;">=</span><span style="color: Teal;">True</span><span style="color: Gray;">,</span><br/>
+    use_auth_token<span style="color: Gray;">=</span><span style="color: Teal;">True</span><span style="color: Gray;">,</span>  <span style="color: #a50"># If HuggingFace login is required</span><br/>
+<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># Wrap LoRA</span><br/>
+model <span style="color: Gray;">=</span> get_peft_model<span style="color: Olive;">(</span>model<span style="color: Gray;">,</span> lora_config<span style="color: Olive;">)</span><br/>
+model.<span style="color: #05a;">print_trainable_parameters</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span>  <span style="color: #a50"># Print trainable parameter ratio</span><br/>
+<br/>
+<br/>
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># 4. Create trainer and start training</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+trainer <span style="color: Gray;">=</span> SFTTrainer<span style="color: Olive;">(</span><br/>
+    model<span style="color: Gray;">=</span>model<span style="color: Gray;">,</span><br/>
+    train_dataset<span style="color: Gray;">=</span>train_dataset<span style="color: Gray;">,</span><br/>
+    eval_dataset<span style="color: Gray;">=</span>eval_dataset<span style="color: Gray;">,</span><br/>
+    args<span style="color: Gray;">=</span>training_args<span style="color: Gray;">,</span><br/>
+    tokenizer<span style="color: Gray;">=</span>tokenizer<span style="color: Gray;">,</span><br/>
+    peft_config<span style="color: Gray;">=</span>lora_config<span style="color: Gray;">,</span><br/>
+    dataset_text_field<span style="color: Gray;">=</span><span style="color: #a11;">"text"</span><span style="color: Gray;">,</span>  <span style="color: #a50"># Which field contains the full text</span><br/>
+    max_seq_length<span style="color: Gray;">=</span><span style="color: Maroon;">2048</span><span style="color: Gray;">,</span>        <span style="color: #a50"># Maximum sequence length</span><br/>
+    packing<span style="color: Gray;">=</span><span style="color: Teal;">False</span><span style="color: Gray;">,</span>              <span style="color: #a50"># Do not pack samples</span><br/>
+<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Start training..."</span><span style="color: Olive;">)</span><br/>
+trainer.<span style="color: #05a;">train</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Training complete!"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># 5. Save model</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: #a50"># Save LoRA adapter (small size, a few MB to tens of MB)</span><br/>
+model.<span style="color: #05a;">save_pretrained</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"{OUTPUT_DIR}/lora_adapter"</span><span style="color: Olive;">)</span><br/>
+tokenizer.<span style="color: #05a;">save_pretrained</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"{OUTPUT_DIR}/lora_adapter"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"LoRA adapter saved to {OUTPUT_DIR}/lora_adapter"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># If you want to merge LoRA weights (optional)</span><br/>
+<span style="color: #a50"># merged_model = model.merge_and_unload()</span><br/>
+<span style="color: #a50"># merged_model.save_pretrained(f"{OUTPUT_DIR}/merged_model")</span><br/>
+<span style="color: #a50"># tokenizer.save_pretrained(f"{OUTPUT_DIR}/merged_model")</span><br/>
+<span style="color: #a50"># print(f"Merged model saved to {OUTPUT_DIR}/merged_model")</span><br/>
+</div>
+</div>
+<p>If you want a simpler approach, you can use LLaMA-Factory, which provides both a Web UI and a command-line interface:</p>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #666666; font-style: italic;"># ============================================</span><br/>
+<span style="color: #666666; font-style: italic;"># Use LLaMA-Factory for training</span><br/>
+<span style="color: #666666; font-style: italic;"># ============================================</span><br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># Method 1: Start the Web UI (most intuitive)</span><br/>
+<span style="color: #7a0874; font-weight: bold;">cd</span> LLaMA-Factory<br/>
+python src<span style="color: #000000; font-weight: bold;">/</span>train_web.py<br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># Method 2: Command-line training (suitable for automation)</span><br/>
+python src<span style="color: #000000; font-weight: bold;">/</span>train.py \<br/>
+    --model_name_or_path mistralai<span style="color: #000000; font-weight: bold;">/</span>Mistral-7B-v0.2 \<br/>
+    <span style="color: #660033;">--dataset</span> runoob_ecommerce \<br/>
+    --dataset_dir .<span style="color: #000000; font-weight: bold;">/</span>data \<br/>
+    --output_dir .<span style="color: #000000; font-weight: bold;">/</span>output<span style="color: #000000; font-weight: bold;">/</span>runoob-model \<br/>
+    --finetuning_type lora \<br/>
+    --quantization_bit <span style="color: #000000;">4</span> \<br/>
+    --lora_rank <span style="color: #000000;">16</span> \<br/>
+    --lora_alpha <span style="color: #000000;">16</span> \<br/>
+    --lora_dropout <span style="color: #000000;">0.05</span> \<br/>
+    --lora_target q_proj,v_proj,k_proj,o_proj,gate_proj,up_proj,down_proj \<br/>
+    --per_device_train_batch_size <span style="color: #000000;">4</span> \<br/>
+    --gradient_accumulation_steps <span style="color: #000000;">4</span> \<br/>
+    --lr_scheduler_type cosine \<br/>
+    --logging_steps <span style="color: #000000;">10</span> \<br/>
+    --save_strategy epoch \<br/>
+    --learning_rate 2e-5 \<br/>
+    --num_train_epochs <span style="color: #000000;">3</span> \<br/>
+    <span style="color: #660033;">--fp16</span> <span style="color: #c20cb9; font-weight: bold;">true</span> \<br/>
+    --plot_loss <span style="color: #c20cb9; font-weight: bold;">true</span><br/>
+</div>
+</div>
+<h3>Training Hyperparameter Settings</h3>
+<p>Choosing hyperparameters is an art, but there are some empirical rules.</p>
+<p>Learning Rate: This is the most important hyperparameter. For LoRA, 2e-5 to 5e-5 is a safe starting point. If training is unstable (loss oscillates), decrease it a bit. If training is too slow (loss decreases very slowly), increase it a bit.</p>
+<p>Batch Size: The larger the better, but it is limited by VRAM. per_device_train_batch_size can be set to 2, 4, or 8. If VRAM is insufficient, use gradient_accumulation_steps to accumulate gradients. For example, batch_size=2, accumulation_steps=4 is equivalent to batch_size=8.</p>
+<p>Epochs: 2-5 epochs is appropriate. Too few and the model won't learn enough; too many may cause overfitting. You can watch the eval loss, and stop when the eval loss stops decreasing.</p>
+<p>LoRA Rank (r): 8-64 are all fine. 16 is a good starting point. Use 8 for small tasks, and 32 or 64 for complex tasks.</p>
+<p>Max Sequence Length: Decide based on your data. 512, 1024, 2048, 4096 are all common. The longer it is, the more VRAM is required.</p>
+<table class="reference">
+<tr><th>Hyperparameter</th><th>Recommended starting value</th><th>Adjustment direction</th></tr>
+<tr><td>learning_rate</td><td>2e-5</td><td>If loss oscillates, decrease; if it decreases too slowly, increase</td></tr>
+<tr><td>per_device_train_batch_size</td><td>4</td><td>If VRAM is sufficient, increase; if insufficient, decrease</td></tr>
+<tr><td>gradient_accumulation_steps</td><td>4</td><td>Equivalent batch = batch_size × accumulation</td></tr>
+<tr><td>num_train_epochs</td><td>3</td><td>If overfitting, reduce; if underfitting, increase</td></tr>
+<tr><td>lora_rank (r)</td><td>16</td><td>Simple tasks 8, complex tasks 32-64</td></tr>
+<tr><td>max_seq_length</td><td>1024 or 2048</td><td>Adjust according to your data length</td></tr>
+</table>
+<h3>Training Monitoring and Loss Interpretation</h3>
+<p>During training, pay attention to a few metrics.</p>
+<ul>
+<li><p>Train Loss: the loss on the training set, should decrease steadily. If it decreases quickly, it means the learning rate may be too large or there is too little data. If it decreases slowly, it means the learning rate is too small or the model capacity is insufficient.</p></li>
+<li>
+<p>Eval Loss: the loss on the validation set, this is the most important metric. It should decrease together with train loss. If eval loss starts to rise while train loss continues to decrease, it means overfitting, and training should be stopped.</p></li></ul>
+<p>Signs of overfitting: eval loss rises after first falling, while train loss keeps decreasing. Solutions: reduce epochs, increase dropout, add data, decrease LoRA rank.</p>
+<p>Signs of underfitting: both train loss and eval loss are high, and they decrease slowly. Solutions: increase epochs, increase LoRA rank, add data, slightly increase the learning rate.</p>
+<hr/>
+<h2>Evaluating Fine-tuning Effects</h2>
+<p>After training, how do you know if the model is good?</p>
+<h3>Selection of Evaluation Metrics</h3>
+<p>The evaluation method depends on your task type.</p>
+<p>The first is manual evaluation. Have people read the model's output and score its quality. This is the most reliable method, but also the most time-consuming.</p>
+<p>You can make a simple scoring table:</p>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># Simple manual evaluation template</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+evaluation_prompts <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><br/>
+    <span style="color: Olive;">{</span><br/>
+        <span style="color: #a11;">"instruction"</span>: <span style="color: #a11;">"Generate an e-commerce product description"</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">"input"</span>: <span style="color: #a11;">"Product name: portable coffee machine<span style="color: #000099; font-weight: bold;">\n</span>Function: one-touch extraction, portable design, USB charging"</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">"reference"</span>: <span style="color: #a11;">"This portable coffee machine lets you enjoy freshly ground coffee anytime, anywhere. One-touch extraction is simple to operate, and the compact, portable design suits office, travel, and outdoor use. The USB charging design means you don't have to worry about power supply issues."</span><br/>
+    <span style="color: Olive;">}</span><span style="color: Gray;">,</span><br/>
+    <span style="color: Olive;">{</span><br/>
+        <span style="color: #a11;">"instruction"</span>: <span style="color: #a11;">"Generate an e-commerce product description"</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">"input"</span>: <span style="color: #a11;">"Product name: mechanical keyboard<span style="color: #000099; font-weight: bold;">\n</span>Features: blue switch, RGB backlight, 87 keys, PBT keycaps"</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">"reference"</span>: <span style="color: #a11;">"This 87-key mechanical keyboard uses crisp blue switches for an excellent typing feel. Full-key RGB backlighting keeps it clear at night. PBT keycaps are durable and do not develop a shiny coating, staying like new even after long-term use."</span><br/>
+    <span style="color: Olive;">}</span><span style="color: Gray;">,</span><br/>
+    <span style="color: #a50"># ... 10-20 test cases</span><br/>
+<span style="color: Olive;">]</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> evaluate_model<span style="color: Olive;">(</span>model<span style="color: Gray;">,</span> tokenizer<span style="color: Gray;">,</span> prompts<span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""Evaluate the model with a set of prompts"""</span><br/>
+    results <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+    <span style="color: Green;font-weight:bold;">for</span> item <span style="color: Green;font-weight:bold;">in</span> prompts:<br/>
+        <span style="color: #a50"># Generate output</span><br/>
+        inputs <span style="color: Gray;">=</span> format_example_for_inference<span style="color: Olive;">(</span>item<span style="color: Olive;">)</span><br/>
+        output <span style="color: Gray;">=</span> generate_with_model<span style="color: Olive;">(</span>model<span style="color: Gray;">,</span> tokenizer<span style="color: Gray;">,</span> inputs<span style="color: Olive;">)</span><br/>
+<br/>
+        results.<span style="color: #05a;">append</span><span style="color: Olive;">(</span><span style="color: Olive;">{</span><br/>
+            <span style="color: #a11;">"instruction"</span>: item<span style="color: Olive;">[</span><span style="color: #a11;">"instruction"</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span><br/>
+            <span style="color: #a11;">"input"</span>: item<span style="color: Olive;">[</span><span style="color: #a11;">"input"</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span><br/>
+            <span style="color: #a11;">"model_output"</span>: output<span style="color: Gray;">,</span><br/>
+            <span style="color: #a11;">"reference"</span>: item<span style="color: Olive;">[</span><span style="color: #a11;">"reference"</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span><br/>
+            <span style="color: #a50"># Leave blank for manual scoring</span><br/>
+            <span style="color: #a11;">"score_relevance"</span>: <span style="color: Teal;">None</span><span style="color: Gray;">,</span>  <span style="color: #a50"># 1-5, relevance</span><br/>
+            <span style="color: #a11;">"score_quality"</span>: <span style="color: Teal;">None</span><span style="color: Gray;">,</span>    <span style="color: #a50"># 1-5, quality</span><br/>
+            <span style="color: #a11;">"score_format"</span>: <span style="color: Teal;">None</span><span style="color: Gray;">,</span>     <span style="color: #a50"># 1-5, format correctness</span><br/>
+        <span style="color: Olive;">}</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">return</span> results<br/>
+<br/>
+<br/>
+<span style="color: #a50"># Run evaluation</span><br/>
+results <span style="color: Gray;">=</span> evaluate_model<span style="color: Olive;">(</span>model<span style="color: Gray;">,</span> tokenizer<span style="color: Gray;">,</span> evaluation_prompts<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># Save results for manual scoring later</span><br/>
+<span style="color: Green;font-weight:bold;">with</span> <span style="color: Teal;">open</span><span style="color: Olive;">(</span><span style="color: #a11;">"evaluation_results.json"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"w"</span><span style="color: Gray;">,</span> encoding<span style="color: Gray;">=</span><span style="color: #a11;">"utf-8"</span><span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">as</span> f:<br/>
+    json.<span style="color: #05a;">dump</span><span style="color: Olive;">(</span>results<span style="color: Gray;">,</span> f<span style="color: Gray;">,</span> ensure_ascii<span style="color: Gray;">=</span><span style="color: Teal;">False</span><span style="color: Gray;">,</span> indent<span style="color: Gray;">=</span><span style="color: Maroon;">2</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">Evaluation results have been saved. Please score manually before analyzing.</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<p>The second is automatic evaluation. Use metrics such as BLEU, ROUGE, and BLEURT. These metrics are not perfect, but they allow for rapid iteration.</p>
+<p>The third is A/B testing. Mix the outputs of the old model and the new model together for blind evaluation to see whether the new model is really better.</p>
+<h3>Preventing Overfitting</h3>
+<p>Overfitting is the most common problem in fine-tuning. It shows good performance on the training set but poor performance on new data.</p>
+<p>Methods to prevent overfitting:</p>
+<p>1. Early stopping: Monitor the eval loss, and stop training when it stops decreasing.</p>
+<p>2. Add more data: More and more diverse data is the best way to prevent overfitting.</p>
+<p>3. Data augmentation: Rewrite existing data to create variation.</p>
+<p>4. Reduce model capacity: Decrease the LoRA rank and reduce the number of LoRA layers.</p>
+<p>5. Increase dropout: Set lora_dropout in the LoRA configuration to 0.05 or 0.1.</p>
+<p>6. Weight decay: Add weight_decay=0.01 to the training parameters.</p>
+<hr/>
+<h2>Deploying Fine-tuned Models</h2>
+<p>Once the model is trained, how do you use it?</p>
+<h3>Loading LoRA for Inference</h3>
+<p>The first way is to load the base model, then load the LoRA adapter.</p>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># Load LoRA and perform inference</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">import</span> torch<br/>
+<span style="color: Green;font-weight:bold;">from</span> transformers <span style="color: Green;font-weight:bold;">import</span> AutoModelForCausalLM<span style="color: Gray;">,</span> AutoTokenizer<br/>
+<span style="color: Green;font-weight:bold;">from</span> peft <span style="color: Green;font-weight:bold;">import</span> PeftModel<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> load_finetuned_model<span style="color: Olive;">(</span>base_model_name<span style="color: Gray;">,</span> lora_adapter_path<span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""Load the base model and LoRA adapter"""</span><br/>
+    <span style="color: #a50"># Load tokenizer</span><br/>
+    tokenizer <span style="color: Gray;">=</span> AutoTokenizer.<span style="color: #05a;">from_pretrained</span><span style="color: Olive;">(</span>base_model_name<span style="color: Olive;">)</span><br/>
+    tokenizer.<span style="color: #05a;">pad_token</span> <span style="color: Gray;">=</span> tokenizer.<span style="color: #05a;">eos_token</span><br/>
+<br/>
+    <span style="color: #a50"># Load base model</span><br/>
+    model <span style="color: Gray;">=</span> AutoModelForCausalLM.<span style="color: #05a;">from_pretrained</span><span style="color: Olive;">(</span><br/>
+        base_model_name<span style="color: Gray;">,</span><br/>
+        device_map<span style="color: Gray;">=</span><span style="color: #a11;">"auto"</span><span style="color: Gray;">,</span><br/>
+        torch_dtype<span style="color: Gray;">=</span>torch.<span style="color: #05a;">float16</span><span style="color: Gray;">,</span><br/>
+        trust_remote_code<span style="color: Gray;">=</span><span style="color: Teal;">True</span><span style="color: Gray;">,</span><br/>
+    <span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># Load LoRA adapter</span><br/>
+    model <span style="color: Gray;">=</span> PeftModel.<span style="color: #05a;">from_pretrained</span><span style="color: Olive;">(</span>model<span style="color: Gray;">,</span> lora_adapter_path<span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># Merge weights (optional, makes inference faster)</span><br/>
+    model <span style="color: Gray;">=</span> model.<span style="color: #05a;">merge_and_unload</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">return</span> model<span style="color: Gray;">,</span> tokenizer<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> generate_product_description<span style="color: Olive;">(</span>model<span style="color: Gray;">,</span> tokenizer<span style="color: Gray;">,</span> product_name<span style="color: Gray;">,</span> features<span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""Generate e-commerce product description"""</span><br/>
+    <span style="color: #a50"># Construct the prompt (same as during training!)</span><br/>
+    prompt <span style="color: Gray;">=</span> f<span style="color: #a11;">"""Below is an instruction that describes a task. Write a response that appropriately completes the request.<br/>
+<br/>
+### Instruction:<br/>Generate an e-commerce product description<br/>
+<br/>
+### Input:<br/>Product name: {product_name}<br/>Features: {features}<br/>
+<br/>
+### Response:<br/>
+"""</span><br/>
+<br/>
+    <span style="color: #a50"># Generate</span><br/>
+    inputs <span style="color: Gray;">=</span> tokenizer<span style="color: Olive;">(</span>prompt<span style="color: Gray;">,</span> return_tensors<span style="color: Gray;">=</span><span style="color: #a11;">"pt"</span><span style="color: Olive;">)</span>.<span style="color: #05a;">to</span><span style="color: Olive;">(</span>model.<span style="color: #05a;">device</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">with</span> torch.<span style="color: #05a;">no_grad</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+        outputs <span style="color: Gray;">=</span> model.<span style="color: #05a;">generate</span><span style="color: Olive;">(</span><br/>
+            **inputs<span style="color: Gray;">,</span><br/>
+            max_new_tokens<span style="color: Gray;">=</span><span style="color: Maroon;">200</span><span style="color: Gray;">,</span><br/>
+            temperature<span style="color: Gray;">=</span><span style="color: Maroon;">0.7</span><span style="color: Gray;">,</span>      <span style="color: #a50"># Control randomness, 0-1, larger means more random</span><br/>
+            top_p<span style="color: Gray;">=</span><span style="color: Maroon;">0.9</span><span style="color: Gray;">,</span><br/>
+            do_sample<span style="color: Gray;">=</span><span style="color: Teal;">True</span><span style="color: Gray;">,</span><br/>
+            pad_token_id<span style="color: Gray;">=</span>tokenizer.<span style="color: #05a;">eos_token_id</span><span style="color: Gray;">,</span><br/>
+        <span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># Decode output</span><br/>
+    generated_text <span style="color: Gray;">=</span> tokenizer.<span style="color: #05a;">decode</span><span style="color: Olive;">(</span>outputs<span style="color: Olive;">[</span><span style="color: Maroon;">0</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span> skip_special_tokens<span style="color: Gray;">=</span><span style="color: Teal;">True</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># Only take the Response part</span><br/>
+    response <span style="color: Gray;">=</span> generated_text.<span style="color: #05a;">split</span><span style="color: Olive;">(</span><span style="color: #a11;">"### Response:"</span><span style="color: Olive;">)</span><span style="color: Olive;">[</span>-<span style="color: Maroon;">1</span><span style="color: Olive;">]</span>.<span style="color: #05a;">strip</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">return</span> response<br/>
+<br/>
+<br/>
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># Usage example</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+BASE_MODEL <span style="color: Gray;">=</span> <span style="color: #a11;">"mistralai/Mistral-7B-v0.2"</span><br/>
+LORA_PATH <span style="color: Gray;">=</span> <span style="color: #a11;">"output/runoob-ecommerce-model/lora_adapter"</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Loading model..."</span><span style="color: Olive;">)</span><br/>
+model<span style="color: Gray;">,</span> tokenizer <span style="color: Gray;">=</span> load_finetuned_model<span style="color: Olive;">(</span>BASE_MODEL<span style="color: Gray;">,</span> LORA_PATH<span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Model loaded successfully!"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># Test generation</span><br/>
+product_name <span style="color: Gray;">=</span> <span style="color: #a11;">"Smart robot vacuum"</span><br/>
+features <span style="color: Gray;">=</span> <span style="color: #a11;">"Laser navigation, auto recharging, APP control, 2000Pa strong suction"</span><br/>
+<br/>
+description <span style="color: Gray;">=</span> generate_product_description<span style="color: Olive;">(</span><br/>
+    model<span style="color: Gray;">,</span> tokenizer<span style="color: Gray;">,</span> product_name<span style="color: Gray;">,</span> features<br/>
+<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>Product name: {product_name}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">Generated description:<span style="color: #000099; font-weight: bold;">\n</span>{description}"</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<h3>Deployment Methods</h3>
+<p>There are several common deployment options.</p>
+<ul>
+<li>
+<p>The first is to use vLLM. It is a high-performance inference engine that supports LoRA, continuous batching, and other features. Recommended for production environments.</p></li>
+<li>
+<p>The second is to use Text Generation Inference. HuggingFace's official inference service, feature-rich.</p></li>
+<li>
+<p>The third is to wrap it yourself with FastAPI. Simple and direct, suitable for small-scale deployment.</p></li>
+<li>
+<p>The fourth is to use Ollama. Convert the model to GGUF format and run it with Ollama, suitable for local deployment.</p></li></ul>
+Other Extensions
+</div>
+</div>
+<div class="archive-list" style="display:none;font-size: 14px;line-height: 1.8;margin-top: 20px;padding: 10px;">
+<div class="archive-list-item">
+<div class="post-intro" id="ai-info" style="width: 100%;">AI is thinking...</div>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../ai/ai-transformer.html" rel="prev">Transformer Deep Dive</a> </div>
+<div class="next-design-link"><a href="../ai/ai-rlhf.html" rel="next">RLHF Alignment Training</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="sidebar-box">
+</div>
+Notes List
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>Click to Share Notes</h3>
+&lt;p style="font-size:14px;"&gt;The note must be an extension of this article!&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;Submit an article, click here&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;How to get the registration invitation code&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; You must &lt;a href=";.html" class="runoob-pop"&gt;log in&lt;/a&gt; before sharing notes!&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;How to get the registration invitation code&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=";.html" id="cancel-comment-reply-link">Cancel</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="31517"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>Share Notes</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">Nickname</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">Nickname (required)</span></li>
+<li class="form-inline"><label class="hide" for="email">Email</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">Email (required)</span></li>
+<li class="form-inline"><label class="hide" for="url">Reference Address</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">Reference Address</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  31517;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 31517, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":31517},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+</div>
+</div>
+<!-- 右边栏 -->
+<div class="fivecol last right-column">
+<style>
+.sidebar-tree .double-li {
+    width:300px;
+}
+.sidebar-tree .double-li li {
+    width: 44%;
+    line-height: 1.5em;
+    border-bottom: 1px solid #ccc;
+    float: left;
+    display: inline;
+}
+</style>
+<div class="sidebar-box re-box re-box-large">
+<div class="sidebar-box recommend-here" style="margin: 0 auto;">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;"> <i aria-hidden="true" class="fa fa-list"></i> 分类导航</a>
+</div>
+<div class="sidebar-box sidebar-cate">
+<div class="sidebar-tree">
+<ul><li style="margin: 0;"><a class="tit" href="#"> Python / 数据科学</a><ul class="double-li"><li><a href="../python3/python3-tutorial.html" title="Python 教程">Python 教程</a></li><li><a href="../python/python-tutorial.html" title="Python2.x 教程">Python2.x 教程</a></li><li><a href="../fastapi/fastapi-tutorial.html" title="FastAPI 教程">FastAPI 教程</a></li><li><a href="../flask/flask-tutorial.html" title="Flask 教程">Flask 教程</a></li><li><a href="../django/django-tutorial.html" title="Django 教程">Django 教程</a></li><li><a href="../numpy/numpy-tutorial.html" title="NumPy 教程">NumPy 教程</a></li><li><a href="../pandas/pandas-tutorial.html" title="Pandas 教程">Pandas 教程</a></li><li><a href="../scipy/scipy-tutorial.html" title="SciPy 教程">SciPy 教程</a></li><li><a href="../matplotlib/matplotlib-tutorial.html" title="Matplotlib 教程">Matplotlib 教程</a></li><li><a href="../dash/dash-tutorial.html" title="Dash 教程">Dash 教程</a></li><li><a href="../jupyter-notebook/jupyter-notebook-tutorial.html" title="Jupyter Notebook 教程">Jupyter Notebook 教程</a></li><li><a href="../pillow/pillow-tutorial.html" title="Pillow 教程">Pillow 教程</a></li><li><a href="../qt/qt-tutorial.html" title="量化交易">量化交易</a></li><li><a href="../r/r-tutorial.html" title="R 教程">R 教程</a></li><li><a href="../julia/julia-tutorial.html" title="Julia 教程">Julia 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> AI / 智能开发</a><ul class="double-li"><li><a href="../ai-agent/ai-agent-tutorial.html" title="AI Agent（智能体）">AI Agent（智能体）</a></li><li><a href="../ai/ai-tutorial.html" title="AI（人工智能）">AI（人工智能）</a></li><li><a href="../codex/codex-tutorial.html" title="Codex 教程">Codex 教程</a></li><li><a href="../vibe-coding/vibe-coding-tutorial.html" title="Vibe Coding 教程">Vibe Coding 教程</a></li><li><a href="../claude-code/claude-code-tutorial.html" title="Claude Code">Claude Code</a></li><li><a href="../opencode/opencode-tutorial.html" title="OpenCode">OpenCode</a></li><li><a href="../skills/skills-tutorial.html" title="Skills（技能）">Skills（技能）</a></li><li><a href="../ollama/ollama-tutorial.html" title="Ollama 教程">Ollama 教程</a></li><li><a href="../hermes-agent/hermes-agent-tutorial.html" title="Hermes Agent">Hermes Agent</a></li><li><a href="../deepseek-harness/deepseek-harness-tutorial.html" title="DeepSeek Harness">DeepSeek Harness</a></li><li><a href="../pi-agent/pi-agent-tutorial.html" title="Pi Agent">Pi Agent</a></li><li><a href="../ai-math/ai-math-tutorial.html" title="AI 数学基础">AI 数学基础</a></li><li><a href="../tensorflow/tensorflow-tutorial.html" title="TensorFlow 教程">TensorFlow 教程</a></li><li><a href="../pytorch/pytorch-tutorial.html" title="PyTorch 教程">PyTorch 教程</a></li><li><a href="../sklearn/sklearn-tutorial.html" title="Scikit-learn 教程">Scikit-learn 教程</a></li><li><a href="../ml/ml-tutorial.html" title="机器 教程">机器 教程</a></li><li><a href="../langchain/langchain-tutorial.html" title="LangChain">LangChain</a></li><li><a href="../nlp/nlp-tutorial.html" title="自然语言处理 NLP">自然语言处理 NLP</a></li><li><a href="../opencv/opencv-tutorial.html" title="OpenCV 教程">OpenCV 教程</a></li><li><a href="../selenium/selenium-tutorial.html" title="Selenium 教程">Selenium 教程</a></li><li><a href="../playwright/playwright-tutorial.html" title="Playwright 教程">Playwright 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 前端开发</a><ul class="double-li"><li><a href="../html/html-tutorial.html" title="HTML 教程">HTML 教程</a></li><li><a href="../html/html5-intro.html" title="HTML5 教程">HTML5 教程</a></li><li><a href="../css/css-tutorial.html" title="CSS 教程">CSS 教程</a></li><li><a href="../css3/css3-tutorial.html" title="CSS3 教程">CSS3 教程</a></li><li><a href="../js/js-tutorial.html" title="JavaScript 教程">JavaScript 教程</a></li><li><a href="../htmldom/htmldom-tutorial.html" title="HTML DOM 教程">HTML DOM 教程</a></li><li><a href="../typescript/ts-tutorial.html" title="TypeScript 教程">TypeScript 教程</a></li><li><a href="../ajax/ajax-tutorial.html" title="AJAX 教程">AJAX 教程</a></li><li><a href="../json/json-tutorial.html" title="JSON 教程">JSON 教程</a></li><li><a href="../tailwindcss/tailwindcss-tutorial.html" title="Tailwind CSS 教程">Tailwind CSS 教程</a></li><li><a href="../bootstrap4/bootstrap4-tutorial.html" title="Bootstrap4 教程">Bootstrap4 教程</a></li><li><a href="../bootstrap5/bootstrap5-tutorial.html" title="Bootstrap5 教程">Bootstrap5 教程</a></li><li><a href="../foundation/foundation-tutorial.html" title="Foundation 教程">Foundation 教程</a></li><li><a href="../vue2/vue-tutorial.html" title="Vue.js 教程">Vue.js 教程</a></li><li><a href="../vue3/vue3-tutorial.html" title="Vue3 教程">Vue3 教程</a></li><li><a href="../react/react-tutorial.html" title="React 教程">React 教程</a></li><li><a href="../nextjs/nextjs-tutorial.html" title="Next.js 教程">Next.js 教程</a></li><li><a href="../angularjs/angularjs-tutorial.html" title="AngularJS 教程">AngularJS 教程</a></li><li><a href="../angularjs2/angularjs2-tutorial.html" title="Angular 教程">Angular 教程</a></li><li><a href="../jquery/jquery-tutorial.html" title="jQuery 教程">jQuery 教程</a></li><li><a href="../jqueryui/jqueryui-tutorial.html" title="jQuery UI 教程">jQuery UI 教程</a></li><li><a href="../jeasyui/jqueryeasyui-tutorial.html" title="jQuery EasyUI 教程">jQuery EasyUI 教程</a></li><li><a href="../echarts/echarts-tutorial.html" title="ECharts 教程">ECharts 教程</a></li><li><a href="../chartjs/chartjs-tutorial.html" title="Chart.js 教程">Chart.js 教程</a></li><li><a href="../highcharts/highcharts-tutorial.html" title="Highcharts 教程">Highcharts 教程</a></li><li><a href="../googleapi/google-maps-basic.html" title="Google 地图 教程">Google 地图 教程</a></li><li><a href="../svg/svg-tutorial.html" title="SVG 教程">SVG 教程</a></li><li><a href="../font-awesome/fontawesome-tutorial.html" title="Font Awesome 教程">Font Awesome 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 后端开发</a><ul class="double-li"><li><a href="../nodejs/nodejs-tutorial.html" title="Node.js 教程">Node.js 教程</a></li><li><a href="../electron/electron-tutorial.html" title="Electron 教程">Electron 教程</a></li><li><a href="../php/php-tutorial.html" title="PHP 教程">PHP 教程</a></li><li><a href="../java/java-tutorial.html" title="Java 教程">Java 教程</a></li><li><a href="../go/go-tutorial.html" title="Go 教程">Go 教程</a></li><li><a href="../rust/rust-tutorial.html" title="Rust 教程">Rust 教程</a></li><li><a href="../csharp/csharp-tutorial.html" title="C# 教程">C# 教程</a></li><li><a href="../servlet/servlet-tutorial.html" title="Servlet 教程">Servlet 教程</a></li><li><a href="../jsp/jsp-tutorial.html" title="JSP 教程">JSP 教程</a></li><li><a href="../asp/asp-tutorial.html" title="ASP 教程">ASP 教程</a></li><li><a href="../appml/appml-tutorial.html" title="AppML 教程">AppML 教程</a></li><li><a href="../vbscript/vbscript-tutorial.html" title="VBScript 教程">VBScript 教程</a></li><li><a href="../swagger/swagger-tutorial.html" title="Swagger 教程">Swagger 教程</a></li><li><a href="../restfulapi/restful-api-tutorial.html" title="RESTful API 教程">RESTful API 教程</a></li><li><a href="../docker/docker-tutorial.html" title="Docker 教程">Docker 教程</a></li><li><a href="../linux/linux-tutorial.html" title="Linux 教程">Linux 教程</a></li><li><a href="../w3cnote/zookeeper-tutorial.html" title="ZooKeeper 教程">ZooKeeper 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 数据库</a><ul class="double-li"><li><a href="../sql/sql-tutorial.html" title="SQL 教程">SQL 教程</a></li><li><a href="../mysql/mysql-tutorial.html" title="MySQL 教程">MySQL 教程</a></li><li><a href="../postgresql/postgresql-tutorial.html" title="PostgreSQL 教程">PostgreSQL 教程</a></li><li><a href="../sqlite/sqlite-tutorial.html" title="SQLite 教程">SQLite 教程</a></li><li><a href="../mongodb/mongodb-tutorial.html" title="MongoDB 教程">MongoDB 教程</a></li><li><a href="../redis/redis-tutorial.html" title="Redis 教程">Redis 教程</a></li><li><a href="../memcached/memcached-tutorial.html" title="Memcached 教程">Memcached 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 移动开发</a><ul class="double-li"><li><a href="../w3cnote/android-tutorial-intro.html" title="Android 教程">Android 教程</a></li><li><a href="../flutter/flutter-tutorial.html" title="Flutter 教程">Flutter 教程</a></li><li><a href="../ionic/ionic-tutorial.html" title="Ionic 教程">Ionic 教程</a></li><li><a href="../jquerymobile/jquerymobile-tutorial.html" title="jQuery Mobile 教程">jQuery Mobile 教程</a></li><li><a href="../swift/swift-tutorial.html" title="Swift 教程">Swift 教程</a></li><li><a href="../kotlin/kotlin-tutorial.html" title="Kotlin 教程">Kotlin 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> DevOps / 工程化</a><ul class="double-li"><li><a href="../git/git-tutorial.html" title="Git 教程">Git 教程</a></li><li><a href="../svn/svn-tutorial.html" title="SVN 教程">SVN 教程</a></li><li><a href="../cmake/cmake-tutorial.html" title="CMake 教程">CMake 教程</a></li><li><a href="../maven/maven-tutorial.html" title="Maven 教程">Maven 教程</a></li><li><a href="../vscode/vscode-tutorial.html" title="VS Code 教程">VS Code 教程</a></li><li><a href="../obsidian/obsidian-tutorial.html" title="Obsidian 教程">Obsidian 教程</a></li><li><a href="../pycharm/pycharm-tutorial.html" title="PyCharm 教程">PyCharm 教程</a></li><li><a href="../eclipse/eclipse-tutorial.html" title="Eclipse 教程">Eclipse 教程</a></li><li><a href="../markdown/md-tutorial.html" title="Markdown 教程">Markdown 教程</a></li><li><a href="../latex/latex-tutorial.html" title="LaTeX 教程">LaTeX 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 编程语言</a><ul class="double-li"><li><a href="../c/c-tutorial.html" title="C 教程">C 教程</a></li><li><a href="../cplusplus/cpp-tutorial.html" title="C++ 教程">C++ 教程</a></li><li><a href="../zig/zig-tutorial.html" title="Zig 教程">Zig 教程</a></li><li><a href="../scala/scala-tutorial.html" title="Scala 教程">Scala 教程</a></li><li><a href="../ruby/ruby-tutorial.html" title="Ruby 教程">Ruby 教程</a></li><li><a href="../perl/perl-tutorial.html" title="Perl 教程">Perl 教程</a></li><li><a href="../lua/lua-tutorial.html" title="Lua 教程">Lua 教程</a></li><li><a href="../dart/dart-tutorial.html" title="Dart 教程">Dart 教程</a></li><li><a href="../assembly/assembly-tutorial.html" title="汇编语言 教程">汇编语言 教程</a></li><li><a href="../w3cnote/verilog-tutorial.html" title="Verilog 教程">Verilog 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 计算机基础</a><ul class="double-li"><li><a href="../computer-organization/computer-organization-tutorial.html" title="计算机组成原理">计算机组成原理</a></li><li><a href="../data-structures/data-structures-tutorial.html" title="数据结构与算法">数据结构与算法</a></li><li><a href="../c-dsa/c-dsa-tutorial.html" title="C 语言数据结构与算法">C 语言数据结构与算法</a></li><li><a href="../design-pattern/design-pattern-tutorial.html" title="设计模式">设计模式</a></li><li><a href="../python-design-pattern/python-design-pattern-tutorial.html" title="Python 设计模式">Python 设计模式</a></li><li><a href="../regexp/regexp-tutorial.html" title="正则表达式">正则表达式</a></li><li><a href="../http/http-tutorial.html" title="HTTP 教程">HTTP 教程</a></li><li><a href="../tcpip/tcpip-tutorial.html" title="TCP/IP 教程">TCP/IP 教程</a></li><li><a href="../np/np-tutorial.html" title="网络协议">网络协议</a></li><li><a href="../w3c/w3c-tutorial.html" title="W3C 教程">W3C 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> XML / Web Service</a><ul class="double-li"><li><a href="../xml/xml-tutorial.html" title="XML 教程">XML 教程</a></li><li><a href="../dtd/dtd-tutorial.html" title="DTD 教程">DTD 教程</a></li><li><a href="../dom/dom-tutorial.html" title="XML DOM 教程">XML DOM 教程</a></li><li><a href="../xsl/xsl-tutorial.html" title="XSLT 教程">XSLT 教程</a></li><li><a href="../xpath/xpath-tutorial.html" title="XPath 教程">XPath 教程</a></li><li><a href="../xquery/xquery-tutorial.html" title="XQuery 教程">XQuery 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XLink 教程">XLink 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XPointer 教程">XPointer 教程</a></li><li><a href="../schema/schema-tutorial.html" title="XML Schema 教程">XML Schema 教程</a></li><li><a href="../xslfo/xslfo-tutorial.html" title="XSL-FO 教程">XSL-FO 教程</a></li><li><a href="../webservices/webservices-tutorial.html" title="Web Service 教程">Web Service 教程</a></li><li><a href="../wsdl/wsdl-tutorial.html" title="WSDL 教程">WSDL 教程</a></li><li><a href="../soap/soap-tutorial.html" title="SOAP 教程">SOAP 教程</a></li><li><a href="../rss/rss-tutorial.html" title="RSS 教程">RSS 教程</a></li><li><a href="../rdf/rdf-tutorial.html" title="RDF 教程">RDF 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> .NET</a><ul class="double-li"><li><a href="../aspnet/aspnet-tutorial.html" title="ASP.NET 教程">ASP.NET 教程</a></li><li><a href="../aspnet/mvc-intro.html" title="MVC 教程">MVC 教程</a></li><li><a href="../aspnet/razor-intro.html" title="Razor 教程">Razor 教程</a></li><li><a href="../aspnet/aspnet-intro.html" title="Web Forms 教程">Web Forms 教程</a></li><li><a href="../aspnet/webpages-intro.html" title="Web Pages 教程">Web Pages 教程</a></li><li><a href="../powershell/powershell-tutorial.html" title="PowerShell 教程">PowerShell 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 网站建设</a><ul class="double-li"><li><a href="../web/web-buildingprimer.html" title="网站建设指南">网站建设指南</a></li><li><a href="../browsers/browser-information.html" title="浏览器信息">浏览器信息</a></li><li><a href="../hosting/hosting-tutorial.html" title="网站主机教程">网站主机教程</a></li><li><a href="../quality/quality-tutorial.html" title="网站品质">网站品质</a></li></ul></li></ul> </div>
+</div>
+</div>
+<br/>
+<div class="sidebar-box re-box re-box-large">
+</div>
+</div></div>
+</div>
+<script>
+var aid = 31517;
+function coll() {
+	$.post( '/wp-content/themes/runoob/option/user/userinfo.php', {aid:aid, action:"collarticle", opt:'add'},function( data ) {
+		if(data.error==0) {
+			$("#content").find("h1:first").find("a").attr("href","javascript:void(0);");
+			$("#content").find("h1:first").find("img").attr("src","http://www.runoob.com/wp-content/themes/runoob/assets/img/coll2.png").css({width:32+"px",height:32+"px"});
+		}
+		alert(data.msg);
+	},'json');
+}
+
+(function () {
+    // 1. 仅 HTML 页面
+    if (!document.contentType || !document.contentType.includes('text/html')) return;
+
+    // 2. 容器判断
+    var container = document.querySelector('.article-intro');
+    if (!container) return;
+
+    var h1 = container.querySelector('h1');
+    if (!h1) return;
+
+    // 3. URL 判断
+    var url = window.location.href.toLowerCase();
+    var version = null;
+
+    if (url.includes('/python3/')) {
+        version = 'Python3.x';
+    } else if (url.includes('/python/')) {
+        version = 'Python2.x';
+    }
+
+    if (!version) return;
+
+    // 4. 防重复
+    if (h1.querySelector('.py-version-badge')) return;
+
+    // 5. 创建标签
+    var badge = document.createElement('span');
+    badge.className = 'py-version-badge';
+    badge.innerText = version;
+
+    // 6. 样式（核心：float 实现右上角）
+    badge.style.float = 'right';
+    badge.style.fontSize = '12px';
+    badge.style.padding = '2px 8px';
+    badge.style.borderRadius = '999px';
+
+   // 自适应亮/暗色 + 渐变背景（增强版）
+	badge.style.color = 'inherit';
+
+	// 渐变背景（低透明度，不影响暗黑模式）
+	if (version.includes('3')) {
+		badge.style.background = 'linear-gradient(90deg, rgba(79,172,254,0.15), rgba(0,242,254,0.15))';
+	} else {
+		badge.style.background = 'linear-gradient(90deg, rgba(161,140,209,0.15), rgba(251,194,235,0.15))';
+	}
+
+	// 边框弱化（更精致）
+	badge.style.border = '1px solid rgba(127,127,127,0.3)';
+
+	// 提升可读性
+	badge.style.opacity = '0.95';
+
+    // 微调位置（更贴近“右上角”）
+    badge.style.marginTop = '4px';
+    badge.style.marginLeft = '10px';
+
+    // 7. 插入到 h1 最前面（让 float 生效更稳定）
+    h1.insertBefore(badge, h1.firstChild);
+
+})();
+</script>
+<!-- 反馈对话框开始 -->
+<script src="../wp-content/themes/runoob/assets/js/runoob-article-dir.min.js"></script>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

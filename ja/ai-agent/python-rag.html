@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PythonでRAGと知識検索を実装 | 菜鸟教程</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<link href="../manifest.webmanifest.html" rel="manifest"/>
+<meta content="#10151c" name="theme-color"/>
+<link href="../pwa/icon-192.png.html" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="application-name"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="../ai-agent/python-rag.html" rel="canonical"/>
+<meta content="Python 实现 RAG 与知识检索" name="keywords"/>
+<meta content="Python 实现 RAG 与知识检索  本章节介绍检索增强生成（Retrieval-Augmented Generation，RAG）技术。  RAG 是构建知识密集型 Agent 的核心技术之一。  通过将向量检索与语言生成模型结合，RAG 让 Agent 具备了访问和利用外部知识的能力，而不再只能依赖模型参数中'记住'的内容。    RAG 基础原理  RAG 的核心思想是把'信息检索'和&amp;.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div>
+<!-- 导航栏 -->
+<style>
+/* 主题切换按钮 */
+/* ===== 主题变量（核心）===== */
+:root {
+  --theme-bg: #ffffff;
+  --theme-border: #e5e7eb;
+  --theme-icon: #333;
+  --theme-hover: #f3f4f6;
+}
+
+.dark {
+  --theme-bg: #1f2937;
+  --theme-border: #374151;
+  --theme-icon: #e5e7eb;
+  --theme-hover: #374151;
+}
+
+/* ===== 按钮容器 ===== */
+.nav-theme-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== 按钮本体 ===== */
+.nav-theme-toggle button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  border-radius: 6px;
+  border: 1px solid var(--theme-border);
+
+  background: var(--theme-bg);
+  color: var(--theme-icon);
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* ===== 图标大小 ===== */
+.nav-theme-toggle i {
+  font-size: 14px;
+}
+
+/* ===== hover 效果 ===== */
+.nav-theme-toggle button:hover {
+  background: var(--theme-hover);
+  transform: translateY(-1px);
+}
+
+/* ===== 点击反馈 ===== */
+.nav-theme-toggle button:active {
+  transform: scale(0.95);
+}
+
+/* ===== 当前激活态（可选）===== */
+.nav-theme-toggle button.active {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+</style>
+<!-- 导航栏 -->
+<nav aria-label="主导航" class="container navigation">
+<div class="row">
+<div class="col nav">
+<!-- PC 导航 -->
+<ul class="pc-nav" id="runoob-detail-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../js/js-tutorial.html">JavaScript</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a data-id="vue" href="#">Vue</a></li>
+<li><a href="../react/react-tutorial.html">React</a></li>
+<li><a href="../python3/python3-tutorial.html">Python3</a></li>
+<li><a href="../java/java-tutorial.html">Java</a></li>
+<li><a href="../cprogramming/c-tutorial.html">C</a></li>
+<li><a href="../cplusplus/cpp-tutorial.html">C++</a></li>
+<li><a href="../csharp/csharp-tutorial.html">C#</a></li>
+<li><a data-id="aiNav" href="#">AI</a></li>
+<li><a href="../go/go-tutorial.html">Go</a></li>
+<li><a href="../sql/sql-tutorial.html">SQL</a></li>
+<li><a href="../linux/linux-tutorial.html">Linux</a></li>
+<li><a href="../vscode/vscode-tutorial.html">VS Code</a></li>
+<li><a data-id="bootstrap" href="#">Bootstrap</a></li>
+<li><a href="../git/git-tutorial.html">Git</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<!-- 主题切换按钮，固定在最右侧 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+<!-- 移动端导航 -->
+<ul class="mobile-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a href="../js/js-tutorial.html">JS</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<li><a class="search-reveal" href="#">搜索</a></li>
+<!-- 移动端主题切换 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon-mobile" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun-mobile" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<!-- 二级导航 -->
+<!--  内容  -->
+<div class="container main">
+<!-- 中间 -->
+<div class="row">
+<div class="runoob-col-md2">
+<div class="left-column">
+<div class="tab" style="overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
+<i aria-hidden="true" class="fa fa-list"></i>
+<span>AI Agent 教程</span>
+</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+<a data-p="par" href="../ai-agent/ai-agent-tutorial.html" target="_top" title="AI Agent(智能体) 教程">
+			AI Agent(智能体) 教程			</a>
+<a data-p="par" href="../ai-agent/ai-agent-intro.html" target="_top" title="AI Agent 简介">
+			AI Agent 简介			</a>
+<a data-p="par" href="../ai-agent/ai-agent-core.html" target="_top" title="AI Agent  核心组件">
+			AI Agent  核心组件			</a>
+<a href="../ai-agent/ai-terminology.html" target="_top" title="AI Agent 术语">AI Agent 术语</a>
+<a href="../ai-agent/ai-agent-working-principle.html" target="_top" title="AI Agent 工作原理">AI Agent 工作原理</a>
+<a href="../ai-agent/ai-architecture.html" target="_top" title="AI 底层架构">AI 底层架构</a>
+<a href="../ai-agent/ai-agent-llm.html" target="_top" title="大语言模型基础">大语言模型基础</a>
+<a href="../ai-agent/llm-multimodal.html" target="_top" title="大模型多模态">大模型多模态</a>
+<a href="../ai-agent/prompt-engineering.html" target="_top" title="提示词工程">提示词工程</a>
+<a href="../ai-agent/token-intro.html" target="_top" title="Token (词元)">Token (词元)</a>
+<a href="../ai-agent/reasoning-planning.html" target="_top" title="推理与规划">推理与规划</a>
+<a href="../ai-agent/vector-database.html" target="_top" title="向量数据库">向量数据库</a>
+<a href="../ai-agent/retrieval-augmented-generation.html" target="_top" title="RAG 与知识检索">RAG 与知识检索</a>
+<a href="../ai-agent/agent-context-engineering.html" target="_top" title="Agent 上下文工程">Agent 上下文工程</a>
+<a href="../ai-agent/agent-architecture.html" target="_top" title="Agent 架构">Agent 架构</a>
+<br/>
+<h2 class="left"> <span class="left_h2">智能体工具</span></h2> <a data-p="par" href="../ai-agent/first-ai-agent.html" target="_top" title="第一个 AI Agent">
+			第一个 AI Agent			</a>
+<a href="../ai-agent/ai-monkeycode.html" target="_top" title="AI 开发平台"> AI 开发平台</a>
+<a href="../ai-agent/openclaw-clawdbot-tutorial.html" target="_top" title="OpenClaw (Clawdbot) 教程"> OpenClaw (Clawdbot) 教程</a>
+<a href="../ai-agent/openclaw-quickstart.html" target="_top" title="OpenClaw 快速上手"> OpenClaw 快速上手</a>
+<a href="../ai-agent/qoderwork.html" target="_top" title="QoderWork 教程"> QoderWork 教程</a>
+<a href="../ai-agent/qoderwake-usage.html" target="_top" title="QoderWake 教程"> QoderWake 教程</a>
+<a href="../ai-agent/workbuddy-usage.html" target="_top" title="WorkBuddy 入门教程"> WorkBuddy 入门教程</a>
+<a href="../ai-agent/ai-workflow.html" target="_top" title="AI 工作流"> AI 工作流</a>
+<a data-p="par" href="../ai-agent/crewai-agent.html" target="_top" title="CrewAI 构建智能体">
+			CrewAI 构建智能体			</a>
+<a data-p="par" href="../ai-agent/langchain-agent.html" target="_top" title="LangChain 制作智能体">
+			LangChain 制作智能体			</a>
+<a href="../ai-agent/langgraph-quick-start.html" target="_top" title="LangGraph 入门教程">LangGraph 入门教程</a>
+<a href="../ai-agent/deep-agents-usage.html" target="_top" title="Deep Agents 入门教程">Deep Agents 入门教程</a>
+<a href="../ai-agent/graphrag-usage.html" target="_top" title="GraphRAG 入门教程">GraphRAG 入门教程</a>
+<a href="../ai-agent/harness-engineering.html" target="_top" title="Harness Engineering">Harness Engineering</a>
+<a href="../ai-agent/hermes-agent.html" target="_top" title="Hermes Agent">Hermes Agent</a>
+<a href="../ai-agent/loop-engineering.html" target="_top" title="Loop Engineering">Loop Engineering</a>
+<a href="../ai-agent/vibe-coding-start.html" target="_top" title="Vibe Coding 入门教程">Vibe Coding</a>
+<a href="../ai-agent/dify-usage.html" title="Dify 入门教程">Dify 入门教程</a>
+<a href="../ai-agent/n8n-usage.html" title="n8n 入门教程">n8n 入门教程 </a>
+<a href="../ai-agent/pi-coding-agent.html" title="Pi Coding Agent">Pi Coding Agent </a>
+<br/><h2 class="left"> <span class="left_h2">Python 实现智能体</span></h2>
+<a href="../ai-agent/python-ai-agent.html" target="_top" title="Python 实现 AI Agent">Python 实现 AI Agent</a>
+<a href="../ai-agent/ai-agent-function-calling.html" target="_top" title="工具调用">工具调用</a>
+<a href="../ai-agent/ai-agent-memory-system-design.html" target="_top" title="记忆系统">记忆系统</a>
+<a data-p="par" href="../ai-agent/ai-agent-python-setup.html" target="_top" title="Python 智能体环境配置">
+			Python 智能体环境配置			</a>
+<a data-p="par" href="../ai-agent/ai-agent-answer-demo.html" target="_top" title="AI Agent 问答实例">
+			AI Agent 问答实例			</a>
+<a data-p="par" href="../ai-agent/python-reasoning-planning.html" target="_top" title="Python 实现推理与规划">
+			推理与规划			</a>
+<a data-p="par" href="../ai-agent/python-rag.html" target="_top" title="Python 实现 RAG 与知识检索">
+			RAG 与知识检索			</a>
+<a data-p="par" href="../ai-agent/multi-agent-system.html" target="_top" title="多智能体系统（Multi-Agent System）">
+			多智能体系统			</a>
+<a data-p="par" href="../ai-agent/tools-integration.html" target="_top" title="AI Agent 工具与外部集成">
+			工具与外部集成			</a>
+<a data-p="par" href="../ai-agent/multimodal-agent.html" target="_top" title="多模态 Agent">
+			多模态 Agent			</a>
+<a data-p="par" href="../ai-agent/evaluation-safety-alignment.html" target="_top" title="Agent 评估、安全与对齐">
+			评估、安全与对齐			</a>
+<a data-p="par" href="../ai-agent/production-deployment.html" target="_top" title="AI Agent 生产部署与工程化">
+			生产部署与工程化			</a>
+<a data-p="par" href="../ai-agent/vertical-applications.html" target="_top" title="AI Agent 垂直应用场景">
+			垂直应用场景			</a>
+<a data-p="par" href="../ai-agent/hugging-face-transformers.html" target="_top" title="Hugging Face Transformers">
+			Hugging Face Transformers			</a>
+</div>
+</div>
+</div>
+</div> <div class="col middle-column">
+<div class="article">
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../ai-agent/python-reasoning-planning.html" rel="prev">Pythonで推論と計画を実装</a> </div>
+<div class="next-design-link"><a href="../ai-agent/multi-agent-system.html" rel="next">マルチエージェントシステム（Multi-Agent System）</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="article-body">
+<div class="article-intro" id="content">
+<h1>PythonでRAGと知識検索を実装</h1>
+<p>この章では、検索拡張生成（Retrieval-Augmented Generation、RAG）技術を紹介します。</p>
+<p>RAGは、知識集約型エージェントを構築するための中核技術の一つです。</p>
+<p>ベクトル検索と言語生成モデルを組み合わせることで、RAGはエージェントに外部知識へのアクセスと活用能力を与え、モデルパラメータに「記憶」されたコンテンツだけに依存する必要をなくします。</p>
+<hr/>
+<h2>RAGの基本原理</h2>
+<p>RAGの核となる考え方は、「情報検索」と「言語生成」という2つのプロセスを組み合わせて、完全なQAチェーンを形成することです。</p>
+<p>ユーザーが質問すると、システムはまず知識ベースから質問に関連するコンテンツを検索します。</p>
+<p>次に、システムは検索されたコンテンツをコンテキストとして生成モデルに提供し、より正確で根拠のある回答の生成を支援します。</p>
+<h3>なぜRAGが必要か</h3>
+<p>言語モデルには知識の期限があり、トレーニング完了後に起こったことを認識できません。</p>
+<p>モデルのパラメータは有限であり、世界のすべての知識をパラメータに記憶することは不可能です。</p>
+<p>モデルがパラメータから知識を「思い出す」ことに完全に依存すると、正確に覚えていない、またはまったく学習していないコンテンツに遭遇した場合、モデルはしばしば真面目にでっち上げた回答を生成します。これがよく言われる「幻覚」（hallucination）です。</p>
+<p>RAGの手法は、モデルが回答する前に実際の資料を調べさせ、「記憶による回答」を「オープンブックでの回答」に変えることです。知識ソースもいつでも更新でき、モデルを再トレーニングする必要はありません。</p>
+<h3>コアアーキテクチャ</h3>
+<p>完全なRAGシステムには通常、3つの中核コンポーネントが含まれます：</p>
+<p><span class="marked">検索器（Retriever）</span>：知識ベースから質問に最も関連する情報断片を見つけ出します。</p>
+<p><span class="marked">ベクトルデータベース（Vector Store）</span>：ドキュメントコンテンツに対応するベクトル表現を保存し、大規模で低遅延の類似度検索をサポートします。</p>
+<p><span class="marked">生成器（Generator）</span>：検索されたコンテンツとユーザーの元の質問に基づいて、最終的な自然言語の回答を生成します。</p>
+<p>3つの関係は次のように理解できます：検索器は「資料を探す」役割、ベクトルデータベースは「資料を保存し、類似資料を素早く見つける」役割、生成器は「資料を見ながら回答をまとめる」役割を担います。</p>
+<h3>ワークフロー</h3>
+<p>第1ステップ、<b>インデックス作成段階</b>。元のドキュメントを複数のテキストチャンク（chunks）に分割し、それぞれベクトル化してベクトルデータベースに保存します。このステップは通常、オフラインで事前に実行されます。</p>
+<p>第2ステップ、<b>検索段階</b>。ユーザーがクエリを発行すると、クエリも同様にベクトル化され、ベクトルデータベースで類似度検索を行い、最も関連性の高いテキストチャンクをいくつか見つけ出します。</p>
+<p>第3ステップ、<b>拡張段階</b>。検索された関連テキストチャンクとユーザーの元の質問を結合して、より完全なプロンプト（Prompt）を構築します。</p>
+<p>第4ステップ、<b>生成段階</b>。生成モデルは、この拡張されたコンテキストに基づいて最終回答を生成します。</p>
+<p>この4つのステップのうち、オフラインの前処理は第1ステップだけで、後の3つのステップはすべてユーザーが質問したときにリアルタイムで発生します。そのため、検索速度と検索品質がシステム全体の応答速度と回答品質を直接決定します。</p>
+<h3>コード実装</h3>
+<div class="example">
+<h2 class="example">基本RAG実装</h2>
+<div class="example_code">
+<span style="color: Green;font-weight:bold;">class</span> SimpleRAG:<br/>
+    <span style="color: #a11;">"""<br/>簡易版RAGシステム実装<br/>3つの中核コンポーネントを含む：エンベッダー、ベクトルストア、生成器<br/>
+    """</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> embedder<span style="color: Gray;">,</span> vector_store<span style="color: Gray;">,</span> generator<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a50"># エンベッダー：テキストをベクトルに変換する役割</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">embedder</span> <span style="color: Gray;">=</span> embedder<br/>
+        <span style="color: #a50"># ベクトルデータベース：ベクトルを保存し、類似度検索をサポートする役割</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">vector_store</span> <span style="color: Gray;">=</span> vector_store<br/>
+        <span style="color: #a50"># 生成器：コンテキストに基づいて回答を生成する役割</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">generator</span> <span style="color: Gray;">=</span> generator<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> add_documents<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> documents<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""<br/>ドキュメントを知識ベースに追加<br/>:param documents: 元のドキュメントリスト（各要素は完全なテキスト）<br/>
+        """</span><br/>
+        <span style="color: #a50"># 第1ステップ：長いドキュメントをより小さなテキストチャンクに分割し、正確な検索を容易にする</span><br/>
+        chunks <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">chunk_documents</span><span style="color: Olive;">(</span>documents<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># 第2ステップ：すべてのテキストチャンクをベクトルに変換する</span><br/>
+        embeddings <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">embedder</span>.<span style="color: #05a;">embed</span><span style="color: Olive;">(</span>chunks<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># 第3ステップ：ベクトルと対応する原文を一緒にベクトルデータベースに保存する</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">vector_store</span>.<span style="color: #05a;">add</span><span style="color: Olive;">(</span>embeddings<span style="color: Gray;">,</span> chunks<span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> chunk_documents<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> documents<span style="color: Gray;">,</span> chunk_size<span style="color: Gray;">=</span><span style="color: Maroon;">500</span><span style="color: Gray;">,</span> overlap<span style="color: Gray;">=</span><span style="color: Maroon;">50</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""<br/>ドキュメント分割：長いドキュメントを固定長で、一定の重複を持つテキストチャンクに分割する<br/>
+<br/>:param documents: 元のドキュメントリスト<br/>:param chunk_size: 各テキストチャンクの文字数<br/>:param overlap: 隣接するテキストチャンク間の重複文字数（セマンティクスが分割箇所で途切れるのを防ぐ）<br/>:return: 分割後のテキストチャンクリスト<br/>
+        """</span><br/>
+        chunks <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> doc <span style="color: Green;font-weight:bold;">in</span> documents:<br/>
+            <span style="color: #a50"># (chunk_size - overlap) のステップでスライド分割し、一定の重複領域を保持する</span><br/>
+            <span style="color: Green;font-weight:bold;">for</span> i <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Gray;">,</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>doc<span style="color: Olive;">)</span><span style="color: Gray;">,</span> chunk_size - overlap<span style="color: Olive;">)</span>:<br/>
+                <span style="color: #05a;">chunk</span> <span style="color: Gray;">=</span> doc<span style="color: Olive;">[</span>i:i + chunk_size<span style="color: Olive;">]</span><br/>
+                chunks.<span style="color: #05a;">append</span><span style="color: Olive;">(</span><span style="color: #05a;">chunk</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> chunks<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> query<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> question<span style="color: Gray;">,</span> top_k<span style="color: Gray;">=</span><span style="color: Maroon;">5</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""<br/>ユーザークエリを処理し、生成された回答を返す<br/>
+<br/>:param question: ユーザーが発した質問<br/>:param top_k: 検索時に返される関連テキストチャンクの数<br/>:return: 生成モデルが生成した最終回答<br/>
+        """</span><br/>
+        <span style="color: #a50"># 1. 質問をベクトルに変換して、知識ベース内のベクトルと比較できるようにする</span><br/>
+        question_embedding <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">embedder</span>.<span style="color: #05a;">embed</span><span style="color: Olive;">(</span><span style="color: Olive;">[</span>question<span style="color: Olive;">]</span><span style="color: Olive;">)</span><span style="color: Olive;">[</span><span style="color: Maroon;">0</span><span style="color: Olive;">]</span><br/>
+<br/>
+        <span style="color: #a50"># 2. ベクトルデータベースで最も類似した top_k 個のテキストチャンクを検索する</span><br/>
+        results <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">vector_store</span>.<span style="color: #05a;">search</span><span style="color: Olive;">(</span>question_embedding<span style="color: Gray;">,</span> top_k<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># 3. 検索されたテキストチャンクを連結してコンテキストにする</span><br/>
+        context <span style="color: Gray;">=</span> <span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>"</span>.<span style="color: #05a;">join</span><span style="color: Olive;">(</span><span style="color: Olive;">[</span>doc <span style="color: Green;font-weight:bold;">for</span> doc<span style="color: Gray;">,</span> _ <span style="color: Green;font-weight:bold;">in</span> results<span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># 4. コンテキストと元の質問を一緒にプロンプトとして構成する</span><br/>
+        prompt <span style="color: Gray;">=</span> f<span style="color: #a11;">"以下の内容に基づいて質問に回答してください：<span style="color: #000099; font-weight: bold;">\n</span>{context}<span style="color: #000099; font-weight: bold;">\n</span><span style="color: #000099; font-weight: bold;">\n</span>質問：{question}"</span><br/>
+<br/>
+        <span style="color: #a50"># 5. 生成モデルに渡して最終回答を生成させる</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">generator</span>.<span style="color: #05a;">generate</span><span style="color: Olive;">(</span>prompt<span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<p>この基本実装で完全なRAGフローを実行できますが、実際のプロジェクトでは不十分なことがよくあります：分割方法が単純すぎる、検索ランキングが一度のベクトル類似度計算にのみ依存しており、精度に限界があります。以下に、いくつかの一般的な最適化アプローチを紹介します。</p>
+<hr/>
+<h2>Advanced RAG</h2>
+<p>基本RAGの一般的な問題には、検索されたコンテンツの品質が低い、ランキングが十分に正確でない、コンテキストに無関係な情報が混入するなどがあります。</p>
+<p>Advanced RAGは、再ランキングやハイブリッド検索などの技術を導入し、基本フローの上でさらに最適化して、最終回答の正確性を向上させます。</p>
+<h3>再ランキング（Reranking）</h3>
+<p>基本RAGのベクトル検索は高速ですが、ランキング精度に限界があり、セマンティクス的にあまり適切でないコンテンツを上位にランク付けしがちです。</p>
+<p>再ランキングの手法は：まずベクトル検索で候補テキストをすばやく絞り込み（例：top-20）、次により計算量は多いがより正確なクロスエンコーダー（Cross-Encoder）でこれらの候補を一つずつスコアリングし、再ランキング後に本当に最も関連性の高い少数の項目（例：top-5）を取り出します。</p>
+<p>この「粗い絞り込み、その後の精密なランキング」という2段階のアプローチは、検索速度と検索精度の両方を両立させます。</p>
+<div class="example">
+<h2 class="example">再ランキング付きRAG</h2>
+<div class="example_code">
+<span style="color: Green;font-weight:bold;">class</span> AdvancedRAG:<br/>
+    <span style="color: #a11;">"""<br/>高度なRAGシステム<br/>基本フローの上に再ランキングのプロセスを追加<br/>
+    """</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> embedder<span style="color: Gray;">,</span> vector_store<span style="color: Gray;">,</span> reranker<span style="color: Gray;">,</span> generator<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a50"># エンベッダー</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">embedder</span> <span style="color: Gray;">=</span> embedder<br/>
+        <span style="color: #a50"># ベクトルデータベース</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">vector_store</span> <span style="color: Gray;">=</span> vector_store<br/>
+        <span style="color: #a50"># 再ランキングモデル（クロスエンコーダー）。精密なランキングに使用</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">reranker</span> <span style="color: Gray;">=</span> reranker<br/>
+        <span style="color: #a50"># 生成器</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">generator</span> <span style="color: Gray;">=</span> generator<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> query<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> question<span style="color: Gray;">,</span> initial_k<span style="color: Gray;">=</span><span style="color: Maroon;">20</span><span style="color: Gray;">,</span> final_k<span style="color: Gray;">=</span><span style="color: Maroon;">5</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""<br/>クエリを処理し、「粗い絞り込み + 精密なランキング」の2段階検索を含む<br/>
+<br/>:param question: ユーザーの質問<br/>:param initial_k: 第1段階のベクトル検索で返される候補の数<br/>:param final_k: 再ランキング後に最終的に保持する数<br/>
+        """</span><br/>
+        <span style="color: #a50"># ==================== 段階1：初期検索（粗い絞り込み） ====================</span><br/>
+        <span style="color: #a50"># 質問をベクトルに変換する</span><br/>
+        question_embedding <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">embedder</span>.<span style="color: #05a;">embed</span><span style="color: Olive;">(</span><span style="color: Olive;">[</span>question<span style="color: Olive;">]</span><span style="color: Olive;">)</span><span style="color: Olive;">[</span><span style="color: Maroon;">0</span><span style="color: Olive;">]</span><br/>
+<br/>
+        <span style="color: #a50"># ベクトル類似度を使用して候補テキストをすばやくリコールする（高速だが精度は普通）</span><br/>
+        initial_results <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">vector_store</span>.<span style="color: #05a;">search</span><span style="color: Olive;">(</span><br/>
+            question_embedding<span style="color: Gray;">,</span><br/>
+            initial_k<br/>
+        <span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># ==================== 段階2：再ランキング（精密なランキング） ====================</span><br/>
+        <span style="color: #a50"># (質問, 候補ドキュメント) のペアを構築し、クロスエンコーダーに渡して一つずつスコアリングする</span><br/>
+        doc_pairs <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">(</span>question<span style="color: Gray;">,</span> doc<span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> doc<span style="color: Gray;">,</span> _ <span style="color: Green;font-weight:bold;">in</span> initial_results<span style="color: Olive;">]</span><br/>
+<br/>
+        <span style="color: #a50"># クロスエンコーダーは質問とドキュメントを同時にエンコードし、両者の関連性をより正確に判断できる</span><br/>
+        reranked <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">reranker</span>.<span style="color: #05a;">rerank</span><span style="color: Olive;">(</span>doc_pairs<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># 再ランキング後に本当に最も関連性の高い final_k 件を取得する</span><br/>
+        final_context <span style="color: Gray;">=</span> <span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>"</span>.<span style="color: #05a;">join</span><span style="color: Olive;">(</span><span style="color: Olive;">[</span>doc <span style="color: Green;font-weight:bold;">for</span> doc<span style="color: Gray;">,</span> _ <span style="color: Green;font-weight:bold;">in</span> reranked<span style="color: Olive;">[</span>:final_k<span style="color: Olive;">]</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># ==================== フェーズ3：生成 ====================</span><br/>
+        prompt <span style="color: Gray;">=</span> f<span style="color: #a11;">"コンテキスト：{final_context}<span style="color: #000099; font-weight: bold;">\n</span><span style="color: #000099; font-weight: bold;">\n</span>質問：{question}"</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">generator</span>.<span style="color: #05a;">generate</span><span style="color: Olive;">(</span>prompt<span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<h3>ハイブリッド検索</h3>
+<p>ハイブリッド検索（Hybrid Retrieval）は、稠密検索とスパース検索のそれぞれの利点を組み合わせたものです。</p>
+<p>稠密検索（Dense Retrieval）はベクトル類似度に基づき、意味レベルの関連性を捉えるのが得意で、ユーザーの質問と文書が完全に同じ語句を使っていなくてもマッチングできます。</p>
+<p>スパース検索（BM25など）はキーワードの頻度統計に基づき、正確な文字一致に強く、固有名詞・番号・コード断片などのシーンではベクトル検索よりも信頼できることが多いです。</p>
+<p>両者にはそれぞれ盲点があります。ベクトル検索は「意味は理解できるが正確なキーワードを見つけられない」可能性があり、キーワード検索は「語句はマッチするが意味を理解できない」可能性があります。ハイブリッド検索は2つの検索経路の結果を融合し、長所を生かして短所を補います。</p>
+<div class="example">
+<h2 class="example">ハイブリッド検索RAG</h2>
+<div class="example_code">
+<span style="color: Green;font-weight:bold;">class</span> HybridRAG:<br/>
+    <span style="color: #a11;">"""<br/>ハイブリッド検索RAG<br/>稠密検索（ベクトル）とスパース検索（キーワード）を組み合わせる<br/>
+    """</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> dense_retriever<span style="color: Gray;">,</span> sparse_retriever<span style="color: Gray;">,</span> fusion_fn<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a50"># 稠密検索器：ベクトル類似度に基づき、意味マッチングに強い</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">dense_retriever</span> <span style="color: Gray;">=</span> dense_retriever<br/>
+        <span style="color: #a50"># スパース検索器：キーワード統計（BM25など）に基づき、正確一致に強い</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">sparse_retriever</span> <span style="color: Gray;">=</span> sparse_retriever<br/>
+        <span style="color: #a50"># 融合関数：2つの検索結果を統合するために使用（例：RRF、下記の実装参照）</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">fusion_fn</span> <span style="color: Gray;">=</span> fusion_fn<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> query<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> question<span style="color: Gray;">,</span> top_k<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""<br/>ハイブリッド検索を実行し、融合後にランキング付けされた結果を返す<br/>
+<br/>:param question: ユーザーの質問<br/>:param top_k: 最終的に返す結果の件数<br/>
+        """</span><br/>
+        <span style="color: #a50"># ==================== 稠密検索 ====================</span><br/>
+        <span style="color: #a50"># 候補を多めに取得し（top_k * 2）、融合時に絞り込む余地を残す</span><br/>
+        dense_results <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">dense_retriever</span>.<span style="color: #05a;">search</span><span style="color: Olive;">(</span>question<span style="color: Gray;">,</span> top_k * <span style="color: Maroon;">2</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># ==================== スパース検索 ====================</span><br/>
+        <span style="color: #a50"># キーワードベースの検索。こちらも候補を多めに取得する</span><br/>
+        sparse_results <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">sparse_retriever</span>.<span style="color: #05a;">search</span><span style="color: Olive;">(</span>question<span style="color: Gray;">,</span> top_k * <span style="color: Maroon;">2</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># ==================== 結果の融合 ====================</span><br/>
+        <span style="color: #a50"># Reciprocal Rank Fusion（RRF）などの戦略で2つのランキング結果を融合する</span><br/>
+        fused <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">fusion_fn</span><span style="color: Olive;">(</span>dense_results<span style="color: Gray;">,</span> sparse_results<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># 融合後のランキングが上位の top_k 件を取得する</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> fused<span style="color: Olive;">[</span>:top_k<span style="color: Olive;">]</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> reciprocal_rank_fusion<span style="color: Olive;">(</span>results_a<span style="color: Gray;">,</span> results_b<span style="color: Gray;">,</span> k<span style="color: Gray;">=</span><span style="color: Maroon;">60</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""<br/>Reciprocal Rank Fusion（RRF）アルゴリズム<br/>2系統（または複数系統）の検索のランキング結果を1つの統合ランキングに融合するために使う<br/>
+<br/>核心となる考え方：各文書の各系統の結果における「順位」だけを見て、具体的なスコアは見ない<br/>ベクトル類似度スコアとBM25スコアの次元が異なり、直接比較できない問題を回避できる<br/>
+<br/>:param results_a: 検索結果A、形式は [(doc, score), ...]<br/>:param results_b: 検索結果B、形式は [(doc, score), ...]<br/>:param k: 平滑化定数。順位が下位の文書の重みの差を小さくするために使う。通常は60<br/>:return: 融合スコアの高い順に並べた [(doc, score), ...] のリスト<br/>
+    """</span><br/>
+    scores <span style="color: Gray;">=</span> <span style="color: Olive;">{</span><span style="color: Olive;">}</span><br/>
+<br/>
+    <span style="color: #a50"># 結果Aを処理：順位が上であるほど、寄与するスコアが高い</span><br/>
+    <span style="color: Green;font-weight:bold;">for</span> rank<span style="color: Gray;">,</span> <span style="color: Olive;">(</span>doc<span style="color: Gray;">,</span> _<span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">enumerate</span><span style="color: Olive;">(</span>results_a<span style="color: Olive;">)</span>:<br/>
+        scores<span style="color: Olive;">[</span>doc<span style="color: Olive;">]</span> <span style="color: Gray;">=</span> scores.<span style="color: #05a;">get</span><span style="color: Olive;">(</span>doc<span style="color: Gray;">,</span> <span style="color: Maroon;">0</span><span style="color: Olive;">)</span> + <span style="color: Maroon;">1</span> / <span style="color: Olive;">(</span>k + rank + <span style="color: Maroon;">1</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 結果Bも処理し、同じく順位に応じてスコアを加算する</span><br/>
+    <span style="color: Green;font-weight:bold;">for</span> rank<span style="color: Gray;">,</span> <span style="color: Olive;">(</span>doc<span style="color: Gray;">,</span> _<span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">enumerate</span><span style="color: Olive;">(</span>results_b<span style="color: Olive;">)</span>:<br/>
+        scores<span style="color: Olive;">[</span>doc<span style="color: Olive;">]</span> <span style="color: Gray;">=</span> scores.<span style="color: #05a;">get</span><span style="color: Olive;">(</span>doc<span style="color: Gray;">,</span> <span style="color: Maroon;">0</span><span style="color: Olive;">)</span> + <span style="color: Maroon;">1</span> / <span style="color: Olive;">(</span>k + rank + <span style="color: Maroon;">1</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 加算後の融合スコアが高い順にソートする</span><br/>
+    sorted_docs <span style="color: Gray;">=</span> <span style="color: Teal;">sorted</span><span style="color: Olive;">(</span>scores.<span style="color: #05a;">items</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span> key<span style="color: Gray;">=</span><span style="color: Green;font-weight:bold;">lambda</span> x: -x<span style="color: Olive;">[</span><span style="color: Maroon;">1</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">return</span> sorted_docs<br/>
+</div>
+</div>
+<h3>その他の最適化戦略</h3>
+<p><b>クエリ拡張</b>：同義語や関連語を補うことで元のクエリを拡張し、検索のリコール範囲を広げ、再現率を向上させる。</p>
+<p><b>クエリ書き換え</b>：モデルを使ってユーザーの本当の意図を理解し、口語的で曖昧な質問を検索に適した表現に書き換える。</p>
+<p><b>コンテキスト圧縮</b>：検索結果を生成モデルに渡す前に、冗長で無関係な部分を除去し、重要な情報だけを残す。コスト削減になるだけでなく、生成モデルが無関係な内容に干渉されるリスクも減らせる。</p>
+<hr/>
+<h2>ベクトルデータベース</h2>
+<p>ベクトルデータベースはRAGシステムの基盤となるインフラであり、大量の高次元ベクトルを格納し、大規模・低遅延の類似度検索をサポートする。</p>
+<h3>中核となる概念</h3>
+<p><b>埋め込み（Embedding）</b>：テキスト（または画像・音声など）を一連の稠密な数値ベクトルに変換するプロセス。意味的に近い内容はベクトル空間上でも距離が近くなる。</p>
+<p><b>ベクトル次元</b>：埋め込みベクトルの長さ。次元が高いほど理論的には表現できる意味情報が豊富になるが、保存・計算コストも増加する。</p>
+<p><b>類似度の尺度</b>：2つのベクトル間の「類似の程度」または「距離」を測る具体的な計算方法。異なる尺度は異なるシーンに適している。</p>
+<h3>一般的な類似度指標</h3>
+<table class="reference">
+<tbody>
+<tr>
+<th>尺度方法</th>
+<th>公式</th>
+<th>特徴</th>
+<th>適用シーン</th>
+</tr>
+<tr>
+<td>コサイン類似度</td>
+<td>cos(A,B) = A·B/(|A||B|)</td>
+<td>方向の類似性のみを測り、ベクトルの長さとは無関係。値域は [-1,1]</td>
+<td>文書・テキスト類似度</td>
+</tr>
+<tr>
+<td>ユークリッド距離</td>
+<td>d(A,B) = sqrt(sum((Ai-Bi)^2))</td>
+<td>ベクトル間の絶対的な空間距離を測る。値域は [0,+∞)</td>
+<td>画像特徴マッチング</td>
+</tr>
+<tr>
+<td>ドット積</td>
+<td>A·B = sum(Ai*Bi)</td>
+<td>方向と長さの両方の影響を受ける。計算効率が高い</td>
+<td>レコメンドシステム</td>
+</tr>
+</tbody>
+</table>
+<h3>主流ベクトルデータベースの比較</h3>
+<table class="reference">
+<tbody>
+<tr>
+<th>データベース</th>
+<th>タイプ</th>
+<th>特徴</th>
+<th>適用シーン</th>
+</tr>
+<tr>
+<td>Pinecone</td>
+<td>クラウドサービス</td>
+<td>フルマネージドサービス。導入が簡単で自動スケールし、自前運用が不要</td>
+<td>迅速に本番稼働させたい環境</td>
+</tr>
+<tr>
+<td>Weaviate</td>
+<td>オープンソース</td>
+<td>ネイティブでハイブリッド検索（ベクトル＋キーワード）をサポート。モジュール化の度合いが高い</td>
+<td>検索ロジックを柔軟にカスタマイズしたいシーン</td>
+</tr>
+<tr>
+<td>Milvus</td>
+<td>オープンソース</td>
+<td>高可用・水平スケールが容易で、10億件以上のベクトル規模を支えられる</td>
+<td>超大規模ベクトル検索</td>
+</tr>
+<tr>
+<td>Chroma</td>
+<td>オープンソース</td>
+<td>軽量でAPIがシンプル。数行のコードで実行できる</td>
+<td>プロトタイプ開発・教育・ローカルテスト</td>
+</tr>
+<tr>
+<td>Qdrant</td>
+<td>オープンソース</td>
+<td>Rustで実装され、性能が優秀で、豊富なフィルタ条件をサポート</td>
+<td>高スループット・複雑なフィルタリングが必要なシーン</td>
+</tr>
+</tbody>
+</table>
+<h3>コード例</h3>
+<div class="example">
+<h2 class="example">Chromaベクトルデータベースを使用</h2>
+<div class="example_code">
+<span style="color: Green;font-weight:bold;">import</span> chroma_client<br/>
+<span style="color: Green;font-weight:bold;">from</span> chroma_client <span style="color: Green;font-weight:bold;">import</span> ChromaClient<br/>
+<br/>
+<span style="color: #a50"># クライアントを作成（ローカルインスタンスにもリモートサービスにも接続可能）</span><br/>
+client <span style="color: Gray;">=</span> ChromaClient<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># コレクション（Collection）を作成または取得する。リレーショナルデータベースの「テーブル」に相当</span><br/>
+collection <span style="color: Gray;">=</span> client.<span style="color: #05a;">get_or_create_collection</span><span style="color: Olive;">(</span><span style="color: #a11;">"knowledge_base"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># ドキュメントを追加：ID、ベクトル、原文、メタデータはそれぞれ対応させる必要がある</span><br/>
+collection.<span style="color: #05a;">add</span><span style="color: Olive;">(</span><br/>
+    ids<span style="color: Gray;">=</span><span style="color: Olive;">[</span><span style="color: #a11;">"doc1"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"doc2"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"doc3"</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span>  <span style="color: #a50"># 各ドキュメントの一意な識別子</span><br/>
+    embeddings<span style="color: Gray;">=</span><span style="color: Olive;">[</span><br/>
+        <span style="color: Olive;">[</span><span style="color: Maroon;">0.1</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.2</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.3</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span>  <span style="color: #a50"># ドキュメント1に対応するベクトル（実際の次元は通常3次元よりはるかに高い）</span><br/>
+        <span style="color: Olive;">[</span><span style="color: Maroon;">0.4</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.5</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.6</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span>  <span style="color: #a50"># ドキュメント2に対応するベクトル</span><br/>
+        <span style="color: Olive;">[</span><span style="color: Maroon;">0.7</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.8</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.9</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span>  <span style="color: #a50"># ドキュメント3に対応するベクトル</span><br/>
+    <span style="color: Olive;">]</span><span style="color: Gray;">,</span><br/>
+    documents<span style="color: Gray;">=</span><span style="color: Olive;">[</span><br/>
+        <span style="color: #a11;">"人工知能は計算機科学の一分野である"</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">"機械学習は人工知能のサブ分野である"</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">"深層学習は機械学習のサブ分野である"</span><br/>
+    <span style="color: Olive;">]</span><span style="color: Gray;">,</span><br/>
+    metadatas<span style="color: Gray;">=</span><span style="color: Olive;">[</span><br/>
+        <span style="color: Olive;">{</span><span style="color: #a11;">"source"</span>: <span style="color: #a11;">"教科書"</span><span style="color: Olive;">}</span><span style="color: Gray;">,</span>  <span style="color: #a50"># ドキュメント1の出所情報。後続のフィルタリングに使用できる</span><br/>
+        <span style="color: Olive;">{</span><span style="color: #a11;">"source"</span>: <span style="color: #a11;">"論文"</span><span style="color: Olive;">}</span><span style="color: Gray;">,</span><br/>
+        <span style="color: Olive;">{</span><span style="color: #a11;">"source"</span>: <span style="color: #a11;">"論文"</span><span style="color: Olive;">}</span><br/>
+    <span style="color: Olive;">]</span><br/>
+<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 検索：クエリベクトルを渡し、最も類似した n_results 件の結果を返す</span><br/>
+results <span style="color: Gray;">=</span> collection.<span style="color: #05a;">query</span><span style="color: Olive;">(</span><br/>
+    query_embeddings<span style="color: Gray;">=</span><span style="color: Olive;">[</span><span style="color: Olive;">[</span><span style="color: Maroon;">0.15</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.25</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.35</span><span style="color: Olive;">]</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span>  <span style="color: #a50"># クエリに対応するベクトル</span><br/>
+    n_results<span style="color: Gray;">=</span><span style="color: Maroon;">2</span>  <span style="color: #a50"># top-2 の最も類似した結果を返す</span><br/>
+<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 検索結果を出力</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>results<span style="color: Olive;">[</span><span style="color: #a11;">"documents"</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span>   <span style="color: #a50"># ヒットした原文内容</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>results<span style="color: Olive;">[</span><span style="color: #a11;">"distances"</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span>   <span style="color: #a50"># 対応する距離・類似度スコア。値が小さいほど通常は類似している</span><br/>
+</div>
+</div>
+<blockquote><p>ベクトルデータベースを選ぶ際は、データ規模、クエリ遅延要件、デプロイ方式（クラウド管理 or 自社構築）、チームの運用能力を総合的に考慮する必要がある。小規模プロトタイプ開発ではChromaを優先し、すぐ使える本番環境を求めるならPinecone、超大規模で自主制御が必要な場合はMilvusやQdrantがより適している。</p></blockquote>
+<hr/>
+<h2>GraphRAG</h2>
+<p>GraphRAGは知識グラフ（Knowledge Graph）とRAGを組み合わせた先進的な手法です。</p>
+<p>エンティティと関係からなるグラフ構造を構築することで、システムの検索・推論能力を強化します。</p>
+<h3>なぜGraphRAGが必要か</h3>
+<p>従来のRAGはテキスト断片の類似度検索に基づくため、「多段推論」が必要な問題（答えを導くために複数の情報をつなぎ合わせる必要がある問題）を処理するのが難しい。</p>
+<p>従来のRAGは、「誰が誰の上司か」「どの会社がどの会社を買収したか」といった構造化情報のような、エンティティ間の意味的関係を明示的に捉えることも容易ではない。</p>
+<p>GraphRAGはこれらのエンティティと関係を明示的にグラフ構造に整理し、システムが「類似テキストを探す」だけでなく、関係パスに沿って推論できるようにする。</p>
+<h3>中核となる利点</h3>
+<p>エンティティ間の意味的関係を捉え、断片的なテキストではなく構造化された知識ネットワークを形成できる。</p>
+<p>パスベースの推論をサポートし、関係型の質問により適切に答えられる。</p>
+<p>マルチホップ（multi-hop）推論が必要な複雑な問題を処理できる。例えば「ある人の指導教官の指導教官は誰か」といった、複数の関係ノードを連続的にまたいで答えを導く必要がある問題。</p>
+<h3>コード実装</h3>
+<div class="example">
+<h2 class="example">GraphRAG実装</h2>
+<div class="example_code">
+<span style="color: Green;font-weight:bold;">class</span> GraphRAG:<br/>
+    <span style="color: #a11;">"""<br/>GraphRAG システム<br/>知識グラフ検索とベクトル検索を組み合わせ、関係推論と意味的類似性の両方を考慮する<br/>
+    """</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> kg_builder<span style="color: Gray;">,</span> embedder<span style="color: Gray;">,</span> vector_store<span style="color: Gray;">,</span> generator<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a50"># 知識グラフ構築器：エンティティ/関係抽出とグラフ検索を担当</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">kg_builder</span> <span style="color: Gray;">=</span> kg_builder<br/>
+        <span style="color: #a50"># 埋め込み器：ドキュメントと質問をベクトルに変換するために使用</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">embedder</span> <span style="color: Gray;">=</span> embedder<br/>
+        <span style="color: #a50"># ベクトルデータベース：知識グラフ検索の補完チャネルとして機能</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">vector_store</span> <span style="color: Gray;">=</span> vector_store<br/>
+        <span style="color: #a50"># 生成器：融合されたコンテキストに基づいて最終回答を生成</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">generator</span> <span style="color: Gray;">=</span> generator<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> index_documents<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> documents<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""<br/>ドキュメントを知識グラフとベクトルデータベースの両方にインデックス化する<br/>:param documents: ドキュメントリスト<br/>
+        """</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> doc <span style="color: Green;font-weight:bold;">in</span> documents:<br/>
+            <span style="color: #a50"># ドキュメントからエンティティを抽出</span><br/>
+            <span style="color: #a50"># 例：「OpenAIは2015年に設立された」から抽出</span><br/>
+            <span style="color: #a50"># エンティティ：OpenAI（組織）、2015年（時間）</span><br/>
+            entities <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">kg_builder</span>.<span style="color: #05a;">extract_entities</span><span style="color: Olive;">(</span>doc<span style="color: Olive;">)</span><br/>
+<br/>
+            <span style="color: #a50"># ドキュメントからエンティティ間の関係を抽出</span><br/>
+            <span style="color: #a50"># 例：関係トリプルを抽出：(OpenAI, 設立された, 2015年)</span><br/>
+            relations <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">kg_builder</span>.<span style="color: #05a;">extract_relations</span><span style="color: Olive;">(</span>doc<span style="color: Olive;">)</span><br/>
+<br/>
+            <span style="color: #a50"># エンティティと関係を知識グラフに書き込む</span><br/>
+            <span style="color: Teal;">self</span>.<span style="color: #05a;">kg_builder</span>.<span style="color: #05a;">add_entities</span><span style="color: Olive;">(</span>entities<span style="color: Olive;">)</span><br/>
+            <span style="color: Teal;">self</span>.<span style="color: #05a;">kg_builder</span>.<span style="color: #05a;">add_relations</span><span style="color: Olive;">(</span>relations<span style="color: Olive;">)</span><br/>
+<br/>
+            <span style="color: #a50"># 同時に原文をベクトル化してベクトルデータベースに格納し、意味検索を補完する</span><br/>
+            embedding <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">embedder</span>.<span style="color: #05a;">embed</span><span style="color: Olive;">(</span><span style="color: Olive;">[</span>doc<span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+            <span style="color: Teal;">self</span>.<span style="color: #05a;">vector_store</span>.<span style="color: #05a;">add</span><span style="color: Olive;">(</span>embedding<span style="color: Gray;">,</span> <span style="color: Olive;">[</span>doc<span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> query<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> question<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""<br/>クエリ処理：知識グラフ推論とベクトル検索を組み合わせる<br/>
+        """</span><br/>
+        <span style="color: #a50"># ==================== 知識グラフ検索 ====================</span><br/>
+        <span style="color: #a50"># まず質問に関連するエンティティを見つける</span><br/>
+        <span style="color: #a50"># 例：「誰がOpenAIを設立したか？」-&gt; エンティティ「OpenAI」を識別</span><br/>
+        relevant_entities <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">kg_builder</span>.<span style="color: #05a;">query_entities</span><span style="color: Olive;">(</span>question<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># これらのエンティティに基づいて、グラフ内の直接関連するサブグラフを取り出す</span><br/>
+        <span style="color: #a50"># サブグラフには関連エンティティとその隣接ノード、接続エッジが含まれる</span><br/>
+        subgraph <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">kg_builder</span>.<span style="color: #05a;">get_subgraph</span><span style="color: Olive;">(</span>relevant_entities<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># ==================== ベクトル検索 ====================</span><br/>
+        <span style="color: #a50"># 補完チャネルとして、意味的に類似したテキスト内容を検索</span><br/>
+        vector_results <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">vector_store</span>.<span style="color: #05a;">search</span><span style="color: Olive;">(</span>question<span style="color: Gray;">,</span> top_k<span style="color: Gray;">=</span><span style="color: Maroon;">5</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># ==================== 結果融合 ====================</span><br/>
+        <span style="color: #a50"># グラフ推論結果とベクトル検索結果を統一コンテキストに融合</span><br/>
+        combined_context <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">fuse_results</span><span style="color: Olive;">(</span>subgraph<span style="color: Gray;">,</span> vector_results<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># ==================== 生成 ====================</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">generator</span>.<span style="color: #05a;">generate</span><span style="color: Olive;">(</span>combined_context<span style="color: Gray;">,</span> question<span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> fuse_results<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> subgraph<span style="color: Gray;">,</span> vector_results<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""<br/>知識グラフのサブグラフとベクトル検索結果を融合し、生成モデルが読み取り可能なコンテキストテキストに整理する<br/>
+        """</span><br/>
+        <span style="color: #a50"># サブグラフを自然言語の記述に変換（例：「OpenAI -設立された-&gt; 2015年」）</span><br/>
+        kg_text <span style="color: Gray;">=</span> subgraph.<span style="color: #05a;">to_text</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># ベクトル検索で取得した原文の断片を連結</span><br/>
+        vector_text <span style="color: Gray;">=</span> <span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>"</span>.<span style="color: #05a;">join</span><span style="color: Olive;">(</span><span style="color: Olive;">[</span>doc <span style="color: Green;font-weight:bold;">for</span> doc<span style="color: Gray;">,</span> _ <span style="color: Green;font-weight:bold;">in</span> vector_results<span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">return</span> f<span style="color: #a11;">"{kg_text}<span style="color: #000099; font-weight: bold;">\n</span>{vector_text}"</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> KnowledgeGraphBuilder:<br/>
+    <span style="color: #a11;">"""知識グラフ構築器（参考実装。実際のプロジェクトでは通常、専用のNER/関係抽出モデルを呼び出す）"""</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> extract_entities<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> text<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""<br/>テキストから固有表現を抽出する。通常はNER（固有表現認識）モデルを使用して行う<br/>エンティティタイプには一般的にPERSON（人物）、ORG（組織）、TIME（時間）などがある<br/>
+        """</span><br/>
+        entities <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> entities<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> extract_relations<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> text<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""<br/>テキストからエンティティ間の関係を抽出する。通常は関係抽出（Relation Extraction）モデルを使用して行う<br/>関係は通常トリプルで表現される：(頭部エンティティ, 関係タイプ, 尾部エンティティ)<br/>
+        """</span><br/>
+        relations <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> relations<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> query_entities<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> question<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""ユーザーの質問に基づいて、質問に関連するエンティティを識別し、後続のサブグラフ検索に使用する"""</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+</div>
+</div>
+<h3>応用シナリオ</h3>
+<p>GraphRAGは特に以下のシナリオに適している：</p>
+<p>エンティティ関係の理解が必要なQA。例：「この会社のCEOは誰ですか」。</p>
+<p>複数ホップの推論が必要な質問。例：「張三の指導教員の指導教員は誰ですか」。</p>
+<p>知識ベースに暗黙的に存在し、明示的に記述されていない関係を発掘する必要があるシナリオ。</p>
+<p>注意すべき点として、知識グラフの構築と維持には一定の工数コストがかかる（エンティティ/関係抽出の精度、グラフの更新・保守など）。そのため、関係推論に明確なニーズがあるシナリオに適しており、すべてのRAGプロジェクトのデフォルトの出発点としては推奨されない。</p>
+<hr/>
+<h2>手法の比較と選択のアドバイス</h2>
+<table class="reference">
+<tbody>
+<tr>
+<th>方式</th>
+<th>中核となる考え方</th>
+<th>利点</th>
+<th>制限</th>
+<th>適用シナリオ</th>
+</tr>
+<tr>
+<td>基本RAG</td>
+<td>ベクトル検索 + 直接生成</td>
+<td>実装が簡単、コストが低い、習得が早い</td>
+<td>検索精度に限界があり、関連性の低い内容を取得しやすい</td>
+<td>簡単なQA、迅速なプロトタイプ検証</td>
+</tr>
+<tr>
+<td>Advanced RAG（リランキング）</td>
+<td>ベクトル粗選別 + 交差エンコーダーによる精密ランキング</td>
+<td>検索ランキングの精度を大幅に向上</td>
+<td>モデル推論が1回増えるため、レイテンシとコストが増加</td>
+<td>回答の正確性に対する要求が高いシナリオ</td>
+</tr>
+<tr>
+<td>ハイブリッド検索</td>
+<td>ベクトル検索 + キーワード検索の融合</td>
+<td>意味的マッチングと正確なキーワードマッチングの両方を考慮</td>
+<td>2セットの検索インデックスを同時に保守する必要がある</td>
+<td>固有名詞、コード、番号が多い知識ベース</td>
+</tr>
+<tr>
+<td>GraphRAG</td>
+<td>知識グラフ + ベクトル検索の融合</td>
+<td>関係推論とマルチホップQAをサポート</td>
+<td>グラフ構築と保守のコストが高い</td>
+<td>関係型・マルチホップ推論のニーズが明確なシナリオ</td>
+</tr>
+</tbody>
+</table>
+<h2>章のまとめ</h2>
+<p>この章では、RAGと知識検索の中核技術を紹介した。</p>
+<p><span class="marked">RAGの基本原理</span>：検索と生成を組み合わせることで、Agentがモデルパラメータ内の記憶に完全に依存するのではなく、外部知識を利用して質問に回答できるようにする。</p>
+<p><span class="marked">Advanced RAG</span>：リランキング、ハイブリッド検索などの技術を通じて、基本フローの上に検索品質と回答精度をさらに向上させる。</p>
+<p><span class="marked">ベクトルデータベース</span>：RAGシステムの基盤インフラであり、ドキュメントのベクトル表現の効率的な保存と検索を担当する。選定はデータ規模とデプロイ方式を考慮して総合的に判断する必要がある。</p>
+<p><span class="marked">GraphRAG</span>：知識グラフと組み合わせることで、関係推論とマルチホップQA能力が強化されるが、追加の構築・保守コストも発生する。</p>
+<p>適切なRAG方式を選択するには、まずビジネスシナリオの実際のニーズを明確にすることが核心だ。単純なQAシナリオでは、基本RAGで十分なことが多い。検索精度への要求が高い場合は、リランキングを導入できる。知識ベースに固有名詞/キーワードが多い場合は、ハイブリッド検索の追加が適している。大量の関係推論やマルチホップQAが関わる場合は、GraphRAGの導入を検討する。技術が複雑になるほど、開発・保守コストも高くなる。そのため、「より高度な方式」を盲目的に追求するよりも、ニーズに応じて選択することの方が重要だ。</p> その他の拡張
+</div>
+</div>
+<div class="archive-list" style="display:none;font-size: 14px;line-height: 1.8;margin-top: 20px;padding: 10px;">
+<div class="archive-list-item">
+<div class="post-intro" id="ai-info" style="width: 100%;">AI思考中...</div>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../ai-agent/python-reasoning-planning.html" rel="prev">Pythonによる推論と計画の実装</a> </div>
+<div class="next-design-link"><a href="../ai-agent/multi-agent-system.html" rel="next">マルチエージェントシステム（Multi-Agent System）</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="sidebar-box">
+</div>
+ノート一覧
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>クリックしてノートを共有</h3>
+&lt;p style="font-size:14px;"&gt;ノートは本記事の内容の拡張である必要があります！&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;記事の投稿はこちらをクリック&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; ノートを共有する前に&lt;a href=";.html" class="runoob-pop"&gt;ログイン&lt;/a&gt;が必要です！&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=";.html" id="cancel-comment-reply-link">キャンセル</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="30008"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>ノートを共有</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">ニックネーム</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">ニックネーム (必須)</span></li>
+<li class="form-inline"><label class="hide" for="email">メールアドレス</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">メールアドレス (必須)</span></li>
+<li class="form-inline"><label class="hide" for="url">引用アドレス</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">引用アドレス</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  30008;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 30008, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":30008},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+</div>
+</div>
+<!-- 右边栏 -->
+<div class="fivecol last right-column">
+<style>
+.sidebar-tree .double-li {
+    width:300px;
+}
+.sidebar-tree .double-li li {
+    width: 44%;
+    line-height: 1.5em;
+    border-bottom: 1px solid #ccc;
+    float: left;
+    display: inline;
+}
+</style>
+<div class="sidebar-box re-box re-box-large">
+<div class="sidebar-box recommend-here" style="margin: 0 auto;">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;"> <i aria-hidden="true" class="fa fa-list"></i> 分类导航</a>
+</div>
+<div class="sidebar-box sidebar-cate">
+<div class="sidebar-tree">
+<ul><li style="margin: 0;"><a class="tit" href="#"> Python / 数据科学</a><ul class="double-li"><li><a href="../python3/python3-tutorial.html" title="Python 教程">Python 教程</a></li><li><a href="../python/python-tutorial.html" title="Python2.x 教程">Python2.x 教程</a></li><li><a href="../fastapi/fastapi-tutorial.html" title="FastAPI 教程">FastAPI 教程</a></li><li><a href="../flask/flask-tutorial.html" title="Flask 教程">Flask 教程</a></li><li><a href="../django/django-tutorial.html" title="Django 教程">Django 教程</a></li><li><a href="../numpy/numpy-tutorial.html" title="NumPy 教程">NumPy 教程</a></li><li><a href="../pandas/pandas-tutorial.html" title="Pandas 教程">Pandas 教程</a></li><li><a href="../scipy/scipy-tutorial.html" title="SciPy 教程">SciPy 教程</a></li><li><a href="../matplotlib/matplotlib-tutorial.html" title="Matplotlib 教程">Matplotlib 教程</a></li><li><a href="../dash/dash-tutorial.html" title="Dash 教程">Dash 教程</a></li><li><a href="../jupyter-notebook/jupyter-notebook-tutorial.html" title="Jupyter Notebook 教程">Jupyter Notebook 教程</a></li><li><a href="../pillow/pillow-tutorial.html" title="Pillow 教程">Pillow 教程</a></li><li><a href="../qt/qt-tutorial.html" title="量化交易">量化交易</a></li><li><a href="../r/r-tutorial.html" title="R 教程">R 教程</a></li><li><a href="../julia/julia-tutorial.html" title="Julia 教程">Julia 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> AI / 智能开发</a><ul class="double-li"><li><a href="../ai-agent/ai-agent-tutorial.html" title="AI Agent（智能体）">AI Agent（智能体）</a></li><li><a href="../ai/ai-tutorial.html" title="AI（人工智能）">AI（人工智能）</a></li><li><a href="../codex/codex-tutorial.html" title="Codex 教程">Codex 教程</a></li><li><a href="../vibe-coding/vibe-coding-tutorial.html" title="Vibe Coding 教程">Vibe Coding 教程</a></li><li><a href="../claude-code/claude-code-tutorial.html" title="Claude Code">Claude Code</a></li><li><a href="../opencode/opencode-tutorial.html" title="OpenCode">OpenCode</a></li><li><a href="../skills/skills-tutorial.html" title="Skills（技能）">Skills（技能）</a></li><li><a href="../ollama/ollama-tutorial.html" title="Ollama 教程">Ollama 教程</a></li><li><a href="../hermes-agent/hermes-agent-tutorial.html" title="Hermes Agent">Hermes Agent</a></li><li><a href="../deepseek-harness/deepseek-harness-tutorial.html" title="DeepSeek Harness">DeepSeek Harness</a></li><li><a href="../pi-agent/pi-agent-tutorial.html" title="Pi Agent">Pi Agent</a></li><li><a href="../ai-math/ai-math-tutorial.html" title="AI 数学基础">AI 数学基础</a></li><li><a href="../tensorflow/tensorflow-tutorial.html" title="TensorFlow 教程">TensorFlow 教程</a></li><li><a href="../pytorch/pytorch-tutorial.html" title="PyTorch 教程">PyTorch 教程</a></li><li><a href="../sklearn/sklearn-tutorial.html" title="Scikit-learn 教程">Scikit-learn 教程</a></li><li><a href="../ml/ml-tutorial.html" title="机器 教程">机器 教程</a></li><li><a href="../langchain/langchain-tutorial.html" title="LangChain">LangChain</a></li><li><a href="../nlp/nlp-tutorial.html" title="自然语言处理 NLP">自然语言处理 NLP</a></li><li><a href="../opencv/opencv-tutorial.html" title="OpenCV 教程">OpenCV 教程</a></li><li><a href="../selenium/selenium-tutorial.html" title="Selenium 教程">Selenium 教程</a></li><li><a href="../playwright/playwright-tutorial.html" title="Playwright 教程">Playwright 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 前端开发</a><ul class="double-li"><li><a href="../html/html-tutorial.html" title="HTML 教程">HTML 教程</a></li><li><a href="../html/html5-intro.html" title="HTML5 教程">HTML5 教程</a></li><li><a href="../css/css-tutorial.html" title="CSS 教程">CSS 教程</a></li><li><a href="../css3/css3-tutorial.html" title="CSS3 教程">CSS3 教程</a></li><li><a href="../js/js-tutorial.html" title="JavaScript 教程">JavaScript 教程</a></li><li><a href="../htmldom/htmldom-tutorial.html" title="HTML DOM 教程">HTML DOM 教程</a></li><li><a href="../typescript/ts-tutorial.html" title="TypeScript 教程">TypeScript 教程</a></li><li><a href="../ajax/ajax-tutorial.html" title="AJAX 教程">AJAX 教程</a></li><li><a href="../json/json-tutorial.html" title="JSON 教程">JSON 教程</a></li><li><a href="../tailwindcss/tailwindcss-tutorial.html" title="Tailwind CSS 教程">Tailwind CSS 教程</a></li><li><a href="../bootstrap4/bootstrap4-tutorial.html" title="Bootstrap4 教程">Bootstrap4 教程</a></li><li><a href="../bootstrap5/bootstrap5-tutorial.html" title="Bootstrap5 教程">Bootstrap5 教程</a></li><li><a href="../foundation/foundation-tutorial.html" title="Foundation 教程">Foundation 教程</a></li><li><a href="../vue2/vue-tutorial.html" title="Vue.js 教程">Vue.js 教程</a></li><li><a href="../vue3/vue3-tutorial.html" title="Vue3 教程">Vue3 教程</a></li><li><a href="../react/react-tutorial.html" title="React 教程">React 教程</a></li><li><a href="../nextjs/nextjs-tutorial.html" title="Next.js 教程">Next.js 教程</a></li><li><a href="../angularjs/angularjs-tutorial.html" title="AngularJS 教程">AngularJS 教程</a></li><li><a href="../angularjs2/angularjs2-tutorial.html" title="Angular 教程">Angular 教程</a></li><li><a href="../jquery/jquery-tutorial.html" title="jQuery 教程">jQuery 教程</a></li><li><a href="../jqueryui/jqueryui-tutorial.html" title="jQuery UI 教程">jQuery UI 教程</a></li><li><a href="../jeasyui/jqueryeasyui-tutorial.html" title="jQuery EasyUI 教程">jQuery EasyUI 教程</a></li><li><a href="../echarts/echarts-tutorial.html" title="ECharts 教程">ECharts 教程</a></li><li><a href="../chartjs/chartjs-tutorial.html" title="Chart.js 教程">Chart.js 教程</a></li><li><a href="../highcharts/highcharts-tutorial.html" title="Highcharts 教程">Highcharts 教程</a></li><li><a href="../googleapi/google-maps-basic.html" title="Google 地图 教程">Google 地图 教程</a></li><li><a href="../svg/svg-tutorial.html" title="SVG 教程">SVG 教程</a></li><li><a href="../font-awesome/fontawesome-tutorial.html" title="Font Awesome 教程">Font Awesome 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 后端开发</a><ul class="double-li"><li><a href="../nodejs/nodejs-tutorial.html" title="Node.js 教程">Node.js 教程</a></li><li><a href="../electron/electron-tutorial.html" title="Electron 教程">Electron 教程</a></li><li><a href="../php/php-tutorial.html" title="PHP 教程">PHP 教程</a></li><li><a href="../java/java-tutorial.html" title="Java 教程">Java 教程</a></li><li><a href="../go/go-tutorial.html" title="Go 教程">Go 教程</a></li><li><a href="../rust/rust-tutorial.html" title="Rust 教程">Rust 教程</a></li><li><a href="../csharp/csharp-tutorial.html" title="C# 教程">C# 教程</a></li><li><a href="../servlet/servlet-tutorial.html" title="Servlet 教程">Servlet 教程</a></li><li><a href="../jsp/jsp-tutorial.html" title="JSP 教程">JSP 教程</a></li><li><a href="../asp/asp-tutorial.html" title="ASP 教程">ASP 教程</a></li><li><a href="../appml/appml-tutorial.html" title="AppML 教程">AppML 教程</a></li><li><a href="../vbscript/vbscript-tutorial.html" title="VBScript 教程">VBScript 教程</a></li><li><a href="../swagger/swagger-tutorial.html" title="Swagger 教程">Swagger 教程</a></li><li><a href="../restfulapi/restful-api-tutorial.html" title="RESTful API 教程">RESTful API 教程</a></li><li><a href="../docker/docker-tutorial.html" title="Docker 教程">Docker 教程</a></li><li><a href="../linux/linux-tutorial.html" title="Linux 教程">Linux 教程</a></li><li><a href="../w3cnote/zookeeper-tutorial.html" title="ZooKeeper 教程">ZooKeeper 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 数据库</a><ul class="double-li"><li><a href="../sql/sql-tutorial.html" title="SQL 教程">SQL 教程</a></li><li><a href="../mysql/mysql-tutorial.html" title="MySQL 教程">MySQL 教程</a></li><li><a href="../postgresql/postgresql-tutorial.html" title="PostgreSQL 教程">PostgreSQL 教程</a></li><li><a href="../sqlite/sqlite-tutorial.html" title="SQLite 教程">SQLite 教程</a></li><li><a href="../mongodb/mongodb-tutorial.html" title="MongoDB 教程">MongoDB 教程</a></li><li><a href="../redis/redis-tutorial.html" title="Redis 教程">Redis 教程</a></li><li><a href="../memcached/memcached-tutorial.html" title="Memcached 教程">Memcached 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 移动开发</a><ul class="double-li"><li><a href="../w3cnote/android-tutorial-intro.html" title="Android 教程">Android 教程</a></li><li><a href="../flutter/flutter-tutorial.html" title="Flutter 教程">Flutter 教程</a></li><li><a href="../ionic/ionic-tutorial.html" title="Ionic 教程">Ionic 教程</a></li><li><a href="../jquerymobile/jquerymobile-tutorial.html" title="jQuery Mobile 教程">jQuery Mobile 教程</a></li><li><a href="../swift/swift-tutorial.html" title="Swift 教程">Swift 教程</a></li><li><a href="../kotlin/kotlin-tutorial.html" title="Kotlin 教程">Kotlin 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> DevOps / 工程化</a><ul class="double-li"><li><a href="../git/git-tutorial.html" title="Git 教程">Git 教程</a></li><li><a href="../svn/svn-tutorial.html" title="SVN 教程">SVN 教程</a></li><li><a href="../cmake/cmake-tutorial.html" title="CMake 教程">CMake 教程</a></li><li><a href="../maven/maven-tutorial.html" title="Maven 教程">Maven 教程</a></li><li><a href="../vscode/vscode-tutorial.html" title="VS Code 教程">VS Code 教程</a></li><li><a href="../obsidian/obsidian-tutorial.html" title="Obsidian 教程">Obsidian 教程</a></li><li><a href="../pycharm/pycharm-tutorial.html" title="PyCharm 教程">PyCharm 教程</a></li><li><a href="../eclipse/eclipse-tutorial.html" title="Eclipse 教程">Eclipse 教程</a></li><li><a href="../markdown/md-tutorial.html" title="Markdown 教程">Markdown 教程</a></li><li><a href="../latex/latex-tutorial.html" title="LaTeX 教程">LaTeX 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 编程语言</a><ul class="double-li"><li><a href="../c/c-tutorial.html" title="C 教程">C 教程</a></li><li><a href="../cplusplus/cpp-tutorial.html" title="C++ 教程">C++ 教程</a></li><li><a href="../zig/zig-tutorial.html" title="Zig 教程">Zig 教程</a></li><li><a href="../scala/scala-tutorial.html" title="Scala 教程">Scala 教程</a></li><li><a href="../ruby/ruby-tutorial.html" title="Ruby 教程">Ruby 教程</a></li><li><a href="../perl/perl-tutorial.html" title="Perl 教程">Perl 教程</a></li><li><a href="../lua/lua-tutorial.html" title="Lua 教程">Lua 教程</a></li><li><a href="../dart/dart-tutorial.html" title="Dart 教程">Dart 教程</a></li><li><a href="../assembly/assembly-tutorial.html" title="汇编语言 教程">汇编语言 教程</a></li><li><a href="../w3cnote/verilog-tutorial.html" title="Verilog 教程">Verilog 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 计算机基础</a><ul class="double-li"><li><a href="../computer-organization/computer-organization-tutorial.html" title="计算机组成原理">计算机组成原理</a></li><li><a href="../data-structures/data-structures-tutorial.html" title="数据结构与算法">数据结构与算法</a></li><li><a href="../c-dsa/c-dsa-tutorial.html" title="C 语言数据结构与算法">C 语言数据结构与算法</a></li><li><a href="../design-pattern/design-pattern-tutorial.html" title="设计模式">设计模式</a></li><li><a href="../python-design-pattern/python-design-pattern-tutorial.html" title="Python 设计模式">Python 设计模式</a></li><li><a href="../regexp/regexp-tutorial.html" title="正则表达式">正则表达式</a></li><li><a href="../http/http-tutorial.html" title="HTTP 教程">HTTP 教程</a></li><li><a href="../tcpip/tcpip-tutorial.html" title="TCP/IP 教程">TCP/IP 教程</a></li><li><a href="../np/np-tutorial.html" title="网络协议">网络协议</a></li><li><a href="../w3c/w3c-tutorial.html" title="W3C 教程">W3C 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> XML / Web Service</a><ul class="double-li"><li><a href="../xml/xml-tutorial.html" title="XML 教程">XML 教程</a></li><li><a href="../dtd/dtd-tutorial.html" title="DTD 教程">DTD 教程</a></li><li><a href="../dom/dom-tutorial.html" title="XML DOM 教程">XML DOM 教程</a></li><li><a href="../xsl/xsl-tutorial.html" title="XSLT 教程">XSLT 教程</a></li><li><a href="../xpath/xpath-tutorial.html" title="XPath 教程">XPath 教程</a></li><li><a href="../xquery/xquery-tutorial.html" title="XQuery 教程">XQuery 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XLink 教程">XLink 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XPointer 教程">XPointer 教程</a></li><li><a href="../schema/schema-tutorial.html" title="XML Schema 教程">XML Schema 教程</a></li><li><a href="../xslfo/xslfo-tutorial.html" title="XSL-FO 教程">XSL-FO 教程</a></li><li><a href="../webservices/webservices-tutorial.html" title="Web Service 教程">Web Service 教程</a></li><li><a href="../wsdl/wsdl-tutorial.html" title="WSDL 教程">WSDL 教程</a></li><li><a href="../soap/soap-tutorial.html" title="SOAP 教程">SOAP 教程</a></li><li><a href="../rss/rss-tutorial.html" title="RSS 教程">RSS 教程</a></li><li><a href="../rdf/rdf-tutorial.html" title="RDF 教程">RDF 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> .NET</a><ul class="double-li"><li><a href="../aspnet/aspnet-tutorial.html" title="ASP.NET 教程">ASP.NET 教程</a></li><li><a href="../aspnet/mvc-intro.html" title="MVC 教程">MVC 教程</a></li><li><a href="../aspnet/razor-intro.html" title="Razor 教程">Razor 教程</a></li><li><a href="../aspnet/aspnet-intro.html" title="Web Forms 教程">Web Forms 教程</a></li><li><a href="../aspnet/webpages-intro.html" title="Web Pages 教程">Web Pages 教程</a></li><li><a href="../powershell/powershell-tutorial.html" title="PowerShell 教程">PowerShell 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 网站建设</a><ul class="double-li"><li><a href="../web/web-buildingprimer.html" title="网站建设指南">网站建设指南</a></li><li><a href="../browsers/browser-information.html" title="浏览器信息">浏览器信息</a></li><li><a href="../hosting/hosting-tutorial.html" title="网站主机教程">网站主机教程</a></li><li><a href="../quality/quality-tutorial.html" title="网站品质">网站品质</a></li></ul></li></ul> </div>
+</div>
+</div>
+<br/>
+<div class="sidebar-box re-box re-box-large">
+</div>
+</div></div>
+</div>
+<script>
+var aid = 30008;
+function coll() {
+	$.post( '/wp-content/themes/runoob/option/user/userinfo.php', {aid:aid, action:"collarticle", opt:'add'},function( data ) {
+		if(data.error==0) {
+			$("#content").find("h1:first").find("a").attr("href","javascript:void(0);");
+			$("#content").find("h1:first").find("img").attr("src","http://www.runoob.com/wp-content/themes/runoob/assets/img/coll2.png").css({width:32+"px",height:32+"px"});
+		}
+		alert(data.msg);
+	},'json');
+}
+
+(function () {
+    // 1. 仅 HTML 页面
+    if (!document.contentType || !document.contentType.includes('text/html')) return;
+
+    // 2. 容器判断
+    var container = document.querySelector('.article-intro');
+    if (!container) return;
+
+    var h1 = container.querySelector('h1');
+    if (!h1) return;
+
+    // 3. URL 判断
+    var url = window.location.href.toLowerCase();
+    var version = null;
+
+    if (url.includes('/python3/')) {
+        version = 'Python3.x';
+    } else if (url.includes('/python/')) {
+        version = 'Python2.x';
+    }
+
+    if (!version) return;
+
+    // 4. 防重复
+    if (h1.querySelector('.py-version-badge')) return;
+
+    // 5. 创建标签
+    var badge = document.createElement('span');
+    badge.className = 'py-version-badge';
+    badge.innerText = version;
+
+    // 6. 样式（核心：float 实现右上角）
+    badge.style.float = 'right';
+    badge.style.fontSize = '12px';
+    badge.style.padding = '2px 8px';
+    badge.style.borderRadius = '999px';
+
+   // 自适应亮/暗色 + 渐变背景（增强版）
+	badge.style.color = 'inherit';
+
+	// 渐变背景（低透明度，不影响暗黑模式）
+	if (version.includes('3')) {
+		badge.style.background = 'linear-gradient(90deg, rgba(79,172,254,0.15), rgba(0,242,254,0.15))';
+	} else {
+		badge.style.background = 'linear-gradient(90deg, rgba(161,140,209,0.15), rgba(251,194,235,0.15))';
+	}
+
+	// 边框弱化（更精致）
+	badge.style.border = '1px solid rgba(127,127,127,0.3)';
+
+	// 提升可读性
+	badge.style.opacity = '0.95';
+
+    // 微调位置（更贴近“右上角”）
+    badge.style.marginTop = '4px';
+    badge.style.marginLeft = '10px';
+
+    // 7. 插入到 h1 最前面（让 float 生效更稳定）
+    h1.insertBefore(badge, h1.firstChild);
+
+})();
+</script>
+<!-- 反馈对话框开始 -->
+<script src="../wp-content/themes/runoob/assets/js/runoob-article-dir.min.js"></script>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>12.5 DrySister美少女閲覧アプリ(第一版)——5.コードレビュー、調整、ログクラスの作成 | 初心者向けチュートリアル</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="./android-tutorial-exercise-5.html" rel="canonical"/>
+<meta content="12.5 DrySister看妹子应用(第一版)——5.代码回顾，调整与日志类编写" name="keywords"/>
+<meta content="1.一些BB    说来惭愧，DrySister的上一篇距今已经有一年多了，期间有不少小伙伴 都曾私信过我说写得很好，稳什么时候更，我基本都回复说太监了... 具体原因各种各样吧，最近一段时间比较闲，就想把第一版的完结了吧。 之前刚开始写的时候是AS 2.1.2，现在都AS 3.0.1了，本节的内容 依次是：   	Step 1：温习一波之前几节涉及到的东西  	Step 2：代码在AS 3.0.1上跑要做一些调整  	Step 3：编.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div><!-- 导航栏 -->
+<!--  内容  -->
+<div class="container main">
+<div class="row">
+<!--  Android 基础入门教程 start  -->
+<div class="col left-column" style="display:none;">
+<div class="tab">Android 基础入门教程</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+</div>
+</div>
+</div>
+<!--  Android 基础入门教程 end  -->
+<div class="col middle-column big-middle-column">
+<div class="article">
+<div class="article-heading">
+<h2>12.5 DrySister美少女閲覧アプリ(第一版)——5.コードレビュー、調整、ログクラスの作成</h2> <h3><em>カテゴリ</em> <a href="../w3cnote_genre/android.html" title="Android 基础入门教程">Android基礎入門チュートリアル</a> </h3>
+</div>
+<div class="article-body note-body">
+<div class="article-intro">
+<!-- ad start-->
+<!-- ad end-->
+<h2 id="toc_1">1.ちょっとした雑談</h2>
+<hr/>
+<p>恥ずかしながら、DrySisterの前回の記事からもう1年以上が経ちました。その間に多くの仲間から「よく書けているね、いつ更新するの？」と直接メッセージをもらいましたが、私はだいたい「打ち切りだよ」と返していました。理由はいろいろありますが、最近は時間があるので、第一版を完結させようと思っています。<strong>AS 2.1.2</strong>、今ではもう<strong>AS 3.0.1</strong>になりました。本節の内容は</p>
+<ul>
+<li><strong>Step 1：これまでのいくつかの節で扱った内容を復習する</strong></li>
+<li><strong>Step 2：AS 3.0.1でコードを動かすにはいくつか調整が必要</strong></li>
+<li><strong>Step 3：ログクラスを作成する</strong></li>
+</ul>
+<p>次節では署名、難読化、アプリストアへのリリースについて説明します。余計な話はやめて、本節の内容を始めましょう！</p>
+<hr/>
+<h2>2.コードレビュー</h2>
+<hr/>
+<ul>
+<li><strong>第1節：プロジェクト構築と簡単な実装</strong>
+<ul>
+<li>1. Git関連の操作</li>
+<li>2. シンプルな画像ロードクラス（ネットワークストリームを取得→画像に変換→HandlerでUIを更新）</li>
+</ul>
+</li>
+<li><strong>第2節：バックエンドデータの解析</strong>
+<ul>
+<li>1. Android標準の雑なJsonパーサーを使用してバックエンドが返すJsonデータを解析する（Json文字列 -&gt; List&lt;<strong>Bean</strong>&gt;)</li>
+<li>2. AsyncTaskを使用して非同期ネットワークリクエストを行う</li>
+</ul>
+</li>
+<li><strong>第3節：画像ロードの最適化（画像キャッシュの小さなフレームワークを作成）</strong>
+<ul>
+<li>1. 画像キャッシュの基本的なパターン<img decoding="async" src="../wp-content/uploads/2017/12/1513928014-2804-1app669df1jv5r0k8ea1nk71ltq9.png"/></li>
+<li>2. 使用する<strong>サンプリング圧縮法</strong>でBitmapを圧縮してOOMを回避する</li>
+<li>3. スレッドプールで複数の画像ロードスレッドを管理する</li>
+<li>4. HandlerでUIを更新する</li>
+<li>5. String文字列（ここではURL）をMD5に変換</li>
+<li>6. メモリキャッシュクラス<strong>LruCache</strong>の使用</li>
+<li>7. ディスクキャッシュクラス<strong>DiskLruCache</strong>の使用</li>
+<li>8. 画像の非同期ロードとキャッシュ全体のロジック設計</li>
+</ul>
+</li>
+<li><strong>第4節：データキャッシュの追加（SQLiteを導入）</strong>
+<ul>
+<li>1. ネットワーク状態の判定</li>
+<li>2. カスタムSQLiteOpenHelperでデータベースを作成</li>
+<li>3. データベース関連操作：追加・削除・更新・検索、トランザクション、ページングなど</li>
+</ul>
+</li>
+</ul>
+<p>以上が前の4つの節の内容です。Android基礎入門で重要な知識ポイントをすべて活用しました。すべて習得できれば、なんとかAndroid入門と言えるでしょう。この先の道はまだ長いです！</p>
+<hr/>
+<h2 id="toc_3">3.コードの調整</h2>
+<hr/>
+<p>ASが3.0に切り替わってから、以下のファイルのコードを変更する必要があります。いつものように、ブランチ切り替えコマンドを実行します：<strong>git checkout -b fix<em>code</em>as3.0.1</strong>、それからコード修正を始めます：</p>
+<p>プロジェクトレベルの<strong>build.gradle</strong>：</p>
+<p><img decoding="async" src="../wp-content/uploads/2017/12/1513928014-5885-if3ebfc794w2xw6gm2k4lx2l.png"/></p>
+<p>APPレベルの<strong>build.gradle</strong>：</p>
+<p><img decoding="async" src="../wp-content/uploads/2017/12/1513928015-5254-aajqntkjl20mg1yzfzj69l1c.png"/></p>
+<p><strong>gradle-wrapper.properties</strong>：</p>
+<p><img decoding="async" src="../wp-content/uploads/2017/12/1513928015-5735-hijnbclbwrmwrq67htffny67.png"/></p>
+<p>もう一つ少し変更する場所があります：<strong>SisterApi.java</strong>、「<strong>福利</strong>」に変更します：<strong>%e7%a6%8f%e5%88%a9</strong>これは中国語のエンコード処理の問題に関係します。HttpUrlConnectionは中国語を含むURLを開くことができないため、中国語の部分に対して<strong>URLEncoder.encode(中文部分,"utf-8");</strong>を呼び出してエンコードします。忘れずに<strong>ただ</strong>
+<strong>中国語の部分だけで、URL全体ではありません</strong>！！！エンコードには例外のキャッチも必要です。ここではエンコードが必要な場所が1つだけなので、Web版のエンコードツールを使って直接エンコードしました：<a href="../front-end/695.html" target="_blank">https://c.runoob.com/front-end/695</a></p>
+<p>変換後の結果：</p>
+<p><img decoding="async" src="../wp-content/uploads/2017/12/1513928015-6829-iuq65j5rh64ganeyeqz5hs1o.png"/></p>
+<p>他にもいくつか小さな変更があります。<strong>buildToolsVersion 26以上</strong>，<strong>findViewByIdは強制キャストする必要はありません</strong>、そのメソッドの中を見ればわかりますが、ジェネリクスが使われているので、findViewByIdをすべて取り除きます：</p>
+<p><img decoding="async" src="../wp-content/uploads/2017/12/1513928015-9168-46828sb373zsxtfj01kvg9ql.png"/></p>
+<p><img decoding="async" src="../wp-content/uploads/2017/12/1513928015-7749-p6j1w8my03o75b0vikauotg9.png"/></p>
+<p>最後に、私の魅蓝E2で実行したときの表示が少しずれていると感じたので、ページレイアウトを少し調整し、画像の幅を画面いっぱいにして、高さは自動調整にしました。ここで使う属性は<strong>android:adjustViewBounds = "true"</strong>、つまり縦横比に応じて拡大縮小します。さらに、「前へ」「次へ」のテキストを<strong>strings.xml</strong>ファイルに入れて、余白を少し調整しました：</p>
+<p><img decoding="async" src="../wp-content/uploads/2017/12/1513928015-2216-rvay1y8if1c01xh6revn49zv.png"/></p>
+<p>最後にプロジェクトの実行結果を見てみましょう。（おっと、きれいな女の子は目にいいですね）：<img decoding="async" src="../wp-content/uploads/2017/12/1513928016-1421-5e6f63u5hwhtt13ir1omvp2k.gif"/></p>
+<p><img decoding="async" src="../wp-content/uploads/2017/12/1513928016-2202-s733cjuawgz3fripy2tn5kpl.gif"/></p>
+<p>それからこのブランチをdevelopブランチにマージします。ここでは以前のmergeのようなマージ方法は使わず、rebaseを使ってマージします。具体的な手順は次のとおりです：</p>
+<pre>git add .
+git commit -m "fix code in as3.0"
+git checkout develop    # 切换到develop分支
+git rebase fix_code_as3.0.1 # 合并分支
+git push origin develop # 推送develop到远程分支
+git branch -d fix_code_as3.0.1  # 删除合并后的本地分支</pre>
+<p>Gitについてまだ理解していない人は別の記事で学んでください。ここでは詳しく説明しません：<a href="http://blog.csdn.net/coder_pig/article/details/54346867" target="_blank">小猪のGit使用まとめ</a></p>
+<hr/>
+<h2>4.ログツールクラスとクラッシュログ収集クラスの作成</h2>
+<hr/>
+<p>Logでログを出力することは、すべての開発者にとって馴染み深いでしょう。普段のデバッグには欠かせません。アプリをパッケージングしてテスターに渡してテストするとき、テスターがアプリのクラッシュを報告したら、最初に思いつくのは相手にログを提供してもらうことです。このLog出力について、多くの人は気軽にLog.e(xxx,xxx)と書くのが好きで、どんなログでもErrorレベルにしてしまいます。その理由は基本的に：<strong>赤色のほうが目立つから</strong>、はは！そして変数の値を直接出力したり、メソッド内に追加してメソッドが実行されたかどうかを検証したりします。正式リリース時に削除するのを覚えていればまだいいですが、削除し忘れるとまさに自殺行為です。とにかく以前、前の会社の上司にひどく叱られたことがあり、今でもはっきり覚えています！Logの管理は非常に重要です。私たちが作成する2つのツールクラスは次のとおりです：</p>
+<blockquote>
+<ul>
+<li>1. debugのときはログを通常に出力し、releaseのときは出力しない</li>
+<li>2.<strong>クラッシュログ収集</strong>、自分でテストしたり、テスターがテストするくらいなら問題ありません。クラッシュしたらスマホをパソコンに接続してlogcatを見れば一目瞭然です。しかし、アプリがユーザーのスマホにインストールされている場合、アプリがクラッシュして停止しても、ユーザーはログを送ってくれません。何度もクラッシュすると、ユーザーがアプリをアンインストールする可能性もあります。そのため、アプリがクラッシュしたときにログを保存し、ユーザーがWiFiに接続したときやアプリを再度開いたときに、このログを私たちのサーバーにアップロードする必要があります。ここではただ遊びで書いているだけなので、次のものだけを実装します：<strong>ローカルクラッシュログ収集</strong>、通常は友盟（Umeng）やBuglyなどの第三者統計ツールを統合してログ収集を行います。</li>
+</ul>
+</blockquote>
+<p>では、要件は上記の2点です。続いてコードを書き始める準備をします。ただし、コードを書く前にLogに関する2点を説明します。おそらく多くの人はすでに知っていると思いますので、知っている人は読み飛ばして構いません：</p>
+<h3>1) Logを素早く出力する</h3>
+<p>設定を開いて、順にクリック：<strong>Live Templates</strong> -&gt; <strong>AndroidLog</strong>ログ出力に関する項目にすべてチェックを入れます。さらに、下のTemplate textに自分でテンプレートを書くこともできます。</p>
+<p><img decoding="async" src="../wp-content/uploads/2017/12/1513928016-7093-f9tq60nafa3vy493pckxylfq.png"/></p>
+<p>次に、コード内で上記のlog...と入力してEnterを押すだけで、Log文が生成されます。TAGは現在のメソッド名になります。</p>
+<p><img decoding="async" src="../wp-content/uploads/2017/12/1513928016-9802-srdif5h6klmy7voqu1o158wu.png"/></p>
+<hr/>
+<h3>2. Logの使用に関する基礎知識</h3>
+<p><strong>1) Logを素早く出力するコマンド</strong></p>
+<p>Settingsを開いて、順にクリック：<strong>Live Templates</strong> -&gt; <strong>AndroidLog</strong>ログ出力に関する項目にすべてチェックを入れます。下のTemplate textに自分でテンプレートを書くこともできます。</p>
+<p><img decoding="async" src="../wp-content/uploads/2017/12/1513928016-5655-argb5mlg120rduj1l0r1mr21473n.png"/></p>
+<p>次に、コード内で上記のlog...と入力してEnterを押すだけで、Log文が生成されます。</p>
+<p><img decoding="async" src="../wp-content/uploads/2017/12/1513928019-2273--1argb9tak86apko1bikglv60814.png"/></p>
+<p><img decoding="async" src="../wp-content/uploads/2017/12/1513928020-9516-argbanqcuh91pcqb1k1evg1ctm1h.png"/></p>
+<p>メソッドの外で、logtと入力すると、対応するクラス名のTAGを直接生成できます：</p>
+<p><img decoding="async" src="../wp-content/uploads/2017/12/1513928020-1556-rgbd7ja1inq1rrd1plc1bhjked1u.png"/></p>
+<p><img decoding="async" src="../wp-content/uploads/2017/12/1513928020-5462--1argbdju61j2hru0p4k1n10jv2b.png"/></p>
+<p><strong>2) Logレベルの基礎知識</strong></p>
+<p>以前、チームリーダーがミーティングで、デバッグ時に直接Log.eを使う悪い習慣について話していました。異なるLogレベルでは異なる情報を出力すべきです：</p>
+<blockquote>
+<ul>
+<li><strong>Log.v</strong>：<strong>Verbose（冗長）</strong>開発・デバッグ中の詳細情報です。製品にコンパイルすべきではなく、開発段階でのみ使用します。</li>
+<li><strong>Log.d：Debug（デバッグ）</strong>デバッグ用の情報で、製品にはコンパイルされるが、実行時にはオフになります。</li>
+</ul>
+<p>以下の3つのレベルを通常のデバッグ情報として使用することは禁止されています。これらのレベルのLogは、アプリに問題が発生したときの重要な分析手がかりです。もしむやみに使用すると、開発者がバグを分析する際に不必要な混乱を招きます。</p>
+<ul>
+<li><strong>Log.i：Info（情報）</strong>例えば、実行時のステータス情報などです。これらのステータス情報は、問題が発生したときに役立ちます。</li>
+<li><strong>Log.w：Warning（警告）</strong>アプリに異常が発生したことを警告しますが、すぐにエラーになるとは限らないため、注意が必要です。</li>
+<li><strong>Log.e：Error（エラー）</strong>アプリにエラーが発生した場合で、最も注意して解決すべきものです！</li>
+</ul>
+</blockquote>
+<h3>3) ログツールクラスの作成</h3>
+<p>いつものように、まずブランチを切ります：<strong>bug<em>log</em>catch</strong>これはとても簡単です。デバッグ時は出力し、正式版では出力しません。<strong>BuildConfig.Debug</strong>これを利用して判定すればよいだけです。コードは次のとおりです：</p>
+<p>
+<img decoding="async" src="../wp-content/uploads/2017/12/1513928021-3638-1c1p0op3op171go0avr1fbvu8o1t.png"/></p>
+<h3>4) クラッシュログ収集クラスの作成</h3>
+<p>クラッシュログ収集クラスは<strong>Application</strong>与<strong>Thread.UncaughtExceptionHandler</strong>の実装に依存します。<strong>プログラムが原因で</strong>終了して抜けようとするとき、Thread.UncaughtExceptionHandlerを使用してスレッドのUncaughtExceptionHandlerを取得し、呼び出します。<strong>uncaughtExceptionメソッド</strong>を呼び出し、スレッドと例外をパラメータとして渡します。スレッドが<strong>UncaughtExceptionHandlerを明示的に設定していない場合は</strong>、それを<strong>ThreadGroup</strong>そのスレッドのUncaughtExceptionHandlerとして、デフォルトの未捕捉例外ハンドラに処理を委ねます。ですから、私たちはただ<strong>UncaughtExceptionHandlerインターフェースを実装し</strong>、オーバーライドして<strong>uncaughtExceptionメソッドを</strong>実装することで、独自の処理を実現できます。まずロジックのリストを整理しましょう。</p>
+<ul>
+<li>1.<strong>ログファイル専用のフォルダを作成する</strong>：ストレージカードが利用可能かどうかを判断し、フォルダが存在するかどうかを確認して、存在しなければ新しいフォルダを作成します。</li>
+<li>2. 文字列をファイルに書き込むメソッドが必要です</li>
+<li>3.<strong>クラッシュログの内容構成</strong>：現在の時刻、アプリのバージョン、デバイス情報、クラッシュログ</li>
+<li>4. システムデフォルトのUncaughtExceptionHandlerを取得し、nullかどうかを判断します。nullでなければ、カスタムのUncaughtExceptionHandlerとして設定します。ここではシングルトンを使用します。</li>
+<li>5. 最後にアプリの再起動です。1秒後にアプリを再起動するように設定します。</li>
+</ul>
+<p>おおまかなロジックは上記のとおりです。一つずつ説明していきます。まずは1、2の手順です。</p>
+<p><img decoding="async" src="../wp-content/uploads/2017/12/1513928021-8209-auoo6b3768ewaexch8wru07n.png"/></p>
+<p>次にクラッシュログです。いくつかの部分から構成されています。まずは現在の時刻</p>
+<p><img decoding="async" src="../wp-content/uploads/2017/12/1513928021-8270-1c1pevhabe4j1fe618ijfi1ar02m.png"/></p>
+<p>次にアプリのバージョンとデバイス情報です。ここではHashMapを使って保存します。</p>
+<p><img decoding="async" src="../wp-content/uploads/2017/12/1513928022-1456--1c1pfvm4roassp61u8s613dci33.png"/></p>
+<p>さらに例外情報です。これは簡単で、例外オブジェクトをそのまま渡してprintStackTraceを呼び出すだけです。最後にすべてをまとめると次のようになります。</p>
+<p><img decoding="async" src="../wp-content/uploads/2017/12/1513928022-9667-1c1pgn9vp1q01kegjubir01vt13g.png"/></p>
+<p>ファイルへの書き込みも解決しました。次に、カスタムUncaughtExceptionHandlerのシングルトンと、デフォルトのUncaughtExceptionHandlerハンドラの取得です。カスタムUncaughtExceptionHandlerとして設定し、さらにUncaughtExceptionメソッドをオーバーライドする必要があります。</p>
+<p><img decoding="async" src="../wp-content/uploads/2017/12/1513928022-7838--1c1pgst8nqraum2bqngp81m1l3t.png"/></p>
+<p>次に、例外処理の一連の流れをひとつのメソッドにまとめます。例外が発生したら、Toastを表示してユーザーにアプリが再起動されることを知らせ、ログを書き込むメソッドも呼び出します。</p>
+<p><img decoding="async" src="../wp-content/uploads/2017/12/1513928023-2375-1ph5f281ua612r716q4tch16ri4n.png"/></p>
+<p>そして、オーバーライドしたUncaughtExceptionメソッドで、カスタム処理によって例外が処理されたかどうか、およびデフォルトのUncaughtExceptionHandlerがnullかどうかを判断します。すなわち：<strong>例外は処理されたか</strong>？処理されていなければ、カスタムのUncaughtExceptionHandlerに委ねます。処理されていれば、アプリを再起動します。</p>
+<p><img decoding="async" src="../wp-content/uploads/2017/12/1513928023-5639-0dqouhkhhna3y5fnloefgc9c.png"/></p>
+<p>最後にアプリ再起動の関連コードを追加すれば、完成です：</p>
+<p><img decoding="async" src="../wp-content/uploads/2017/12/1513928023-1959--1c1phd7kbcf1c59b2n1p64dmo5g.png"/></p>
+<p>これで私たちのクラッシュログ収集ツールクラスが完成しました。これを有効にするには、DrySisterApp.javaのonCreate()メソッドに次のコードを追加する必要があります：</p>
+<p><img decoding="async" src="../wp-content/uploads/2017/12/1513928023-6308-1c1phgpbd1k0rh9hmifunq14li5t.png"/></p>
+<p>完了後に動作するかテストしたい場合は簡単です。手動でクラッシュを発生させればいいのです。たとえば、「次へ」ボタンの中で0で割る操作を行います：</p>
+<p><img decoding="async" src="../wp-content/uploads/2017/12/1513928023-8923-1c1phjhrv15deccc1eql44l4cg6a.png"/></p>
+<p>アプリを実行して「次へ」をクリックすると、すぐにクラッシュします。内蔵ストレージのルートディレクトリを開いてCrashフォルダがあるか確認し、開いてログファイルがあれば成功です：</p>
+<p><img decoding="async" src="../wp-content/uploads/2017/12/1513928024-2285--1c1phn3or1nicvet1kcem8ehb77.png"/><img decoding="async" src="../wp-content/uploads/2017/12/1513928024-3082-e-1c1phqa9du7lk1ulle3m1a3l7k.png"/></p>
+<p>これで完了です。ブランチをdevelopにマージし、リモートリポジトリにプッシュします：</p>
+<pre>git add .
+git commit -m "add LogUtils and CrashHandler"
+git checkout develop    # 切换到develop分支
+git rebase bug_log_catch # 合并分支
+git push origin develop # 推送develop到远程分支
+git branch -d bug_log_catch  # 删除合并后的本地分支</pre>
+<hr/>
+<h2>5.まとめ</h2>
+<p>この節では、まずこれまでに書いたコードを振り返りました。AS 3.0に切り替えたためコードを少し調整し、最後にログツールクラスとクラッシュログ収集ツールクラスも作成しました。雀は小さいながらも五臓六腑がすべて揃っています。小さな画像表示プログラムではありますが、入門知識の大部分を網羅しています。次の節はいよいよ初版の完結編です。<strong>署名とパッケージング</strong>，<strong>難読化</strong>、そして<strong>酷安（Coolapk）マーケットへ</strong>公開です！ご期待ください~</p>
+<p><strong>コードダウンロード</strong>：</p>
+<p><a href="https://github.com/coder-pig/DrySister/tree/develop" target="_blank">https://github.com/coder-pig/DrySister/tree/develop</a>followやstarを歓迎します。追加したいものがあれば、issuesを上げてください！</p> </div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link">← <a href="./android-tutorial-exercise-4.html" rel="prev">12.4 DrySister 女の子を見るアプリ（初版）——4. データキャッシュの追加（SQLiteを導入）</a> </div>
+<div class="next-design-link"><a href="./android-tutorial-exercise-6-html.html" rel="next">12.6 DrySister 女の子を見るアプリ（初版）——6. アイコン制作、難読化、署名付きパッケージング、APKスリム化、アプリ公開</a> →</div>
+</div>
+<style>
+@media screen and (max-width: 768px) {
+	#w3cnote-ad728 {
+		display: none;
+	}
+}
+p.note-author {
+    border-bottom: 1px solid #ddd;
+    font-size: 18px;
+    font-weight: bold;
+    color: #78a15a;
+    padding-bottom: 2px;
+    margin-bottom: 4px;
+}
+</style>
+<script>
+var aid = 19355;
+</script>
+</div>
+</div>
+<div class="listcol last right-column">
+<script type="text/javascript">
+jQuery(document).ready(function ($){
+	var total = $(".membership li").length;
+	var left_list = '';
+	href = window.location.href;
+	
+	$(".membership li").each(function(index, value){
+
+		left_list += $(this).html();
+
+		cur_href = $(this).find("a").attr("href");
+		cur_obj = $(this);
+		
+		if(href.match(cur_href) != null) {
+			if(index==0) {
+				$(".previous-design-link").hide();
+			}
+			if(index==(total-1)) {
+				$(".next-design-link").hide();
+			}
+			prev_href = cur_obj.prev("li").find("a").attr("href");
+			prev_title = cur_obj.prev("li").find("a").attr("title");
+
+			next_href = cur_obj.next("li").find("a").attr("href");
+			next_title = cur_obj.next("li").find("a").attr("title");
+			if(prev_title) {
+				$(".previous-design-link a").attr("href", prev_href);
+				$(".previous-design-link a").attr("title", prev_title);
+				$(".previous-design-link a").text(prev_title);
+			} else {
+				$(".previous-design-link").html("");
+			}
+
+			if(next_title) {
+				$(".next-design-link a").attr("href", next_href);
+				$(".next-design-link a").attr("title", next_title);
+				$(".next-design-link a").text(next_title);
+			} else {
+				$(".next-design-link").html("");
+			}
+		}
+	});
+
+	$("#leftcolumn").html(left_list);
+});
+	</script>
+<div class="sidebar-box cate-list">
+<div class="sidebar-box recommend-here list-link">
+<a href="#">Android 基础入门教程</a> </div>
+<ul class="membership">
+<li><a data-id="12252" href="./android-tutorial-intro.html" target="_top" title="1.0 Android基础入门教程">1.0 Android基础入门教程</a></li>
+<li><a data-id="14860" href="./android-tutorial-contents.html" target="_top" title="1.0.1 2015年最新Android基础入门教程目录">1.0.1 2015年最新Android基础入门教程目录</a></li>
+<li><a data-id="12255" href="./android-tutorial-system-architecture-analysis.html" target="_top" title="1.1 背景相关与系统架构分析">1.1 背景相关与系统架构分析</a></li>
+<li><a data-id="12259" href="./android-tutorial-development-environment-build.html" target="_top" title="1.2 开发环境搭建">1.2 开发环境搭建</a></li>
+<li><a data-id="12270" href="./android-tutorial-eclipse-adt-sdk-app.html" target="_top" title="1.2.1 使用Eclipse + ADT + SDK开发Android APP">1.2.1 使用Eclipse + ADT + SDK开发Android APP</a></li>
+<li><a data-id="12280" href="./android-tutorial-android-studio.html" target="_top" title="1.2.2 使用Android Studio开发Android APP">1.2.2 使用Android Studio开发Android APP</a></li>
+<li><a data-id="12293" href="./android-tutorial-sdk-problem-solve.html" target="_top" title="1.3 SDK更新不了问题解决">1.3 SDK更新不了问题解决</a></li>
+<li><a data-id="12329" href="./android-tutorial-genymotion-install.html" target="_top" title="1.4 Genymotion模拟器安装">1.4 Genymotion模拟器安装</a></li>
+<li><a data-id="12331" href="./android-tutorial-git-repo-operate.html" target="_top" title="1.5.1 Git使用教程之本地仓库的基本操作">1.5.1 Git使用教程之本地仓库的基本操作</a></li>
+<li><a data-id="12366" href="./android-tutorial-git-repo-create.html" target="_top" title="1.5.2 Git之使用GitHub搭建远程仓库">1.5.2 Git之使用GitHub搭建远程仓库</a></li>
+<li><a data-id="12394" href="./android-tutorial-9-image.html" target="_top" title="1.6  9(九妹)图片怎么玩">1.6  9(九妹)图片怎么玩</a></li>
+<li><a data-id="12478" href="./android-tutorial-interface-design.html" target="_top" title="1.7 界面原型设计">1.7 界面原型设计</a></li>
+<li><a data-id="12479" href="./android-tutorial-project-src-analysis.html" target="_top" title="1.8 工程相关解析(各种文件，资源访问)">1.8 工程相关解析(各种文件，资源访问)</a></li>
+<li><a data-id="12507" href="./android-tutorial-sign-package.html" target="_top" title="1.9 Android程序签名打包">1.9 Android程序签名打包</a></li>
+<li><a data-id="12523" href="./android-tutorial-decompile-apk-get-code-resources.html" target="_top" title="1.11 反编译APK获取代码&amp;资源">1.11 反编译APK获取代码&amp;资源</a></li>
+<li><a data-id="12539" href="./android-tutorial-view-viewgroup-intro.html" target="_top" title="2.1 View与ViewGroup的概念">2.1 View与ViewGroup的概念</a></li>
+<li><a data-id="12555" href="./android-tutorial-linearlayout.html" target="_top" title="2.2.1 LinearLayout(线性布局)">2.2.1 LinearLayout(线性布局)</a></li>
+<li><a data-id="12569" href="./android-tutorial-relativelayout.html" target="_top" title="2.2.2 RelativeLayout(相对布局)">2.2.2 RelativeLayout(相对布局)</a></li>
+<li><a data-id="12577" href="./android-tutorial-tablelayout.html" target="_top" title="2.2.3 TableLayout(表格布局)">2.2.3 TableLayout(表格布局)</a></li>
+<li><a data-id="12582" href="./android-tutorial-framelayout.html" target="_top" title="2.2.4 FrameLayout(帧布局)">2.2.4 FrameLayout(帧布局)</a></li>
+<li><a data-id="12587" href="./android-tutorial-gridlayout.html" target="_top" title="2.2.5 GridLayout(网格布局)">2.2.5 GridLayout(网格布局)</a></li>
+<li><a data-id="12591" href="./android-tutorial-absolutelayout.html" target="_top" title="2.2.6 AbsoluteLayout(绝对布局)">2.2.6 AbsoluteLayout(绝对布局)</a></li>
+<li><a data-id="12624" href="./android-tutorial-textview.html" target="_top" title="2.3.1 TextView(文本框)详解">2.3.1 TextView(文本框)详解</a></li>
+<li><a data-id="12701" href="./android-tutorial-edittext.html" target="_top" title="2.3.2 EditText(输入框)详解">2.3.2 EditText(输入框)详解</a></li>
+<li><a data-id="12745" href="./android-tutorial-button-imagebutton.html" target="_top" title="2.3.3 Button(按钮)与ImageButton(图像按钮)">2.3.3 Button(按钮)与ImageButton(图像按钮)</a></li>
+<li><a data-id="12770" href="./android-tutorial-imageview.html" target="_top" title="2.3.4 ImageView(图像视图)">2.3.4 ImageView(图像视图)</a></li>
+<li><a data-id="12790" href="./android-tutorial-radiobutton-checkbox.html" target="_top" title="2.3.5.RadioButton(单选按钮)&amp;Checkbox(复选框)">2.3.5.RadioButton(单选按钮)&amp;Checkbox(复选框)</a></li>
+<li><a data-id="12829" href="./android-tutorial-togglebutton-switch.html" target="_top" title="2.3.6 开关按钮ToggleButton和开关Switch">2.3.6 开关按钮ToggleButton和开关Switch</a></li>
+<li><a data-id="13133" href="./android-tutorial-progressbar.html" target="_top" title="2.3.7 ProgressBar(进度条)">2.3.7 ProgressBar(进度条)</a></li>
+<li><a data-id="13258" href="./android-tutorial-seekbar.html" target="_top" title="2.3.8 SeekBar(拖动条)">2.3.8 SeekBar(拖动条)</a></li>
+<li><a data-id="13267" href="./android-tutorial-ratingbar.html" target="_top" title="2.3.9 RatingBar(星级评分条)">2.3.9 RatingBar(星级评分条)</a></li>
+<li><a data-id="13293" href="./android-tutorial-scrollview.html" target="_top" title="2.4.1 ScrollView(滚动条)">2.4.1 ScrollView(滚动条)</a></li>
+<li><a data-id="13357" href="./android-tutorial-date-time-1.html" target="_top" title="2.4.2 Date &amp; Time组件(上)">2.4.2 Date &amp; Time组件(上)</a></li>
+<li><a data-id="13364" href="./android-tutorial-date-time-2.html" target="_top" title="2.4.3 Date &amp; Time组件(下)">2.4.3 Date &amp; Time组件(下)</a></li>
+<li><a data-id="13477" href="./android-tutorial-adapter.html" target="_top" title="2.4.4 Adapter基础讲解">2.4.4 Adapter基础讲解</a></li>
+<li><a data-id="13784" href="./android-tutorial-listview.html" target="_top" title="2.4.5 ListView简单实用">2.4.5 ListView简单实用</a></li>
+<li><a data-id="13807" href="./android-tutorial-baseadapter.html" target="_top" title="2.4.6 BaseAdapter优化">2.4.6 BaseAdapter优化</a></li>
+<li><a data-id="13808" href="./android-tutorial-listview-focus.html" target="_top" title="2.4.7ListView的焦点问题">2.4.7ListView的焦点问题</a></li>
+<li><a data-id="13809" href="./android-tutorial-listview-checkbox.html" target="_top" title="2.4.8 ListView之checkbox错位问题解决">2.4.8 ListView之checkbox错位问题解决</a></li>
+<li><a data-id="13812" href="./android-tutorial-listview-update.html" target="_top" title="2.4.9 ListView的数据更新问题">2.4.9 ListView的数据更新问题</a></li>
+<li><a data-id="13823" href="./android-tutorial-customer-baseadapter.html" target="_top" title="2.5.0 构建一个可复用的自定义BaseAdapter">2.5.0 构建一个可复用的自定义BaseAdapter</a></li>
+<li><a data-id="13839" href="./android-tutorial-listview-item.html" target="_top" title="2.5.1 ListView Item多布局的实现">2.5.1 ListView Item多布局的实现</a></li>
+<li><a data-id="13885" href="./android-tutorial-gridview.html" target="_top" title="2.5.2 GridView(网格视图)的基本使用">2.5.2 GridView(网格视图)的基本使用</a></li>
+<li><a data-id="13897" href="./android-tutorial-spinner.html" target="_top" title="2.5.3 Spinner(列表选项框)的基本使用">2.5.3 Spinner(列表选项框)的基本使用</a></li>
+<li><a data-id="13900" href="./android-tutorial-autocompletetextview.html" target="_top" title="2.5.4 AutoCompleteTextView(自动完成文本框)的基本使用">2.5.4 AutoCompleteTextView(自动完成文本框)的基本使用</a></li>
+<li><a data-id="13933" href="./android-tutorial-expandablelistview.html" target="_top" title="2.5.5 ExpandableListView(可折叠列表)的基本使用">2.5.5 ExpandableListView(可折叠列表)的基本使用</a></li>
+<li><a data-id="13936" href="./android-tutorial-viewflipper.html" target="_top" title="2.5.6 ViewFlipper(翻转视图)的基本使用">2.5.6 ViewFlipper(翻转视图)的基本使用</a></li>
+<li><a data-id="13952" href="./android-tutorial-toast.html" target="_top" title="2.5.7 Toast(吐司)的基本使用">2.5.7 Toast(吐司)的基本使用</a></li>
+<li><a data-id="13957" href="./android-tutorial-notification.html" target="_top" title="2.5.8 Notification(状态栏通知)详解">2.5.8 Notification(状态栏通知)详解</a></li>
+<li><a data-id="13963" href="./android-tutorial-alertdialog.html" target="_top" title="2.5.9 AlertDialog(对话框)详解">2.5.9 AlertDialog(对话框)详解</a></li>
+<li><a data-id="13981" href="./android-tutorial-dialog.html" target="_top" title="2.6.0 其他几种常用对话框基本使用">2.6.0 其他几种常用对话框基本使用</a></li>
+<li><a data-id="13984" href="./android-tutorial-popupwindow.html" target="_top" title="2.6.1 PopupWindow(悬浮框)的基本使用">2.6.1 PopupWindow(悬浮框)的基本使用</a></li>
+<li><a data-id="13986" href="./android-tutorial-menu.html" target="_top" title="2.6.2 菜单(Menu)">2.6.2 菜单(Menu)</a></li>
+<li><a data-id="14001" href="./android-tutorial-viewpager.html" target="_top" title="2.6.3 ViewPager的简单使用">2.6.3 ViewPager的简单使用</a></li>
+<li><a data-id="14007" href="./android-tutorial-drawerlayout.html" target="_top" title="2.6.4 DrawerLayout(官方侧滑菜单)的简单使用">2.6.4 DrawerLayout(官方侧滑菜单)的简单使用</a></li>
+<li><a data-id="12714" href="./android-tutorial-listen-event-handle.html" target="_top" title="3.1.1 基于监听的事件处理机制">3.1.1 基于监听的事件处理机制</a></li>
+<li><a data-id="12721" href="./android-tutorial-callback-event-handle.html" target="_top" title="3.2 基于回调的事件处理机制">3.2 基于回调的事件处理机制</a></li>
+<li><a data-id="12715" href="./android-tutorial-handler-message.html" target="_top" title="3.3 Handler消息传递机制浅析">3.3 Handler消息传递机制浅析</a></li>
+<li><a data-id="12730" href="./android-tutorial-touchlistener-ontouchevent.html" target="_top" title="3.4 TouchListener PK OnTouchEvent + 多点触碰">3.4 TouchListener PK OnTouchEvent + 多点触碰</a></li>
+<li><a data-id="12749" href="./android-tutorial-listener-edittext-change.html" target="_top" title="3.5 监听EditText的内容变化">3.5 监听EditText的内容变化</a></li>
+<li><a data-id="12752" href="./android-tutorial-configuration.html" target="_top" title="3.6 响应系统设置的事件(Configuration类)">3.6 响应系统设置的事件(Configuration类)</a></li>
+<li><a data-id="12807" href="./android-tutorial-ansynctask.html" target="_top" title="3.7 AsyncTask异步任务">3.7 AsyncTask异步任务</a></li>
+<li><a data-id="12915" href="./android-tutorial-gestures.html" target="_top" title="3.8 Gestures(手势)">3.8 Gestures(手势)</a></li>
+<li><a data-id="13148" href="./android-tutorial-activity.html" target="_top" title="4.1.1 Activity初学乍练">4.1.1 Activity初学乍练</a></li>
+<li><a data-id="13160" href="./android-tutorial-activity-start.html" target="_top" title="4.1.2 Activity初窥门径">4.1.2 Activity初窥门径</a></li>
+<li><a data-id="13168" href="./android-tutorial-activity-intro.html" target="_top" title="4.1.3 Activity登堂入室">4.1.3 Activity登堂入室</a></li>
+<li><a data-id="13198" href="./android-tutorial-service-1.html" target="_top" title="4.2.1 Service初涉">4.2.1 Service初涉</a></li>
+<li><a data-id="13212" href="./android-tutorial-service-2.html" target="_top" title="4.2.2 Service进阶">4.2.2 Service进阶</a></li>
+<li><a data-id="13237" href="./android-tutorial-service-3.html" target="_top" title="4.2.3 Service精通">4.2.3 Service精通</a></li>
+<li><a data-id="13273" href="./android-tutorial-broadcastreceiver.html" target="_top" title="4.3.1 BroadcastReceiver牛刀小试">4.3.1 BroadcastReceiver牛刀小试</a></li>
+<li><a data-id="13284" href="./android-tutorial-broadcastreceiver-2.html" target="_top" title="4.3.2 BroadcastReceiver庖丁解牛">4.3.2 BroadcastReceiver庖丁解牛</a></li>
+<li><a data-id="13297" href="./android-tutorial-contentprovider.html" target="_top" title="4.4.1 ContentProvider初探">4.4.1 ContentProvider初探</a></li>
+<li><a data-id="13319" href="./android-tutorial-contentprovider-2.html" target="_top" title="4.4.2 ContentProvider再探——Document Provider">4.4.2 ContentProvider再探——Document Provider</a></li>
+<li><a data-id="13329" href="./android-tutorial-intent-base.html" target="_top" title="4.5.1 Intent的基本使用">4.5.1 Intent的基本使用</a></li>
+<li><a data-id="13346" href="./android-tutorial-intent-pass-data.html" target="_top" title="4.5.2 Intent之复杂数据的传递">4.5.2 Intent之复杂数据的传递</a></li>
+<li><a data-id="13401" href="./android-tutorial-fragment-base.html" target="_top" title="5.1 Fragment基本概述">5.1 Fragment基本概述</a></li>
+<li><a data-id="13431" href="./android-tutorial-fragment-demo1.html" target="_top" title="5.2.1 Fragment实例精讲——底部导航栏的实现(方法1)">5.2.1 Fragment实例精讲——底部导航栏的实现(方法1)</a></li>
+<li><a data-id="13432" href="./android-tutorial-fragment-demo2.html" target="_top" title="5.2.2 Fragment实例精讲——底部导航栏的实现(方法2)">5.2.2 Fragment实例精讲——底部导航栏的实现(方法2)</a></li>
+<li><a data-id="13439" href="./android-tutorial-fragment-demo3.html" target="_top" title="5.2.3 Fragment实例精讲——底部导航栏的实现(方法3)">5.2.3 Fragment实例精讲——底部导航栏的实现(方法3)</a></li>
+<li><a data-id="13448" href="./android-tutorial-fragment-demo4.html" target="_top" title="5.2.4 Fragment实例精讲——底部导航栏+ViewPager滑动切换页面">5.2.4 Fragment实例精讲——底部导航栏+ViewPager滑动切换页面</a></li>
+<li><a data-id="13597" href="./android-tutorial-fragment-demo5.html" target="_top" title="5.2.5 Fragment实例精讲——新闻(购物)类App列表Fragment的简单实现">5.2.5 Fragment实例精讲——新闻(购物)类App列表Fragment的简单实现</a></li>
+<li><a data-id="13478" href="./android-tutorial-file.html" target="_top" title="6.1 数据存储与访问之——文件存储读写">6.1 数据存储与访问之——文件存储读写</a></li>
+<li><a data-id="13523" href="./android-tutorial-sharedpreferences.html" target="_top" title="6.2 数据存储与访问之——SharedPreferences保存用户偏好参数">6.2 数据存储与访问之——SharedPreferences保存用户偏好参数</a></li>
+<li><a data-id="13574" href="./android-tutorial-sqlite-intro.html" target="_top" title="6.3.1 数据存储与访问之——初见SQLite数据库">6.3.1 数据存储与访问之——初见SQLite数据库</a></li>
+<li><a data-id="13590" href="./android-tutorial-sqlite-2.html" target="_top" title="6.3.2 数据存储与访问之——又见SQLite数据库">6.3.2 数据存储与访问之——又见SQLite数据库</a></li>
+<li><a data-id="13601" href="./android-tutorial-http.html" target="_top" title="7.1.1 Android网络编程要学的东西与Http协议学习">7.1.1 Android网络编程要学的东西与Http协议学习</a></li>
+<li><a data-id="13607" href="./android-tutorial-http-response-header.html" target="_top" title="7.1.2 Android Http请求头与响应头的学习">7.1.2 Android Http请求头与响应头的学习</a></li>
+<li><a data-id="13620" href="./android-tutorial-httpurlconnection.html" target="_top" title="7.1.3 Android HTTP请求方式:HttpURLConnection">7.1.3 Android HTTP请求方式:HttpURLConnection</a></li>
+<li><a data-id="13631" href="./android-tutorial-httpclient.html" target="_top" title="7.1.4 Android HTTP请求方式:HttpClient">7.1.4 Android HTTP请求方式:HttpClient</a></li>
+<li><a data-id="13633" href="./android-tutorial-xml.html" target="_top" title="7.2.1 Android XML数据解析">7.2.1 Android XML数据解析</a></li>
+<li><a data-id="13681" href="./android-tutorial-json.html" target="_top" title="7.2.2 Android JSON数据解析">7.2.2 Android JSON数据解析</a></li>
+<li><a data-id="13685" href="./android-tutorial-upload-file.html" target="_top" title="7.3.1 Android 文件上传">7.3.1 Android 文件上传</a></li>
+<li><a data-id="13688" href="./android-tutorial-download1.html" target="_top" title="7.3.2 Android 文件下载（1）">7.3.2 Android 文件下载（1）</a></li>
+<li><a data-id="13697" href="./android-tutorial-download2.html" target="_top" title="7.3.3 Android 文件下载（2）">7.3.3 Android 文件下载（2）</a></li>
+<li><a data-id="13706" href="./android-tutorial-webservice.html" target="_top" title="7.4 Android 调用 WebService">7.4 Android 调用 WebService</a></li>
+<li><a data-id="13724" href="./android-tutorial-webview.html" target="_top" title="7.5.1 WebView(网页视图)基本用法">7.5.1 WebView(网页视图)基本用法</a></li>
+<li><a data-id="13731" href="./android-tutorial-webview-javascrip.html" target="_top" title="7.5.2 WebView和JavaScrip交互基础">7.5.2 WebView和JavaScrip交互基础</a></li>
+<li><a data-id="13738" href="./android-tutorial-webview-attention.html" target="_top" title="7.5.3 Android 4.4后WebView的一些注意事项">7.5.3 Android 4.4后WebView的一些注意事项</a></li>
+<li><a data-id="13748" href="./android-tutorial-webview-download-file.html" target="_top" title="7.5.4 WebView文件下载">7.5.4 WebView文件下载</a></li>
+<li><a data-id="13751" href="./android-tutorial-webview-cache.html" target="_top" title="7.5.5 WebView缓存问题">7.5.5 WebView缓存问题</a></li>
+<li><a data-id="13756" href="./android-tutorial-webview-error-code.html" target="_top" title="7.5.6 WebView处理网页返回的错误码信息">7.5.6 WebView处理网页返回的错误码信息</a></li>
+<li><a data-id="13760" href="./android-tutorial-socket-intro.html" target="_top" title="7.6.1 Socket学习网络基础准备">7.6.1 Socket学习网络基础准备</a></li>
+<li><a data-id="13768" href="./android-tutorial-socket1.html" target="_top" title="7.6.2 基于TCP协议的Socket通信(1)">7.6.2 基于TCP协议的Socket通信(1)</a></li>
+<li><a data-id="13775" href="./android-tutorial-socket2.html" target="_top" title="7.6.3 基于TCP协议的Socket通信(2)">7.6.3 基于TCP协议的Socket通信(2)</a></li>
+<li><a data-id="13788" href="./android-tutorial-udp-socket.html" target="_top" title="7.6.4 基于UDP协议的Socket通信">7.6.4 基于UDP协议的Socket通信</a></li>
+<li><a data-id="14013" href="./android-tutorial-drawable1.html" target="_top" title="8.1.1 Android中的13种Drawable小结 Part 1">8.1.1 Android中的13种Drawable小结 Part 1</a></li>
+<li><a data-id="14018" href="./android-tutorial-drawable2.html" target="_top" title="8.1.2 Android中的13种Drawable小结 Part 2">8.1.2 Android中的13种Drawable小结 Part 2</a></li>
+<li><a data-id="14035" href="./android-tutorial-drawable3.html" target="_top" title="8.1.3 Android中的13种Drawable小结 Part 3">8.1.3 Android中的13种Drawable小结 Part 3</a></li>
+<li><a data-id="14092" href="./android-tutorial-bitmap1.html" target="_top" title="8.2.1 Bitmap(位图)全解析 Part 1">8.2.1 Bitmap(位图)全解析 Part 1</a></li>
+<li><a data-id="14102" href="./android-tutorial-bitmap2.html" target="_top" title="8.2.2 Bitmap引起的OOM问题">8.2.2 Bitmap引起的OOM问题</a></li>
+<li><a data-id="14113" href="./android-tutorial-drawable-tool.html" target="_top" title="8.3.1 三个绘图工具类详解">8.3.1 三个绘图工具类详解</a></li>
+<li><a data-id="14144" href="./android-tutorial-bitmap-demo.html" target="_top" title="8.3.2 绘图类实战示例">8.3.2 绘图类实战示例</a></li>
+<li><a data-id="14301" href="./android-tutorial-maskfilter.html" target="_top" title="8.3.3 Paint API之—— MaskFilter(面具)">8.3.3 Paint API之—— MaskFilter(面具)</a></li>
+<li><a data-id="14307" href="./android-tutorial-xfermode-porterduff.html" target="_top" title="8.3.4 Paint API之—— Xfermode与PorterDuff详解(一)">8.3.4 Paint API之—— Xfermode与PorterDuff详解(一)</a></li>
+<li><a data-id="14343" href="./android-tutorial-xfermode-porterduff2.html" target="_top" title="8.3.5 Paint API之—— Xfermode与PorterDuff详解(二)">8.3.5 Paint API之—— Xfermode与PorterDuff详解(二)</a></li>
+<li><a data-id="14387" href="./android-tutorial-xfermode-porterduff3.html" target="_top" title="8.3.6 Paint API之—— Xfermode与PorterDuff详解(三)">8.3.6 Paint API之—— Xfermode与PorterDuff详解(三)</a></li>
+<li><a data-id="14398" href="./android-tutorial-xfermode-porterduff4.html" target="_top" title="8.3.7 Paint API之—— Xfermode与PorterDuff详解(四)">8.3.7 Paint API之—— Xfermode与PorterDuff详解(四)</a></li>
+<li><a data-id="14410" href="./android-tutorial-xfermode-porterduff5.html" target="_top" title="8.3.8 Paint API之—— Xfermode与PorterDuff详解(五)">8.3.8 Paint API之—— Xfermode与PorterDuff详解(五)</a></li>
+<li><a data-id="14411" href="./android-tutorial-colorfilter1.html" target="_top" title="8.3.9 Paint API之—— ColorFilter(颜色过滤器)(1/3)">8.3.9 Paint API之—— ColorFilter(颜色过滤器)(1/3)</a></li>
+<li><a data-id="14427" href="./android-tutorial-colorfilterl2.html" target="_top" title="8.3.10 Paint API之—— ColorFilter(颜色过滤器)(2-3)">8.3.10 Paint API之—— ColorFilter(颜色过滤器)(2-3)</a></li>
+<li><a data-id="14430" href="./android-tutorial-colorfilter3.html" target="_top" title="8.3.11 Paint API之—— ColorFilter(颜色过滤器)(3-3)">8.3.11 Paint API之—— ColorFilter(颜色过滤器)(3-3)</a></li>
+<li><a data-id="14517" href="./android-tutorial-patheffect.html" target="_top" title="8.3.12 Paint API之—— PathEffect(路径效果)">8.3.12 Paint API之—— PathEffect(路径效果)</a></li>
+<li><a data-id="14520" href="./android-tutorial-shader.html" target="_top" title="8.3.13 Paint API之—— Shader(图像渲染)">8.3.13 Paint API之—— Shader(图像渲染)</a></li>
+<li><a data-id="14523" href="./android-tutorial-shadowlayer.html" target="_top" title="8.3.14 Paint几个枚举/常量值以及ShadowLayer阴影效果">8.3.14 Paint几个枚举/常量值以及ShadowLayer阴影效果</a></li>
+<li><a data-id="14538" href="./android-tutorial-typeface.html" target="_top" title="8.3.15 Paint API之——Typeface(字型)">8.3.15 Paint API之——Typeface(字型)</a></li>
+<li><a data-id="14589" href="./android-tutorial-canvas-api1.html" target="_top" title="8.3.16 Canvas API详解(Part 1)">8.3.16 Canvas API详解(Part 1)</a></li>
+<li><a data-id="14678" href="./android-tutorial-canvas-api2.html" target="_top" title="8.3.17 Canvas API详解(Part 2)剪切方法合集">8.3.17 Canvas API详解(Part 2)剪切方法合集</a></li>
+<li><a data-id="14692" href="./android-tutorial-canvas-api3.html" target="_top" title="8.3.18 Canvas API详解(Part 3)Matrix和drawBitmapMesh">8.3.18 Canvas API详解(Part 3)Matrix和drawBitmapMesh</a></li>
+<li><a data-id="14718" href="./android-tutorial-animation.html" target="_top" title="8.4.1 Android动画合集之帧动画">8.4.1 Android动画合集之帧动画</a></li>
+<li><a data-id="14722" href="./android-tutorial-alphaanimation.html" target="_top" title="8.4.2 Android动画合集之补间动画">8.4.2 Android动画合集之补间动画</a></li>
+<li><a data-id="14730" href="./android-tutorial-valueanimator.html" target="_top" title="8.4.3 Android动画合集之属性动画-初见">8.4.3 Android动画合集之属性动画-初见</a></li>
+<li><a data-id="14768" href="./android-tutorial-valueanimator2.html" target="_top" title="8.4.4 Android动画合集之属性动画-又见">8.4.4 Android动画合集之属性动画-又见</a></li>
+<li><a data-id="14149" href="./android-tutorial-soundpool.html" target="_top" title="9.1 使用SoundPool播放音效(Duang~)">9.1 使用SoundPool播放音效(Duang~)</a></li>
+<li><a data-id="14612" href="./android-tutorial-mediaplayer.html" target="_top" title="9.2 MediaPlayer播放音频与视频">9.2 MediaPlayer播放音频与视频</a></li>
+<li><a data-id="14831" href="./android-tutorial-camera.html" target="_top" title="9.3 使用Camera拍照">9.3 使用Camera拍照</a></li>
+<li><a data-id="14832" href="./android-tutorial-mediarecord.html" target="_top" title="9.4 使用MediaRecord录音">9.4 使用MediaRecord录音</a></li>
+<li><a data-id="14156" href="./android-tutorial-telephonymanager.html" target="_top" title="10.1 TelephonyManager(电话管理器)">10.1 TelephonyManager(电话管理器)</a></li>
+<li><a data-id="14163" href="./android-tutorial-smsmanager.html" target="_top" title="10.2 SmsManager(短信管理器)">10.2 SmsManager(短信管理器)</a></li>
+<li><a data-id="14166" href="./android-tutorial-audiomanager.html" target="_top" title="10.3 AudioManager(音频管理器)">10.3 AudioManager(音频管理器)</a></li>
+<li><a data-id="14319" href="./android-tutorial-vibrator.html" target="_top" title="10.4 Vibrator(振动器)">10.4 Vibrator(振动器)</a></li>
+<li><a data-id="14400" href="./android-tutorial-alarmmanager.html" target="_top" title="10.5 AlarmManager(闹钟服务)">10.5 AlarmManager(闹钟服务)</a></li>
+<li><a data-id="14438" href="./android-tutorial-powermanager.html" target="_top" title="10.6 PowerManager(电源服务)">10.6 PowerManager(电源服务)</a></li>
+<li><a data-id="14697" href="./android-tutorial-windowmanager.html" target="_top" title="10.7 WindowManager(窗口管理服务)">10.7 WindowManager(窗口管理服务)</a></li>
+<li><a data-id="14702" href="./android-tutorial-layoutinflater.html" target="_top" title="10.8 LayoutInflater(布局服务)">10.8 LayoutInflater(布局服务)</a></li>
+<li><a data-id="14737" href="./android-tutorial-wallpapermanager.html" target="_top" title="10.9 WallpaperManager(壁纸管理器)">10.9 WallpaperManager(壁纸管理器)</a></li>
+<li><a data-id="14743" href="./android-tutorial-sensor1.html" target="_top" title="10.10 传感器专题(1)——相关介绍">10.10 传感器专题(1)——相关介绍</a></li>
+<li><a data-id="14746" href="./android-tutorial-sensor2.html" target="_top" title="10.11 传感器专题(2)——方向传感器">10.11 传感器专题(2)——方向传感器</a></li>
+<li><a data-id="14778" href="./android-tutorial-sensor3.html" target="_top" title="10.12 传感器专题(3)——加速度/陀螺仪传感器">10.12 传感器专题(3)——加速度/陀螺仪传感器</a></li>
+<li><a data-id="14835" href="./android-tutorial-sensor4.html" target="_top" title="10.12 传感器专题(4)——其他传感器了解">10.12 传感器专题(4)——其他传感器了解</a></li>
+<li><a data-id="14837" href="./android-tutorial-gps.html" target="_top" title="10.14 Android GPS初涉">10.14 Android GPS初涉</a></li>
+<li><a data-id="14846" href="./android-tutorial-end.html" target="_top" title="11.0《2015最新Android基础入门教程》完结散花~">11.0《2015最新Android基础入门教程》完结散花~</a></li>
+<li><a data-id="19314" href="./android-tutorial-exercise-1.html" target="_top" title="12.1Android 实战 ：DrySister看妹子应用(第一版) -- 项目搭建与简单实现">12.1Android 实战 ：DrySister看妹子应用(第一版) -- 项目搭建与简单实现</a></li>
+<li><a data-id="19321" href="./android-tutorial-exercise-2.html" target="_top" title="12.2 DrySister看妹子应用(第一版)——2.解析后台数据">12.2 DrySister看妹子应用(第一版)——2.解析后台数据</a></li>
+<li><a data-id="19334" href="./android-tutorial-exercise-3.html" target="_top" title="12.3 DrySister看妹子应用(第一版)——3.图片加载优化(写个图片缓存小框架)">12.3 DrySister看妹子应用(第一版)——3.图片加载优化(写个图片缓存小框架)</a></li>
+<li><a data-id="19349" href="./android-tutorial-exercise-4.html" target="_top" title="12.4 DrySister看妹子应用(第一版)——4.添加数据缓存(加入SQLite)">12.4 DrySister看妹子应用(第一版)——4.添加数据缓存(加入SQLite)</a></li>
+<li>
+	12.5 DrySister看妹子应用(第一版)——5.代码回顾，调整与日志类编写	</li>
+<li><a data-id="19386" href="./android-tutorial-exercise-6-html.html" target="_top" title="12.6 DrySister看妹子应用(第一版)——6.图标制作，混淆，签名打包，APK瘦身，应用发布">12.6 DrySister看妹子应用(第一版)——6.图标制作，混淆，签名打包，APK瘦身，应用发布</a></li>
+</ul></div> </div>
+</div>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+</div><script src="../../lang-switcher.js"></script>
+</body>
+</html>

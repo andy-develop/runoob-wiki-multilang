@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Polymorphism in C# | Rookie Tutorial</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="./csharp-polymorphism2.html" rel="canonical"/>
+<meta content="C# 中的多态性" name="keywords"/>
+<meta content="相信大家都对面向对象的三个特征封装、继承、多态很熟悉，每个人都能说上一两句，但是大多数都仅仅是知道这些是什么，不知道 CLR 内部是如何实现的，所以本篇文章主要说说多态性中的一些概念已经内部实现的机理。  一、多态的概念 首先解释下什么叫多态：同一操作作用于不同的对象，可以有不同的解释，产生不同的执行结果，这就是多态性。换句话说，实际上就是同一个类型的实例调用“相同”的方法，产生的结果是不同的。这里的“相同”打上双引号是因为这里的相同的.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div><!-- 导航栏 -->
+<!--  内容  -->
+<div class="container main">
+<div class="row">
+<div class="col middle-column big-middle-column">
+<div class="article">
+<div class="article-heading">
+<h2>Polymorphism in C#</h2> <h3><em>Category</em> <a href="../w3cnote_genre/code.html" title="编程技术">Programming Technology</a> </h3>
+</div>
+<div class="article-body note-body">
+<div class="article-intro">
+<!-- ad start-->
+<!-- ad end-->
+<p>I believe everyone is familiar with the three features of object-oriented programming: encapsulation, inheritance, and polymorphism. Everyone can say a thing or two, but most only know what they are, not how the CLR implements them internally. So this article mainly discusses some concepts in polymorphism and the internal implementation mechanism.</p>
+<h3>1. Concept of Polymorphism</h3>
+<p>First, explain what polymorphism is: the same operation applied to different objects can have different interpretations and produce different execution results. This is polymorphism. In other words, an instance of the same type calls the "same" method, but the results are different. The "same" here is in quotes because the methods that look the same are actually different methods being called.</p>
+<p>When it comes to polymorphism, we cannot avoid mentioning the following concepts: overloading, overriding, virtual methods, abstract methods, and hiding methods. Let's introduce their concepts one by one.</p>
+<p>1、<strong>Overload</strong>In the same scope (generally a class), two or more methods with the same method name but different parameter lists are called overloading. They have three characteristics (commonly known as "two musts and one can"):</p>
+<ul><li>Method names must be the same</li><li>Parameter lists must be different</li><li>Return types can be different</li></ul>
+<p>For example:</p>
+<pre>public void Sleep()
+{
+    Console.WriteLine("Animal睡觉");
+}
+public int Sleep(int time)
+{
+    Console.WriteLine("Animal{0}点睡觉", time);
+    return time;
+}</pre>
+<p>
+2、<strong>Override</strong>In a subclass, to meet its own needs, redefining a different implementation of a method requires the override keyword. The overridden method must be a virtual method, using the virtual keyword. Its characteristics are (three same):</p>
+<ul>
+<li>Same method name</li>
+<li>Same parameter list</li>
+<li>Same return type</li>
+</ul>
+<p>For example: definition in the parent class:</p>
+<pre>public virtual void EatFood()
+{
+    Console.WriteLine("Animal吃东西");
+}</pre>
+<p>Definition in the child class:</p>
+<pre>public override void EatFood()
+{
+    Console.WriteLine("Cat吃东西");
+    //base.EatFood();
+}</pre>
+<blockquote><p><strong>Tip:</strong>Frequently, some friends ask about the difference between overloading and overriding, and on the internet this is one of the common C# interview questions. In fact, these two concepts have no relationship at all; they merely both contain the character "over". There is no significance in comparing them. Just distinguish their different definitions.</p></blockquote>
+<p>3、<strong>Virtual method</strong>A method defined in the base class that allows overriding in derived classes, defined using the virtual keyword. For example:</p>
+<pre>public virtual void EatFood()
+{
+    Console.WriteLine("Animal吃东西");
+}</pre>
+<p><strong>Note</strong>Virtual methods can also be called directly. For example:</p>
+<pre>Animal a = new Animal();
+a.EatFood();</pre>
+<p>The output is:</p>
+<pre>Animal吃东西</pre>
+<p> 4、<strong>Abstract method</strong>A method defined in the base class and must be overridden in derived classes. It is defined using the<span class="marked">abstract</span>keyword. For example:</p>
+<pre>public abstract class Biology
+{
+    public abstract void Live();
+}
+public class Animal : Biology
+{
+    public override void Live()
+    {
+        Console.WriteLine("Animal重写的抽象方法");
+        //throw new NotImplementedException();
+    } 
+}</pre>
+<p><strong>Note:</strong>Abstract methods can only be defined in abstract classes. If not defined in an abstract class, the following error is reported:</p>
+<p><img decoding="async" src="../wp-content/uploads/2018/07/20171050-7907c8d2136643738cdc84b2f517d7f4.png"/></p>
+<blockquote><p><strong>The difference between virtual methods and abstract methods is</strong>Because abstract classes cannot be instantiated, abstract methods cannot be called; in other words, abstract methods can never be implemented.</p></blockquote>
+<p>5、<strong>Hiding method</strong>A method defined in a derived class with the same name as a method in the base class, defined using the new keyword. For example, in the base class Animal there is a method Sleep():</p>
+<pre>public void Sleep()
+{
+    Console.WriteLine("Animal Sleep");
+}</pre>
+<p>Then the code to define the hiding method in the derived class Cat is:</p>
+<pre>new public void Sleep()
+{
+    Console.WriteLine("Cat Sleep");
+}</pre>
+<p>Or:</p>
+<pre>public new void Sleep()
+{
+    Console.WriteLine("Cat Sleep");
+} </pre>
+<p><strong>Note:</strong></p><ul><li>(1) A hiding method can hide not only virtual methods in the base class, but also non-virtual methods in the base class.</li><li>(2) For a hiding method, an instance of the parent class calls the parent class method, and an instance of the child class calls the child class method.</li><li>(3) Compared with the previous point: For an overriding method, a variable of the child class calls the overridden method of the child class. For a variable of the parent class, it depends on whether the parent class reference points to an instance of the child class or its own instance. If it references an instance of the parent class, the base class method is called; if it references an instance of the derived class, the derived class method is called.</li></ul>
+<p>Okay, the basic concepts are finished. Let's look at an example. First, we create several classes:</p>
+<pre>public abstract class Biology
+{
+    public abstract void Live();
+}
+public class Animal : Biology
+{
+    public override void Live()
+    {
+        Console.WriteLine("Animal重写的Live");
+        //throw new NotImplementedException();
+    }
+    public void Sleep()
+    {
+        Console.WriteLine("Animal Sleep");
+    }
+    public int Sleep(int time)
+    {
+        Console.WriteLine("Animal在{0}点Sleep", time);
+        return time;
+    }
+    public virtual void EatFood()
+    {
+        Console.WriteLine("Animal EatFood");
+    }
+}
+public class Cat : Animal
+{
+    public override void EatFood()
+    {
+        Console.WriteLine("Cat EatFood");
+        //base.EatFood();
+    }
+    new public void Sleep()
+    {
+        Console.WriteLine("Cat Sleep");
+    }
+    //public new void Sleep()
+    //{
+    //    Console.WriteLine("Cat Sleep");
+    //}
+}
+public class Dog : Animal
+{
+    public override void EatFood()
+    {
+        Console.WriteLine("Dog EatFood");
+        //base.EatFood();
+    }
+}</pre>
+<p>Now let's look at the code to be executed:</p>
+<pre>class Program
+{
+    static void Main(string[] args)
+    {
+        //Animal的实例
+        Animal a = new Animal();
+        //Animal的实例，引用派生类Cat对象
+        Animal ac = new Cat();
+        //Animal的实例，引用派生类Dog对象
+        Animal ad = new Dog();
+        //Cat的实例
+        Cat c = new Cat();
+        //Dog的实例
+        Dog d = new Dog();
+        //重载
+        a.Sleep();
+        a.Sleep(23);
+        //重写和虚方法
+        a.EatFood();
+        ac.EatFood();
+        ad.EatFood();
+        //抽象方法
+        a.Live();
+        //隐藏方法
+        a.Sleep();
+        ac.Sleep();
+        c.Sleep();
+        Console.ReadKey();
+    }
+}</pre>
+<p>First, we define several instances of the classes we need to use. It should be noted:</p>
+<ul><li>(1) The Biology class is an abstract class and cannot be instantiated;</li><li>(2) Variable ac is an instance of Animal, but it points to a Cat object. Because Cat is a derived class of Animal, this conversion is fine. This is also the key point of polymorphism.</li></ul>
+<p>Next, let's analyze step by step:</p>
+<p>1、</p>
+<pre>//重载
+a.Sleep();
+a.Sleep(23);</pre>
+<p>Obviously, the two Sleep methods called by the Animal variable a are overloaded methods. The first statement calls the parameterless Sleep() method, and the second statement calls the Sleep method with an int parameter. Note that the return types of the two Sleep methods are different, which also illustrates the last of the three characteristics of overriding—the return type can be different.</p>
+<p>The running result is as follows:</p>
+<pre>Animal Sleep
+Animal在23点Sleep</pre>
+<p>2、</p>
+<pre>//重写和虚方法
+a.EatFood();
+ac.EatFood();
+ad.EatFood();</pre>
+<p>In this section, a, ac, and ad are all instances of Animal, but they reference different objects. a references an Animal object, ac references a Cat object, and ad references a Dog object. What difference will this make in the execution results? See the execution results below:</p>
+<pre>Animal EatFood
+Cat EatFood
+Dog EatFood</pre>
+<p>The first statement: an Animal instance directly calls Animal's virtual method EatFood, no problem.</p>
+<p>In the second and third statements, although they are also instances of Animal, they point to Cat and Dog objects respectively, so the EatFood methods overridden in the Cat and Dog classes are called, just as if Cat and Dog instances directly called EatFood. This is the embodiment of polymorphism: the same operation applied to different objects can have different interpretations and produce different execution results.</p>
+<p>3、</p>
+<pre>//抽象方法
+a.Live();</pre>
+<p>This is relatively simple. It directly overrides the Live method of the parent class Biology. The execution result is as follows:</p>
+<pre>Animal重写的Live</pre>
+<p>4、</p>
+<pre>//隐藏方法
+a.Sleep();
+ac.Sleep();
+c.Sleep();</pre>
+<p>When analyzing the hiding method, it should be compared with virtual methods and overriding. There is no objection to variable a calling Animal's Sleep method and variable c calling Cat's Sleep method. But variable ac references an object of Cat type. Should it call the EatFood method of Animal type or the EatFood method of Cat type? The answer is that it calls the parent class, namely Animal's EatFood method. The execution result is as follows:</p>
+<pre>Animal Sleep
+Animal Sleep
+Cat Sleep</pre>
+<p>Most articles stop here, merely letting us know these concepts and calling methods, without explaining why this is the case. Next, let's go a little deeper and talk about the mechanism behind polymorphism.</p>
+<hr/><h2>2. In-depth Understanding of Polymorphism</h2>
+<p>To deeply understand polymorphism, we must start with value types and reference types. We all know that value types are stored on the thread stack, while reference types are stored in the managed heap. Because all classes are reference types, we only look at reference types.</p>
+<p>Now return to the earlier example. Main is the program entry point. When the JIT compiler compiles the Main function into native CPU instructions, it finds that this method references the Biology, Animal, Cat, and Dog classes, so the CLR creates several instances to represent these types themselves. We call them "type objects". This object contains the static fields of the class, a method table containing all methods of the class, and also two additional members that all objects in the managed heap must have—the Type Object Pointer and the Sync Block Index.</p>
+<p>The above passage may not be understood by some friends who have not read relevant CLR books, so let's draw a diagram to describe it:</p>
+<p><img decoding="async" src="../wp-content/uploads/2018/07/20171828-e2ee3a8cc16747fcae8534ae75e484c5.png"/></p>
+<p>The above diagram shows what the CLR does before executing the Main function. Next, start executing the Main function (for convenience, simplify the Main function):</p>
+<pre>//Animal的实例
+Animal a = new Animal();
+//Animal的实例，引用派生类Cat对象
+Animal ac = new Cat();
+//Animal的实例，引用派生类Dog对象
+Animal ad = new Dog();
+a.Sleep();
+a.EatFood();
+ac.EatFood();
+ad.EatFood();</pre>
+<p>Now instantiate three Animal instances, but they actually point to an Animal object, a Cat object, and a Dog object respectively, as shown below:</p>
+<p><img decoding="async" src="../wp-content/uploads/2018/07/20171900-46eca0d4f88240ff99798c3f4d46e56d.png"/></p>
+<p>Please note that although variables ac and ad are both of Animal type, they point to a Cat object and a Dog object respectively. This is the key.</p>
+<p>When executing a.Sleep(), because Sleep is a non-virtual instance method, the JIT compiler will find the type object (Animal type object) corresponding to the type (Animal) of the variable (a) that made the call. Then it calls the Sleep method in that type object. If that type object does not have a Sleep method, the JIT compiler traverses back through the base classes of the class (all the way to Object) to find the Sleep method.</p><p>When executing ac.EatFood, because EatFood is a virtual instance method, the JIT compiler generates some extra code in the method when calling. This code first checks the variable (ac) that made the call, then follows the variable's reference address to find the object that made the call (Cat object), finds the type object corresponding to the object that made the call (Cat type object), and finally looks for the EatFood method in that type object. Similarly, if the EatFood method is not found in that type object, the JIT compiler traverses back to the base class of that type object to find it.</p>
+<p>What is described above is the different execution methods of the JIT compiler when encountering calls to non-virtual instance methods and virtual instance methods. It is this different handling of these two types of methods that produces one of the three features of object-oriented programming that we see on the surface—polymorphism.</p>
+<blockquote><p>Original URL: https://www.cnblogs.com/zhangkai2237/archive/2012/12/20/2826734.html</p></blockquote>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link">← <a href="./python-append-deepcopy.html" rel="prev">Python append() and Deep/Shallow Copy</a> </div>
+<div class="next-design-link"><a href="./php-different-include-and-require.html" rel="next">Detailed explanation of the difference between include and require in PHP</a> →</div>
+</div>
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>Click me to share notes</h3>
+&lt;p style="font-size:14px;"&gt;The note must be an extension of the content of this article!&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;To contribute an article, click here&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;How to obtain a registration invitation code&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; You must &lt;a href=".." class="runoob-pop"&gt;log in&lt;/a&gt; before sharing notes!&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;How to obtain a registration invitation code&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=".." id="cancel-comment-reply-link">Cancel</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="20418"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>Share notes</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">Nickname</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">Nickname (required)</span></li>
+<li class="form-inline"><label class="hide" for="email">Email</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">Email (required)</span></li>
+<li class="form-inline"><label class="hide" for="url">Reference URL</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">Reference URL</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  20418;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 20418, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":20418},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+<style>
+@media screen and (max-width: 768px) {
+	#w3cnote-ad728 {
+		display: none;
+	}
+}
+p.note-author {
+    border-bottom: 1px solid #ddd;
+    font-size: 18px;
+    font-weight: bold;
+    color: #78a15a;
+    padding-bottom: 2px;
+    margin-bottom: 4px;
+}
+</style>
+<script>
+var aid = 20418;
+</script>
+</div>
+</div>
+<div class="listcol last right-column">
+<!--
+	<div class="tab tab-light-blue"> 订阅</div>
+	<div class="sidebar-box">
+		<div class="socialicons">
+			<a href="../feed.html" class="rss">RSS 订阅</a>
+		
+			<form action="..//list.qq.com/cgi-bin/qf_compose_send" method="post">
+			<input type="hidden" value="qf_booked_feedback" name="t">
+			<input type="hidden" value="4b67b6b6c1f5e792559940cab4aebb8f1126fba880bff1a8" name="id">
+			<input class="placeholder" id="feed_email" name="to" value="输入邮箱 订阅笔记" autocomplete="off">
+			<input type="submit" value="订阅" class="btn btn-primary">
+			</form>
+		
+		</div>
+ 
+	</div>
+-->
+<!--
+	<div class="sidebar-box cate-list">
+	<div class="sidebar-box recommend-here list-link">
+			<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">笔记列表</a>
+		</div>
+
+ 
+
+</div>
+-->
+<div class="sidebar-box cate-list" style="display:none;">
+<div class="sidebar-box recommend-here list-link">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">热门文章</a>
+</div>
+<div class="membership">
+<ul class="membership">
+<li><a href="https://mp.weixin.qq.com/s/ZaP6YNgKTCHYy3r2WPBBaw" target="_blank" title="2024 年 04 月 JavaScript 框架排行榜">2024 年 04 月 JavaScript 框架排行榜</a></li>
+<li><a href="https://mp.weixin.qq.com/s/JBR2twC0t6krjjuxqvhsEQ" target="_blank" title="免费、开源、好用的 SQL 客户端合集">免费、开源、好用的 SQL 客户端合集</a></li>
+<li><a href="https://mp.weixin.qq.com/s/TwV3YQjA1glyaW7TiHvhlA" target="_blank" title="优雅的代码规范，提升代码质量">优雅的代码规范，提升代码质量</a></li>
+<li><a href="https://mp.weixin.qq.com/s/CnUJ-2OHPbBKlnVpjDzavA" target="_blank" title="命令行中的趣味世界，牛也能说话，有趣又好玩">命令行中的趣味世界，牛也能说话，有趣又好玩</a></li>
+<li><a href="https://mp.weixin.qq.com/s/7NKl-mD7N8CeSNQlbKDEWA" target="_blank" title="2024 年 05 月编程语言排行榜，Fortran 进入前 10 名，发生了什么？">2024 年 05 月编程语言排行榜，Fortran 进入前 10 名，发生了什么？</a></li>
+<li><a href="https://mp.weixin.qq.com/s/yWlSVDKobtDhThnhirVRpw" target="_blank" title="免费开源的 IDE、数据库管理工具、SSH客户端和FTP客户端">免费开源的 IDE、数据库管理工具、SSH客户端和FTP客户端</a></li>
+</ul>
+</div>
+</div>
+<div class="sidebar-box cate-list">
+<div class="sidebar-box recommend-here list-link">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">教程列表</a>
+</div>
+<div class="cate-items">
+<a href="../ado.html">ADO 教程</a>
+<a href="../ai-agent.html">AI Agent 教程</a>
+<a href="../ai.html">AI 入门教程</a>
+<a href="../ai-math.html">AI 数学基础</a>
+<a href="../ajax.html">Ajax 教程</a>
+<a href="../android.html">Android 教程</a>
+<a href="../angularjs2.html">Angular2 教程</a>
+<a href="../angularjs.html">AngularJS 教程</a>
+<a href="../appml.html">AppML 教程</a>
+<a href="../asp.html">ASP 教程</a>
+<a href="../aspnet.html">ASP.NET 教程</a>
+<a href="../bootstrap.html">Bootstrap 教程</a>
+<a href="../bootstrap4.html">Bootstrap4 教程</a>
+<a href="../bootstrap5.html">Bootstrap5 教程</a>
+<a href="../cprogramming.html">C 教程</a>
+<a href="../c-dsa.html">C 语言数据结构与算法</a>
+<a href="../csharp.html">C# 教程</a>
+<a href="../cplusplus.html">C++ 教程</a>
+<a href="../chartjs.html">Chart.js 教程</a>
+<a href="../claude-code.html">Claude Code 教程</a>
+<a href="../cmake.html">CMake 教程</a>
+<a href="../codex.html">Codex 教程</a>
+<a href="../cssref.html">CSS 参考手册</a>
+<a href="../css.html">CSS 教程</a>
+<a href="../css3.html">CSS3 教程</a>
+<a href="../cursor.html">Cursor 教程</a>
+<a href="../dart.html">Dart 教程</a>
+<a href="../dash.html">Dash 教程</a>
+<a href="../deepseek-harness.html">DeepSeek Harness</a>
+<a href="../django.html">Django 教程</a>
+<a href="../docker.html">Docker 教程</a>
+<a href="../dtd.html">DTD 教程</a>
+<a href="../echarts.html">ECharts 教程</a>
+<a href="../eclipse.html">Eclipse 教程</a>
+<a href="../electron.html">Electron 教程</a>
+<a href="../fastapi.html">FastAPI 教程</a>
+<a href="../firebug.html">Firebug 教程</a>
+<a href="../flask.html">Flask 教程</a>
+<a href="../flutter.html">Flutter 教程</a>
+<a href="../font-awesome.html">Font Awesome 图标</a>
+<a href="../foundation.html">Foundation 教程</a>
+<a href="../git.html">Git 教程</a>
+<a href="../go.html">Go 语言教程</a>
+<a href="../googleapi.html">Google 地图 API 教程</a>
+<a href="../hermes-agent.html">Hermes Agent</a>
+<a href="../highcharts.html">Highcharts 教程</a>
+<a href="../htmldom.html">HTML DOM 教程</a>
+<a href="../tags.html">HTML 参考手册</a>
+<a href="../charsets.html">HTML 字符集</a>
+<a href="../html.html">HTML 教程</a>
+<a href="../http.html">HTTP 教程</a>
+<a href="../ionic.html">ionic 教程</a>
+<a href="../ios.html">iOS 教程</a>
+<a href="../java.html">Java 教程</a>
+<a href="../jsref.html">JavaScript 参考手册</a>
+<a href="../js.html">Javascript 教程</a>
+<a href="../jeasyui.html">jQuery EasyUI 教程</a>
+<a href="../jquerymobile.html">jQuery Mobile 教程</a>
+<a href="../jqueryui.html">jQuery UI 教程</a>
+<a href="../jquery.html">jQuery 教程</a>
+<a href="../json.html">JSON 教程</a>
+<a href="../jsp.html">JSP 教程</a>
+<a href="../julia.html">Julia 教程</a>
+<a href="../jupyter-notebook.html">Jupyter Notebook 教程</a>
+<a href="../kotlin.html">Kotlin 教程</a>
+<a href="../langchain.html">LangChain 教程</a>
+<a href="../latex.html">LaTeX 教程</a>
+<a href="../linux.html">Linux 教程</a>
+<a href="../lua.html">Lua 教程</a>
+<a href="../markdown.html">Markdown 教程</a>
+<a href="../matplotlib.html">Matplotlib 教程</a>
+<a href="../maven.html">Maven 教程</a>
+<a href="../memcached.html">Memcached 教程</a>
+<a href="../mongodb.html">MongoDB 教程</a>
+<a href="../mysql.html">MySQL 教程</a>
+<a href="../nextjs.html">Next.js 教程</a>
+<a href="../nlp.html">NLP 教程</a>
+<a href="../nodejs.html">Node.js 教程</a>
+<a href="../numpy.html">NumPy 教程</a>
+<a href="../obsidian.html">Obsidian 教程</a>
+<a href="../ollama.html">Ollama 教程</a>
+<a href="../opencode.html">OpenCode 教程</a>
+<a href="../opencv.html">OpenCV 教程</a>
+<a href="../pandas.html">Pandas 教程</a>
+<a href="../perl.html">Perl 教程</a>
+<a href="../php.html">PHP 教程</a>
+<a href="../pi-agent.html">Pi Agent</a>
+<a href="../pillow.html">Pillow 教程</a>
+<a href="../playwright.html">Playwright 教程</a>
+<a href="../postgresql.html">PostgreSQL 教程</a>
+<a href="../powershell.html">PowerShell</a>
+<a href="../pycharm.html">Pycharm 教程</a>
+<a href="../python3.html">Python 3 教程</a>
+<a href="../python.html">Python 基础教程</a>
+<a href="../python-design-pattern.html">Python 设计模式</a>
+<a href="../python-qt.html">Python 量化交易</a>
+<a href="../pytorch.html">PyTorch 教程</a>
+<a href="../r.html">R 教程</a>
+<a href="../rdf.html">RDF 教程</a>
+<a href="../react.html">React 教程</a>
+<a href="../redis.html">Redis 教程</a>
+<a href="../restfulapi.html">RESTful API</a>
+<a href="../rss.html">RSS 教程</a>
+<a href="../ruby.html">Ruby 教程</a>
+<a href="../rust.html">Rust 教程</a>
+<a href="../sass.html">Sass 教程</a>
+<a href="../scala.html">Scala 教程</a>
+<a href="../scipy.html">SciPy 教程</a>
+<a href="../selenium.html">Selenium 教程</a>
+<a href="../servlet.html">Servlet 教程</a>
+<a href="../skills.html">Skills 教程</a>
+<a href="../sklearn.html">Sklearn 教程</a>
+<a href="../soap.html">SOAP 教程</a>
+<a href="../sql.html">SQL 教程</a>
+<a href="../sqlite.html">SQLite 教程</a>
+<a href="../svg.html">SVG 教程</a>
+<a href="../svn.html">SVN 教程</a>
+<a href="../swagger.html">Swagger 教程</a>
+<a href="../swift.html">Swift 教程</a>
+<a href="../tailwindcss.html">Tailwind CSS 教程</a>
+<a href="../tcpip.html">TCP/IP 教程</a>
+<a href="../tensorflow.html">TensorFlow 教程</a>
+<a href="../typescript.html">TypeScript 教程</a>
+<a href="../uniapp.html">uni-app 教程</a>
+<a href="../vbscript.html">VBScript 教程</a>
+<a href="../vibe-coding.html">Vibe Coding 教程</a>
+<a href="../vscode.html">VSCode 教程</a>
+<a href="../vue2.html">Vue.js 教程</a>
+<a href="../vue3.html">Vue3 教程</a>
+<a href="../w3c.html">W3C 教程</a>
+<a href="../webservices.html">Web Service 教程</a>
+<a href="../wsdl.html">WSDL 教程</a>
+<a href="../xlink.html">XLink 教程</a>
+<a href="../dom.html">XML DOM 教程</a>
+<a href="../schema.html">XML Schema 教程</a>
+<a href="../xml.html">XML 教程</a>
+<a href="../xpath.html">XPath 教程</a>
+<a href="../xquery.html">XQuery 教程</a>
+<a href="../xslfo.html">XSLFO 教程</a>
+<a href="../xsl.html">XSLT 教程</a>
+<a href="../zig.html">Zig 教程</a>
+<a href="../data-structures.html">数据结构</a>
+<a href="../ml.html">机器学习</a>
+<a href="../regexp.html">正则表达式</a>
+<a href="../assembly.html">汇编语言</a>
+<a href="../quiz.html">测验</a>
+<a href="../browsers.html">浏览器</a>
+<a href="../quality.html">网站品质</a>
+<a href="../web.html">网站建设指南</a>
+<a href="../hosting.html">网站服务器教程</a>
+<a href="../np.html">网络协议</a>
+<a href="../computer-organization.html">计算机组成原理</a>
+<a href="../design-pattern.html">设计模式</a>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MySQL トランザクション | 初心者チュートリアル</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<link href="../manifest.webmanifest.html" rel="manifest"/>
+<meta content="#10151c" name="theme-color"/>
+<link href="../pwa/icon-192.png.html" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="application-name"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="../mysql/mysql-transaction.html" rel="canonical"/>
+<meta content="MySQL 事务" name="keywords"/>
+<meta content="MySQL 事务  MySQL 事务主要用于处理操作量大，复杂度高的数据。比如说，在人员管理系统中，你删除一个人员，你既需要删除人员的基本资料，也要删除和该人员相关的信息，如信箱，文章等等，这样，这些数据库操作语句就构成一个事务！   在 MySQL 中，事务是一组SQL语句的执行，它们被视为一个单独的工作单元。  在 MySQL 中只有使用了 Innodb 数据库引擎的数据库或表才支持事务。 事务处理可以用来维护数据库的完整性，保证成.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div>
+<!-- 导航栏 -->
+<style>
+/* 主题切换按钮 */
+/* ===== 主题变量（核心）===== */
+:root {
+  --theme-bg: #ffffff;
+  --theme-border: #e5e7eb;
+  --theme-icon: #333;
+  --theme-hover: #f3f4f6;
+}
+
+.dark {
+  --theme-bg: #1f2937;
+  --theme-border: #374151;
+  --theme-icon: #e5e7eb;
+  --theme-hover: #374151;
+}
+
+/* ===== 按钮容器 ===== */
+.nav-theme-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== 按钮本体 ===== */
+.nav-theme-toggle button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  border-radius: 6px;
+  border: 1px solid var(--theme-border);
+
+  background: var(--theme-bg);
+  color: var(--theme-icon);
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* ===== 图标大小 ===== */
+.nav-theme-toggle i {
+  font-size: 14px;
+}
+
+/* ===== hover 效果 ===== */
+.nav-theme-toggle button:hover {
+  background: var(--theme-hover);
+  transform: translateY(-1px);
+}
+
+/* ===== 点击反馈 ===== */
+.nav-theme-toggle button:active {
+  transform: scale(0.95);
+}
+
+/* ===== 当前激活态（可选）===== */
+.nav-theme-toggle button.active {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+</style>
+<!-- 导航栏 -->
+<nav aria-label="主导航" class="container navigation">
+<div class="row">
+<div class="col nav">
+<!-- PC 导航 -->
+<ul class="pc-nav" id="runoob-detail-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../js/js-tutorial.html">JavaScript</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a data-id="vue" href="#">Vue</a></li>
+<li><a href="../react/react-tutorial.html">React</a></li>
+<li><a href="../python3/python3-tutorial.html">Python3</a></li>
+<li><a href="../java/java-tutorial.html">Java</a></li>
+<li><a href="../cprogramming/c-tutorial.html">C</a></li>
+<li><a href="../cplusplus/cpp-tutorial.html">C++</a></li>
+<li><a href="../csharp/csharp-tutorial.html">C#</a></li>
+<li><a data-id="aiNav" href="#">AI</a></li>
+<li><a href="../go/go-tutorial.html">Go</a></li>
+<li><a href="../sql/sql-tutorial.html">SQL</a></li>
+<li><a href="../linux/linux-tutorial.html">Linux</a></li>
+<li><a href="../vscode/vscode-tutorial.html">VS Code</a></li>
+<li><a data-id="bootstrap" href="#">Bootstrap</a></li>
+<li><a href="../git/git-tutorial.html">Git</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<!-- 主题切换按钮，固定在最右侧 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+<!-- 移动端导航 -->
+<ul class="mobile-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a href="../js/js-tutorial.html">JS</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<li><a class="search-reveal" href="#">搜索</a></li>
+<!-- 移动端主题切换 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon-mobile" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun-mobile" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<!-- 二级导航 -->
+<!--  内容  -->
+<div class="container main">
+<!-- 中间 -->
+<div class="row">
+<div class="runoob-col-md2">
+<div class="left-column">
+<div class="tab" style="overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
+<i aria-hidden="true" class="fa fa-list"></i>
+<span>MySQL 教程</span>
+</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+<a data-p="par" href="../mysql/mysql-tutorial.html" target="_top" title="MySQL 教程">
+			MySQL 教程			</a>
+<a data-p="par" href="../mysql/mysql-install.html" target="_top" title="MySQL 安装">
+			MySQL 安装			</a>
+<a data-p="par" href="../mysql/mysql-administration.html" target="_top" title="MySQL 管理">
+			MySQL 管理			</a>
+<a data-p="par" href="../mysql/mysql-connection.html" target="_top" title="MySQL 连接">
+			MySQL 连接			</a>
+<a data-p="par" href="../mysql/mysql-create-database.html" target="_top" title="MySQL 创建数据库">
+			MySQL 创建数据库			</a>
+<a data-p="par" href="../mysql/mysql-drop-database.html" target="_top" title="MySQL 删除数据库">
+			MySQL 删除数据库			</a>
+<a data-p="par" href="../mysql/mysql-select-database.html" target="_top" title="MySQL 选择数据库">
+			MySQL 选择数据库			</a>
+<a data-p="par" href="../mysql/mysql-data-types.html" target="_top" title="MySQL 数据类型">
+			MySQL 数据类型			</a>
+<a data-p="par" href="../mysql/mysql-create-tables.html" target="_top" title="MySQL 创建数据表">
+			MySQL 创建数据表			</a>
+<a data-p="par" href="../mysql/mysql-drop-tables.html" target="_top" title="MySQL 删除数据表">
+			MySQL 删除数据表			</a>
+<a data-p="par" href="../mysql/mysql-insert-query.html" target="_top" title="MySQL 插入数据">
+			MySQL 插入数据			</a>
+<a data-p="par" href="../mysql/mysql-select-query.html" target="_top" title="MySQL 查询数据">
+			MySQL 查询数据			</a>
+<a data-p="par" href="../mysql/mysql-where-clause.html" target="_top" title="MySQL WHERE 子句">
+			MySQL WHERE 子句			</a>
+<a data-p="par" href="../mysql/mysql-update-query.html" target="_top" title="MySQL UPDATE 更新">
+			MySQL UPDATE 更新			</a>
+<a data-p="par" href="../mysql/mysql-delete-query.html" target="_top" title="MySQL DELETE 语句">
+			MySQL DELETE 语句			</a>
+<a data-p="par" href="../mysql/mysql-like-clause.html" target="_top" title="MySQL LIKE 子句">
+			MySQL LIKE 子句			</a>
+<a href="../mysql/mysql-union-operation.html" target="_top" title="MySQL UNION 语句">
+			MySQL UNION		</a> <a data-p="par" href="../mysql/mysql-order-by.html" target="_top" title="MySQL ORDER BY(排序) 语句">
+			MySQL ORDER BY 语句			</a>
+<a href="mysql-group-by-statement.html" target="_top" title="MySQL Group by 语句"> MySQL 分组 </a> <a data-p="par" href="../mysql/mysql-join.html" target="_top" title="MySQL 连接的使用">
+			MySQL 连接的使用			</a>
+<a data-p="par" href="../mysql/mysql-null.html" target="_top" title="MySQL NULL 值处理">
+			MySQL NULL 值处理			</a>
+<a data-p="par" href="../mysql/mysql-regexp.html" target="_top" title="MySQL 正则表达式">
+			MySQL 正则表达式			</a>
+<a data-p="par" href="../mysql/mysql-transaction.html" target="_top" title="MySQL 事务">
+			MySQL 事务			</a>
+<a data-p="par" href="../mysql/mysql-alter.html" target="_top" title="MySQL ALTER 命令">
+			MySQL ALTER 命令			</a>
+<a data-p="par" href="../mysql/mysql-index.html" target="_top" title="MySQL 索引">
+			MySQL 索引			</a>
+<a data-p="par" href="../mysql/mysql-temporary-tables.html" target="_top" title="MySQL 临时表">
+			MySQL 临时表			</a>
+<a data-p="par" href="../mysql/mysql-clone-tables.html" target="_top" title="MySQL 复制表">
+			MySQL 复制表			</a>
+<a data-p="par" href="../mysql/mysql-database-info.html" target="_top" title="MySQL 元数据">
+			MySQL 元数据			</a>
+<a data-p="par" href="../mysql/mysql-using-sequences.html" target="_top" title="MySQL 序列使用（AUTO_INCREMENT）">
+			MySQL 序列			</a>
+<a data-p="par" href="../mysql/mysql-handling-duplicates.html" target="_top" title="MySQL 处理重复数据">
+			MySQL 处理重复数据			</a>
+<a data-p="par" href="../mysql/mysql-sql-injection.html" target="_top" title="MySQL 及 SQL 注入">
+			MySQL 及 SQL 注入			</a>
+<a data-p="par" href="../mysql/mysql-database-export.html" target="_top" title="MySQL 导出数据">
+			MySQL 导出数据			</a>
+<a data-p="par" href="../mysql/mysql-database-import.html" target="_top" title="MySQL 导入数据">
+			MySQL 导入数据			</a>
+<a data-p="par" href="../mysql/mysql-functions.html" target="_top" title="MySQL 函数">
+			MySQL 函数			</a>
+<a data-p="par" href="../mysql/mysql-operator.html" target="_top" title="MySQL 运算符">
+			MySQL 运算符			</a>
+<a data-p="par" href="../mysql/mysql-command-manual.html" target="_top" title="MySQL 命令大全">
+			MySQL 命令大全			</a>
+<a data-p="par" href="../mysql/mysql-quiz.html" target="_top" title="MySQL 测验">
+			MySQL 测验			</a>
+<br/><h2 class="left"><span class="left_h2">MySQL 编程语言</span></h2>
+<a href="../mysql/mysql-nodejs-intro.html" target="_top" title="MySQL PHP">MySQL Node.js</a>
+<a href="../mysql/mysql-php-syntax.html" target="_top" title="MySQL PHP">MySQL PHP</a>
+<a href="../mysql/mysql-python-intro.html" target="_top" title="MySQL Python">MySQL Python</a>
+<a href="../mysql/mysql-java-intro.html" target="_top" title="MySQL Java">MySQL Java</a>
+</div>
+</div>
+</div>
+</div> <div class="col middle-column">
+<div class="article">
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../mysql/mysql-regexp.html" rel="prev">MySQL 正規表現</a> </div>
+<div class="next-design-link"><a href="../mysql/mysql-alter.html" rel="next">MySQL ALTER コマンド</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="article-body">
+<div class="article-intro" id="content">
+<h1>MySQL トランザクション</h1>
+<p>MySQL トランザクションは主に、操作量が多く、複雑度の高いデータを処理するために使用されます。例えば、人事管理システムで、ある従業員を削除する場合、その従業員の基本情報を削除するだけでなく、その従業員に関連する情報（メールボックス、記事など）も削除する必要があります。このように、一連のデータベース操作文が1つのトランザクションを構成します！</p>
+<p>MySQL では、トランザクションは一連のSQL文の実行であり、それらは単一の作業単位として扱われます。</p>
+<ul><li>MySQL では、Innodb データベースエンジンを使用しているデータベースまたはテーブルのみがトランザクションをサポートします。</li><li>トランザクション処理はデータベースの整合性を維持するために使用でき、一連の SQL 文がすべて実行されるか、すべて実行されないことを保証します。</li><li>トランザクションは管理に使用されます<strong>insert、update、delete</strong>ステートメント</li></ul>
+<p>一般的に、トランザクションは4つの条件（ACID）を満たす必要があります：：原子性（<strong>A</strong>tomicity（または不可分割性）、一貫性（<strong>C</strong>onsistency）、分離性（<strong>I</strong>solation（また独立性）、永続性（<strong>D</strong>urability）。
+</p>
+<ul>
+<li><p><strong>原子性：</strong>トランザクション内のすべての操作は、すべて完了するか、すべて完了しないかのどちらかであり、途中のある時点で終了することはありません。トランザクションの実行中にエラーが発生した場合は、トランザクションがまったく実行されなかったかのように、トランザクション開始前の状態にロールバックされます。</p></li>
+<li><p><strong>一貫性：</strong>トランザクション開始前とトランザクション終了後で、データベースの整合性が損なわれていないこと。つまり、書き込まれるデータはすべての事前定義されたルールに完全に準拠している必要があります。これには、データの精度、連鎖性、および後続のデータベースが自発的に予定された処理を完了できることが含まれます。</p></li>
+<li><p><strong>分離性：</strong>データベースが複数の同時トランザクションに対してデータの読み書きや変更を同時に行うことを許可する能力です。分離性は、複数のトランザクションが並行して実行される際に、交差実行によってデータの不整合が発生するのを防ぐことができます。トランザクション分離にはさまざまなレベルがあり、読取り未コミット（Read uncommitted）、読取りコミット（read committed）、反復可能読取り（repeatable read）、直列化（Serializable）が含まれます。</p></li>
+<li><p><strong>永続性：</strong>トランザクション処理が終了した後、データへの変更は永久的なものになります。システム障害が発生しても失われることはありません。</p></li>
+</ul>
+<blockquote>
+<p>MySQL コマンドラインのデフォルト設定では、トランザクションはすべて自動コミットされます。つまり、SQL 文を実行するとすぐに COMMIT 操作が実行されます。したがって、明示的にトランザクションを開始するには、コマンド BEGIN または START TRANSACTION を使用するか、コマンド SET AUTOCOMMIT=0 を実行して現在のセッションの自動コミットを無効にする必要があります。</p></blockquote>
+<h3>トランザクション制御文：</h3>
+<ul>
+<li><p>BEGIN または START TRANSACTION はトランザクションを明示的に開始します；</p></li>
+<li><p>COMMIT は COMMIT WORK を使用することもできますが、両者は同等です。COMMIT はトランザクションをコミットし、データベースに加えられたすべての変更を永久的なものにします；</p></li>
+<li><p>ROLLBACK は ROLLBACK WORK を使用することもできますが、両者は同等です。ロールバックはユーザーのトランザクションを終了し、進行中のすべての未コミットの変更を元に戻します；</p></li>
+<li><p>SAVEPOINT identifier は、トランザクション内にセーブポイントを作成できます。1つのトランザクションには複数の SAVEPOINT を設定できます；</p></li>
+<li><p>RELEASE SAVEPOINT identifier は、トランザクションのセーブポイントを削除します。指定されたセーブポイントがない場合、この文を実行すると例外がスローされます；</p></li>
+<li><p>ROLLBACK TO identifier はトランザクションをマークポイントにロールバックします；</p></li>
+<li><p>SET TRANSACTION はトランザクションの分離レベルを設定するために使用されます。InnoDB ストレージエンジンが提供するトランザクションの分離レベルは、READ UNCOMMITTED、READ COMMITTED、REPEATABLE READ、SERIALIZABLE です。</p></li>
+</ul>
+<p><img decoding="async" src="../wp-content/uploads/2014/03/python_mysql_transction_management-e1530354220769.webp"/></p>
+<h3>MYSQL トランザクション処理には主に2つの方法があります：</h3>
+<p>1、BEGIN、ROLLBACK、COMMIT を使用して実現する</p>
+<ul><li><strong>BEGIN または START TRANSACTION</strong>：トランザクションを開始するために使用します。</li>
+<li><strong>ROLLBACK</strong>トランザクションのロールバック。以前の変更を取り消します。</li>
+<li><strong>COMMIT</strong>：トランザクションを確認し、コミットして、変更を永久的に有効にします。</li></ul>
+<p>2、SET を使用して MySQL の自動コミットモードを直接変更する：</p>
+<ul><li><strong>SET AUTOCOMMIT=0</strong>自動コミットを無効にする</li>
+<li><strong>SET AUTOCOMMIT=1</strong>自動コミットを有効にする</li></ul>
+<p><span class="marked">BEGIN または START TRANSACTION</span>-- トランザクションを開始するために使用します：</p>
+<pre>BEGIN; -- 或者使用 START TRANSACTION;</pre>
+<p><span class="marked">COMMIT</span>-- トランザクションをコミットし、すべての変更をデータベースに永久的に保存するために使用します：</p>
+<pre>
+COMMIT;</pre><p>
+<span class="marked">ROLLBACK</span>-- トランザクションをロールバックし、最後のコミット以降に行われたすべての変更を元に戻すために使用します：</p>
+<pre>
+ROLLBACK;</pre><p>
+<span class="marked">SAVEPOINT</span>-- トランザクション内にセーブポイントを設定し、後でそのポイントにロールバックできるようにするために使用します：</p>
+<pre>
+SAVEPOINT savepoint_name;</pre><p>
+<span class="marked">ROLLBACK TO SAVEPOINT</span>-- 以前に設定したセーブポイントにロールバックするために使用します：</p>
+<pre>
+ROLLBACK TO SAVEPOINT savepoint_name;</pre>
+<p>次に、簡単な MySQL トランザクションの例を示します：</p>
+<div class="example"><h2 class="example">例</h2> <div class="example_code">
+<span style="color: #808080; font-style: italic;">-- トランザクションを開始</span><br/>
+<span style="color: #993333; font-weight: bold;">START</span> <span style="color: #993333; font-weight: bold;">TRANSACTION</span>;<br/>
+<br/>
+<span style="color: #808080; font-style: italic;">-- いくつかのSQL文を実行</span><br/>
+<span style="color: #993333; font-weight: bold;">UPDATE</span> accounts <span style="color: #993333; font-weight: bold;">SET</span> balance <span style="color: #66cc66;">=</span> balance <span style="color: #66cc66;">-</span> <span style="color: #cc66cc;">100</span> <span style="color: #993333; font-weight: bold;">WHERE</span> user_id <span style="color: #66cc66;">=</span> <span style="color: #cc66cc;">1</span>;<br/>
+<span style="color: #993333; font-weight: bold;">UPDATE</span> accounts <span style="color: #993333; font-weight: bold;">SET</span> balance <span style="color: #66cc66;">=</span> balance <span style="color: #66cc66;">+</span> <span style="color: #cc66cc;">100</span> <span style="color: #993333; font-weight: bold;">WHERE</span> user_id <span style="color: #66cc66;">=</span> <span style="color: #cc66cc;">2</span>;<br/>
+<br/>
+<span style="color: #808080; font-style: italic;">-- コミットするかロールバックするかを判断</span><br/>
+<span style="color: #993333; font-weight: bold;">IF</span> <span style="color: #66cc66;">(</span>条件<span style="color: #66cc66;">)</span> <span style="color: #993333; font-weight: bold;">THEN</span><br/>
+    COMMIT; <span style="color: #808080; font-style: italic;">-- トランザクションをコミット</span><br/>
+<span style="color: #993333; font-weight: bold;">ELSE</span><br/>
+    <span style="color: #993333; font-weight: bold;">ROLLBACK</span>; <span style="color: #808080; font-style: italic;">-- トランザクションをロールバック</span><br/>
+<span style="color: #993333; font-weight: bold;">END</span> <span style="color: #993333; font-weight: bold;">IF</span>;<br/>
+</div></div>
+<h3>例</h3>
+<p>簡単なトランザクションの例：</p>
+<div class="example">
+<h2 class="example">トランザクションテスト</h2>
+<div class="example_code">
+<div class="hl-main"><span class="hl-identifier">mysql</span><span class="hl-code">&gt; </span><span class="hl-identifier">use</span><span class="hl-code"> </span><span class="hl-identifier">RUNOOB</span><span class="hl-code">;
+</span><span class="hl-identifier">Database</span><span class="hl-code"> </span><span class="hl-identifier">changed</span><span class="hl-code">
+</span><span class="hl-identifier">mysql</span><span class="hl-code">&gt; </span><span class="hl-reserved">CREATE</span><span class="hl-code"> </span><span class="hl-reserved">TABLE</span><span class="hl-code"> </span><span class="hl-identifier">runoob_transaction_test</span><span class="hl-brackets">(</span><span class="hl-code"> </span><span class="hl-identifier">id</span><span class="hl-code"> </span><span class="hl-reserved">int</span><span class="hl-brackets">(</span><span class="hl-number">5</span><span class="hl-brackets">)</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-identifier">engine</span><span class="hl-code">=</span><span class="hl-identifier">innodb</span><span class="hl-code">;  </span><span class="hl-comment"># データテーブルを作成</span><span class="hl-code">
+</span><span class="hl-identifier">Query</span><span class="hl-code"> </span><span class="hl-identifier">OK</span><span class="hl-code">, </span><span class="hl-number">0</span><span class="hl-code"> </span><span class="hl-reserved">rows</span><span class="hl-code"> </span><span class="hl-identifier">affected</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-number">0.04</span><span class="hl-code"> </span><span class="hl-identifier">sec</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-identifier">mysql</span><span class="hl-code">&gt; </span><span class="hl-reserved">select</span><span class="hl-code"> * </span><span class="hl-reserved">from</span><span class="hl-code"> </span><span class="hl-identifier">runoob_transaction_test</span><span class="hl-code">;
+</span><span class="hl-identifier">Empty</span><span class="hl-code"> </span><span class="hl-reserved">set</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-number">0.01</span><span class="hl-code"> </span><span class="hl-identifier">sec</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-identifier">mysql</span><span class="hl-code">&gt; </span><span class="hl-reserved">begin</span><span class="hl-code">;  </span><span class="hl-comment"># トランザクションを開始</span><span class="hl-code">
+</span><span class="hl-identifier">Query</span><span class="hl-code"> </span><span class="hl-identifier">OK</span><span class="hl-code">, </span><span class="hl-number">0</span><span class="hl-code"> </span><span class="hl-reserved">rows</span><span class="hl-code"> </span><span class="hl-identifier">affected</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-number">0.00</span><span class="hl-code"> </span><span class="hl-identifier">sec</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-identifier">mysql</span><span class="hl-code">&gt; </span><span class="hl-reserved">insert</span><span class="hl-code"> </span><span class="hl-reserved">into</span><span class="hl-code"> </span><span class="hl-identifier">runoob_transaction_test</span><span class="hl-code"> </span><span class="hl-reserved">value</span><span class="hl-brackets">(</span><span class="hl-number">5</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-identifier">Query</span><span class="hl-code"> </span><span class="hl-identifier">OK</span><span class="hl-code">, </span><span class="hl-number">1</span><span class="hl-code"> </span><span class="hl-reserved">rows</span><span class="hl-code"> </span><span class="hl-identifier">affected</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-number">0.01</span><span class="hl-code"> </span><span class="hl-identifier">sec</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-identifier">mysql</span><span class="hl-code">&gt; </span><span class="hl-reserved">insert</span><span class="hl-code"> </span><span class="hl-reserved">into</span><span class="hl-code"> </span><span class="hl-identifier">runoob_transaction_test</span><span class="hl-code"> </span><span class="hl-reserved">value</span><span class="hl-brackets">(</span><span class="hl-number">6</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-identifier">Query</span><span class="hl-code"> </span><span class="hl-identifier">OK</span><span class="hl-code">, </span><span class="hl-number">1</span><span class="hl-code"> </span><span class="hl-reserved">rows</span><span class="hl-code"> </span><span class="hl-identifier">affected</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-number">0.00</span><span class="hl-code"> </span><span class="hl-identifier">sec</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-identifier">mysql</span><span class="hl-code">&gt; </span><span class="hl-reserved">commit</span><span class="hl-code">; </span><span class="hl-comment"># トランザクションをコミット</span><span class="hl-code">
+</span><span class="hl-identifier">Query</span><span class="hl-code"> </span><span class="hl-identifier">OK</span><span class="hl-code">, </span><span class="hl-number">0</span><span class="hl-code"> </span><span class="hl-reserved">rows</span><span class="hl-code"> </span><span class="hl-identifier">affected</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-number">0.01</span><span class="hl-code"> </span><span class="hl-identifier">sec</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-identifier">mysql</span><span class="hl-code">&gt;  </span><span class="hl-reserved">select</span><span class="hl-code"> * </span><span class="hl-reserved">from</span><span class="hl-code"> </span><span class="hl-identifier">runoob_transaction_test</span><span class="hl-code">;
++------+
+| </span><span class="hl-identifier">id</span><span class="hl-code">   |
++------+
+| </span><span class="hl-number">5</span><span class="hl-code">    |
+| </span><span class="hl-number">6</span><span class="hl-code">    |
++------+
+</span><span class="hl-number">2</span><span class="hl-code"> </span><span class="hl-reserved">rows</span><span class="hl-code"> </span><span class="hl-reserved">in</span><span class="hl-code"> </span><span class="hl-reserved">set</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-number">0.01</span><span class="hl-code"> </span><span class="hl-identifier">sec</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-identifier">mysql</span><span class="hl-code">&gt; </span><span class="hl-reserved">begin</span><span class="hl-code">;    </span><span class="hl-comment"># トランザクションを開始</span><span class="hl-code">
+</span><span class="hl-identifier">Query</span><span class="hl-code"> </span><span class="hl-identifier">OK</span><span class="hl-code">, </span><span class="hl-number">0</span><span class="hl-code"> </span><span class="hl-reserved">rows</span><span class="hl-code"> </span><span class="hl-identifier">affected</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-number">0.00</span><span class="hl-code"> </span><span class="hl-identifier">sec</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-identifier">mysql</span><span class="hl-code">&gt;  </span><span class="hl-reserved">insert</span><span class="hl-code"> </span><span class="hl-reserved">into</span><span class="hl-code"> </span><span class="hl-identifier">runoob_transaction_test</span><span class="hl-code"> </span><span class="hl-reserved">values</span><span class="hl-brackets">(</span><span class="hl-number">7</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-identifier">Query</span><span class="hl-code"> </span><span class="hl-identifier">OK</span><span class="hl-code">, </span><span class="hl-number">1</span><span class="hl-code"> </span><span class="hl-reserved">rows</span><span class="hl-code"> </span><span class="hl-identifier">affected</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-number">0.00</span><span class="hl-code"> </span><span class="hl-identifier">sec</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-identifier">mysql</span><span class="hl-code">&gt; </span><span class="hl-reserved">rollback</span><span class="hl-code">;   </span><span class="hl-comment"># ロールバック</span><span class="hl-code">
+</span><span class="hl-identifier">Query</span><span class="hl-code"> </span><span class="hl-identifier">OK</span><span class="hl-code">, </span><span class="hl-number">0</span><span class="hl-code"> </span><span class="hl-reserved">rows</span><span class="hl-code"> </span><span class="hl-identifier">affected</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-number">0.00</span><span class="hl-code"> </span><span class="hl-identifier">sec</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-identifier">mysql</span><span class="hl-code">&gt;   </span><span class="hl-reserved">select</span><span class="hl-code"> * </span><span class="hl-reserved">from</span><span class="hl-code"> </span><span class="hl-identifier">runoob_transaction_test</span><span class="hl-code">;   </span><span class="hl-comment"># ロールバックしたため、データは挿入されませんでした</span><span class="hl-code">
++------+
+| </span><span class="hl-identifier">id</span><span class="hl-code">   |
++------+
+| </span><span class="hl-number">5</span><span class="hl-code">    |
+| </span><span class="hl-number">6</span><span class="hl-code">    |
++------+
+</span><span class="hl-number">2</span><span class="hl-code"> </span><span class="hl-reserved">rows</span><span class="hl-code"> </span><span class="hl-reserved">in</span><span class="hl-code"> </span><span class="hl-reserved">set</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-number">0.01</span><span class="hl-code"> </span><span class="hl-identifier">sec</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-identifier">mysql</span><span class="hl-code">&gt;</span></div>
+</div>
+</div>
+<h3>PHPでのトランザクション使用例</h3>
+<div class="example">
+<h2 class="example">MySQL ORDER BY テスト：</h2>
+<div class="example_code">
+<div class="hl-main"><span class="hl-inlinetags">&lt;?php</span><span class="hl-code">
+</span><span class="hl-var">$dbhost</span><span class="hl-code"> = </span><span class="hl-quotes">'</span><span class="hl-string">localhost</span><span class="hl-quotes">'</span><span class="hl-code">;  </span><span class="hl-comment">//</span><span class="hl-comment">mysqlサーバーのホストアドレス</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-var">$dbuser</span><span class="hl-code"> = </span><span class="hl-quotes">'</span><span class="hl-string">root</span><span class="hl-quotes">'</span><span class="hl-code">;            </span><span class="hl-comment">//</span><span class="hl-comment">mysqlユーザー名</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-var">$dbpass</span><span class="hl-code"> = </span><span class="hl-quotes">'</span><span class="hl-string">123456</span><span class="hl-quotes">'</span><span class="hl-code">;          </span><span class="hl-comment">//</span><span class="hl-comment">mysqlユーザー名のパスワード</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-var">$conn</span><span class="hl-code"> = </span><span class="hl-identifier">mysqli_connect</span><span class="hl-brackets">(</span><span class="hl-var">$dbhost</span><span class="hl-code">, </span><span class="hl-var">$dbuser</span><span class="hl-code">, </span><span class="hl-var">$dbpass</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-reserved">if</span><span class="hl-brackets">(</span><span class="hl-code">! </span><span class="hl-var">$conn</span><span class="hl-code"> </span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">die</span><span class="hl-brackets">(</span><span class="hl-quotes">'</span><span class="hl-string">接続に失敗しました：</span><span class="hl-quotes">'</span><span class="hl-code"> . </span><span class="hl-identifier">mysqli_error</span><span class="hl-brackets">(</span><span class="hl-var">$conn</span><span class="hl-brackets">)</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">文字コードを設定し、中国語の文字化けを防ぐ</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">mysqli_query</span><span class="hl-brackets">(</span><span class="hl-var">$conn</span><span class="hl-code">, </span><span class="hl-quotes">"</span><span class="hl-string">set names utf8</span><span class="hl-quotes">"</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-identifier">mysqli_select_db</span><span class="hl-brackets">(</span><span class="hl-code"> </span><span class="hl-var">$conn</span><span class="hl-code">, </span><span class="hl-quotes">'</span><span class="hl-string">RUNOOB</span><span class="hl-quotes">'</span><span class="hl-code"> </span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-identifier">mysqli_query</span><span class="hl-brackets">(</span><span class="hl-var">$conn</span><span class="hl-code">, </span><span class="hl-quotes">"</span><span class="hl-string">SET AUTOCOMMIT=0</span><span class="hl-quotes">"</span><span class="hl-brackets">)</span><span class="hl-code">; </span><span class="hl-comment">//</span><span class="hl-comment">自動コミットしないように設定します。MYSQLはデフォルトで即時実行されるため</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">mysqli_begin_transaction</span><span class="hl-brackets">(</span><span class="hl-var">$conn</span><span class="hl-brackets">)</span><span class="hl-code">;            </span><span class="hl-comment">//</span><span class="hl-comment">トランザクション定義を開始</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-reserved">if</span><span class="hl-brackets">(</span><span class="hl-code">!</span><span class="hl-identifier">mysqli_query</span><span class="hl-brackets">(</span><span class="hl-var">$conn</span><span class="hl-code">, </span><span class="hl-quotes">"</span><span class="hl-string">insert into runoob_transaction_test (id) values(8)</span><span class="hl-quotes">"</span><span class="hl-brackets">)</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">mysqli_query</span><span class="hl-brackets">(</span><span class="hl-var">$conn</span><span class="hl-code">, </span><span class="hl-quotes">"</span><span class="hl-string">ROLLBACK</span><span class="hl-quotes">"</span><span class="hl-brackets">)</span><span class="hl-code">;     </span><span class="hl-comment">//</span><span class="hl-comment">実行に失敗した場合にロールバックするかどうかを判断</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-reserved">if</span><span class="hl-brackets">(</span><span class="hl-code">!</span><span class="hl-identifier">mysqli_query</span><span class="hl-brackets">(</span><span class="hl-var">$conn</span><span class="hl-code">, </span><span class="hl-quotes">"</span><span class="hl-string">insert into runoob_transaction_test (id) values(9)</span><span class="hl-quotes">"</span><span class="hl-brackets">)</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">mysqli_query</span><span class="hl-brackets">(</span><span class="hl-var">$conn</span><span class="hl-code">, </span><span class="hl-quotes">"</span><span class="hl-string">ROLLBACK</span><span class="hl-quotes">"</span><span class="hl-brackets">)</span><span class="hl-code">;      </span><span class="hl-comment">//</span><span class="hl-comment">実行失敗時にロールバックするかどうかを判断</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">mysqli_commit</span><span class="hl-brackets">(</span><span class="hl-var">$conn</span><span class="hl-brackets">)</span><span class="hl-code">;            </span><span class="hl-comment">//</span><span class="hl-comment">トランザクションを実行</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">mysqli_close</span><span class="hl-brackets">(</span><span class="hl-var">$conn</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-inlinetags">?&gt;</span></div>
+</div>
+</div> その他の拡張
+</div>
+</div>
+<div class="archive-list" style="display:none;font-size: 14px;line-height: 1.8;margin-top: 20px;padding: 10px;">
+<div class="archive-list-item">
+<div class="post-intro" id="ai-info" style="width: 100%;">AI 思考中...</div>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../mysql/mysql-regexp.html" rel="prev">MySQL 正規表現</a> </div>
+<div class="next-design-link"><a href="../mysql/mysql-alter.html" rel="next">MySQL ALTER コマンド</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="sidebar-box">
+</div>
+ノート一覧
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="title" id="comments">
+<h2 class="">
+<div class="altblock">
+<i aria-hidden="true" class="fa fa-pencil-square-o" style="font-size:28px;margin-top: 8px;"></i>
+</div>
+<span class="mw-headline" id="qa_headline">2 件のノート</span>
+<span class="mw-headline" id="user_add_note" style="float:right;line-height: 62px;padding-right: 14px;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>ノートを書く</span>
+</h2>
+</div>
+<div id="postcomments">
+<ol class="commentlist">
+<li class="comment even thread-even depth-1" id="comment-41335"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>   codeDonald</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  113***2348@qq.com</p></div><div class="upvotejs" data-commid="41335" id="runoobvote-id-41335"><a class="upvote"></a> <span class="count">471</span></div></div><div class="comt-main" id="div-comment-41335">
+<p data-title="SAVEPOINT"><strong>セーブポイント SAVEPOINT を使用する</strong></p>
+<p>savepoint は、データベースのトランザクション処理において「サブトランザクション」（subtransaction）、別名ネストされたトランザクションを実装する方法です。トランザクションは savepoint の作成前の変更に影響を与えずに savepoint までロールバックでき、トランザクション全体を破棄する必要はありません。</p>
+<p>ROLLBACK によるロールバックでは、セーブポイント SAVEPOINT を設定できます。複数の操作を実行する場合、任意の文の前にロールバックできます。</p>
+<p>SAVEPOINT の使用</p>
+<pre>SAVEPOINT savepoint_name;    // 声明一个 savepoint
+
+ROLLBACK TO savepoint_name;  // 回滚到savepoint</pre>
+<p>SAVEPOINT の削除</p>
+<p>セーブポイントは、トランザクション処理の完了（ROLLBACK または COMMIT の実行）後に自動的に解放されます。</p>
+<p>MySQL5 以降、次を使用できます：</p>
+<pre>RELEASE SAVEPOINT savepoint_name;  // 删除指定保留点</pre><div class="comt-meta wrapper"><span class="comt-author"><a href="../note/41335.html" target="_blank">codeDonald</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>   codeDonald</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  113***2348@qq.com</p></div></span>8年前 (2019-03-29)</div></div></li><!-- #comment-## -->
+<li class="comment odd alt thread-odd thread-alt depth-1" id="comment-71631"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>   DanyMoon</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  119***8693@qq.com</p></div><div class="upvotejs" data-commid="71631" id="runoobvote-id-71631"><a class="upvote"></a> <span class="count">215</span></div></div><div class="comt-main" id="div-comment-71631"><p>例えば、次のようなゲームがあるとします。ゲームは個々のステージに分かれており、1つのステージ内で多くのボスを倒さないとクリアできません。各ステージをクリアすると、ゲームは自動的にゲームの進行状況を記録し、ゲームの進行状況をリモートサーバーにアップロードします。ゲームをリセットしない限り、ゲームの進行状況を元に戻すことはできません。</p><p>原子性：最小の操作ロジックであり、これ以上分割できません。ゲームの1つのステージのようなもので、ステージ内でどこまで進んでも、失敗したらステージの前に戻るだけです。</p><p><b>トランザクションは、一連のデータベース操作を1つのステージ（1つの原子操作）に包み込みます。ステージをクリアするか、ステージの前に戻るかのどちらかです。</b></p><p>永続性：トランザクションの実行が完了すると（トランザクションのコミット）、その操作はデータベース内のデータを永久的に変更します。つまり、ステージをクリアすると、ゲームの進行状況がサーバーに永久的に保存されます。</p><p><b>トランザクションは AID、すなわち原子性、分離性、永続性を保証できます。ただし、一貫性はトランザクションによって保証することはできません。一貫性はアプリケーション層、開発者に依存します。</b></p><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">DanyMoon</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>   DanyMoon</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  119***8693@qq.com</p></div></span>4年前 (2022-04-05)</div></div></li><!-- #comment-## -->
+</ol>
+<div class="pagenav">
+</div>
+</div>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style="display:none; padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>クリックしてノートを共有</h3>
+&lt;p style="font-size:14px;"&gt;ノートは本記事の内容の拡張である必要があります！&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;記事の投稿はこちらをクリックしてください&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; ノートを共有する前に&lt;a href=";.html" class="runoob-pop"&gt;ログイン&lt;/a&gt;が必要です！&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=";.html" id="cancel-comment-reply-link">キャンセル</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="6251"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>ノートを共有</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">ニックネーム</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">ニックネーム (必須)</span></li>
+<li class="form-inline"><label class="hide" for="email">メールアドレス</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">メールアドレス (必須)</span></li>
+<li class="form-inline"><label class="hide" for="url">引用アドレス</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">引用アドレス</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  6251;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 6251, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":6251},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+</div>
+</div>
+<!-- 右边栏 -->
+<div class="fivecol last right-column">
+<style>
+.sidebar-tree .double-li {
+    width:300px;
+}
+.sidebar-tree .double-li li {
+    width: 44%;
+    line-height: 1.5em;
+    border-bottom: 1px solid #ccc;
+    float: left;
+    display: inline;
+}
+</style>
+<div class="sidebar-box re-box re-box-large">
+<div class="sidebar-box recommend-here" style="margin: 0 auto;">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;"> <i aria-hidden="true" class="fa fa-list"></i> 分类导航</a>
+</div>
+<div class="sidebar-box sidebar-cate">
+<div class="sidebar-tree">
+<ul><li style="margin: 0;"><a class="tit" href="#"> Python / 数据科学</a><ul class="double-li"><li><a href="../python3/python3-tutorial.html" title="Python 教程">Python 教程</a></li><li><a href="../python/python-tutorial.html" title="Python2.x 教程">Python2.x 教程</a></li><li><a href="../fastapi/fastapi-tutorial.html" title="FastAPI 教程">FastAPI 教程</a></li><li><a href="../flask/flask-tutorial.html" title="Flask 教程">Flask 教程</a></li><li><a href="../django/django-tutorial.html" title="Django 教程">Django 教程</a></li><li><a href="../numpy/numpy-tutorial.html" title="NumPy 教程">NumPy 教程</a></li><li><a href="../pandas/pandas-tutorial.html" title="Pandas 教程">Pandas 教程</a></li><li><a href="../scipy/scipy-tutorial.html" title="SciPy 教程">SciPy 教程</a></li><li><a href="../matplotlib/matplotlib-tutorial.html" title="Matplotlib 教程">Matplotlib 教程</a></li><li><a href="../dash/dash-tutorial.html" title="Dash 教程">Dash 教程</a></li><li><a href="../jupyter-notebook/jupyter-notebook-tutorial.html" title="Jupyter Notebook 教程">Jupyter Notebook 教程</a></li><li><a href="../pillow/pillow-tutorial.html" title="Pillow 教程">Pillow 教程</a></li><li><a href="../qt/qt-tutorial.html" title="量化交易">量化交易</a></li><li><a href="../r/r-tutorial.html" title="R 教程">R 教程</a></li><li><a href="../julia/julia-tutorial.html" title="Julia 教程">Julia 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> AI / 智能开发</a><ul class="double-li"><li><a href="../ai-agent/ai-agent-tutorial.html" title="AI Agent（智能体）">AI Agent（智能体）</a></li><li><a href="../ai/ai-tutorial.html" title="AI（人工智能）">AI（人工智能）</a></li><li><a href="../codex/codex-tutorial.html" title="Codex 教程">Codex 教程</a></li><li><a href="../vibe-coding/vibe-coding-tutorial.html" title="Vibe Coding 教程">Vibe Coding 教程</a></li><li><a href="../claude-code/claude-code-tutorial.html" title="Claude Code">Claude Code</a></li><li><a href="../opencode/opencode-tutorial.html" title="OpenCode">OpenCode</a></li><li><a href="../skills/skills-tutorial.html" title="Skills（技能）">Skills（技能）</a></li><li><a href="../ollama/ollama-tutorial.html" title="Ollama 教程">Ollama 教程</a></li><li><a href="../hermes-agent/hermes-agent-tutorial.html" title="Hermes Agent">Hermes Agent</a></li><li><a href="../deepseek-harness/deepseek-harness-tutorial.html" title="DeepSeek Harness">DeepSeek Harness</a></li><li><a href="../pi-agent/pi-agent-tutorial.html" title="Pi Agent">Pi Agent</a></li><li><a href="../ai-math/ai-math-tutorial.html" title="AI 数学基础">AI 数学基础</a></li><li><a href="../tensorflow/tensorflow-tutorial.html" title="TensorFlow 教程">TensorFlow 教程</a></li><li><a href="../pytorch/pytorch-tutorial.html" title="PyTorch 教程">PyTorch 教程</a></li><li><a href="../sklearn/sklearn-tutorial.html" title="Scikit-learn 教程">Scikit-learn 教程</a></li><li><a href="../ml/ml-tutorial.html" title="机器 教程">机器 教程</a></li><li><a href="../langchain/langchain-tutorial.html" title="LangChain">LangChain</a></li><li><a href="../nlp/nlp-tutorial.html" title="自然语言处理 NLP">自然语言处理 NLP</a></li><li><a href="../opencv/opencv-tutorial.html" title="OpenCV 教程">OpenCV 教程</a></li><li><a href="../selenium/selenium-tutorial.html" title="Selenium 教程">Selenium 教程</a></li><li><a href="../playwright/playwright-tutorial.html" title="Playwright 教程">Playwright 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 前端开发</a><ul class="double-li"><li><a href="../html/html-tutorial.html" title="HTML 教程">HTML 教程</a></li><li><a href="../html/html5-intro.html" title="HTML5 教程">HTML5 教程</a></li><li><a href="../css/css-tutorial.html" title="CSS 教程">CSS 教程</a></li><li><a href="../css3/css3-tutorial.html" title="CSS3 教程">CSS3 教程</a></li><li><a href="../js/js-tutorial.html" title="JavaScript 教程">JavaScript 教程</a></li><li><a href="../htmldom/htmldom-tutorial.html" title="HTML DOM 教程">HTML DOM 教程</a></li><li><a href="../typescript/ts-tutorial.html" title="TypeScript 教程">TypeScript 教程</a></li><li><a href="../ajax/ajax-tutorial.html" title="AJAX 教程">AJAX 教程</a></li><li><a href="../json/json-tutorial.html" title="JSON 教程">JSON 教程</a></li><li><a href="../tailwindcss/tailwindcss-tutorial.html" title="Tailwind CSS 教程">Tailwind CSS 教程</a></li><li><a href="../bootstrap4/bootstrap4-tutorial.html" title="Bootstrap4 教程">Bootstrap4 教程</a></li><li><a href="../bootstrap5/bootstrap5-tutorial.html" title="Bootstrap5 教程">Bootstrap5 教程</a></li><li><a href="../foundation/foundation-tutorial.html" title="Foundation 教程">Foundation 教程</a></li><li><a href="../vue2/vue-tutorial.html" title="Vue.js 教程">Vue.js 教程</a></li><li><a href="../vue3/vue3-tutorial.html" title="Vue3 教程">Vue3 教程</a></li><li><a href="../react/react-tutorial.html" title="React 教程">React 教程</a></li><li><a href="../nextjs/nextjs-tutorial.html" title="Next.js 教程">Next.js 教程</a></li><li><a href="../angularjs/angularjs-tutorial.html" title="AngularJS 教程">AngularJS 教程</a></li><li><a href="../angularjs2/angularjs2-tutorial.html" title="Angular 教程">Angular 教程</a></li><li><a href="../jquery/jquery-tutorial.html" title="jQuery 教程">jQuery 教程</a></li><li><a href="../jqueryui/jqueryui-tutorial.html" title="jQuery UI 教程">jQuery UI 教程</a></li><li><a href="../jeasyui/jqueryeasyui-tutorial.html" title="jQuery EasyUI 教程">jQuery EasyUI 教程</a></li><li><a href="../echarts/echarts-tutorial.html" title="ECharts 教程">ECharts 教程</a></li><li><a href="../chartjs/chartjs-tutorial.html" title="Chart.js 教程">Chart.js 教程</a></li><li><a href="../highcharts/highcharts-tutorial.html" title="Highcharts 教程">Highcharts 教程</a></li><li><a href="../googleapi/google-maps-basic.html" title="Google 地图 教程">Google 地图 教程</a></li><li><a href="../svg/svg-tutorial.html" title="SVG 教程">SVG 教程</a></li><li><a href="../font-awesome/fontawesome-tutorial.html" title="Font Awesome 教程">Font Awesome 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 后端开发</a><ul class="double-li"><li><a href="../nodejs/nodejs-tutorial.html" title="Node.js 教程">Node.js 教程</a></li><li><a href="../electron/electron-tutorial.html" title="Electron 教程">Electron 教程</a></li><li><a href="../php/php-tutorial.html" title="PHP 教程">PHP 教程</a></li><li><a href="../java/java-tutorial.html" title="Java 教程">Java 教程</a></li><li><a href="../go/go-tutorial.html" title="Go 教程">Go 教程</a></li><li><a href="../rust/rust-tutorial.html" title="Rust 教程">Rust 教程</a></li><li><a href="../csharp/csharp-tutorial.html" title="C# 教程">C# 教程</a></li><li><a href="../servlet/servlet-tutorial.html" title="Servlet 教程">Servlet 教程</a></li><li><a href="../jsp/jsp-tutorial.html" title="JSP 教程">JSP 教程</a></li><li><a href="../asp/asp-tutorial.html" title="ASP 教程">ASP 教程</a></li><li><a href="../appml/appml-tutorial.html" title="AppML 教程">AppML 教程</a></li><li><a href="../vbscript/vbscript-tutorial.html" title="VBScript 教程">VBScript 教程</a></li><li><a href="../swagger/swagger-tutorial.html" title="Swagger 教程">Swagger 教程</a></li><li><a href="../restfulapi/restful-api-tutorial.html" title="RESTful API 教程">RESTful API 教程</a></li><li><a href="../docker/docker-tutorial.html" title="Docker 教程">Docker 教程</a></li><li><a href="../linux/linux-tutorial.html" title="Linux 教程">Linux 教程</a></li><li><a href="../w3cnote/zookeeper-tutorial.html" title="ZooKeeper 教程">ZooKeeper 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 数据库</a><ul class="double-li"><li><a href="../sql/sql-tutorial.html" title="SQL 教程">SQL 教程</a></li><li><a href="../mysql/mysql-tutorial.html" title="MySQL 教程">MySQL 教程</a></li><li><a href="../postgresql/postgresql-tutorial.html" title="PostgreSQL 教程">PostgreSQL 教程</a></li><li><a href="../sqlite/sqlite-tutorial.html" title="SQLite 教程">SQLite 教程</a></li><li><a href="../mongodb/mongodb-tutorial.html" title="MongoDB 教程">MongoDB 教程</a></li><li><a href="../redis/redis-tutorial.html" title="Redis 教程">Redis 教程</a></li><li><a href="../memcached/memcached-tutorial.html" title="Memcached 教程">Memcached 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 移动开发</a><ul class="double-li"><li><a href="../w3cnote/android-tutorial-intro.html" title="Android 教程">Android 教程</a></li><li><a href="../flutter/flutter-tutorial.html" title="Flutter 教程">Flutter 教程</a></li><li><a href="../ionic/ionic-tutorial.html" title="Ionic 教程">Ionic 教程</a></li><li><a href="../jquerymobile/jquerymobile-tutorial.html" title="jQuery Mobile 教程">jQuery Mobile 教程</a></li><li><a href="../swift/swift-tutorial.html" title="Swift 教程">Swift 教程</a></li><li><a href="../kotlin/kotlin-tutorial.html" title="Kotlin 教程">Kotlin 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> DevOps / 工程化</a><ul class="double-li"><li><a href="../git/git-tutorial.html" title="Git 教程">Git 教程</a></li><li><a href="../svn/svn-tutorial.html" title="SVN 教程">SVN 教程</a></li><li><a href="../cmake/cmake-tutorial.html" title="CMake 教程">CMake 教程</a></li><li><a href="../maven/maven-tutorial.html" title="Maven 教程">Maven 教程</a></li><li><a href="../vscode/vscode-tutorial.html" title="VS Code 教程">VS Code 教程</a></li><li><a href="../obsidian/obsidian-tutorial.html" title="Obsidian 教程">Obsidian 教程</a></li><li><a href="../pycharm/pycharm-tutorial.html" title="PyCharm 教程">PyCharm 教程</a></li><li><a href="../eclipse/eclipse-tutorial.html" title="Eclipse 教程">Eclipse 教程</a></li><li><a href="../markdown/md-tutorial.html" title="Markdown 教程">Markdown 教程</a></li><li><a href="../latex/latex-tutorial.html" title="LaTeX 教程">LaTeX 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 编程语言</a><ul class="double-li"><li><a href="../c/c-tutorial.html" title="C 教程">C 教程</a></li><li><a href="../cplusplus/cpp-tutorial.html" title="C++ 教程">C++ 教程</a></li><li><a href="../zig/zig-tutorial.html" title="Zig 教程">Zig 教程</a></li><li><a href="../scala/scala-tutorial.html" title="Scala 教程">Scala 教程</a></li><li><a href="../ruby/ruby-tutorial.html" title="Ruby 教程">Ruby 教程</a></li><li><a href="../perl/perl-tutorial.html" title="Perl 教程">Perl 教程</a></li><li><a href="../lua/lua-tutorial.html" title="Lua 教程">Lua 教程</a></li><li><a href="../dart/dart-tutorial.html" title="Dart 教程">Dart 教程</a></li><li><a href="../assembly/assembly-tutorial.html" title="汇编语言 教程">汇编语言 教程</a></li><li><a href="../w3cnote/verilog-tutorial.html" title="Verilog 教程">Verilog 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 计算机基础</a><ul class="double-li"><li><a href="../computer-organization/computer-organization-tutorial.html" title="计算机组成原理">计算机组成原理</a></li><li><a href="../data-structures/data-structures-tutorial.html" title="数据结构与算法">数据结构与算法</a></li><li><a href="../c-dsa/c-dsa-tutorial.html" title="C 语言数据结构与算法">C 语言数据结构与算法</a></li><li><a href="../design-pattern/design-pattern-tutorial.html" title="设计模式">设计模式</a></li><li><a href="../python-design-pattern/python-design-pattern-tutorial.html" title="Python 设计模式">Python 设计模式</a></li><li><a href="../regexp/regexp-tutorial.html" title="正则表达式">正则表达式</a></li><li><a href="../http/http-tutorial.html" title="HTTP 教程">HTTP 教程</a></li><li><a href="../tcpip/tcpip-tutorial.html" title="TCP/IP 教程">TCP/IP 教程</a></li><li><a href="../np/np-tutorial.html" title="网络协议">网络协议</a></li><li><a href="../w3c/w3c-tutorial.html" title="W3C 教程">W3C 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> XML / Web Service</a><ul class="double-li"><li><a href="../xml/xml-tutorial.html" title="XML 教程">XML 教程</a></li><li><a href="../dtd/dtd-tutorial.html" title="DTD 教程">DTD 教程</a></li><li><a href="../dom/dom-tutorial.html" title="XML DOM 教程">XML DOM 教程</a></li><li><a href="../xsl/xsl-tutorial.html" title="XSLT 教程">XSLT 教程</a></li><li><a href="../xpath/xpath-tutorial.html" title="XPath 教程">XPath 教程</a></li><li><a href="../xquery/xquery-tutorial.html" title="XQuery 教程">XQuery 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XLink 教程">XLink 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XPointer 教程">XPointer 教程</a></li><li><a href="../schema/schema-tutorial.html" title="XML Schema 教程">XML Schema 教程</a></li><li><a href="../xslfo/xslfo-tutorial.html" title="XSL-FO 教程">XSL-FO 教程</a></li><li><a href="../webservices/webservices-tutorial.html" title="Web Service 教程">Web Service 教程</a></li><li><a href="../wsdl/wsdl-tutorial.html" title="WSDL 教程">WSDL 教程</a></li><li><a href="../soap/soap-tutorial.html" title="SOAP 教程">SOAP 教程</a></li><li><a href="../rss/rss-tutorial.html" title="RSS 教程">RSS 教程</a></li><li><a href="../rdf/rdf-tutorial.html" title="RDF 教程">RDF 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> .NET</a><ul class="double-li"><li><a href="../aspnet/aspnet-tutorial.html" title="ASP.NET 教程">ASP.NET 教程</a></li><li><a href="../aspnet/mvc-intro.html" title="MVC 教程">MVC 教程</a></li><li><a href="../aspnet/razor-intro.html" title="Razor 教程">Razor 教程</a></li><li><a href="../aspnet/aspnet-intro.html" title="Web Forms 教程">Web Forms 教程</a></li><li><a href="../aspnet/webpages-intro.html" title="Web Pages 教程">Web Pages 教程</a></li><li><a href="../powershell/powershell-tutorial.html" title="PowerShell 教程">PowerShell 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 网站建设</a><ul class="double-li"><li><a href="../web/web-buildingprimer.html" title="网站建设指南">网站建设指南</a></li><li><a href="../browsers/browser-information.html" title="浏览器信息">浏览器信息</a></li><li><a href="../hosting/hosting-tutorial.html" title="网站主机教程">网站主机教程</a></li><li><a href="../quality/quality-tutorial.html" title="网站品质">网站品质</a></li></ul></li></ul> </div>
+</div>
+</div>
+<br/>
+<div class="sidebar-box re-box re-box-large">
+</div>
+</div></div>
+</div>
+<script>
+var aid = 6251;
+function coll() {
+	$.post( '/wp-content/themes/runoob/option/user/userinfo.php', {aid:aid, action:"collarticle", opt:'add'},function( data ) {
+		if(data.error==0) {
+			$("#content").find("h1:first").find("a").attr("href","javascript:void(0);");
+			$("#content").find("h1:first").find("img").attr("src","http://www.runoob.com/wp-content/themes/runoob/assets/img/coll2.png").css({width:32+"px",height:32+"px"});
+		}
+		alert(data.msg);
+	},'json');
+}
+
+(function () {
+    // 1. 仅 HTML 页面
+    if (!document.contentType || !document.contentType.includes('text/html')) return;
+
+    // 2. 容器判断
+    var container = document.querySelector('.article-intro');
+    if (!container) return;
+
+    var h1 = container.querySelector('h1');
+    if (!h1) return;
+
+    // 3. URL 判断
+    var url = window.location.href.toLowerCase();
+    var version = null;
+
+    if (url.includes('/python3/')) {
+        version = 'Python3.x';
+    } else if (url.includes('/python/')) {
+        version = 'Python2.x';
+    }
+
+    if (!version) return;
+
+    // 4. 防重复
+    if (h1.querySelector('.py-version-badge')) return;
+
+    // 5. 创建标签
+    var badge = document.createElement('span');
+    badge.className = 'py-version-badge';
+    badge.innerText = version;
+
+    // 6. 样式（核心：float 实现右上角）
+    badge.style.float = 'right';
+    badge.style.fontSize = '12px';
+    badge.style.padding = '2px 8px';
+    badge.style.borderRadius = '999px';
+
+   // 自适应亮/暗色 + 渐变背景（增强版）
+	badge.style.color = 'inherit';
+
+	// 渐变背景（低透明度，不影响暗黑模式）
+	if (version.includes('3')) {
+		badge.style.background = 'linear-gradient(90deg, rgba(79,172,254,0.15), rgba(0,242,254,0.15))';
+	} else {
+		badge.style.background = 'linear-gradient(90deg, rgba(161,140,209,0.15), rgba(251,194,235,0.15))';
+	}
+
+	// 边框弱化（更精致）
+	badge.style.border = '1px solid rgba(127,127,127,0.3)';
+
+	// 提升可读性
+	badge.style.opacity = '0.95';
+
+    // 微调位置（更贴近“右上角”）
+    badge.style.marginTop = '4px';
+    badge.style.marginLeft = '10px';
+
+    // 7. 插入到 h1 最前面（让 float 生效更稳定）
+    h1.insertBefore(badge, h1.firstChild);
+
+})();
+</script>
+<!-- 反馈对话框开始 -->
+<script src="../wp-content/themes/runoob/assets/js/runoob-article-dir.min.js"></script>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

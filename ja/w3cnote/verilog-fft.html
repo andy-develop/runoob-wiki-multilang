@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>7.5 Verilog FFT 設計 | 初心者向けチュートリアル</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="./verilog-fft.html" rel="canonical"/>
+<meta content="7.5 Verilog FFT 设计" name="keywords"/>
+<meta content="FFT（Fast Fourier Transform），快速傅立叶变换，是一种 DFT（离散傅里叶变换）的高效算法。在以时频变换分析为基础的数字处理方法中，有着不可替代的作用。  FFT 原理 公式推导 DFT 的运算公式为：  其中，  将离散傅里叶变换公式拆分成奇偶项，则前 N/2 个点可以表示为：  同理，后 N/2 个点可以表示为：  由此可知，后 N/2 个点的值完全可以通过计算前 N/2 个点时的中间过程值确定。对 A[k].." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div><!-- 导航栏 -->
+<!--  内容  -->
+<div class="container main">
+<div class="row">
+<!--  Android 基础入门教程 start  -->
+<div class="col left-column" style="display:none;">
+<div class="tab">Verilog 教程</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+</div>
+</div>
+</div>
+<!--  Android 基础入门教程 end  -->
+<div class="col middle-column big-middle-column">
+<div class="article">
+<div class="article-heading">
+<h2>7.5 Verilog FFT 設計</h2> <h3><em>カテゴリ</em> <a href="../w3cnote_genre/verilog.html" title="Verilog 教程">Verilog チュートリアル</a> </h3>
+</div>
+<div class="article-body note-body">
+<div class="article-intro">
+<!-- ad start-->
+<!-- ad end-->
+<p>FFT（Fast Fourier Transform、高速フーリエ変換）は、DFT（離散フーリエ変換）の効率的なアルゴリズムです。時間周波数変換解析を基礎とするデジタル処理方法において、代替不可能な役割を果たします。</p>
+<h3>FFT の原理</h3>
+<p><strong>公式の導出</strong></p>
+<p>DFT の演算公式は次のとおりです：</p>
+<p><img alt="" decoding="async" src="../wp-content/uploads/2020/10/H9juUU8XwrsEd0yc.png"/></p>
+<p>ただし、</p>
+<p><img alt="" decoding="async" src="../wp-content/uploads/2020/10/EhjmOcWZm03RwY9o-1.png"/></p>
+<p>離散フーリエ変換の公式を奇数項と偶数項に分解すると、前半の N/2 個の点は次のように表せます：</p>
+<p><img alt="" decoding="async" src="../wp-content/uploads/2020/10/ShPtKMa3r27MshcX.png"/></p>
+<p>同様に、後半の N/2 個の点は次のように表せます：</p>
+<p><img alt="" decoding="async" src="../wp-content/uploads/2020/10/MMmgQxwSMAEcLjjl.png"/></p><p>このことから、後半の N/2 個の点の値は、前半の N/2 個の点を計算する際の中間過程の値によって完全に決定できることがわかります。A[k] と B[k] に対してさらに奇数・偶数分解を、2 点の DFT になるまで繰り返すことで、多くの重複計算を避けることができ、高速離散フーリエ変換（FFT）のプロセスが実現されます。</p>
+<p><strong>アルゴリズム構造</strong></p><p>8 点 FFT 計算の構造概略図は次のとおりです。</p><p>図からわかるように、数回の乗算と加算を簡単に計算するだけで離散フーリエ変換のプロセスを完了でき、各データに対して煩雑な乗算と累積を行う必要はありません。</p>
+<p><img decoding="async" src="../static.jyshare.com/images/mix/uuE5FKpYLflJt5EF.jpg"/></p>
+<p><strong>重要な特性</strong></p>
+<p>(1) 段の概念</p>
+<p>1 回分割するごとに、1 段の演算と呼びます。</p><p>FFT の演算点数を N とし、全体で M 段の演算があるとすると、次の関係が成り立ちます：</p>
+<p><img alt="" decoding="async" src="../wp-content/uploads/2020/10/oBL12HrkSCYT6wby.png"/></p><p>各段の演算の識別子は m = 0, 1, 2, ..., M-1 です。</p><p>分割計算を容易にするため、FFT の点数 N はしばしば 2 の整数乗の値が使われます。</p>
+<p>(2) バタフライ演算ユニット</p><p>FFT の計算構造は複数のバタフライ演算ユニットから構成され、各演算ユニットの概略図は次のとおりです：</p>
+<p><img alt="" decoding="async" src="../wp-content/uploads/2020/10/VexKYoVwuj6hn1rE.gif"/></p>
+<p>バタフライユニットの入力と出力は次を満たします：</p>
+<p><img alt="" decoding="async" src="../wp-content/uploads/2020/10/9sP3eefIuDNwQHXP.jpg"/></p>
+<p>ただし、<img alt="" decoding="async" src="../wp-content/uploads/2020/10/uWayxKitgWrBaOoc.png"/></p><p>各バタフライユニットの演算では、1 回の乗算と 2 回の加算が行われます。</p><p>各段には N/2 個のバタフライユニットがあります。</p><p>したがって、1 回の FFT を完了するために必要な乗算回数と加算回数はそれぞれ次のとおりです：</p>
+<p><img alt="" decoding="async" src="../wp-content/uploads/2020/10/CRxV0zepPlkuX52I.png"/></p>
+<p>(3) グループの概念</p>
+<p>各段の N/2 個のバタフライユニットは複数のグループに分けることができ、各グループは同じ構造と<img alt="" decoding="async" src="../wp-content/uploads/2020/10/rEc1ZdxQpj2YT1lg.png"/>回転因子の分布を持ちます。</p><p>例えば m=0 のときは、N/2=4 グループに分けられます。</p>
+<p>m=1 のときは、N/4=2 グループに分けられます。</p>
+<p>m=M-1 のときは、1 グループにしか分けられません。</p>
+<p>(4) <img alt="" decoding="async" src="../wp-content/uploads/2020/10/rEc1ZdxQpj2YT1lg.png"/>回転因子の分布<img alt="" decoding="async" src="../wp-content/uploads/2020/10/pSLdneHbbRSopxSr.png"/>回転因子は m 段に存在し、ここで<img alt="" decoding="async" src="../wp-content/uploads/2020/10/4SUEFQHUCuPswYnR.png"/>。</p>
+<p>8 点 FFT の第 2 段目の演算、すなわち m=1 では、バタフライ演算の回転因子は次のように簡略化できます：</p>
+<p><img alt="" decoding="async" src="../wp-content/uploads/2020/10/c1RNmtc0hUnyRWbY.png"/></p>
+<p>(5) ビット反転</p><p>N=8 点の FFT 計算では、X(0) ～ X(7) の位置に対応する 2 進コードは次のとおりです：</p>
+<pre>X(000), X(001), X(010), X(011), X(100), X(101), X(110), X(111)</pre>
+<p>その位置の 2 進コードを反転します：</p>
+<pre>X(000), X(100), X(010), X(110), X(001), X(101), X(011), X(111)</pre>
+<p>このとき位置に対応する 10 進数は次のとおりです：</p>
+<pre>X(0), X(4), X(2), X(6), X(1), X(5), X(3), X(7)</pre>
+<p>これはちょうど FFT の第 1 段入力データの順序に対応します。</p>
+<p>この特性は FFT のプログラミング実装に役立ちます。</p>
+<h3>FFT 設計</h3>
+<p><strong>設計説明</strong></p><p>シミュレーションで FFT の変換プロセスを簡単に説明するために、データ点数は小さい値の 8 とします。</p><p>データがシリアル入力の場合、まずバッファリングが必要なため、設計ではデータ入力方式をパラレルにします。</p><p>データ入力は実部と虚部の合計 2 部に分かれるため、計算結果も実部と虚部に分かれます。</p><p>設計はパイプライン構造を採用し、当面はリソース消費の問題は考慮しません。</p><p>設計構造をより簡単にするために、ここでは妥協として、乗算計算は直接乗算記号を使用します。FFT 設計を実際に応用する場合は、必ず乗算構造をパイプライン化可能な乗算器に置き換えるか、公式が提供する効率の高い乗算器 IP を使用してください。</p>
+<p><strong>バタフライ演算ユニットの設計</strong></p><p>バタフライ演算ユニットは固定小数点数演算のため、回転因子を固定小数点数に量子化する必要があります。</p><p>matlab を用いて回転因子を 8192 倍（13 ビット左シフト）に拡大します。付録を参照してください。</p><p>バタフライ演算における乗算と加算によってビット幅が段階的に増大するのを防ぐため、各段の演算完了後に、出力データに対して固定ビット幅の切り詰め（ビット切り捨て）を行います。これにより、回転因子の倍数拡大による影響も取り除くことができます。コードは次のとおりです：</p>
+<div class="example"><h2 class="example">例</h2> <div class="example_code">
+<span style="color: #008800;">`timescale</span> <span style="color: #ff0055;">1ns</span><span style="color: #5D478B;">/</span><span style="color: #ff0055;">100ps</span><br/>
+<span style="color: #00008B; font-style: italic;">/**************** butter unit *************************<br/>
+Xm(p) ------------------------&gt; Xm+1(p)<br/>
+           -        -&gt;<br/>
+             -    -<br/>
+                -<br/>
+              -   -<br/>
+            -        -&gt;<br/>
+Xm(q) ------------------------&gt; Xm+1(q)<br/>
+      Wn          -1<br/>
+*/</span><span style="color: #00008B; font-style: italic;">/////////////////////////////////////////////////////</span><br/>
+<span style="color: #A52A2A; font-weight: bold;">module</span> butterfly<br/>
+    <span style="color: #9F79EE;">(</span><br/>
+     <span style="color: #A52A2A; font-weight: bold;">input</span>                       clk<span style="color: #5D478B;">,</span><br/>
+     <span style="color: #A52A2A; font-weight: bold;">input</span>                       rstn<span style="color: #5D478B;">,</span><br/>
+     <span style="color: #A52A2A; font-weight: bold;">input</span>                       en<span style="color: #5D478B;">,</span><br/>
+     <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>         xp_real<span style="color: #5D478B;">,</span> <span style="color: #00008B; font-style: italic;">// Xm(p)</span><br/>
+     <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>         xp_imag<span style="color: #5D478B;">,</span><br/>
+     <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>         xq_real<span style="color: #5D478B;">,</span> <span style="color: #00008B; font-style: italic;">// Xm(q)</span><br/>
+     <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>         xq_imag<span style="color: #5D478B;">,</span><br/>
+     <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">15</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>         factor_real<span style="color: #5D478B;">,</span> <span style="color: #00008B; font-style: italic;">// Wnr</span><br/>
+     <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">15</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>         factor_imag<span style="color: #5D478B;">,</span><br/>
+<br/>
+     <span style="color: #A52A2A; font-weight: bold;">output</span>                      valid<span style="color: #5D478B;">,</span><br/>
+     <span style="color: #A52A2A; font-weight: bold;">output</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>        yp_real<span style="color: #5D478B;">,</span> <span style="color: #00008B; font-style: italic;">//Xm+1(p)</span><br/>
+     <span style="color: #A52A2A; font-weight: bold;">output</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>        yp_imag<span style="color: #5D478B;">,</span><br/>
+     <span style="color: #A52A2A; font-weight: bold;">output</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>        yq_real<span style="color: #5D478B;">,</span> <span style="color: #00008B; font-style: italic;">//Xm+1(q)</span><br/>
+     <span style="color: #A52A2A; font-weight: bold;">output</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>        yq_imag<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+<br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">4</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>                    en_r <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">always</span> <span style="color: #5D478B;">@</span><span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">posedge</span> clk <span style="color: #A52A2A; font-weight: bold;">or</span> <span style="color: #A52A2A; font-weight: bold;">negedge</span> rstn<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span><span style="color: #5D478B;">!</span>rstn<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+            en_r   <span style="color: #5D478B;">&lt;=</span> 'b0 <span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">else</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+            en_r   <span style="color: #5D478B;">&lt;=</span> <span style="color: #9F79EE;">{</span>en_r<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">,</span> en<span style="color: #9F79EE;">}</span> <span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+<br/>
+    <span style="color: #00008B; font-style: italic;">//=====================================================//</span><br/>
+    <span style="color: #00008B; font-style: italic;">//(1.0) Xm(q) mutiply and Xm(p) delay</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">39</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> xq_wnr_real0<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">39</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> xq_wnr_real1<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">39</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> xq_wnr_imag0<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">39</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> xq_wnr_imag1<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">39</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> xp_real_d<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">39</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> xp_imag_d<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">always</span> <span style="color: #5D478B;">@</span><span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">posedge</span> clk <span style="color: #A52A2A; font-weight: bold;">or</span> <span style="color: #A52A2A; font-weight: bold;">negedge</span> rstn<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span><span style="color: #5D478B;">!</span>rstn<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+            xp_real_d    <span style="color: #5D478B;">&lt;=</span> 'b0<span style="color: #5D478B;">;</span><br/>
+            xp_imag_d    <span style="color: #5D478B;">&lt;=</span> 'b0<span style="color: #5D478B;">;</span><br/>
+            xq_wnr_real0 <span style="color: #5D478B;">&lt;=</span> 'b0<span style="color: #5D478B;">;</span><br/>
+            xq_wnr_real1 <span style="color: #5D478B;">&lt;=</span> 'b0<span style="color: #5D478B;">;</span><br/>
+            xq_wnr_imag0 <span style="color: #5D478B;">&lt;=</span> 'b0<span style="color: #5D478B;">;</span><br/>
+            xq_wnr_imag1 <span style="color: #5D478B;">&lt;=</span> 'b0<span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">else</span> <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span>en<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+            xq_wnr_real0 <span style="color: #5D478B;">&lt;=</span> xq_real <span style="color: #5D478B;">*</span> factor_real<span style="color: #5D478B;">;</span><br/>
+            xq_wnr_real1 <span style="color: #5D478B;">&lt;=</span> xq_imag <span style="color: #5D478B;">*</span> factor_imag<span style="color: #5D478B;">;</span><br/>
+            xq_wnr_imag0 <span style="color: #5D478B;">&lt;=</span> xq_real <span style="color: #5D478B;">*</span> factor_imag<span style="color: #5D478B;">;</span><br/>
+            xq_wnr_imag1 <span style="color: #5D478B;">&lt;=</span> xq_imag <span style="color: #5D478B;">*</span> factor_real<span style="color: #5D478B;">;</span><br/>
+            <span style="color: #00008B; font-style: italic;">//expanding 8192 times as Wnr</span><br/>
+            xp_real_d    <span style="color: #5D478B;">&lt;=</span> <span style="color: #9F79EE;">{</span><span style="color: #9F79EE;">{</span><span style="color: #ff0055;">4</span><span style="color: #9F79EE;">{</span>xp_real<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">}</span><span style="color: #9F79EE;">}</span><span style="color: #5D478B;">,</span> xp_real<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">22</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">,</span> <span style="color: #ff0055;">1</span><span style="color: #ff0055;">3'b0</span><span style="color: #9F79EE;">}</span><span style="color: #5D478B;">;</span> <br/>
+            xp_imag_d    <span style="color: #5D478B;">&lt;=</span> <span style="color: #9F79EE;">{</span><span style="color: #9F79EE;">{</span><span style="color: #ff0055;">4</span><span style="color: #9F79EE;">{</span>xp_imag<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">}</span><span style="color: #9F79EE;">}</span><span style="color: #5D478B;">,</span> xp_imag<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">22</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">,</span> <span style="color: #ff0055;">1</span><span style="color: #ff0055;">3'b0</span><span style="color: #9F79EE;">}</span><span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+<br/>
+    <span style="color: #00008B; font-style: italic;">//(1.1) get Xm(q) mutiplied-results and Xm(p) delay again</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">39</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> xp_real_d1<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">39</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> xp_imag_d1<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">39</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> xq_wnr_real<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">39</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> xq_wnr_imag<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">always</span> <span style="color: #5D478B;">@</span><span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">posedge</span> clk <span style="color: #A52A2A; font-weight: bold;">or</span> <span style="color: #A52A2A; font-weight: bold;">negedge</span> rstn<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span><span style="color: #5D478B;">!</span>rstn<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+            xp_real_d1     <span style="color: #5D478B;">&lt;=</span> 'b0<span style="color: #5D478B;">;</span><br/>
+            xp_imag_d1     <span style="color: #5D478B;">&lt;=</span> 'b0<span style="color: #5D478B;">;</span><br/>
+            xq_wnr_real    <span style="color: #5D478B;">&lt;=</span> 'b0 <span style="color: #5D478B;">;</span><br/>
+            xq_wnr_imag    <span style="color: #5D478B;">&lt;=</span> 'b0 <span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">else</span> <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span>en_r<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+            xp_real_d1     <span style="color: #5D478B;">&lt;=</span> xp_real_d<span style="color: #5D478B;">;</span><br/>
+            xp_imag_d1     <span style="color: #5D478B;">&lt;=</span> xp_imag_d<span style="color: #5D478B;">;</span><br/>
+            <span style="color: #00008B; font-style: italic;">// ビット幅の余裕をあらかじめ設定し、データのオーバーフローを防ぐ</span><br/>
+            xq_wnr_real    <span style="color: #5D478B;">&lt;=</span> xq_wnr_real0 <span style="color: #5D478B;">-</span> xq_wnr_real1 <span style="color: #5D478B;">;</span> <br/>
+            xq_wnr_imag    <span style="color: #5D478B;">&lt;=</span> xq_wnr_imag0 <span style="color: #5D478B;">+</span> xq_wnr_imag1 <span style="color: #5D478B;">;</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+<br/>
+   <span style="color: #00008B; font-style: italic;">//======================================================//</span><br/>
+   <span style="color: #00008B; font-style: italic;">//(2.0) butter results</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">39</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> yp_real_r<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">39</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> yp_imag_r<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">39</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> yq_real_r<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">39</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> yq_imag_r<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">always</span> <span style="color: #5D478B;">@</span><span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">posedge</span> clk <span style="color: #A52A2A; font-weight: bold;">or</span> <span style="color: #A52A2A; font-weight: bold;">negedge</span> rstn<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span><span style="color: #5D478B;">!</span>rstn<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+            yp_real_r      <span style="color: #5D478B;">&lt;=</span> 'b0<span style="color: #5D478B;">;</span><br/>
+            yp_imag_r      <span style="color: #5D478B;">&lt;=</span> 'b0<span style="color: #5D478B;">;</span><br/>
+            yq_real_r      <span style="color: #5D478B;">&lt;=</span> 'b0<span style="color: #5D478B;">;</span><br/>
+            yq_imag_r      <span style="color: #5D478B;">&lt;=</span> 'b0<span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">else</span> <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span>en_r<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+            yp_real_r      <span style="color: #5D478B;">&lt;=</span> xp_real_d1 <span style="color: #5D478B;">+</span> xq_wnr_real<span style="color: #5D478B;">;</span><br/>
+            yp_imag_r      <span style="color: #5D478B;">&lt;=</span> xp_imag_d1 <span style="color: #5D478B;">+</span> xq_wnr_imag<span style="color: #5D478B;">;</span><br/>
+            yq_real_r      <span style="color: #5D478B;">&lt;=</span> xp_real_d1 <span style="color: #5D478B;">-</span> xq_wnr_real<span style="color: #5D478B;">;</span><br/>
+            yq_imag_r      <span style="color: #5D478B;">&lt;=</span> xp_imag_d1 <span style="color: #5D478B;">-</span> xq_wnr_imag<span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+<br/>
+    <span style="color: #00008B; font-style: italic;">//(3) discard the low 13bits because of Wnr</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> yp_real <span style="color: #5D478B;">=</span> <span style="color: #9F79EE;">{</span>yp_real_r<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">39</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">,</span> yp_real_r<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">13</span><span style="color: #5D478B;">+</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">13</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">}</span><span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> yp_imag <span style="color: #5D478B;">=</span> <span style="color: #9F79EE;">{</span>yp_imag_r<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">39</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">,</span> yp_imag_r<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">13</span><span style="color: #5D478B;">+</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">13</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">}</span><span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> yq_real <span style="color: #5D478B;">=</span> <span style="color: #9F79EE;">{</span>yq_real_r<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">39</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">,</span> yq_real_r<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">13</span><span style="color: #5D478B;">+</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">13</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">}</span><span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> yq_imag <span style="color: #5D478B;">=</span> <span style="color: #9F79EE;">{</span>yq_imag_r<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">39</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">,</span> yq_imag_r<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">13</span><span style="color: #5D478B;">+</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">13</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">}</span><span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> valid   <span style="color: #5D478B;">=</span> en_r<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">;</span><br/>
+<br/>
+<span style="color: #A52A2A; font-weight: bold;">endmodule</span><br/>
+</div></div>
+<p><strong>トップレベルのインスタンス化</strong></p><p>FFT アルゴリズム構造の概略図に従ってバタフライ演算ユニットをインスタンス化し、最終的な FFT 機能を完成させます。</p><p>各段のバタフライ演算ユニットの入力・出力の対応関係に基づいて、順に手動で 12 回インスタンス化することもできますし、generate を利用してインスタンス化することもできます。その場合、FFT における「グループ」と「段」の特徴をよく理解している必要があります：</p>
+<ul><li>
+<p>(1) 8 点 FFT 設計では、3 段の演算が必要で、各段には 4 個のバタフライ演算ユニットがあり、各段のグループ数はそれぞれ 4、2、1 です。</p></li><li>
+<p>(2) 各段のグループ内の 1 つのバタフライ演算ユニットにおける 2 つの入力ポートの距離は常に<img alt="" decoding="async" src="../wp-content/uploads/2020/10/NvYVwVblMmgU3guK.png"/>（m は段番号で、左シフト演算 1&lt;&lt;m に対応します）。グループ内の 2 つのバタフライ演算ユニットの最初の入力ポート間の距離は 1 です。</p></li><li>
+<p>(3) 各段の隣接するグループ間における最初のバタフライ演算ユニットの最初の入力ポートの距離は<img alt="" decoding="async" src="../wp-content/uploads/2020/10/t2tAjSChpY0KisHn.png"/>（左シフト演算 2&lt;&lt;m に対応します）。</p></li></ul>
+<p>インスタンス化コードは次のとおりです。</p><p>ここで、行列信号 xm_real（xm_imag）の 1 次元・2 次元アドレスは、段とグループを表す識別子です。</p><p>信号ポート間の接続関係を判断する際に、一見複雑な判断ロジックと乗算記号を使用していますが、実際に最終的に生成される回路は、手動でコードを書いて 12 個のバタフライ演算ユニットをインスタンス化する方法と完全に同じです。generate 内の変数は実際の回路を生成するのを補助するだけで、関連する値の計算や判断はすべてコンパイル時に完了します。これらの変数は実際の回路を生成することはなく、より高速なモジュールのインスタンス化のための方法を提供するにすぎません。</p>
+<div class="example"><h2 class="example">例</h2> <div class="example_code">
+timescale <span style="color: #ff0055;">1ns</span><span style="color: #5D478B;">/</span><span style="color: #ff0055;">100ps</span><br/>
+<span style="color: #A52A2A; font-weight: bold;">module</span> fft8 <span style="color: #9F79EE;">(</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">input</span>                    clk<span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">input</span>                    rstn<span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">input</span>                    en<span style="color: #5D478B;">,</span><br/>
+<br/>
+    <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>      x0_real<span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>      x0_imag<span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>      x1_real<span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>      x1_imag<span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>      x2_real<span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>      x2_imag<span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>      x3_real<span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>      x3_imag<span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>      x4_real<span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>      x4_imag<span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>      x5_real<span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>      x5_imag<span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>      x6_real<span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>      x6_imag<span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>      x7_real<span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>      x7_imag<span style="color: #5D478B;">,</span><br/>
+<br/>
+    <span style="color: #A52A2A; font-weight: bold;">output</span>                   valid<span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">output</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>     y0_real<span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">output</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>     y0_imag<span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">output</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>     y1_real<span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">output</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>     y1_imag<span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">output</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>     y2_real<span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">output</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>     y2_imag<span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">output</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>     y3_real<span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">output</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>     y3_imag<span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">output</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>     y4_real<span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">output</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>     y4_imag<span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">output</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>     y5_real<span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">output</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>     y5_imag<span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">output</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>     y6_real<span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">output</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>     y6_imag<span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">output</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>     y7_real<span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">output</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>     y7_imag<br/>
+    <span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+<br/>
+    <span style="color: #00008B; font-style: italic;">//operating data</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>             xm_real <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>             xm_imag <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span>                           en_connect <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">15</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span>                         en_connect<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">=</span> en<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span>                         en_connect<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">=</span> en<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span>                         en_connect<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">=</span> en<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span>                         en_connect<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">=</span> en<span style="color: #5D478B;">;</span><br/>
+<br/>
+    <span style="color: #00008B; font-style: italic;">//factor, multiplied by 0x2000</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">15</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>             factor_real <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #A52A2A; font-weight: bold;">signed</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">15</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>             factor_imag <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> factor_real<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>        <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1</span><span style="color: #ff0055;">6'h2000</span><span style="color: #5D478B;">;</span> <span style="color: #00008B; font-style: italic;">//1</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> factor_imag<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>        <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1</span><span style="color: #ff0055;">6'h0000</span><span style="color: #5D478B;">;</span> <span style="color: #00008B; font-style: italic;">//0</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> factor_real<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">]</span>        <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1</span><span style="color: #ff0055;">6'h16a0</span><span style="color: #5D478B;">;</span> <span style="color: #00008B; font-style: italic;">//sqrt(2)/2</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> factor_imag<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">]</span>        <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1</span><span style="color: #ff0055;">6'he95f</span><span style="color: #5D478B;">;</span> <span style="color: #00008B; font-style: italic;">//-sqrt(2)/2</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> factor_real<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">]</span>        <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1</span><span style="color: #ff0055;">6'h0000</span><span style="color: #5D478B;">;</span> <span style="color: #00008B; font-style: italic;">//0</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> factor_imag<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">]</span>        <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1</span><span style="color: #ff0055;">6'he000</span><span style="color: #5D478B;">;</span> <span style="color: #00008B; font-style: italic;">//-1</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> factor_real<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">]</span>        <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1</span><span style="color: #ff0055;">6'he95f</span><span style="color: #5D478B;">;</span> <span style="color: #00008B; font-style: italic;">//-sqrt(2)/2</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> factor_imag<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">]</span>        <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1</span><span style="color: #ff0055;">6'he95f</span><span style="color: #5D478B;">;</span> <span style="color: #00008B; font-style: italic;">//-sqrt(2)/2</span><br/>
+<br/>
+    <span style="color: #00008B; font-style: italic;">// 入力初期化。ビット位置に関連する反転</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> xm_real<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">=</span> x0_real<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> xm_real<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">=</span> x4_real<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> xm_real<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">=</span> x2_real<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> xm_real<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">=</span> x6_real<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> xm_real<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #ff0055;">4</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">=</span> x1_real<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> xm_real<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #ff0055;">5</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">=</span> x5_real<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> xm_real<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #ff0055;">6</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">=</span> x3_real<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> xm_real<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">=</span> x7_real<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> xm_imag<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">=</span> x0_imag<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> xm_imag<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">=</span> x4_imag<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> xm_imag<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">=</span> x2_imag<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> xm_imag<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">=</span> x6_imag<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> xm_imag<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #ff0055;">4</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">=</span> x1_imag<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> xm_imag<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #ff0055;">5</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">=</span> x5_imag<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> xm_imag<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #ff0055;">6</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">=</span> x3_imag<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> xm_imag<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">=</span> x7_imag<span style="color: #5D478B;">;</span><br/>
+<br/>
+    <span style="color: #00008B; font-style: italic;">//butter instantiaiton</span><br/>
+    <span style="color: #00008B; font-style: italic;">//integer              index[11:0] ;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">genvar</span>               m<span style="color: #5D478B;">,</span> k<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">generate</span><br/>
+    <span style="color: #00008B; font-style: italic;">//3 stage</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">for</span><span style="color: #9F79EE;">(</span>m<span style="color: #5D478B;">=</span><span style="color: #ff0055;">0</span><span style="color: #5D478B;">;</span> m<span style="color: #5D478B;">&lt;=</span><span style="color: #ff0055;">2</span><span style="color: #5D478B;">;</span> m<span style="color: #5D478B;">=</span>m<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><span style="color: #5D478B;">:</span> stage<br/>
+        <span style="color: #A52A2A; font-weight: bold;">for</span> <span style="color: #9F79EE;">(</span>k<span style="color: #5D478B;">=</span><span style="color: #ff0055;">0</span><span style="color: #5D478B;">;</span> k<span style="color: #5D478B;">&lt;=</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">;</span> k<span style="color: #5D478B;">=</span>k<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><span style="color: #5D478B;">:</span> unit<br/>
+<br/>
+            butterfly           u_butter<span style="color: #9F79EE;">(</span><br/>
+               .clk        <span style="color: #9F79EE;">(</span>clk                 <span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">,</span><br/>
+               .rstn       <span style="color: #9F79EE;">(</span>rstn                <span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">,</span><br/>
+               .en         <span style="color: #9F79EE;">(</span>en_connect<span style="color: #9F79EE;">[</span>m<span style="color: #5D478B;">*</span><span style="color: #ff0055;">4</span> <span style="color: #5D478B;">+</span> k<span style="color: #9F79EE;">]</span> <span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">,</span><br/>
+                       <span style="color: #00008B; font-style: italic;">// グループ内かどうか？ グループ番号+グループ内番号 : 次のグループ番号+新しいグループ内番号</span><br/>
+               .xp_real    <span style="color: #9F79EE;">(</span>xm_real<span style="color: #9F79EE;">[</span> m <span style="color: #9F79EE;">]</span> <span style="color: #9F79EE;">[</span>k<span style="color: #9F79EE;">[</span>m<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">&lt;</span> <span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">&lt;&lt;</span>m<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">?</span><br/>
+                           <span style="color: #9F79EE;">(</span>k<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span>m<span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">&lt;&lt;</span> <span style="color: #9F79EE;">(</span>m<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> k<span style="color: #9F79EE;">[</span>m<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">:</span><br/>
+                           <span style="color: #9F79EE;">(</span>k<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span>m<span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">&lt;&lt;</span> <span style="color: #9F79EE;">(</span>m<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> <span style="color: #9F79EE;">(</span>k<span style="color: #9F79EE;">[</span>m<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">-</span><span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">&lt;&lt;</span>m<span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">]</span> <span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .xp_imag    <span style="color: #9F79EE;">(</span>xm_imag<span style="color: #9F79EE;">[</span> m <span style="color: #9F79EE;">]</span> <span style="color: #9F79EE;">[</span>k<span style="color: #9F79EE;">[</span>m<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">&lt;</span> <span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">&lt;&lt;</span>m<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">?</span><br/>
+                           <span style="color: #9F79EE;">(</span>k<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span>m<span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">&lt;&lt;</span> <span style="color: #9F79EE;">(</span>m<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> k<span style="color: #9F79EE;">[</span>m<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">:</span><br/>
+                           <span style="color: #9F79EE;">(</span>k<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span>m<span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">&lt;&lt;</span> <span style="color: #9F79EE;">(</span>m<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> <span style="color: #9F79EE;">(</span>k<span style="color: #9F79EE;">[</span>m<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">-</span><span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">&lt;&lt;</span>m<span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">]</span> <span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .xq_real    <span style="color: #9F79EE;">(</span>xm_real<span style="color: #9F79EE;">[</span> m <span style="color: #9F79EE;">]</span> <span style="color: #9F79EE;">[</span><span style="color: #9F79EE;">(</span>k<span style="color: #9F79EE;">[</span>m<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">&lt;</span> <span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">&lt;&lt;</span>m<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">?</span><br/>
+                           <span style="color: #9F79EE;">(</span>k<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span>m<span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">&lt;&lt;</span> <span style="color: #9F79EE;">(</span>m<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> k<span style="color: #9F79EE;">[</span>m<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">:</span><br/>
+                           <span style="color: #9F79EE;">(</span>k<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span>m<span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">&lt;&lt;</span> <span style="color: #9F79EE;">(</span>m<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> <span style="color: #9F79EE;">(</span>k<span style="color: #9F79EE;">[</span>m<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">-</span><span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">&lt;&lt;</span>m<span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> <span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">&lt;&lt;</span>m<span style="color: #9F79EE;">)</span> <span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span>                 <span style="color: #00008B; font-style: italic;">// バタフライ演算ユニットの 2 つの入力ポート間の距離を増やす</span><br/>
+               .xq_imag    <span style="color: #9F79EE;">(</span>xm_imag<span style="color: #9F79EE;">[</span> m <span style="color: #9F79EE;">]</span> <span style="color: #9F79EE;">[</span><span style="color: #9F79EE;">(</span>k<span style="color: #9F79EE;">[</span>m<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">&lt;</span> <span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">&lt;&lt;</span>m<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">?</span><br/>
+                           <span style="color: #9F79EE;">(</span>k<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span>m<span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">&lt;&lt;</span> <span style="color: #9F79EE;">(</span>m<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> k<span style="color: #9F79EE;">[</span>m<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">:</span><br/>
+                           <span style="color: #9F79EE;">(</span>k<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span>m<span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">&lt;&lt;</span> <span style="color: #9F79EE;">(</span>m<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> <span style="color: #9F79EE;">(</span>k<span style="color: #9F79EE;">[</span>m<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">-</span><span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">&lt;&lt;</span>m<span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> <span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">&lt;&lt;</span>m<span style="color: #9F79EE;">)</span> <span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+<br/>
+               .factor_real<span style="color: #9F79EE;">(</span>factor_real<span style="color: #9F79EE;">[</span>k<span style="color: #9F79EE;">[</span>m<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">&lt;</span><span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">&lt;&lt;</span>m<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">?</span> <br/>
+                            k<span style="color: #9F79EE;">[</span>m<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">:</span> k<span style="color: #9F79EE;">[</span>m<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">-</span><span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">&lt;&lt;</span>m<span style="color: #9F79EE;">)</span> <span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .factor_imag<span style="color: #9F79EE;">(</span>factor_imag<span style="color: #9F79EE;">[</span>k<span style="color: #9F79EE;">[</span>m<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">&lt;</span><span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">&lt;&lt;</span>m<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">?</span> <br/>
+                            k<span style="color: #9F79EE;">[</span>m<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">:</span> k<span style="color: #9F79EE;">[</span>m<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">-</span><span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">&lt;&lt;</span>m<span style="color: #9F79EE;">)</span> <span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+<br/>
+               <span style="color: #00008B; font-style: italic;">//output data</span><br/>
+               .valid      <span style="color: #9F79EE;">(</span>en_connect<span style="color: #9F79EE;">[</span> <span style="color: #9F79EE;">(</span>m<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">*</span><span style="color: #ff0055;">4</span> <span style="color: #5D478B;">+</span> k <span style="color: #9F79EE;">]</span>  <span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .yp_real    <span style="color: #9F79EE;">(</span>xm_real<span style="color: #9F79EE;">[</span> m<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span> <span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span>k<span style="color: #9F79EE;">[</span>m<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">&lt;</span> <span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">&lt;&lt;</span>m<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">?</span><br/>
+                           <span style="color: #9F79EE;">(</span>k<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span>m<span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">&lt;&lt;</span> <span style="color: #9F79EE;">(</span>m<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> k<span style="color: #9F79EE;">[</span>m<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">:</span><br/>
+                           <span style="color: #9F79EE;">(</span>k<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span>m<span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">&lt;&lt;</span> <span style="color: #9F79EE;">(</span>m<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> <span style="color: #9F79EE;">(</span>k<span style="color: #9F79EE;">[</span>m<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">-</span><span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">&lt;&lt;</span>m<span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">]</span> <span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .yp_imag    <span style="color: #9F79EE;">(</span>xm_imag<span style="color: #9F79EE;">[</span> m<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span> <span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #9F79EE;">(</span>k<span style="color: #9F79EE;">[</span>m<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">&lt;</span> <span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">&lt;&lt;</span>m<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">?</span><br/>
+                           <span style="color: #9F79EE;">(</span>k<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span>m<span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">&lt;&lt;</span> <span style="color: #9F79EE;">(</span>m<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> k<span style="color: #9F79EE;">[</span>m<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">:</span><br/>
+                           <span style="color: #9F79EE;">(</span>k<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span>m<span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">&lt;&lt;</span> <span style="color: #9F79EE;">(</span>m<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> <span style="color: #9F79EE;">(</span>k<span style="color: #9F79EE;">[</span>m<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">-</span><span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">&lt;&lt;</span>m<span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">]</span> <span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .yq_real    <span style="color: #9F79EE;">(</span>xm_real<span style="color: #9F79EE;">[</span> m<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span> <span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #9F79EE;">(</span>k<span style="color: #9F79EE;">[</span>m<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">&lt;</span> <span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">&lt;&lt;</span>m<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">?</span><br/>
+                           <span style="color: #9F79EE;">(</span>k<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span>m<span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">&lt;&lt;</span> <span style="color: #9F79EE;">(</span>m<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> k<span style="color: #9F79EE;">[</span>m<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">:</span><br/>
+                           <span style="color: #9F79EE;">(</span>k<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span>m<span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">&lt;&lt;</span> <span style="color: #9F79EE;">(</span>m<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> <span style="color: #9F79EE;">(</span>k<span style="color: #9F79EE;">[</span>m<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">-</span><span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">&lt;&lt;</span>m<span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> <span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">&lt;&lt;</span>m<span style="color: #9F79EE;">)</span> <span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .yq_imag    <span style="color: #9F79EE;">(</span>xm_imag<span style="color: #9F79EE;">[</span> m<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span> <span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #9F79EE;">(</span><span style="color: #9F79EE;">(</span>k<span style="color: #9F79EE;">[</span>m<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">&lt;</span> <span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">&lt;&lt;</span>m<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">?</span><br/>
+                           <span style="color: #9F79EE;">(</span>k<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span>m<span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">&lt;&lt;</span> <span style="color: #9F79EE;">(</span>m<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> k<span style="color: #9F79EE;">[</span>m<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">:</span><br/>
+                           <span style="color: #9F79EE;">(</span>k<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span>m<span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">&lt;&lt;</span> <span style="color: #9F79EE;">(</span>m<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> <span style="color: #9F79EE;">(</span>k<span style="color: #9F79EE;">[</span>m<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">-</span><span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">&lt;&lt;</span>m<span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> <span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">&lt;&lt;</span>m<span style="color: #9F79EE;">)</span> <span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span><br/>
+               <span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+            <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">endgenerate</span><br/>
+<br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span>     valid <span style="color: #5D478B;">=</span> en_connect<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">12</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span>     y0_real <span style="color: #5D478B;">=</span> xm_real<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span>     y0_imag <span style="color: #5D478B;">=</span> xm_imag<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span>     y1_real <span style="color: #5D478B;">=</span> xm_real<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span>     y1_imag <span style="color: #5D478B;">=</span> xm_imag<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span>     y2_real <span style="color: #5D478B;">=</span> xm_real<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span>     y2_imag <span style="color: #5D478B;">=</span> xm_imag<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span>     y3_real <span style="color: #5D478B;">=</span> xm_real<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span>     y3_imag <span style="color: #5D478B;">=</span> xm_imag<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span>     y4_real <span style="color: #5D478B;">=</span> xm_real<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #ff0055;">4</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span>     y4_imag <span style="color: #5D478B;">=</span> xm_imag<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #ff0055;">4</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span>     y5_real <span style="color: #5D478B;">=</span> xm_real<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #ff0055;">5</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span>     y5_imag <span style="color: #5D478B;">=</span> xm_imag<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #ff0055;">5</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span>     y6_real <span style="color: #5D478B;">=</span> xm_real<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #ff0055;">6</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span>     y6_imag <span style="color: #5D478B;">=</span> xm_imag<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #ff0055;">6</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span>     y7_real <span style="color: #5D478B;">=</span> xm_real<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span>     y7_imag <span style="color: #5D478B;">=</span> xm_imag<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">;</span><br/>
+<br/>
+<span style="color: #A52A2A; font-weight: bold;">endmodule</span><br/>
+</div></div>
+<p><strong>testbench</strong></p><p>testbench は次のように作成します。主に 16 チャネルの実データ・複素データの連続入力に使用します。毎回の FFT は 8 点データのみのため、入力するデータは任意であり、正弦波などの規則的なデータではありません。</p>
+<div class="example"><h2 class="example">例</h2> <div class="example_code">
+<span style="color: #008800;">`timescale</span> <span style="color: #ff0055;">1ns</span><span style="color: #5D478B;">/</span><span style="color: #ff0055;">100ps</span><br/>
+<span style="color: #A52A2A; font-weight: bold;">module</span> test <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span>          clk<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span>          rstn<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span>          en <span style="color: #5D478B;">;</span><br/>
+<br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #A52A2A; font-weight: bold;">signed</span>   <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   x0_real<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #A52A2A; font-weight: bold;">signed</span>   <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   x0_imag<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #A52A2A; font-weight: bold;">signed</span>   <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   x1_real<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #A52A2A; font-weight: bold;">signed</span>   <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   x1_imag<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #A52A2A; font-weight: bold;">signed</span>   <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   x2_real<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #A52A2A; font-weight: bold;">signed</span>   <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   x2_imag<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #A52A2A; font-weight: bold;">signed</span>   <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   x3_real<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #A52A2A; font-weight: bold;">signed</span>   <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   x3_imag<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #A52A2A; font-weight: bold;">signed</span>   <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   x4_real<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #A52A2A; font-weight: bold;">signed</span>   <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   x4_imag<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #A52A2A; font-weight: bold;">signed</span>   <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   x5_real<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #A52A2A; font-weight: bold;">signed</span>   <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   x5_imag<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #A52A2A; font-weight: bold;">signed</span>   <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   x6_real<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #A52A2A; font-weight: bold;">signed</span>   <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   x6_imag<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #A52A2A; font-weight: bold;">signed</span>   <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   x7_real<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #A52A2A; font-weight: bold;">signed</span>   <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   x7_imag<span style="color: #5D478B;">;</span><br/>
+<br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span>                  valid<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #A52A2A; font-weight: bold;">signed</span>  <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   y0_real<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #A52A2A; font-weight: bold;">signed</span>  <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   y0_imag<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #A52A2A; font-weight: bold;">signed</span>  <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   y1_real<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #A52A2A; font-weight: bold;">signed</span>  <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   y1_imag<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #A52A2A; font-weight: bold;">signed</span>  <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   y2_real<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #A52A2A; font-weight: bold;">signed</span>  <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   y2_imag<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #A52A2A; font-weight: bold;">signed</span>  <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   y3_real<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #A52A2A; font-weight: bold;">signed</span>  <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   y3_imag<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #A52A2A; font-weight: bold;">signed</span>  <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   y4_real<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #A52A2A; font-weight: bold;">signed</span>  <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   y4_imag<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #A52A2A; font-weight: bold;">signed</span>  <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   y5_real<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #A52A2A; font-weight: bold;">signed</span>  <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   y5_imag<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #A52A2A; font-weight: bold;">signed</span>  <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   y6_real<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #A52A2A; font-weight: bold;">signed</span>  <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   y6_imag<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #A52A2A; font-weight: bold;">signed</span>  <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   y7_real<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #A52A2A; font-weight: bold;">signed</span>  <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">23</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   y7_imag<span style="color: #5D478B;">;</span><br/>
+<br/>
+    <span style="color: #A52A2A; font-weight: bold;">initial</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+        clk <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">0</span><span style="color: #5D478B;">;</span> <span style="color: #00008B; font-style: italic;">//50MHz</span><br/>
+        rstn <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">0</span> <span style="color: #5D478B;">;</span><br/>
+        <span style="color: #5D478B;">#</span><span style="color: #ff0055;">10</span> rstn <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1</span><span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">forever</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+            <span style="color: #5D478B;">#</span><span style="color: #ff0055;">10</span> clk <span style="color: #5D478B;">=</span> <span style="color: #5D478B;">~</span>clk<span style="color: #5D478B;">;</span> <span style="color: #00008B; font-style: italic;">//50MHz</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+<br/>
+    fft8 u_fft <span style="color: #9F79EE;">(</span><br/>
+      .clk        <span style="color: #9F79EE;">(</span>clk    <span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .rstn       <span style="color: #9F79EE;">(</span>rstn    <span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .en         <span style="color: #9F79EE;">(</span>en     <span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .x0_real    <span style="color: #9F79EE;">(</span>x0_real<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .x0_imag    <span style="color: #9F79EE;">(</span>x0_imag<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .x1_real    <span style="color: #9F79EE;">(</span>x1_real<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .x1_imag    <span style="color: #9F79EE;">(</span>x1_imag<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .x2_real    <span style="color: #9F79EE;">(</span>x2_real<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .x2_imag    <span style="color: #9F79EE;">(</span>x2_imag<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .x3_real    <span style="color: #9F79EE;">(</span>x3_real<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .x3_imag    <span style="color: #9F79EE;">(</span>x3_imag<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .x4_real    <span style="color: #9F79EE;">(</span>x4_real<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .x4_imag    <span style="color: #9F79EE;">(</span>x4_imag<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .x5_real    <span style="color: #9F79EE;">(</span>x5_real<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .x5_imag    <span style="color: #9F79EE;">(</span>x5_imag<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .x6_real    <span style="color: #9F79EE;">(</span>x6_real<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .x6_imag    <span style="color: #9F79EE;">(</span>x6_imag<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .x7_real    <span style="color: #9F79EE;">(</span>x7_real<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .x7_imag    <span style="color: #9F79EE;">(</span>x7_imag<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+<br/>
+      .valid      <span style="color: #9F79EE;">(</span>valid<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .y0_real    <span style="color: #9F79EE;">(</span>y0_real<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .y0_imag    <span style="color: #9F79EE;">(</span>y0_imag<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .y1_real    <span style="color: #9F79EE;">(</span>y1_real<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .y1_imag    <span style="color: #9F79EE;">(</span>y1_imag<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .y2_real    <span style="color: #9F79EE;">(</span>y2_real<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .y2_imag    <span style="color: #9F79EE;">(</span>y2_imag<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .y3_real    <span style="color: #9F79EE;">(</span>y3_real<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .y3_imag    <span style="color: #9F79EE;">(</span>y3_imag<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .y4_real    <span style="color: #9F79EE;">(</span>y4_real<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .y4_imag    <span style="color: #9F79EE;">(</span>y4_imag<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .y5_real    <span style="color: #9F79EE;">(</span>y5_real<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .y5_imag    <span style="color: #9F79EE;">(</span>y5_imag<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .y6_real    <span style="color: #9F79EE;">(</span>y6_real<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .y6_imag    <span style="color: #9F79EE;">(</span>y6_imag<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .y7_real    <span style="color: #9F79EE;">(</span>y7_real<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .y7_imag    <span style="color: #9F79EE;">(</span>y7_imag<span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+<br/>
+    <span style="color: #00008B; font-style: italic;">//data input</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">initial</span>      <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+        en <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">0</span> <span style="color: #5D478B;">;</span><br/>
+        x0_real <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">2</span><span style="color: #ff0055;">4'd10</span><span style="color: #5D478B;">;</span><br/>
+        x1_real <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">2</span><span style="color: #ff0055;">4'd20</span><span style="color: #5D478B;">;</span><br/>
+        x2_real <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">2</span><span style="color: #ff0055;">4'd30</span><span style="color: #5D478B;">;</span><br/>
+        x3_real <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">2</span><span style="color: #ff0055;">4'd40</span><span style="color: #5D478B;">;</span><br/>
+        x4_real <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">2</span><span style="color: #ff0055;">4'd10</span><span style="color: #5D478B;">;</span><br/>
+        x5_real <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">2</span><span style="color: #ff0055;">4'd20</span><span style="color: #5D478B;">;</span><br/>
+        x6_real <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">2</span><span style="color: #ff0055;">4'd30</span><span style="color: #5D478B;">;</span><br/>
+        x7_real <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">2</span><span style="color: #ff0055;">4'd40</span><span style="color: #5D478B;">;</span><br/>
+<br/>
+        x0_imag <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">2</span><span style="color: #ff0055;">4'd0</span><span style="color: #5D478B;">;</span><br/>
+        x1_imag <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">2</span><span style="color: #ff0055;">4'd0</span><span style="color: #5D478B;">;</span><br/>
+        x2_imag <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">2</span><span style="color: #ff0055;">4'd0</span><span style="color: #5D478B;">;</span><br/>
+        x3_imag <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">2</span><span style="color: #ff0055;">4'd0</span><span style="color: #5D478B;">;</span><br/>
+        x4_imag <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">2</span><span style="color: #ff0055;">4'd0</span><span style="color: #5D478B;">;</span><br/>
+        x5_imag <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">2</span><span style="color: #ff0055;">4'd0</span><span style="color: #5D478B;">;</span><br/>
+        x6_imag <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">2</span><span style="color: #ff0055;">4'd0</span><span style="color: #5D478B;">;</span><br/>
+        x7_imag <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">2</span><span style="color: #ff0055;">4'd0</span><span style="color: #5D478B;">;</span><br/>
+        <span style="color: #5D478B;">@</span><span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">negedge</span> clk<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+        en <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1</span> <span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">forever</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+            <span style="color: #5D478B;">@</span><span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">negedge</span> clk<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+            x0_real <span style="color: #5D478B;">=</span> <span style="color: #9F79EE;">(</span>x0_real <span style="color: #5D478B;">&gt;</span> <span style="color: #ff0055;">2</span><span style="color: #ff0055;">2'h3F_ffff</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">?</span> 'b0 <span style="color: #5D478B;">:</span> x0_real <span style="color: #5D478B;">+</span> <span style="color: #ff0055;">1</span> <span style="color: #5D478B;">;</span><br/>
+            x1_real <span style="color: #5D478B;">=</span> <span style="color: #9F79EE;">(</span>x1_real <span style="color: #5D478B;">&gt;</span> <span style="color: #ff0055;">2</span><span style="color: #ff0055;">2'h3F_ffff</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">?</span> 'b0 <span style="color: #5D478B;">:</span> x1_real <span style="color: #5D478B;">+</span> <span style="color: #ff0055;">1</span> <span style="color: #5D478B;">;</span><br/>
+            x2_real <span style="color: #5D478B;">=</span> <span style="color: #9F79EE;">(</span>x2_real <span style="color: #5D478B;">&gt;</span> <span style="color: #ff0055;">2</span><span style="color: #ff0055;">2'h3F_ffff</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">?</span> 'b0 <span style="color: #5D478B;">:</span> x2_real <span style="color: #5D478B;">+</span> <span style="color: #ff0055;">31</span> <span style="color: #5D478B;">;</span><br/>
+            x3_real <span style="color: #5D478B;">=</span> <span style="color: #9F79EE;">(</span>x3_real <span style="color: #5D478B;">&gt;</span> <span style="color: #ff0055;">2</span><span style="color: #ff0055;">2'h3F_ffff</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">?</span> 'b0 <span style="color: #5D478B;">:</span> x3_real <span style="color: #5D478B;">+</span> <span style="color: #ff0055;">1</span> <span style="color: #5D478B;">;</span><br/>
+            x4_real <span style="color: #5D478B;">=</span> <span style="color: #9F79EE;">(</span>x4_real <span style="color: #5D478B;">&gt;</span> <span style="color: #ff0055;">2</span><span style="color: #ff0055;">2'h3F_ffff</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">?</span> 'b0 <span style="color: #5D478B;">:</span> x4_real <span style="color: #5D478B;">+</span> <span style="color: #ff0055;">23</span> <span style="color: #5D478B;">;</span><br/>
+            x5_real <span style="color: #5D478B;">=</span> <span style="color: #9F79EE;">(</span>x5_real <span style="color: #5D478B;">&gt;</span> <span style="color: #ff0055;">2</span><span style="color: #ff0055;">2'h3F_ffff</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">?</span> 'b0 <span style="color: #5D478B;">:</span> x5_real <span style="color: #5D478B;">+</span> <span style="color: #ff0055;">1</span> <span style="color: #5D478B;">;</span><br/>
+            x6_real <span style="color: #5D478B;">=</span> <span style="color: #9F79EE;">(</span>x6_real <span style="color: #5D478B;">&gt;</span> <span style="color: #ff0055;">2</span><span style="color: #ff0055;">2'h3F_ffff</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">?</span> 'b0 <span style="color: #5D478B;">:</span> x6_real <span style="color: #5D478B;">+</span> <span style="color: #ff0055;">6</span> <span style="color: #5D478B;">;</span><br/>
+            x7_real <span style="color: #5D478B;">=</span> <span style="color: #9F79EE;">(</span>x7_real <span style="color: #5D478B;">&gt;</span> <span style="color: #ff0055;">2</span><span style="color: #ff0055;">2'h3F_ffff</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">?</span> 'b0 <span style="color: #5D478B;">:</span> x7_real <span style="color: #5D478B;">+</span> <span style="color: #ff0055;">1</span> <span style="color: #5D478B;">;</span><br/>
+<br/>
+            x0_imag <span style="color: #5D478B;">=</span> <span style="color: #9F79EE;">(</span>x0_imag <span style="color: #5D478B;">&gt;</span> <span style="color: #ff0055;">2</span><span style="color: #ff0055;">2'h3F_ffff</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">?</span> 'b0 <span style="color: #5D478B;">:</span> x0_imag <span style="color: #5D478B;">+</span> <span style="color: #ff0055;">2</span> <span style="color: #5D478B;">;</span><br/>
+            x1_imag <span style="color: #5D478B;">=</span> <span style="color: #9F79EE;">(</span>x1_imag <span style="color: #5D478B;">&gt;</span> <span style="color: #ff0055;">2</span><span style="color: #ff0055;">2'h3F_ffff</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">?</span> 'b0 <span style="color: #5D478B;">:</span> x1_imag <span style="color: #5D478B;">+</span> <span style="color: #ff0055;">5</span> <span style="color: #5D478B;">;</span><br/>
+            x2_imag <span style="color: #5D478B;">=</span> <span style="color: #9F79EE;">(</span>x2_imag <span style="color: #5D478B;">&gt;</span> <span style="color: #ff0055;">2</span><span style="color: #ff0055;">2'h3F_ffff</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">?</span> 'b0 <span style="color: #5D478B;">:</span> x2_imag <span style="color: #5D478B;">+</span> <span style="color: #ff0055;">3</span> <span style="color: #5D478B;">;</span><br/>
+            x3_imag <span style="color: #5D478B;">=</span> <span style="color: #9F79EE;">(</span>x3_imag <span style="color: #5D478B;">&gt;</span> <span style="color: #ff0055;">2</span><span style="color: #ff0055;">2'h3F_ffff</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">?</span> 'b0 <span style="color: #5D478B;">:</span> x3_imag <span style="color: #5D478B;">+</span> <span style="color: #ff0055;">6</span> <span style="color: #5D478B;">;</span><br/>
+            x4_imag <span style="color: #5D478B;">=</span> <span style="color: #9F79EE;">(</span>x4_imag <span style="color: #5D478B;">&gt;</span> <span style="color: #ff0055;">2</span><span style="color: #ff0055;">2'h3F_ffff</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">?</span> 'b0 <span style="color: #5D478B;">:</span> x4_imag <span style="color: #5D478B;">+</span> <span style="color: #ff0055;">4</span> <span style="color: #5D478B;">;</span><br/>
+            x5_imag <span style="color: #5D478B;">=</span> <span style="color: #9F79EE;">(</span>x5_imag <span style="color: #5D478B;">&gt;</span> <span style="color: #ff0055;">2</span><span style="color: #ff0055;">2'h3F_ffff</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">?</span> 'b0 <span style="color: #5D478B;">:</span> x5_imag <span style="color: #5D478B;">+</span> <span style="color: #ff0055;">8</span> <span style="color: #5D478B;">;</span><br/>
+            x6_imag <span style="color: #5D478B;">=</span> <span style="color: #9F79EE;">(</span>x6_imag <span style="color: #5D478B;">&gt;</span> <span style="color: #ff0055;">2</span><span style="color: #ff0055;">2'h3F_ffff</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">?</span> 'b0 <span style="color: #5D478B;">:</span> x6_imag <span style="color: #5D478B;">+</span> <span style="color: #ff0055;">11</span> <span style="color: #5D478B;">;</span><br/>
+            x7_imag <span style="color: #5D478B;">=</span> <span style="color: #9F79EE;">(</span>x7_imag <span style="color: #5D478B;">&gt;</span> <span style="color: #ff0055;">2</span><span style="color: #ff0055;">2'h3F_ffff</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">?</span> 'b0 <span style="color: #5D478B;">:</span> x7_imag <span style="color: #5D478B;">+</span> <span style="color: #ff0055;">7</span> <span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+<br/>
+   <span style="color: #00008B; font-style: italic;">//finish simulation</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">initial</span> <span style="color: #5D478B;">#</span><span style="color: #ff0055;">1000</span>       <span style="color: #9932CC;">$finish</span> <span style="color: #5D478B;">;</span><br/>
+<span style="color: #A52A2A; font-weight: bold;">endmodule</span><br/>
+</div></div>
+<p><strong>シミュレーション結果</strong></p>
+<p>おおよそ、FFT 結果をパイプライン出力できることがわかります。</p>
+<p><img alt="" decoding="async" src="../wp-content/uploads/2020/10/Ax6nfRQh1amzJmPE.png"/></p>
+<p>matlab 標準の FFT 関数を使用して同じデータを演算した場合の、最初の 2 グループのデータの FFT 結果は次のとおりです。</p><p>最初に入力したデータ信号が実部のみ有効な場合、FFT 結果は完全に一致することがわかります。</p><p>しかし、2 回目に入力したデータは虚部にも信号があるため、このとき両者の結果に誤差が生じ始め、場合によっては誤差が非常に大きくなります。</p>
+<p><img alt="" decoding="async" src="../wp-content/uploads/2020/10/aq7TX9tZrWCmGahi.png"/></p>
+<p>matlab で Verilog 実装の FFT プロセスをシミュレートしたところ、このプロセスの FFT 結果と Verilog 実装の FFT 結果はほぼ一致することがわかりました。</p><p>誤差のある 2 種類の FFT 結果の絶対値を取って比較した図は次のとおりです。</p><p>FFT 結果の傾向はおおよそ同じですが、一部の点で目に見える誤差があることがわかります。</p>
+<p><img alt="" decoding="async" src="../wp-content/uploads/2020/10/V7YHsCSb55OzbmlE.png"/></p>
+<p>
+<strong>設計のまとめ：</strong></p><p>バタフライ演算ユニットの設計時に述べたように、回転因子を量子化する際、ビット幅の選択によって誤差が生じます。</p><p>さらに、各バタフライ演算ユニットの演算結果は切り詰められるため、これによっても誤差が生じます。</p><p>matlab で FFT を計算するときは精度の問題を考慮する必要がなく、その最高精度でデータに対して FFT 計算を行います。</p><p>以上のことから、最終的に 2 つの FFT 計算方法の結果に差異が生じます。</p><p>興味のある方は、回転因子と入力データのビット幅をさらに増やしたり、FFT の点数も増やしたりしてからシミュレーションで比較すると、相対誤差は小さくなるはずです。</p>
+<h3>付録：matlab の使用</h3>
+<p><strong>回転因子の生成</strong></p><p>8 点 FFT では 4 つの回転因子だけを使用します。回転因子の拡大倍率は 8192 です。</p>
+<div class="example"><h2 class="example">例</h2> <div class="example_code">
+clear all<span style="color: #5D478B;">;</span>close all<span style="color: #5D478B;">;</span>clc<span style="color: #5D478B;">;</span><br/>
+<span style="color: #5D478B;">%=======================================================</span><br/>
+<span style="color: #5D478B;">%</span> Wnr calcuting<br/>
+<span style="color: #5D478B;">%=======================================================</span><br/>
+<span style="color: #A52A2A; font-weight: bold;">for</span> r <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">0</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">3</span> <br/>
+    Wnr_factor  <span style="color: #5D478B;">=</span> cos<span style="color: #9F79EE;">(</span>pi<span style="color: #5D478B;">/</span><span style="color: #ff0055;">4</span><span style="color: #5D478B;">*</span>r<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">-</span> j<span style="color: #5D478B;">*</span>sin<span style="color: #9F79EE;">(</span>pi<span style="color: #5D478B;">/</span><span style="color: #ff0055;">4</span><span style="color: #5D478B;">*</span>r<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+    Wnr_integer <span style="color: #5D478B;">=</span> floor<span style="color: #9F79EE;">(</span>Wnr_factor <span style="color: #5D478B;">*</span> <span style="color: #ff0055;">2</span><span style="color: #5D478B;">^</span><span style="color: #ff0055;">13</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+    <br/>
+    <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">real</span><span style="color: #9F79EE;">(</span>Wnr_integer<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">&lt;</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">)</span> <br/>
+        Wnr_real    <span style="color: #5D478B;">=</span> <span style="color: #A52A2A; font-weight: bold;">real</span><span style="color: #9F79EE;">(</span>Wnr_integer<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> <span style="color: #ff0055;">2</span><span style="color: #5D478B;">^</span><span style="color: #ff0055;">16</span> <span style="color: #5D478B;">;</span> <span style="color: #5D478B;">%</span>負数の 2 の補数<br/>
+    <span style="color: #A52A2A; font-weight: bold;">else</span><br/>
+        Wnr_real    <span style="color: #5D478B;">=</span> <span style="color: #A52A2A; font-weight: bold;">real</span><span style="color: #9F79EE;">(</span>Wnr_integer<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span>imag<span style="color: #9F79EE;">(</span>Wnr_integer<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">&lt;</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">)</span> <br/>
+        Wnr_imag    <span style="color: #5D478B;">=</span> imag<span style="color: #9F79EE;">(</span>Wnr_integer<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> <span style="color: #ff0055;">2</span><span style="color: #5D478B;">^</span><span style="color: #ff0055;">16</span> <span style="color: #5D478B;">;</span> <br/>
+    <span style="color: #A52A2A; font-weight: bold;">else</span><br/>
+        Wnr_imag    <span style="color: #5D478B;">=</span> imag<span style="color: #9F79EE;">(</span>Wnr_integer<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+    <br/>
+    Wnr<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">2</span><span style="color: #5D478B;">*</span>r<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">,:</span><span style="color: #9F79EE;">)</span>  <span style="color: #5D478B;">=</span>  dec2hex<span style="color: #9F79EE;">(</span>Wnr_real<span style="color: #9F79EE;">)</span>   <span style="color: #5D478B;">%</span>実部<br/>
+    Wnr<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">2</span><span style="color: #5D478B;">*</span>r<span style="color: #5D478B;">+</span><span style="color: #ff0055;">2</span><span style="color: #5D478B;">,:</span><span style="color: #9F79EE;">)</span>  <span style="color: #5D478B;">=</span>  dec2hex<span style="color: #9F79EE;">(</span>Wnr_imag<span style="color: #9F79EE;">)</span>   <span style="color: #5D478B;">%</span>虚部<br/>
+<span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+</div></div>
+<p><strong>FFT 結果の比較</strong></p>
+<p>matlab で Verilog 実装の FFT プロセスをシミュレートしたものを以下に示します。2 種類の FFT 結果の比較も含まれます。</p>
+<div class="example"><h2 class="example">例</h2> <div class="example_code">
+clear all<span style="color: #5D478B;">;</span>close all<span style="color: #5D478B;">;</span>clc<span style="color: #5D478B;">;</span><br/>
+<span style="color: #5D478B;">%=======================================================</span><br/>
+<span style="color: #5D478B;">%</span> 8dots fft<br/>
+<span style="color: #5D478B;">%=======================================================</span><br/>
+<span style="color: #A52A2A; font-weight: bold;">for</span> r<span style="color: #5D478B;">=</span><span style="color: #ff0055;">0</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">3</span><br/>
+    Wnr<span style="color: #9F79EE;">(</span>r<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span>  <span style="color: #5D478B;">=</span> cos<span style="color: #9F79EE;">(</span>pi<span style="color: #5D478B;">/</span><span style="color: #ff0055;">4</span><span style="color: #5D478B;">*</span>r<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">-</span> j<span style="color: #5D478B;">*</span>sin<span style="color: #9F79EE;">(</span>pi<span style="color: #5D478B;">/</span><span style="color: #ff0055;">4</span><span style="color: #5D478B;">*</span>r<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+<span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+x       <span style="color: #5D478B;">=</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">10</span><span style="color: #5D478B;">,</span> <span style="color: #ff0055;">20</span><span style="color: #5D478B;">,</span> <span style="color: #ff0055;">30</span><span style="color: #5D478B;">,</span> <span style="color: #ff0055;">40</span><span style="color: #5D478B;">,</span> <span style="color: #ff0055;">10</span><span style="color: #5D478B;">,</span> <span style="color: #ff0055;">20</span> <span style="color: #5D478B;">,</span><span style="color: #ff0055;">30</span> <span style="color: #5D478B;">,</span><span style="color: #ff0055;">40</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">;</span><br/>
+step    <span style="color: #5D478B;">=</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">+</span>2j<span style="color: #5D478B;">,</span> <span style="color: #ff0055;">1</span><span style="color: #5D478B;">+</span>5j<span style="color: #5D478B;">,</span> <span style="color: #ff0055;">31</span><span style="color: #5D478B;">+</span>3j<span style="color: #5D478B;">,</span> <span style="color: #ff0055;">1</span><span style="color: #5D478B;">+</span>6j<span style="color: #5D478B;">,</span> <span style="color: #ff0055;">23</span><span style="color: #5D478B;">+</span>4j<span style="color: #5D478B;">,</span> <span style="color: #ff0055;">1</span><span style="color: #5D478B;">+</span>8j<span style="color: #5D478B;">,</span> <span style="color: #ff0055;">6</span><span style="color: #5D478B;">+</span>11j<span style="color: #5D478B;">,</span> <span style="color: #ff0055;">1</span><span style="color: #5D478B;">+</span>7j<span style="color: #9F79EE;">]</span><span style="color: #5D478B;">;</span><br/>
+x2      <span style="color: #5D478B;">=</span> x <span style="color: #5D478B;">+</span> step<span style="color: #5D478B;">;</span><br/>
+xm0     <span style="color: #5D478B;">=</span> <span style="color: #9F79EE;">[</span>x2<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">0</span><span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span> x2<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">4</span><span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span> x2<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">2</span><span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span> x2<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">6</span><span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span> x2<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span> x2<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">5</span><span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span>         x2<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span> x2<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">7</span><span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">;</span><br/>
+<br/>
+<span style="color: #5D478B;">%%</span> stage1 <br/>
+xm1<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">=</span> xm0<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> xm0<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">*</span>Wnr<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+xm1<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">=</span> xm0<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">-</span> xm0<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">*</span>Wnr<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+xm1<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">=</span> xm0<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> xm0<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">4</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">*</span>Wnr<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+xm1<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">4</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">=</span> xm0<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">-</span> xm0<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">4</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">*</span>Wnr<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+xm1<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">5</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">=</span> xm0<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">5</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> xm0<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">6</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">*</span>Wnr<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+xm1<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">6</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">=</span> xm0<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">5</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">-</span> xm0<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">6</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">*</span>Wnr<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+xm1<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">7</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">=</span> xm0<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">7</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> xm0<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">8</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">*</span>Wnr<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+xm1<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">8</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">=</span> xm0<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">7</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">-</span> xm0<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">8</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">*</span>Wnr<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+floor<span style="color: #9F79EE;">(</span>xm1<span style="color: #9F79EE;">(</span><span style="color: #5D478B;">:</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><br/>
+<br/>
+<span style="color: #5D478B;">%%</span> stage2<br/>
+xm2<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">=</span> xm1<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> xm1<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">*</span>Wnr<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+xm2<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">=</span> xm1<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">-</span> xm1<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">*</span>Wnr<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+xm2<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">=</span> xm1<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> xm1<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">4</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">*</span>Wnr<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+xm2<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">4</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">=</span> xm1<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">-</span> xm1<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">4</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">*</span>Wnr<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+xm2<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">5</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">=</span> xm1<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">5</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> xm1<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">7</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">*</span>Wnr<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+xm2<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">7</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">=</span> xm1<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">5</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">-</span> xm1<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">7</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">*</span>Wnr<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+xm2<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">6</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">=</span> xm1<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">6</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> xm1<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">8</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">*</span>Wnr<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+xm2<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">8</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">=</span> xm1<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">6</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">-</span> xm1<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">8</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">*</span>Wnr<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+floor<span style="color: #9F79EE;">(</span>xm2<span style="color: #9F79EE;">(</span><span style="color: #5D478B;">:</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><br/>
+<br/>
+<span style="color: #5D478B;">%%</span> stage3<br/>
+xm3<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">=</span> xm2<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> xm2<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">5</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">*</span>Wnr<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+xm3<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">5</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">=</span> xm2<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">-</span> xm2<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">5</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">*</span>Wnr<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+xm3<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">=</span> xm2<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> xm2<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">6</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">*</span>Wnr<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+xm3<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">6</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">=</span> xm2<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">-</span> xm2<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">6</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">*</span>Wnr<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+xm3<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">=</span> xm2<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> xm2<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">7</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">*</span>Wnr<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+xm3<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">7</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">=</span> xm2<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">-</span> xm2<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">7</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">*</span>Wnr<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+xm3<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">4</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">=</span> xm2<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">4</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> xm2<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">8</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">*</span>Wnr<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">4</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+xm3<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">8</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">=</span> xm2<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">4</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">-</span> xm2<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">8</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">*</span>Wnr<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">4</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+floor<span style="color: #9F79EE;">(</span>xm3<span style="color: #9F79EE;">(</span><span style="color: #5D478B;">:</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><br/>
+<br/>
+<span style="color: #5D478B;">%%</span> fft<br/>
+fft1 <span style="color: #5D478B;">=</span> fft<span style="color: #9F79EE;">(</span>x<span style="color: #9F79EE;">)</span><br/>
+fft2 <span style="color: #5D478B;">=</span> fft<span style="color: #9F79EE;">(</span>x2<span style="color: #9F79EE;">)</span><br/>
+plot<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">8</span><span style="color: #5D478B;">,</span> abs<span style="color: #9F79EE;">(</span>fft2<span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><br/>
+hold on<br/>
+plot<span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">8</span><span style="color: #5D478B;">,</span> abs<span style="color: #9F79EE;">(</span>xm3<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span> 'r'<span style="color: #9F79EE;">)</span><br/>
+</div></div>
+<h3>ソースコードのダウンロード</h3>
+<p><a class="download" download="" href="../wp-content/uploads/2020/10/7.5fft.zip">Download</a></p> </div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link">← <a href="./verilog-cic.html" rel="prev">7.4 Verilog CIC フィルタ設計</a> </div>
+<div class="next-design-link"><a href="./verilog-numerical-conversion.html" rel="next">8.1 Verilog 数値変換</a> →</div>
+</div>
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="title" id="comments">
+<h2 class="">
+<div class="altblock">
+<i aria-hidden="true" class="fa fa-pencil-square-o" style="font-size:28px;margin-top: 8px;"></i>
+</div>
+<span class="mw-headline" id="qa_headline">1  件のノート</span>
+<span class="mw-headline" id="user_add_note" style="float:right;line-height: 62px;padding-right: 14px;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>ノートを書く</span>
+</h2>
+</div>
+<div id="postcomments">
+<ol class="commentlist">
+<li class="comment byuser comment-author-tianqixin bypostauthor even thread-even depth-1" id="comment-80401"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>潘晓明</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  pan***hust.edu.cn</p></div><div class="upvotejs" data-commid="80401" id="runoobvote-id-80401"><a class="upvote"></a> <span class="count">183</span></div></div><div class="comt-main" id="div-comment-80401"><p>8ポイントFFTバタフライ構造の第2段階（m=1）では、回転因子は原理上W8^0とW8^2です（W8^2はW4^1に簡約できますが、W8^1とは等しくなりません）。しかし、サンプルコードの設計により、回転因子の値がW(0)とW(1)になっています。このW(1)はW8^1に対応しています！しかも最後のmatlab検証コードでもW(1+1)が使われているため、演算結果が標準のfft関数の演算結果と明らかにずれています。</p>
+<p>matlabで修正します。（m=1のとき）stage2の回転因子W(2)をW(3)に変更すると、2つの計算結果が一致します。</p>
+<p>これにより、対応するHDLコードは：</p>
+<pre>.factor_real (factor_real[k[m:0]&lt;(1&lt;&lt;m)? k[m:0] : k[m:0]-(1&lt;&lt;m) ]),
+.factor_imag (factor_imag[k[m:0]&lt;(1&lt;&lt;m)? k[m:0] : k[m:0]-(1&lt;&lt;m) ]),</pre>
+<p>修正も必要であり、信号の添え字は次のようにすべきです：</p> <pre>[k[m:0]&lt;(1&lt;&lt;m)? k[m:0]&lt;&lt;(3-1-m) : (k[m:0]-(1&lt;&lt;m))&lt;&lt;(3-1-m)] ),</pre><div class="comt-meta wrapper"><span class="comt-author"><a href=".." target="_blank">潘晓明</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>潘晓明</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  pan***hust.edu.cn</p></div></span>3年前 (2023-08-11)</div></div></li><!-- #comment-## -->
+</ol>
+<div class="pagenav">
+</div>
+</div>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style="display:none; padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>クリックしてノートを共有</h3>
+&lt;p style="font-size:14px;"&gt;ノートは本記事の内容を拡張したものである必要があります！&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;記事投稿は、ここをクリックしてください&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; ノートを共有する前に&lt;a href=".." class="runoob-pop"&gt;ログイン&lt;/a&gt;！&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=".." id="cancel-comment-reply-link">キャンセル</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="23260"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>ノートを共有</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">ニックネーム</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">ニックネーム (必須)</span></li>
+<li class="form-inline"><label class="hide" for="email">メールアドレス</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">メールアドレス (必須)</span></li>
+<li class="form-inline"><label class="hide" for="url">引用アドレス</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">引用アドレス</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  23260;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 23260, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":23260},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+<style>
+@media screen and (max-width: 768px) {
+	#w3cnote-ad728 {
+		display: none;
+	}
+}
+p.note-author {
+    border-bottom: 1px solid #ddd;
+    font-size: 18px;
+    font-weight: bold;
+    color: #78a15a;
+    padding-bottom: 2px;
+    margin-bottom: 4px;
+}
+</style>
+<script>
+var aid = 23260;
+</script>
+</div>
+</div>
+<div class="listcol last right-column">
+<script type="text/javascript">
+jQuery(document).ready(function ($){
+	var total = $(".membership li").length;
+	var left_list = '';
+	href = window.location.href;
+	
+	$(".membership li").each(function(index, value){
+
+		left_list += $(this).html();
+
+		cur_href = $(this).find("a").attr("href");
+		cur_obj = $(this);
+		
+		if(href.match(cur_href) != null) {
+			if(index==0) {
+				$(".previous-design-link").hide();
+			}
+			if(index==(total-1)) {
+				$(".next-design-link").hide();
+			}
+			prev_href = cur_obj.prev("li").find("a").attr("href");
+			prev_title = cur_obj.prev("li").find("a").attr("title");
+
+			next_href = cur_obj.next("li").find("a").attr("href");
+			next_title = cur_obj.next("li").find("a").attr("title");
+			if(prev_title) {
+				$(".previous-design-link a").attr("href", prev_href);
+				$(".previous-design-link a").attr("title", prev_title);
+				$(".previous-design-link a").text(prev_title);
+			} else {
+				$(".previous-design-link").html("");
+			}
+
+			if(next_title) {
+				$(".next-design-link a").attr("href", next_href);
+				$(".next-design-link a").attr("title", next_title);
+				$(".next-design-link a").text(next_title);
+			} else {
+				$(".next-design-link").html("");
+			}
+		}
+	});
+
+	$("#leftcolumn").html(left_list);
+});
+	</script>
+<div class="sidebar-box cate-list">
+<div class="sidebar-box recommend-here list-link">
+<a href="#">Verilog 教程</a> </div>
+<ul class="membership">
+<li><a data-id="22850" href="./verilog-tutorial.html" target="_top" title="1.1 Verilog 教程">1.1 Verilog 教程</a></li>
+<li><a data-id="22851" href="./verilog-intro.html" target="_top" title="1.2 Verilog 简介">1.2 Verilog 简介</a></li>
+<li><a data-id="22852" href="./verilog-install.html" target="_top" title="1.3 Verilog 环境搭建">1.3 Verilog 环境搭建</a></li>
+<li><a data-id="22866" href="./verilog-design-method.html" target="_top" title="1.4 Verilog 设计方法">1.4 Verilog 设计方法</a></li>
+<li><a data-id="22869" href="./verilog-basic-syntax.html" target="_top" title="2.1 Verilog 基础语法">2.1 Verilog 基础语法</a></li>
+<li><a data-id="22870" href="./verilog-number.html" target="_top" title="2.2 Verilog 数值表示">2.2 Verilog 数值表示</a></li>
+<li><a data-id="22871" href="./verilog-data-type.html" target="_top" title="2.3 Verilog 数据类型">2.3 Verilog 数据类型</a></li>
+<li><a data-id="22872" href="./verilog-expression.html" target="_top" title="2.4 Verilog 表达式">2.4 Verilog 表达式</a></li>
+<li><a data-id="22935" href="./verilog-compile-instruction.html" target="_top" title="2.5 Verilog 编译指令">2.5 Verilog 编译指令</a></li>
+<li><a data-id="22931" href="./verilog-assign.html" target="_top" title="3.1 Verilog 连续赋值">3.1 Verilog 连续赋值</a></li>
+<li><a data-id="22933" href="./verilog-time-delay.html" target="_top" title="3.2 Verilog 时延">3.2 Verilog 时延</a></li>
+<li><a data-id="22936" href="./verilog-process-structure.html" target="_top" title="4.1 Verilog 过程结构">4.1 Verilog 过程结构</a></li>
+<li><a data-id="22939" href="./verilog-process-assign.html" target="_top" title="4.2 Verilog 过程赋值">4.2 Verilog 过程赋值</a></li>
+<li><a data-id="22941" href="./verilog-timing-control.html" target="_top" title="4.3 Verilog 时序控制">4.3 Verilog 时序控制</a></li>
+<li><a data-id="22943" href="./verilog-statements-block.html" target="_top" title="4.4 Verilog 语句块">4.4 Verilog 语句块</a></li>
+<li><a data-id="22948" href="./verilog-condition-statement.html" target="_top" title="4.5 Verilog 条件语句">4.5 Verilog 条件语句</a></li>
+<li><a data-id="22950" href="./verilog-case.html" target="_top" title="4.6 Verilog 多路分支语句">4.6 Verilog 多路分支语句</a></li>
+<li><a data-id="22951" href="./verilog-loop.html" target="_top" title="4.7 Verilog 循环语句">4.7 Verilog 循环语句</a></li>
+<li><a data-id="22954" href="./verilog-deassign.html" target="_top" title="4.8 Verilog 过程连续赋值">4.8 Verilog 过程连续赋值</a></li>
+<li><a data-id="22966" href="./verilog-module-port.html" target="_top" title="5.1 Verilog 模块与端口">5.1 Verilog 模块与端口</a></li>
+<li><a data-id="22969" href="./verilog-generate.html" target="_top" title="5.2 Verilog 模块例化">5.2 Verilog 模块例化</a></li>
+<li><a data-id="22972" href="./verilog-defparam.html" target="_top" title="5.3 Verilog 带参数例化">5.3 Verilog 带参数例化</a></li>
+<li><a data-id="22975" href="./verilog-function.html" target="_top" title="6.1 Verilog 函数">6.1 Verilog 函数</a></li>
+<li><a data-id="22982" href="./verilog-task.html" target="_top" title="6.2 Verilog 任务">6.2 Verilog 任务</a></li>
+<li><a data-id="22990" href="./verilog-fsm.html" target="_top" title="6.3 Verilog 状态机">6.3 Verilog 状态机</a></li>
+<li><a data-id="22999" href="./verilog-competition-hazard.html" target="_top" title="6.4 Verilog 竞争与冒险">6.4 Verilog 竞争与冒险</a></li>
+<li><a data-id="23008" href="./verilog-latch.html" target="_top" title="6.5 Verilog 避免 Latch">6.5 Verilog 避免 Latch</a></li>
+<li><a data-id="23011" href="./verilog-testbench.html" target="_top" title="6.6 Verilog 仿真激励">6.6 Verilog 仿真激励</a></li>
+<li><a data-id="23015" href="./verilog-pipeline-design.html" target="_top" title="6.7 Verilog 流水线">6.7 Verilog 流水线</a></li>
+<li><a data-id="23021" href="./verilog-dividend.html" target="_top" title="7.1 Verilog 除法器设计">7.1 Verilog 除法器设计</a></li>
+<li><a data-id="23222" href="./verilog-fir.html" target="_top" title="7.2 Verilog 并行 FIR 滤波器设计">7.2 Verilog 并行 FIR 滤波器设计</a></li>
+<li><a data-id="23230" href="./verilog-serial-fir.html" target="_top" title="7.3 Verilog 串行 FIR 滤波器设计">7.3 Verilog 串行 FIR 滤波器设计</a></li>
+<li><a data-id="23236" href="./verilog-cic.html" target="_top" title="7.4 Verilog CIC 滤波器设计">7.4 Verilog CIC 滤波器设计</a></li>
+<li>
+	7.5 Verilog FFT 设计	</li>
+<li><a data-id="23309" href="./verilog-dds.html" target="_top" title="7.6 Verilog DDS 设计">7.6 Verilog DDS 设计</a></li>
+<li><a data-id="23281" href="./verilog-numerical-conversion.html" target="_top" title="8.1 Verilog 数值转换">8.1 Verilog 数值转换</a></li>
+<li><a href="./verilog2-tutorial.html" target="_top" title="Verilog 教程高级篇">Verilog 教程高级篇</a></li></ul></div> </div>
+</div>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+</div><script src="../../lang-switcher.js"></script>
+</body>
+</html>

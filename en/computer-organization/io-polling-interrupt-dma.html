@@ -1,0 +1,1692 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>I/O 的三种方式 — 轮询、中断、DMA | 菜鸟教程</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<link href="../manifest.webmanifest.html" rel="manifest"/>
+<meta content="#10151c" name="theme-color"/>
+<link href="../pwa/icon-192.png.html" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="application-name"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="../computer-organization/io-polling-interrupt-dma.html" rel="canonical"/>
+<meta content="I/O 的三种方式 — 轮询、中断、DMA" name="keywords"/>
+<meta content="I/O 的三种方式 -- 轮询、中断、DMA 上一讲我们了解了 CPU 和内存之间如何通过总线通信。但计算机不只是 CPU 加内存——它还需要和键盘、鼠标、硬盘、网卡等各种外部设备（I/O 设备）交换数据。 CPU 与外部设备交换数据有三种基本方式：轮询（Polling）、中断（Interrupt）、DMA（直接存储器访问）。三者的效率天差地别——选择哪种方式，往往决定了整个系统的性能表现。 本讲用三种生活场景帮你建立直觉，再用 Pyt.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div>
+<!-- 导航栏 -->
+<style>
+/* 主题切换按钮 */
+/* ===== 主题变量（核心）===== */
+:root {
+  --theme-bg: #ffffff;
+  --theme-border: #e5e7eb;
+  --theme-icon: #333;
+  --theme-hover: #f3f4f6;
+}
+
+.dark {
+  --theme-bg: #1f2937;
+  --theme-border: #374151;
+  --theme-icon: #e5e7eb;
+  --theme-hover: #374151;
+}
+
+/* ===== 按钮容器 ===== */
+.nav-theme-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== 按钮本体 ===== */
+.nav-theme-toggle button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  border-radius: 6px;
+  border: 1px solid var(--theme-border);
+
+  background: var(--theme-bg);
+  color: var(--theme-icon);
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* ===== 图标大小 ===== */
+.nav-theme-toggle i {
+  font-size: 14px;
+}
+
+/* ===== hover 效果 ===== */
+.nav-theme-toggle button:hover {
+  background: var(--theme-hover);
+  transform: translateY(-1px);
+}
+
+/* ===== 点击反馈 ===== */
+.nav-theme-toggle button:active {
+  transform: scale(0.95);
+}
+
+/* ===== 当前激活态（可选）===== */
+.nav-theme-toggle button.active {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+</style>
+<!-- 导航栏 -->
+<nav aria-label="主导航" class="container navigation">
+<div class="row">
+<div class="col nav">
+<!-- PC 导航 -->
+<ul class="pc-nav" id="runoob-detail-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../js/js-tutorial.html">JavaScript</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a data-id="vue" href="#">Vue</a></li>
+<li><a href="../react/react-tutorial.html">React</a></li>
+<li><a href="../python3/python3-tutorial.html">Python3</a></li>
+<li><a href="../java/java-tutorial.html">Java</a></li>
+<li><a href="../cprogramming/c-tutorial.html">C</a></li>
+<li><a href="../cplusplus/cpp-tutorial.html">C++</a></li>
+<li><a href="../csharp/csharp-tutorial.html">C#</a></li>
+<li><a data-id="aiNav" href="#">AI</a></li>
+<li><a href="../go/go-tutorial.html">Go</a></li>
+<li><a href="../sql/sql-tutorial.html">SQL</a></li>
+<li><a href="../linux/linux-tutorial.html">Linux</a></li>
+<li><a href="../vscode/vscode-tutorial.html">VS Code</a></li>
+<li><a data-id="bootstrap" href="#">Bootstrap</a></li>
+<li><a href="../git/git-tutorial.html">Git</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<!-- 主题切换按钮，固定在最右侧 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+<!-- 移动端导航 -->
+<ul class="mobile-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a href="../js/js-tutorial.html">JS</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<li><a class="search-reveal" href="#">搜索</a></li>
+<!-- 移动端主题切换 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon-mobile" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun-mobile" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<!-- 二级导航 -->
+<!--  内容  -->
+<div class="container main">
+<!-- 中间 -->
+<div class="row">
+<div class="runoob-col-md2">
+<div class="left-column">
+<div class="tab" style="overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
+<i aria-hidden="true" class="fa fa-list"></i>
+<span>计算机组成原理</span>
+</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+<a data-p="par" href="../computer-organization/computer-organization-tutorial.html" target="_top" title="计算机组成原理">
+			计算机组成原理			</a>
+<a data-p="par" href="../computer-organization/why-computer-only-knows-0-and-1.html" target="_top" title="为什么计算机只认识 0 和 1">
+			计算机只认识 0 和 1			</a>
+<a data-p="par" href="../computer-organization/number-system-conversion.html" target="_top" title="进制转换 — 二进制、十进制、十六进制">
+			进制转换			</a>
+<a data-p="par" href="../computer-organization/negative-numbers-complement.html" target="_top" title="负数怎么表示 — 原码、反码、补码">
+			负数怎么表示			</a>
+<a data-p="par" href="../computer-organization/floating-point-ieee754.html" target="_top" title="小数怎么表示 — 浮点数与 IEEE 754">
+			小数怎么表示			</a>
+<a data-p="par" href="../computer-organization/character-encoding.html" target="_top" title="字符怎么表示 — ASCII 与 Unicode">
+			字符怎么表示			</a>
+<a data-p="par" href="../computer-organization/boolean-algebra-logic-gates.html" target="_top" title="布尔代数基础 — AND / OR / NOT / XOR">
+			布尔代数基础			</a>
+<a data-p="par" href="../computer-organization/building-logic-circuits.html" target="_top" title="逻辑门电路搭建">
+			逻辑门电路搭建			</a>
+<a data-p="par" href="../computer-organization/from-gates-to-adder.html" target="_top" title="从逻辑门到加法器">
+			从逻辑门到加法器			</a>
+<a data-p="par" href="../computer-organization/flip-flops-and-registers.html" target="_top" title="触发器与寄存器 — 计算机如何「记住」数据">
+			触发器与寄存器			</a>
+<a data-p="par" href="../computer-organization/computer-architecture-overview.html" target="_top" title="一台计算机的整体骨架">
+			一台计算机的整体骨架			</a>
+<a data-p="par" href="../computer-organization/stored-program-concept.html" target="_top" title="程序和数据为什么能放在同一块内存里">
+			程序和数据			</a>
+<a data-p="par" href="../computer-organization/instruction-cycle.html" target="_top" title="指令周期 — 取指、译码、执行、写回">
+			指令周期			</a>
+<a data-p="par" href="../computer-organization/clock-frequency.html" target="_top" title="时钟频率是什么意思">
+			时钟频率			</a>
+<a data-p="par" href="../computer-organization/cpu-pipeline.html" target="_top" title="流水线 — 如何让 CPU 更快">
+			流水线			</a>
+<a data-p="par" href="../computer-organization/multi-core-processors.html" target="_top" title="多核心是怎么回事">
+			多核心是怎么回事			</a>
+<a data-p="par" href="../computer-organization/memory-hierarchy.html" target="_top" title="存储金字塔 — 为什么要分这么多层">
+			存储金字塔			</a>
+<a data-p="par" href="../computer-organization/cache-hits-and-misses.html" target="_top" title="缓存命中与缓存未命中">
+			缓存命中与缓存未命中			</a>
+<a data-p="par" href="../computer-organization/memory-addressing.html" target="_top" title="内存地址与寻址">
+			内存地址与寻址			</a>
+<a data-p="par" href="../computer-organization/computer-bus-system.html" target="_top" title="总线 — 计算机内部的「公路系统」">
+			总线			</a>
+<a data-p="par" href="../computer-organization/io-polling-interrupt-dma.html" target="_top" title="I/O 的三种方式 — 轮询、中断、DMA">
+			I/O 的三种方式			</a>
+<a data-p="par" href="../computer-organization/instruction-journey-summary.html" target="_top" title="一条指令的完整旅程">
+			一条指令的完整旅程			</a>
+</div>
+</div>
+</div>
+</div> <div class="col middle-column">
+<div class="article">
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../computer-organization/computer-bus-system.html" rel="prev">总线 — 计算机内部的「公路系统」</a> </div>
+<div class="next-design-link"><a href="../computer-organization/instruction-journey-summary.html" rel="next">一条指令的完整旅程</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="article-body">
+<div class="article-intro" id="content">
+<h1>I/O 的三种方式 -- 轮询、中断、DMA</h1>
+<p>上一讲我们了解了 CPU 和内存之间如何通过总线通信。但计算机不只是 CPU 加内存——它还需要和键盘、鼠标、硬盘、网卡等各种外部设备（I/O 设备）交换数据。</p>
+<p>CPU 与外部设备交换数据有三种基本方式：<span class="marked">轮询（Polling）</span>、<span class="marked">中断（Interrupt）</span>、<span class="marked">DMA（直接存储器访问）</span>。三者的效率天差地别——选择哪种方式，往往决定了整个系统的性能表现。</p>
+<p>本讲用三种生活场景帮你建立直觉，再用 Python 代码直观对比三种方式的效率差异。</p>
+<hr/>
+<h2>三个生活场景类比</h2>
+<h3>场景一：轮询——每隔 5 秒去看看水开了没</h3>
+<p>你在厨房烧水，但没有水壶哨子。你每隔 5 秒就从客厅跑到厨房看一眼：「水开了吗？水开了吗？水开了吗？」</p>
+<p>在此期间，你<span class="mark">完全没法安心看电视</span>，因为每隔几秒就要跑一趟。你几乎把所有时间都花在了「检查状态」上。</p>
+<p>这就是<span class="marked">轮询</span>：CPU 不断循环检查设备是否就绪，把时间都浪费在无意义的查询上。</p>
+<h3>场景二：中断——水壶哨子响了再去关火</h3>
+<p>这回水壶带哨子。你把水放上炉子后，回到客厅安心看电视。水烧开了，哨子尖锐地响起来。你暂停看电视，去厨房关火，然后继续看电视。</p>
+<p>你<span class="tag1 green">绝大多数时间都在做有意义的事情</span>（看电视），只在关键时刻被打断一小会儿。</p>
+<p>这就是<span class="marked">中断</span>：CPU 正常执行程序，设备就绪时主动发信号通知 CPU。CPU 暂停手头工作，处理设备数据，然后恢复之前的工作。</p>
+<h3>场景三：DMA——直接找搬家公司，你根本不用动手</h3>
+<p>你要搬家，有一整车家具要从旧房子运到新房子。如果一件一件自己搬（中断方式），你得来回跑几十趟。</p>
+<p>你雇了一家搬家公司（DMA 控制器），告诉他们：「旧房子地址是 X，新房子地址是 Y，一共有 Z 件家具。」然后你继续忙自己的事。搬家公司搞定一切后，给你打个电话说「搬完了」。</p>
+<p>这就是<span class="marked">DMA</span>：专门的 DMA 控制器直接管理内存和外设之间的数据传输，CPU 完全不用参与。传输完成后，DMA 控制器才给 CPU 发一个中断通知。</p>
+<hr/>
+<h2>三种方式的本质区别</h2>
+<table class="reference">
+<tr><th>特性</th><th>轮询 (Polling)</th><th>中断 (Interrupt)</th><th>DMA</th></tr>
+<tr><td><span class="marked">CPU 参与度</span></td><td>全程忙碌，不停检查</td><td>传输时短暂参与</td><td>几乎不参与，只收完成通知</td></tr>
+<tr><td><span class="marked">数据谁搬</span></td><td>CPU 亲自搬每一个字节</td><td>CPU 亲自搬每一个字节</td><td>DMA 控制器搬，CPU 不管</td></tr>
+<tr><td><span class="marked">CPU 空闲时间</span></td><td>几乎没有</td><td>大部分时间空闲</td><td>几乎全部时间空闲</td></tr>
+<tr><td><span class="marked">实现复杂度</span></td><td>最简单</td><td>需要中断控制器硬件</td><td>需要 DMA 控制器硬件</td></tr>
+<tr><td><span class="marked">响应延迟</span></td><td>取决于轮询间隔</td><td>微秒级</td><td>取决于 DMA 传输总时长</td></tr>
+<tr><td><span class="marked">适用数据量</span></td><td>极少量</td><td>中小量（KB 级）</td><td>大量（MB/GB 级）</td></tr>
+<tr><td><span class="marked">典型场景</span></td><td>简单嵌入式、极短等待</td><td>键盘输入、鼠标移动、网络包到达</td><td>磁盘读写、显卡帧缓冲、网卡大包</td></tr>
+</table>
+<blockquote><p>你每次敲键盘触发的是中断，你拷贝大文件时用的是 DMA。现代操作系统会根据数据量和场景，自动在三种方式之间选择最优方案。</p></blockquote>
+<hr/>
+<h2>时间轴可视化：CPU 忙碌与空闲的对比</h2>
+<p>假设需要从硬盘读取 4 个数据块到内存。我们用 ASCII 时间轴来直观对比三种方式下 CPU 的状态：</p>
+<pre>
+任务: 从硬盘读取 4 个数据块到内存
+
+【轮询 - CPU 几乎全程忙碌】
+时间: 0----1----2----3----4----5----6----7----8----9----10---&gt;
+CPU:  [查][查][搬][查][查][搬][查][查][搬][查][查][搬]
+       忙  忙  忙  忙  忙  忙  忙  忙  忙  忙  忙  忙
+                                   ↑ 几乎没有任何空闲
+
+【中断 - CPU 大部分时间空闲】
+时间: 0----1----2----3----4----5----6----7----8----9----10---&gt;
+CPU:  [工作][等待...][搬][工作]  [等待...][搬][工作]
+       忙    闲       忙  忙      闲       忙  忙
+                    ↑ 中断触发    ↑ 中断触发
+
+【DMA - CPU 几乎全程空闲】
+时间: 0----1----2----3----4----5----6----7----8----9----10---&gt;
+CPU:  [设置DMA][工作][工作][工作]      [被通知完成]
+       忙       忙    忙    忙              忙
+DMA:         [搬][搬][搬][搬]                  ↑ DMA 完成后中断
+             忙  忙  忙  忙
+                                  ↑ CPU 完全不管传输过程
+</pre>
+<p>一目了然：轮询下 CPU 被绑死，中断下 CPU 只被短暂打断，DMA 下 CPU 几乎完全解放。</p>
+<hr/>
+<h2>代码演示：Python 模拟三种 I/O 方式并打印时间轴</h2>
+<p>下面这段代码分别用轮询、中断、DMA 三种方式模拟同一批数据的传输过程，统计 CPU 忙碌/空闲的时间占比，并用字符画时间轴直观展示差异。</p>
+<div class="example">
+<h2 class="example">实例</h2>
+<div class="example_code">
+<span style="color: #a11;">"""<br/>I/O 三种方式对比：轮询 vs 中断 vs DMA（runoob 演示）<br/>
+<br/>本程序模拟 CPU 从「外部设备」传输 10 个数据块到内存的场景，<br/>分别用轮询、中断、DMA 三种方式完成，打印时间轴直观对比 CPU 状态。<br/>
+<br/>核心指标: CPU 忙碌时间占比。占比越高，说明 CPU 被 I/O 拖累越严重。<br/>
+"""</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">import</span> <span style="color: #05a;">time</span><br/>
+<span style="color: Green;font-weight:bold;">import</span> <span style="color: #05a;">random</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> IODevice:<br/>
+    <span style="color: #a11;">"""模拟外部 I/O 设备（如硬盘、键盘等）"""</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> name<span style="color: Gray;">=</span><span style="color: #a11;">"硬盘"</span><span style="color: Gray;">,</span> response_time<span style="color: Gray;">=</span><span style="color: Maroon;">4</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""<br/>name: 设备名称<br/>response_time: 设备响应所需的「时间单位」数<br/>
+        """</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">name</span> <span style="color: Gray;">=</span> name<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">response_time</span> <span style="color: Gray;">=</span> response_time  <span style="color: #a50"># 每个数据块的设备准备时间</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">data_buffer</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span>               <span style="color: #a50"># 设备内部数据缓冲区</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">ready</span> <span style="color: Gray;">=</span> <span style="color: Teal;">False</span>                  <span style="color: #a50"># 设备是否就绪</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> prepare_data<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> block_id<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""<br/>设备准备数据——模拟设备内部处理过程。<br/>实际硬件中这一步是硬盘寻道、网卡收包等操作。<br/>
+        """</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">ready</span> <span style="color: Gray;">=</span> <span style="color: Teal;">False</span><br/>
+        data <span style="color: Gray;">=</span> f<span style="color: #a11;">"DATA_BLOCK_{block_id:02d}"</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">data_buffer</span>.<span style="color: #05a;">append</span><span style="color: Olive;">(</span>data<span style="color: Olive;">)</span><br/>
+        <span style="color: #a50"># 模拟设备在不同时间单位后准备好</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> data<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> is_ready<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""CPU 轮询时检查此状态"""</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">ready</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> mark_ready<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""设备完成准备，发送中断信号"""</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">ready</span> <span style="color: Gray;">=</span> <span style="color: Teal;">True</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> get_data<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""从设备缓冲区取走一个数据块"""</span><br/>
+        <span style="color: Green;font-weight:bold;">if</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">data_buffer</span>:<br/>
+            <span style="color: Green;font-weight:bold;">return</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">data_buffer</span>.<span style="color: #05a;">pop</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> <span style="color: Teal;">None</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> Timeline:<br/>
+    <span style="color: #a11;">"""<br/>时间轴记录器——记录每个时间单位 CPU 和 DMA 的状态<br/>用于最终绘制 ASCII 时间轴<br/>
+    """</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">cpu_states</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span>     <span style="color: #a50"># 每个时间单位 CPU 的状态: 'BUSY' 或 'IDLE'</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">dma_states</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span>     <span style="color: #a50"># 每个时间单位 DMA 的状态</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">events</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span>         <span style="color: #a50"># 事件日志: (时间, 描述)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> record_cpu<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> state<span style="color: Olive;">)</span>:<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">cpu_states</span>.<span style="color: #05a;">append</span><span style="color: Olive;">(</span>state<span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> record_dma<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> state<span style="color: Olive;">)</span>:<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">dma_states</span>.<span style="color: #05a;">append</span><span style="color: Olive;">(</span>state<span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> log_event<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> time_unit<span style="color: Gray;">,</span> desc<span style="color: Olive;">)</span>:<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">events</span>.<span style="color: #05a;">append</span><span style="color: Olive;">(</span><span style="color: Olive;">(</span>time_unit<span style="color: Gray;">,</span> desc<span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> draw<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> title<span style="color: Gray;">=</span><span style="color: #a11;">"时间轴"</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""绘制 ASCII 时间轴"""</span><br/>
+        total <span style="color: Gray;">=</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span>.<span style="color: #05a;">cpu_states</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">if</span> total <span style="color: Gray;">==</span> <span style="color: Maroon;">0</span>:<br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  (无时间数据)"</span><span style="color: Olive;">)</span><br/>
+            <span style="color: Green;font-weight:bold;">return</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>  ╔══ {title} ══╗"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  ║ 总时间单位: {total}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># CPU 状态行</span><br/>
+        cpu_line <span style="color: Gray;">=</span> <span style="color: #a11;">"CPU:  "</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> s <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">cpu_states</span>:<br/>
+            cpu_line +<span style="color: Gray;">=</span> <span style="color: #a11;">"["</span> + <span style="color: Olive;">(</span><span style="color: #a11;">"忙"</span> <span style="color: Green;font-weight:bold;">if</span> s <span style="color: Gray;">==</span> <span style="color: #a11;">"BUSY"</span> <span style="color: Green;font-weight:bold;">else</span> <span style="color: #a11;">"闲"</span><span style="color: Olive;">)</span> + <span style="color: #a11;">"]"</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  ║ {cpu_line}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># DMA 状态行（如果有 DMA 活动）</span><br/>
+        <span style="color: Green;font-weight:bold;">if</span> <span style="color: Teal;">any</span><span style="color: Olive;">(</span>s <span style="color: Gray;">==</span> <span style="color: #a11;">"BUSY"</span> <span style="color: Green;font-weight:bold;">for</span> s <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">dma_states</span><span style="color: Olive;">)</span>:<br/>
+            dma_line <span style="color: Gray;">=</span> <span style="color: #a11;">"DMA:  "</span><br/>
+            <span style="color: Green;font-weight:bold;">for</span> s <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">dma_states</span>:<br/>
+                dma_line +<span style="color: Gray;">=</span> <span style="color: #a11;">"["</span> + <span style="color: Olive;">(</span><span style="color: #a11;">"忙"</span> <span style="color: Green;font-weight:bold;">if</span> s <span style="color: Gray;">==</span> <span style="color: #a11;">"BUSY"</span> <span style="color: Green;font-weight:bold;">else</span> <span style="color: #a11;">"闲"</span><span style="color: Olive;">)</span> + <span style="color: #a11;">"]"</span><br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  ║ {dma_line}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># 事件日志</span><br/>
+        <span style="color: Green;font-weight:bold;">if</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">events</span>:<br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  ╠══ 事件日志 ══╣"</span><span style="color: Olive;">)</span><br/>
+            <span style="color: Green;font-weight:bold;">for</span> t<span style="color: Gray;">,</span> desc <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">events</span>:<br/>
+                <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  ║  T={t}: {desc}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># 统计汇总</span><br/>
+        busy_count <span style="color: Gray;">=</span> <span style="color: Teal;">sum</span><span style="color: Olive;">(</span><span style="color: Maroon;">1</span> <span style="color: Green;font-weight:bold;">for</span> s <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">cpu_states</span> <span style="color: Green;font-weight:bold;">if</span> s <span style="color: Gray;">==</span> <span style="color: #a11;">"BUSY"</span><span style="color: Olive;">)</span><br/>
+        idle_count <span style="color: Gray;">=</span> total - busy_count<br/>
+        busy_pct <span style="color: Gray;">=</span> busy_count / total * <span style="color: Maroon;">100</span> <span style="color: Green;font-weight:bold;">if</span> total <span style="color: Gray;">&gt;</span> <span style="color: Maroon;">0</span> <span style="color: Green;font-weight:bold;">else</span> <span style="color: Maroon;">0</span><br/>
+        idle_pct <span style="color: Gray;">=</span> idle_count / total * <span style="color: Maroon;">100</span> <span style="color: Green;font-weight:bold;">if</span> total <span style="color: Gray;">&gt;</span> <span style="color: Maroon;">0</span> <span style="color: Green;font-weight:bold;">else</span> <span style="color: Maroon;">0</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  ╠══ 统计 ══╣"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  ║  CPU 忙碌: {busy_count}/{total} ({busy_pct:.0f}%)"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  ║  CPU 空闲: {idle_count}/{total} ({idle_pct:.0f}%)"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  ╚{'═' * 20}╝"</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">return</span> busy_pct<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> Memory:<br/>
+    <span style="color: #a11;">"""模拟主内存"""</span><br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">data</span> <span style="color: Gray;">=</span> <span style="color: Olive;">{</span><span style="color: Olive;">}</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> write<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> addr<span style="color: Gray;">,</span> data<span style="color: Olive;">)</span>:<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">data</span><span style="color: Olive;">[</span>addr<span style="color: Olive;">]</span> <span style="color: Gray;">=</span> data<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__repr__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: Green;font-weight:bold;">return</span> f<span style="color: #a11;">"Memory({len(self.data)} 条数据)"</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> Controller:<br/>
+    <span style="color: #a11;">"""CPU 控制器——执行不同 I/O 方式的模拟"""</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">memory</span> <span style="color: Gray;">=</span> Memory<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">total_transferred</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">0</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> simulate_polling<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> device<span style="color: Gray;">,</span> block_count<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""<br/>轮询方式模拟:<br/>CPU 在每个时间单位都去检查设备是否就绪。<br/>如果就绪，搬一个数据块；否则继续检查。<br/>
+        """</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>{'#'*55}"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"# 方式一: 轮询 (Polling)"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"# 设备: {device.name} | 数据块数: {block_count}"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"# 策略: CPU 每个时间单位都检查设备状态"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"{'#'*55}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+        timeline <span style="color: Gray;">=</span> Timeline<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+        time_unit <span style="color: Gray;">=</span> <span style="color: Maroon;">0</span><br/>
+        blocks_done <span style="color: Gray;">=</span> <span style="color: Maroon;">0</span><br/>
+        device_ready_at <span style="color: Gray;">=</span> <span style="color: Maroon;">0</span>  <span style="color: #a50"># 设备在哪个时间单位准备好下一块</span><br/>
+<br/>
+        <span style="color: #a50"># 初始化: 设备开始准备第一块数据</span><br/>
+        device.<span style="color: #05a;">prepare_data</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Olive;">)</span><br/>
+        device_ready_at <span style="color: Gray;">=</span> time_unit + device.<span style="color: #05a;">response_time</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">while</span> blocks_done <span style="color: Gray;">&lt;</span> block_count:<br/>
+            <span style="color: #a50"># CPU 检查设备状态（轮询）</span><br/>
+            timeline.<span style="color: #05a;">record_cpu</span><span style="color: Olive;">(</span><span style="color: #a11;">"BUSY"</span><span style="color: Olive;">)</span><br/>
+            timeline.<span style="color: #05a;">record_dma</span><span style="color: Olive;">(</span><span style="color: #a11;">"IDLE"</span><span style="color: Olive;">)</span><br/>
+<br/>
+            <span style="color: Green;font-weight:bold;">if</span> time_unit <span style="color: Gray;">&gt;=</span> device_ready_at <span style="color: Green;font-weight:bold;">and</span> device.<span style="color: #05a;">is_ready</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+                <span style="color: #a50"># 设备就绪 -&gt; CPU 搬运数据</span><br/>
+                data <span style="color: Gray;">=</span> device.<span style="color: #05a;">get_data</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+                <span style="color: Teal;">self</span>.<span style="color: #05a;">memory</span>.<span style="color: #05a;">write</span><span style="color: Olive;">(</span>blocks_done<span style="color: Gray;">,</span> data<span style="color: Olive;">)</span><br/>
+                timeline.<span style="color: #05a;">log_event</span><span style="color: Olive;">(</span>time_unit<span style="color: Gray;">,</span> f<span style="color: #a11;">"CPU 搬运数据块 {blocks_done}: {data}"</span><span style="color: Olive;">)</span><br/>
+                blocks_done +<span style="color: Gray;">=</span> <span style="color: Maroon;">1</span><br/>
+                <span style="color: Teal;">self</span>.<span style="color: #05a;">total_transferred</span> +<span style="color: Gray;">=</span> <span style="color: Maroon;">1</span><br/>
+<br/>
+                <span style="color: #a50"># 准备下一块数据（如果还有）</span><br/>
+                <span style="color: Green;font-weight:bold;">if</span> blocks_done <span style="color: Gray;">&lt;</span> block_count:<br/>
+                    device.<span style="color: #05a;">prepare_data</span><span style="color: Olive;">(</span>blocks_done<span style="color: Olive;">)</span><br/>
+                    device_ready_at <span style="color: Gray;">=</span> time_unit + device.<span style="color: #05a;">response_time</span><br/>
+            <span style="color: Green;font-weight:bold;">else</span>:<br/>
+                <span style="color: #a50"># 设备未就绪 -&gt; CPU 白跑一趟</span><br/>
+                timeline.<span style="color: #05a;">log_event</span><span style="color: Olive;">(</span>time_unit<span style="color: Gray;">,</span><br/>
+                    f<span style="color: #a11;">"CPU 检查设备... {'就绪' if device.is_ready() else '未就绪'}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+            <span style="color: #a50"># 设备后台工作（如果是准备阶段）</span><br/>
+            <span style="color: Green;font-weight:bold;">if</span> time_unit <span style="color: Gray;">==</span> device_ready_at:<br/>
+                device.<span style="color: #05a;">mark_ready</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+                timeline.<span style="color: #05a;">log_event</span><span style="color: Olive;">(</span>time_unit<span style="color: Gray;">,</span> <span style="color: #a11;">"设备准备完成，数据就绪"</span><span style="color: Olive;">)</span><br/>
+<br/>
+            time_unit +<span style="color: Gray;">=</span> <span style="color: Maroon;">1</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>传输完成: {self.total_transferred} 块数据"</span><span style="color: Olive;">)</span><br/>
+        busy_pct <span style="color: Gray;">=</span> timeline.<span style="color: #05a;">draw</span><span style="color: Olive;">(</span><span style="color: #a11;">"轮询方式时间轴"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> busy_pct<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> simulate_interrupt<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> device<span style="color: Gray;">,</span> block_count<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""<br/>中断方式模拟:<br/>CPU 大部分时间在执行其他任务（记为 IDLE），<br/>只在收到中断信号后暂停当前工作，处理数据传输，然后继续。<br/>
+        """</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>{'#'*55}"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"# 方式二: 中断 (Interrupt)"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"# 设备: {device.name} | 数据块数: {block_count}"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"# 策略: CPU 正常执行任务，设备就绪时发中断通知"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"{'#'*55}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+        timeline <span style="color: Gray;">=</span> Timeline<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+        time_unit <span style="color: Gray;">=</span> <span style="color: Maroon;">0</span><br/>
+        blocks_done <span style="color: Gray;">=</span> <span style="color: Maroon;">0</span><br/>
+        transferred_in_interrupt <span style="color: Gray;">=</span> <span style="color: Maroon;">0</span><br/>
+        device_ready_at <span style="color: Gray;">=</span> <span style="color: Maroon;">0</span><br/>
+<br/>
+        <span style="color: #a50"># 初始化</span><br/>
+        device.<span style="color: #05a;">prepare_data</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Olive;">)</span><br/>
+        device_ready_at <span style="color: Gray;">=</span> time_unit + device.<span style="color: #05a;">response_time</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">while</span> blocks_done <span style="color: Gray;">&lt;</span> block_count:<br/>
+            <span style="color: #a50"># 默认：CPU 在执行其他任务（空闲）</span><br/>
+            <span style="color: Green;font-weight:bold;">if</span> time_unit <span style="color: Gray;">==</span> device_ready_at:<br/>
+                <span style="color: #a50"># 设备就绪，发中断信号</span><br/>
+                device.<span style="color: #05a;">mark_ready</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+                timeline.<span style="color: #05a;">log_event</span><span style="color: Olive;">(</span>time_unit<span style="color: Gray;">,</span> <span style="color: #a11;">"中断触发！设备数据就绪"</span><span style="color: Olive;">)</span><br/>
+<br/>
+                <span style="color: #a50"># CPU 响应中断，搬运数据（这段时间 CPU 忙碌）</span><br/>
+                data <span style="color: Gray;">=</span> device.<span style="color: #05a;">get_data</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+                <span style="color: Green;font-weight:bold;">for</span> substep <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Maroon;">2</span><span style="color: Olive;">)</span>:  <span style="color: #a50"># 中断处理需要 2 个时间单位</span><br/>
+                    <span style="color: Green;font-weight:bold;">if</span> substep <span style="color: Gray;">==</span> <span style="color: Maroon;">0</span>:<br/>
+                        timeline.<span style="color: #05a;">record_cpu</span><span style="color: Olive;">(</span><span style="color: #a11;">"BUSY"</span><span style="color: Olive;">)</span>  <span style="color: #a50"># 保存上下文，进入中断处理</span><br/>
+                        timeline.<span style="color: #05a;">record_dma</span><span style="color: Olive;">(</span><span style="color: #a11;">"IDLE"</span><span style="color: Olive;">)</span><br/>
+                        timeline.<span style="color: #05a;">log_event</span><span style="color: Olive;">(</span>time_unit + substep<span style="color: Gray;">,</span> f<span style="color: #a11;">"CPU 进入中断处理"</span><span style="color: Olive;">)</span><br/>
+                    <span style="color: Green;font-weight:bold;">else</span>:<br/>
+                        timeline.<span style="color: #05a;">record_cpu</span><span style="color: Olive;">(</span><span style="color: #a11;">"BUSY"</span><span style="color: Olive;">)</span>  <span style="color: #a50"># 搬运数据</span><br/>
+                        timeline.<span style="color: #05a;">record_dma</span><span style="color: Olive;">(</span><span style="color: #a11;">"IDLE"</span><span style="color: Olive;">)</span><br/>
+                        <span style="color: Teal;">self</span>.<span style="color: #05a;">memory</span>.<span style="color: #05a;">write</span><span style="color: Olive;">(</span>blocks_done<span style="color: Gray;">,</span> data<span style="color: Olive;">)</span><br/>
+                        transferred_in_interrupt +<span style="color: Gray;">=</span> <span style="color: Maroon;">1</span><br/>
+                        timeline.<span style="color: #05a;">log_event</span><span style="color: Olive;">(</span>time_unit + substep<span style="color: Gray;">,</span> f<span style="color: #a11;">"CPU 搬运数据块 {blocks_done}: {data}"</span><span style="color: Olive;">)</span><br/>
+                        blocks_done +<span style="color: Gray;">=</span> <span style="color: Maroon;">1</span><br/>
+<br/>
+                <span style="color: #a50"># 中断处理完成，CPU 恢复之前的工作</span><br/>
+                timeline.<span style="color: #05a;">record_cpu</span><span style="color: Olive;">(</span><span style="color: #a11;">"BUSY"</span><span style="color: Olive;">)</span><br/>
+                timeline.<span style="color: #05a;">record_dma</span><span style="color: Olive;">(</span><span style="color: #a11;">"IDLE"</span><span style="color: Olive;">)</span><br/>
+                timeline.<span style="color: #05a;">log_event</span><span style="color: Olive;">(</span>time_unit + <span style="color: Maroon;">2</span><span style="color: Gray;">,</span> <span style="color: #a11;">"CPU 恢复之前的工作"</span><span style="color: Olive;">)</span><br/>
+                time_unit +<span style="color: Gray;">=</span> <span style="color: Maroon;">3</span>  <span style="color: #a50"># 跳过中断处理占用的时间</span><br/>
+<br/>
+                <span style="color: #a50"># 准备下一块</span><br/>
+                <span style="color: Green;font-weight:bold;">if</span> blocks_done <span style="color: Gray;">&lt;</span> block_count:<br/>
+                    device.<span style="color: #05a;">prepare_data</span><span style="color: Olive;">(</span>blocks_done<span style="color: Olive;">)</span><br/>
+                    device_ready_at <span style="color: Gray;">=</span> time_unit + device.<span style="color: #05a;">response_time</span><br/>
+                <span style="color: Green;font-weight:bold;">continue</span><br/>
+<br/>
+            <span style="color: #a50"># 正常执行阶段——CPU 处理自己的任务</span><br/>
+            timeline.<span style="color: #05a;">record_cpu</span><span style="color: Olive;">(</span><span style="color: #a11;">"IDLE"</span><span style="color: Olive;">)</span><br/>
+            timeline.<span style="color: #05a;">record_dma</span><span style="color: Olive;">(</span><span style="color: #a11;">"IDLE"</span><span style="color: Olive;">)</span><br/>
+            timeline.<span style="color: #05a;">log_event</span><span style="color: Olive;">(</span>time_unit<span style="color: Gray;">,</span> <span style="color: #a11;">"CPU 执行其他任务 (空闲/用户程序)"</span><span style="color: Olive;">)</span><br/>
+<br/>
+            time_unit +<span style="color: Gray;">=</span> <span style="color: Maroon;">1</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>传输完成: {self.total_transferred} 块数据"</span><span style="color: Olive;">)</span><br/>
+        busy_pct <span style="color: Gray;">=</span> timeline.<span style="color: #05a;">draw</span><span style="color: Olive;">(</span><span style="color: #a11;">"中断方式时间轴"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> busy_pct<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> simulate_dma<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> device<span style="color: Gray;">,</span> block_count<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""<br/>DMA 方式模拟:<br/>CPU 仅在一开始配置 DMA 控制器，随后完全不管数据传输。<br/>DMA 控制器自主搬运所有数据块。<br/>搬运完成后，DMA 发中断通知 CPU。<br/>
+        """</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>{'#'*55}"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"# 方式三: DMA (直接存储器访问)"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"# 设备: {device.name} | 数据块数: {block_count}"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"# 策略: CPU 配置 DMA 后继续工作，DMA 控制器自动搬运数据"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"{'#'*55}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+        timeline <span style="color: Gray;">=</span> Timeline<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+        time_unit <span style="color: Gray;">=</span> <span style="color: Maroon;">0</span><br/>
+        dma_busy_until <span style="color: Gray;">=</span> <span style="color: Maroon;">0</span><br/>
+        setup_done <span style="color: Gray;">=</span> <span style="color: Teal;">False</span><br/>
+        blocks_to_transfer <span style="color: Gray;">=</span> <span style="color: Teal;">list</span><span style="color: Olive;">(</span><span style="color: Teal;">range</span><span style="color: Olive;">(</span>block_count<span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+        dma_buffer <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+<br/>
+        <span style="color: #a50"># 准备所有数据块</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> i <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>block_count<span style="color: Olive;">)</span>:<br/>
+            device.<span style="color: #05a;">prepare_data</span><span style="color: Olive;">(</span>i<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">while</span> blocks_to_transfer <span style="color: Green;font-weight:bold;">or</span> dma_buffer:<br/>
+            <span style="color: #a50"># 第一阶段: CPU 配置 DMA 控制器（仅一次，占用 2 个时间单位）</span><br/>
+            <span style="color: Green;font-weight:bold;">if</span> <span style="color: Green;font-weight:bold;">not</span> setup_done:<br/>
+                <span style="color: Green;font-weight:bold;">for</span> substep <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Maroon;">2</span><span style="color: Olive;">)</span>:<br/>
+                    timeline.<span style="color: #05a;">record_cpu</span><span style="color: Olive;">(</span><span style="color: #a11;">"BUSY"</span><span style="color: Olive;">)</span><br/>
+                    timeline.<span style="color: #05a;">record_dma</span><span style="color: Olive;">(</span><span style="color: #a11;">"IDLE"</span><span style="color: Olive;">)</span><br/>
+                    <span style="color: Green;font-weight:bold;">if</span> substep <span style="color: Gray;">==</span> <span style="color: Maroon;">0</span>:<br/>
+                        timeline.<span style="color: #05a;">log_event</span><span style="color: Olive;">(</span>time_unit<span style="color: Gray;">,</span><br/>
+                            <span style="color: #a11;">"CPU 配置 DMA: 设置源地址、目标地址、传输字节数"</span><span style="color: Olive;">)</span><br/>
+                    <span style="color: Green;font-weight:bold;">else</span>:<br/>
+                        timeline.<span style="color: #05a;">log_event</span><span style="color: Olive;">(</span>time_unit<span style="color: Gray;">,</span><br/>
+                            <span style="color: #a11;">"CPU 启动 DMA 传输，然后继续自己的工作"</span><span style="color: Olive;">)</span><br/>
+                    time_unit +<span style="color: Gray;">=</span> <span style="color: Maroon;">1</span><br/>
+                setup_done <span style="color: Gray;">=</span> <span style="color: Teal;">True</span><br/>
+                dma_busy_until <span style="color: Gray;">=</span> time_unit + block_count * device.<span style="color: #05a;">response_time</span><br/>
+                <span style="color: #a50"># 标记设备就绪</span><br/>
+                device.<span style="color: #05a;">mark_ready</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+                <span style="color: #a50"># 预填充 DMA 缓冲区</span><br/>
+                <span style="color: Green;font-weight:bold;">while</span> device.<span style="color: #05a;">data_buffer</span>:<br/>
+                    dma_buffer.<span style="color: #05a;">append</span><span style="color: Olive;">(</span>device.<span style="color: #05a;">data_buffer</span>.<span style="color: #05a;">pop</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+                <span style="color: Green;font-weight:bold;">continue</span><br/>
+<br/>
+            <span style="color: #a50"># 第二阶段: DMA 控制器自主搬运数据，CPU 空闲</span><br/>
+            <span style="color: Green;font-weight:bold;">if</span> time_unit <span style="color: Gray;">&lt;</span> dma_busy_until:<br/>
+                timeline.<span style="color: #05a;">record_cpu</span><span style="color: Olive;">(</span><span style="color: #a11;">"IDLE"</span><span style="color: Olive;">)</span><br/>
+                timeline.<span style="color: #05a;">record_dma</span><span style="color: Olive;">(</span><span style="color: #a11;">"BUSY"</span><span style="color: Olive;">)</span><br/>
+                <span style="color: Green;font-weight:bold;">if</span> dma_buffer:<br/>
+                    data <span style="color: Gray;">=</span> dma_buffer.<span style="color: #05a;">pop</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Olive;">)</span><br/>
+                    blocks_to_transfer.<span style="color: #05a;">pop</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Olive;">)</span><br/>
+                    mem_addr <span style="color: Gray;">=</span> block_count - <span style="color: Teal;">len</span><span style="color: Olive;">(</span>blocks_to_transfer<span style="color: Olive;">)</span> - <span style="color: Maroon;">1</span><br/>
+                    <span style="color: Teal;">self</span>.<span style="color: #05a;">memory</span>.<span style="color: #05a;">write</span><span style="color: Olive;">(</span>mem_addr<span style="color: Gray;">,</span> data<span style="color: Olive;">)</span><br/>
+                    <span style="color: Teal;">self</span>.<span style="color: #05a;">total_transferred</span> +<span style="color: Gray;">=</span> <span style="color: Maroon;">1</span><br/>
+                    timeline.<span style="color: #05a;">log_event</span><span style="color: Olive;">(</span>time_unit<span style="color: Gray;">,</span> f<span style="color: #a11;">"DMA 搬运数据块 {mem_addr}: {data}"</span><span style="color: Olive;">)</span><br/>
+                <span style="color: Green;font-weight:bold;">else</span>:<br/>
+                    timeline.<span style="color: #05a;">log_event</span><span style="color: Olive;">(</span>time_unit<span style="color: Gray;">,</span> <span style="color: #a11;">"DMA 控制器工作中..."</span><span style="color: Olive;">)</span><br/>
+            <span style="color: Green;font-weight:bold;">else</span>:<br/>
+                <span style="color: #a50"># 第三阶段: DMA 完成，发中断通知 CPU</span><br/>
+                timeline.<span style="color: #05a;">record_cpu</span><span style="color: Olive;">(</span><span style="color: #a11;">"BUSY"</span><span style="color: Olive;">)</span><br/>
+                timeline.<span style="color: #05a;">record_dma</span><span style="color: Olive;">(</span><span style="color: #a11;">"BUSY"</span><span style="color: Olive;">)</span><br/>
+                timeline.<span style="color: #05a;">log_event</span><span style="color: Olive;">(</span>time_unit<span style="color: Gray;">,</span> <span style="color: #a11;">"DMA 传输完成，中断通知 CPU"</span><span style="color: Olive;">)</span><br/>
+                timeline.<span style="color: #05a;">record_cpu</span><span style="color: Olive;">(</span><span style="color: #a11;">"BUSY"</span><span style="color: Olive;">)</span><br/>
+                timeline.<span style="color: #05a;">record_dma</span><span style="color: Olive;">(</span><span style="color: #a11;">"IDLE"</span><span style="color: Olive;">)</span><br/>
+                timeline.<span style="color: #05a;">log_event</span><span style="color: Olive;">(</span>time_unit + <span style="color: Maroon;">1</span><span style="color: Gray;">,</span> <span style="color: #a11;">"CPU 确认传输完成"</span><span style="color: Olive;">)</span><br/>
+                time_unit +<span style="color: Gray;">=</span> <span style="color: Maroon;">2</span><br/>
+                <span style="color: Green;font-weight:bold;">break</span><br/>
+<br/>
+            time_unit +<span style="color: Gray;">=</span> <span style="color: Maroon;">1</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>传输完成: {self.total_transferred} 块数据"</span><span style="color: Olive;">)</span><br/>
+        busy_pct <span style="color: Gray;">=</span> timeline.<span style="color: #05a;">draw</span><span style="color: Olive;">(</span><span style="color: #a11;">"DMA 方式时间轴"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> busy_pct<br/>
+<br/>
+<br/>
+<span style="color: #a50"># ===== 主程序: 三种方式对比 =====</span><br/>
+<span style="color: Green;font-weight:bold;">if</span> __name__ <span style="color: Gray;">==</span> <span style="color: #a11;">"__main__"</span>:<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">60</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"    I/O 三种方式效率对比 —— RUNOOB 计算机组成原理演示"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">60</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"场景: 从外部设备传输 5 个数据块到内存"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"设备响应时间（每块数据准备所需时间单位）: 4"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+    BLOCK_COUNT <span style="color: Gray;">=</span> <span style="color: Maroon;">5</span><br/>
+    RESPONSE_TIME <span style="color: Gray;">=</span> <span style="color: Maroon;">4</span><br/>
+<br/>
+    results <span style="color: Gray;">=</span> <span style="color: Olive;">{</span><span style="color: Olive;">}</span><br/>
+<br/>
+    <span style="color: #a50"># ---- 方式一: 轮询 ----</span><br/>
+    dev1 <span style="color: Gray;">=</span> IODevice<span style="color: Olive;">(</span><span style="color: #a11;">"硬盘"</span><span style="color: Gray;">,</span> RESPONSE_TIME<span style="color: Olive;">)</span><br/>
+    ctrl1 <span style="color: Gray;">=</span> Controller<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+    pct1 <span style="color: Gray;">=</span> ctrl1.<span style="color: #05a;">simulate_polling</span><span style="color: Olive;">(</span>dev1<span style="color: Gray;">,</span> BLOCK_COUNT<span style="color: Olive;">)</span><br/>
+    results<span style="color: Olive;">[</span><span style="color: #a11;">"轮询"</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> pct1<br/>
+<br/>
+    <span style="color: #a50"># ---- 方式二: 中断 ----</span><br/>
+    dev2 <span style="color: Gray;">=</span> IODevice<span style="color: Olive;">(</span><span style="color: #a11;">"硬盘"</span><span style="color: Gray;">,</span> RESPONSE_TIME<span style="color: Olive;">)</span><br/>
+    ctrl2 <span style="color: Gray;">=</span> Controller<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+    pct2 <span style="color: Gray;">=</span> ctrl2.<span style="color: #05a;">simulate_interrupt</span><span style="color: Olive;">(</span>dev2<span style="color: Gray;">,</span> BLOCK_COUNT<span style="color: Olive;">)</span><br/>
+    results<span style="color: Olive;">[</span><span style="color: #a11;">"中断"</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> pct2<br/>
+<br/>
+    <span style="color: #a50"># ---- 方式三: DMA ----</span><br/>
+    dev3 <span style="color: Gray;">=</span> IODevice<span style="color: Olive;">(</span><span style="color: #a11;">"硬盘"</span><span style="color: Gray;">,</span> RESPONSE_TIME<span style="color: Olive;">)</span><br/>
+    ctrl3 <span style="color: Gray;">=</span> Controller<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+    pct3 <span style="color: Gray;">=</span> ctrl3.<span style="color: #05a;">simulate_dma</span><span style="color: Olive;">(</span>dev3<span style="color: Gray;">,</span> BLOCK_COUNT<span style="color: Olive;">)</span><br/>
+    results<span style="color: Olive;">[</span><span style="color: #a11;">"DMA"</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> pct3<br/>
+<br/>
+    <span style="color: #a50"># ---- 最终对比 ----</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>"</span> + <span style="color: #a11;">"="</span> * <span style="color: Maroon;">60</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"           三种方式 CPU 忙碌时间占比对比"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">60</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  轮询 (Polling):  CPU 忙碌 {results['轮询']:.0f}% 的时间"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  中断 (Interrupt): CPU 忙碌 {results['中断']:.0f}% 的时间"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  DMA:             CPU 忙碌 {results['DMA']:.0f}% 的时间"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+    best <span style="color: Gray;">=</span> <span style="color: Teal;">min</span><span style="color: Olive;">(</span>results<span style="color: Gray;">,</span> key<span style="color: Gray;">=</span>results.<span style="color: #05a;">get</span><span style="color: Olive;">)</span><br/>
+    worst <span style="color: Gray;">=</span> <span style="color: Teal;">max</span><span style="color: Olive;">(</span>results<span style="color: Gray;">,</span> key<span style="color: Gray;">=</span>results.<span style="color: #05a;">get</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  最优方式: {best} (CPU 占用最少)"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  最差方式: {worst} (CPU 占用最多)"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  结论: 对于大量数据传输，DMA 相比轮询的 CPU 占用降低了"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"        约 {results['轮询'] - results['DMA']:.0f} 个百分点。"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"        这就是为什么现代计算机传输大文件时使用 DMA。"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">60</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<hr/>
+<h2>现实世界的实际应用场景</h2>
+<h3>键盘输入——中断的典型例子</h3>
+<p>你每按下一个键，键盘控制器就向 CPU 发一个中断信号。CPU 暂停当前程序，读取按键码，然后恢复。这个过程快到让你觉察不到任何延迟。</p>
+<p>如果键盘用轮询方式——CPU 每秒钟检查 1000 次「用户按键了吗？」——你的电脑就会卡死，什么也干不了。</p>
+<h3>大文件复制——DMA 的典型例子</h3>
+<p>你从 C 盘复制一个 2GB 的电影到 D 盘。硬盘控制器通过 DMA 直接向内存搬运数据，整个过程中 CPU 几乎不参与。你还可以同时刷网页、写代码，完全不受影响。</p>
+<p>如果没有 DMA——CPU 要亲自搬运 2GB 的数据——在此期间 CPU 基本无法处理任何其他任务。</p>
+<h3>为什么轮询没有被淘汰？</h3>
+<p>轮询虽然效率最低，但它在<span class="tag1">极简单的嵌入式系统</span>中仍然有用：</p>
+<ul>
+<li>硬件成本最低——不需要中断控制器和 DMA 控制器。</li>
+<li>对于「设备几乎瞬间就绪」的场景，轮询的开销与中断相当，但实现简单得多。</li>
+<li>某些实时系统中，轮询的确定性（精确知道何时检查）比中断的随机性更有优势。</li>
+</ul>
+<hr/>
+<h2>小结与检验</h2>
+<blockquote><p>一句话总结：<span class="marked">轮询是 CPU 不停地问「好了没」，中断是设备主动喊「我好了」，DMA 是找个帮手替你干活——数据量越大，DMA 的优势越明显。</span></p></blockquote>
+<h3>自测题</h3>
+<ol>
+<li>你正在用电脑写文档，同时后台在复制一个大文件。复制文件用的是哪种 I/O 方式？你敲键盘用的又是哪种？</li>
+<li>如果一个设备的数据准备时间极短（比如只有 1 微秒），用轮询还会不会浪费 CPU？为什么？</li>
+<li>DMA 控制器完成数据传输后，怎样通知 CPU？它用的是什么机制？</li>
+</ol>
+<p><span class="tag1">参考答案</span>：1. 文件复制用 DMA，键盘输入用中断。2. 仍然会浪费——因为轮询期间 CPU 无法做其他事，即使每次轮询很快，被占用的时间片也无法用于执行用户程序。但如果设备确实极快，轮询的实现简单性可能更有优势。3. DMA 完成后通过中断通知 CPU——这是 DMA 唯一需要 CPU 参与的时刻。</p>
+<style>
+/* ===== I/O 方式对比时间轴演示专用样式 - runoob ===== */
+.io-demo-wrapper {
+  background: #1e1e2e;
+  border-radius: 12px;
+  padding: 28px 22px 22px;
+  margin: 24px 0;
+  font-family: 'SF Mono', 'Courier New', monospace;
+}
+.io-demo-title {
+  color: #e0e0e0;
+  text-align: center;
+  font-size: 17px;
+  font-weight: bold;
+  margin-bottom: 6px;
+  letter-spacing: 1px;
+}
+.io-demo-subtitle {
+  color: #888;
+  text-align: center;
+  font-size: 12px;
+  margin-bottom: 20px;
+}
+
+/* 三个并排列 */
+.io-columns {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.io-column {
+  flex: 1;
+  min-width: 180px;
+  max-width: 280px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 10px;
+  padding: 16px 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.io-column-title {
+  text-align: center;
+  font-size: 14px;
+  font-weight: bold;
+  color: #ccc;
+  margin-bottom: 6px;
+  letter-spacing: 1px;
+}
+.io-column-en {
+  text-align: center;
+  font-size: 10px;
+  color: #666;
+  margin-bottom: 14px;
+}
+
+/* 图例 */
+.io-legend {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  font-size: 10px;
+  color: #888;
+}
+.io-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.io-legend-box {
+  width: 14px;
+  height: 8px;
+  border-radius: 2px;
+}
+.io-legend-box.busy { background: #ff4444; }
+.io-legend-box.idle { background: #4caf50; }
+.io-legend-box.dma  { background: #ff9800; }
+
+/* 时间轴容器 */
+.io-timeline-container {
+  position: relative;
+  margin-top: 8px;
+}
+/* 时间轴标签行 */
+.io-time-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: #555;
+  margin-bottom: 3px;
+  padding: 0 2px;
+}
+/* 时间轴主体 - 水平长条 */
+.io-timeline-bar {
+  position: relative;
+  height: 28px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.04);
+  display: flex;
+}
+/* 时间段块 */
+.io-time-segment {
+  height: 100%;
+  transition: width 0.4s ease, background 0.3s ease, opacity 0.3s ease;
+  border-right: 1px solid rgba(255,255,255,0.06);
+}
+.io-time-segment.busy {
+  background: #ff4444;
+}
+.io-time-segment.idle {
+  background: #4caf50;
+}
+.io-time-segment.dma-busy {
+  background: #ff9800;
+}
+.io-time-segment.dma-cpu-setup {
+  background: #ff7043;
+}
+
+/* 第二行时间轴（DMA 专属——DMA 控制器状态） */
+.io-timeline-bar-dma {
+  height: 18px;
+  margin-top: 6px;
+  border-radius: 4px;
+}
+.io-dma-label {
+  font-size: 9px;
+  color: #ff9800;
+  margin-top: 4px;
+  margin-bottom: 2px;
+}
+
+/* 百分比统计 */
+.io-stats {
+  text-align: center;
+  margin-top: 10px;
+  font-size: 11px;
+  color: #aaa;
+}
+.io-stats .busy-pct {
+  color: #ff4444;
+  font-weight: bold;
+}
+.io-stats .idle-pct {
+  color: #4caf50;
+  font-weight: bold;
+}
+
+/* 动画控制按钮 */
+.io-demo-btn-row {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+.io-demo-btn {
+  padding: 9px 26px;
+  background: linear-gradient(135deg, #4caf50, #388e3c);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: all 0.3s;
+  font-family: inherit;
+}
+.io-demo-btn:hover {
+  box-shadow: 0 4px 16px rgba(76,175,80,0.4);
+}
+.io-demo-btn:disabled {
+  background: #444;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.io-demo-btn.reset-btn {
+  background: linear-gradient(135deg, #666, #444);
+}
+.io-demo-btn.reset-btn:hover {
+  box-shadow: 0 4px 16px rgba(150,150,150,0.4);
+}
+
+/* 描述文本 */
+.io-desc {
+  text-align: center;
+  color: #aaa;
+  font-size: 11px;
+  margin-top: 10px;
+  min-height: 18px;
+  transition: color 0.3s;
+}
+
+/* 动画填充效果 */
+@keyframes segmentFillIn {
+  from { opacity: 0; transform: scaleX(0); }
+  to   { opacity: 1; transform: scaleX(1); }
+}
+.io-time-segment.anim-in {
+  animation: segmentFillIn 0.5s ease-out forwards;
+  transform-origin: left;
+}
+
+/* 高亮脉冲 */
+@keyframes highlightPulse {
+  0%, 100% { filter: brightness(1); }
+  50%      { filter: brightness(1.6); }
+}
+.io-column.highlight {
+  border-color: rgba(255,255,255,0.25);
+  box-shadow: 0 0 20px rgba(255,255,255,0.06);
+}
+/* 行内高亮标记 */
+.mark {
+  background: linear-gradient(180deg, transparent 60%, #fff176 60%);
+  padding: 0 2px;
+}
+</style>
+<script>
+/**
+ * I/O 方式对比时间轴动画演示 - runoob
+ * 功能: 三个并排时间轴动画，对比轮询/中断/DMA 三种 I/O 方式下 CPU 的忙碌与空闲状态
+ * 技术: div + CSS 时间轴 + 颜色区分动画
+ */
+(function() {
+  'use strict';
+
+  /* ---- 创建演示容器 ---- */
+  var wrapper = document.createElement('div');
+  wrapper.className = 'io-demo-wrapper';
+  wrapper.innerHTML =
+    '<div class="io-demo-title">I/O 三种方式时间轴对比演示</div>' +
+    '<div class="io-demo-subtitle">任务：从外部设备传输 10 个数据块到内存，观察 CPU 状态</div>' +
+    '<div class="io-legend">' +
+      '<span class="io-legend-item"><span class="io-legend-box busy"></span> CPU 忙碌</span>' +
+      '<span class="io-legend-item"><span class="io-legend-box idle"></span> CPU 空闲</span>' +
+      '<span class="io-legend-item"><span class="io-legend-box dma"></span> DMA 工作</span>' +
+    '</div>' +
+    /* 三列 */
+    '<div class="io-columns">' +
+      /* 轮询列 */
+      '<div class="io-column" id="col-polling">' +
+        '<div class="io-column-title">方式一：轮询</div>' +
+        '<div class="io-column-en">Polling</div>' +
+        '<div class="io-time-labels"><span>T0</span><span>T5</span><span>T10</span><span>T15</span><span>T20</span></div>' +
+        '<div class="io-timeline-container">' +
+          '<div class="io-timeline-bar" id="timeline-polling"></div>' +
+        '</div>' +
+        '<div class="io-stats" id="stats-polling">CPU 忙碌: <span class="busy-pct">--</span> | 空闲: <span class="idle-pct">--</span></div>' +
+      '</div>' +
+      /* 中断列 */
+      '<div class="io-column" id="col-interrupt">' +
+        '<div class="io-column-title">方式二：中断</div>' +
+        '<div class="io-column-en">Interrupt</div>' +
+        '<div class="io-time-labels"><span>T0</span><span>T5</span><span>T10</span><span>T15</span><span>T20</span></div>' +
+        '<div class="io-timeline-container">' +
+          '<div class="io-timeline-bar" id="timeline-interrupt"></div>' +
+        '</div>' +
+        '<div class="io-stats" id="stats-interrupt">CPU 忙碌: <span class="busy-pct">--</span> | 空闲: <span class="idle-pct">--</span></div>' +
+      '</div>' +
+      /* DMA 列 */
+      '<div class="io-column" id="col-dma">' +
+        '<div class="io-column-title">方式三：DMA</div>' +
+        '<div class="io-column-en">Direct Memory Access</div>' +
+        '<div class="io-time-labels"><span>T0</span><span>T5</span><span>T10</span><span>T15</span><span>T20</span></div>' +
+        '<div class="io-timeline-container">' +
+          '<div class="io-timeline-bar" id="timeline-dma-cpu"></div>' +
+          '<div class="io-dma-label">DMA 控制器状态</div>' +
+          '<div class="io-timeline-bar io-timeline-bar-dma" id="timeline-dma-ctrl"></div>' +
+        '</div>' +
+        '<div class="io-stats" id="stats-dma">CPU 忙碌: <span class="busy-pct">--</span> | 空闲: <span class="idle-pct">--</span></div>' +
+      '</div>' +
+    '</div>' +
+    /* 按钮行 */
+    '<div class="io-demo-btn-row">' +
+      '<button class="io-demo-btn reset-btn" id="io-reset-btn">重置</button>' +
+      '<button class="io-demo-btn" id="io-play-btn">播放动画</button>' +
+    '</div>' +
+    '<div class="io-desc" id="io-desc">点击「播放动画」，观察三种 I/O 方式下 CPU 忙碌/空闲时间的差异</div>';
+
+  /* 插入到文章尾部（小结之前） */
+  var h2s = document.querySelectorAll('h2');
+  var summaryH2 = null;
+  for (var i = 0; i < h2s.length; i++) {
+    if (h2s[i].textContent.indexOf('小结') !== -1) {
+      summaryH2 = h2s[i];
+      break;
+    }
+  }
+  if (summaryH2 && summaryH2.parentNode) {
+    summaryH2.parentNode.insertBefore(wrapper, summaryH2);
+  } else {
+    document.body.appendChild(wrapper);
+  }
+
+  /* ---- DOM 引用 ---- */
+  var playBtn    = document.getElementById('io-play-btn');
+  var resetBtn   = document.getElementById('io-reset-btn');
+  var descEl     = document.getElementById('io-desc');
+
+  var timelinePolling   = document.getElementById('timeline-polling');
+  var timelineInterrupt = document.getElementById('timeline-interrupt');
+  var timelineDmaCpu    = document.getElementById('timeline-dma-cpu');
+  var timelineDmaCtrl   = document.getElementById('timeline-dma-ctrl');
+
+  var statsPolling   = document.getElementById('stats-polling');
+  var statsInterrupt = document.getElementById('stats-interrupt');
+  var statsDma       = document.getElementById('stats-dma');
+
+  var colPolling   = document.getElementById('col-polling');
+  var colInterrupt = document.getElementById('col-interrupt');
+  var colDma       = document.getElementById('col-dma');
+
+  /* ---- 时间轴数据定义 ---- */
+  /* 使用 20 个时间单位模拟完整的数据传输过程 */
+
+  /* 轮询: CPU 每个时间单位都在忙——检查或搬运 */
+  /* T0-T19 全部是 busy */
+  var pollingSegments = generatePollingTimeline();
+
+  /* 中断: CPU 大部分时间空闲，只在中断处理时忙碌 */
+  /* 设备在 T3/T8/T13/T18 数据就绪，触发中断 */
+  var interruptSegments = generateInterruptTimeline();
+
+  /* DMA: CPU 仅 T0-T1 配置 DMA，T18-T19 收到完成中断 */
+  var dmaSegments = generateDmaTimeline();
+
+  function generatePollingTimeline() {
+    /* 轮询模式: 20 个时间单位全部 CPU 忙碌
+       CPU 在每个时间单位都检查设备状态，无论是否就绪都要忙碌 */
+    var segments = [];
+    /* 将 20 个单位分成若干段以展示不同阶段 */
+    segments.push({ type: 'busy', units: 4, label: '检查' });
+    segments.push({ type: 'busy', units: 2, label: '搬1' });
+    segments.push({ type: 'busy', units: 3, label: '检查' });
+    segments.push({ type: 'busy', units: 2, label: '搬2' });
+    segments.push({ type: 'busy', units: 3, label: '检查' });
+    segments.push({ type: 'busy', units: 2, label: '搬3' });
+    segments.push({ type: 'busy', units: 2, label: '检查' });
+    segments.push({ type: 'busy', units: 2, label: '搬4' });
+    return segments;
+  }
+
+  function generateInterruptTimeline() {
+    /* 中断模式: 大部分空闲，设备就绪时中断触发，CPU 短暂处理 */
+    var segments = [];
+    segments.push({ type: 'idle',  units: 3, label: '工作' });
+    segments.push({ type: 'busy',  units: 2, label: '中断处理' });
+    segments.push({ type: 'idle',  units: 4, label: '工作' });
+    segments.push({ type: 'busy',  units: 2, label: '中断处理' });
+    segments.push({ type: 'idle',  units: 4, label: '工作' });
+    segments.push({ type: 'busy',  units: 2, label: '中断处理' });
+    segments.push({ type: 'idle',  units: 3, label: '工作' });
+    return segments;
+  }
+
+  function generateDmaTimeline() {
+    /* DMA 模式: CPU 仅在配置和收尾时忙碌 */
+    var cpuSegments = [];
+    cpuSegments.push({ type: 'busy', units: 2, label: '配DMA' });
+    cpuSegments.push({ type: 'idle', units: 16, label: '自由工作' });
+    cpuSegments.push({ type: 'busy', units: 2, label: '收尾' });
+
+    /* DMA 控制器状态 */
+    var dmaCtrlSegments = [];
+    dmaCtrlSegments.push({ type: 'idle', units: 2, label: '' });
+    dmaCtrlSegments.push({ type: 'dma-busy', units: 16, label: 'DMA搬运' });
+    dmaCtrlSegments.push({ type: 'idle', units: 2, label: '' });
+
+    return { cpu: cpuSegments, dma: dmaCtrlSegments };
+  }
+
+  /* ---- 渲染时间轴 ---- */
+  function renderTimeline(container, segments, totalUnits) {
+    container.innerHTML = '';
+    segments.forEach(function(seg) {
+      var el = document.createElement('div');
+      el.className = 'io-time-segment ' + (seg.type === 'busy' ? 'busy' : seg.type === 'dma-busy' ? 'dma-busy' : 'idle');
+      el.style.width = '0%';
+      el.dataset.targetWidth = (seg.units / totalUnits * 100) + '%';
+      el.dataset.label = seg.label || '';
+      el.style.opacity = '0';
+      container.appendChild(el);
+    });
+  }
+
+  function resetAllTimelines() {
+    var totalUnits = 20;
+
+    renderTimeline(timelinePolling, pollingSegments, totalUnits);
+    renderTimeline(timelineInterrupt, interruptSegments, totalUnits);
+    renderTimeline(timelineDmaCpu, dmaSegments.cpu, totalUnits);
+    renderTimeline(timelineDmaCtrl, dmaSegments.dma, totalUnits);
+
+    /* 重置统计 */
+    statsPolling.innerHTML = 'CPU 忙碌: <span class="busy-pct">--</span> | 空闲: <span class="idle-pct">--</span>';
+    statsInterrupt.innerHTML = 'CPU 忙碌: <span class="busy-pct">--</span> | 空闲: <span class="idle-pct">--</span>';
+    statsDma.innerHTML = 'CPU 忙碌: <span class="busy-pct">--</span> | 空闲: <span class="idle-pct">--</span>';
+
+    /* 移除高亮 */
+    colPolling.classList.remove('highlight');
+    colInterrupt.classList.remove('highlight');
+    colDma.classList.remove('highlight');
+
+    descEl.textContent = '点击「播放动画」，观察三种 I/O 方式下 CPU 忙碌/空闲时间的差异';
+    descEl.style.color = '#aaa';
+
+    playBtn.disabled = false;
+  }
+
+  /* ---- 动画播放 ---- */
+  function calcStats(segments) {
+    var total = 0, busy = 0;
+    segments.forEach(function(s) {
+      total += s.units;
+      if (s.type === 'busy') busy += s.units;
+    });
+    return {
+      busyPct: total > 0 ? Math.round(busy / total * 100) : 0,
+      idlePct: total > 0 ? Math.round((total - busy) / total * 100) : 0
+    };
+  }
+
+  async function animateTimeline(container, segments, totalUnits, delayMs) {
+    var children = container.children;
+    for (var i = 0; i < children.length; i++) {
+      var el = children[i];
+      var targetWidth = el.dataset.targetWidth;
+      /* 显示段 */
+      el.style.opacity = '1';
+      el.style.width = targetWidth;
+      await new Promise(function(r) { setTimeout(r, delayMs); });
+    }
+  }
+
+  async function playAllAnimations() {
+    playBtn.disabled = true;
+    resetBtn.disabled = true;
+
+    var totalUnits = 20;
+    var stepDelay = 180; /* 每段动画间隔 ms */
+
+    /* 重置所有 */
+    resetAllTimelines();
+    await new Promise(function(r) { setTimeout(r, 300); });
+
+    /* ---- Phase 1: 轮询动画 ---- */
+    descEl.textContent = '正在播放：轮询模式——CPU 全程忙碌，每个时间单位都在检查设备状态...';
+    descEl.style.color = '#ff4444';
+    colPolling.classList.add('highlight');
+    await animateTimeline(timelinePolling, pollingSegments, totalUnits, stepDelay);
+    /* 显示统计 */
+    var ps = calcStats(pollingSegments);
+    statsPolling.innerHTML = 'CPU 忙碌: <span class="busy-pct">' + ps.busyPct + '%</span> | 空闲: <span class="idle-pct">' + ps.idlePct + '%</span>';
+    colPolling.classList.remove('highlight');
+    await new Promise(function(r) { setTimeout(r, 500); });
+
+    /* ---- Phase 2: 中断动画 ---- */
+    descEl.textContent = '正在播放：中断模式——CPU 大部分时间空闲，仅在设备就绪时被短暂打断...';
+    descEl.style.color = '#4caf50';
+    colInterrupt.classList.add('highlight');
+    await animateTimeline(timelineInterrupt, interruptSegments, totalUnits, stepDelay);
+    var is = calcStats(interruptSegments);
+    statsInterrupt.innerHTML = 'CPU 忙碌: <span class="busy-pct">' + is.busyPct + '%</span> | 空闲: <span class="idle-pct">' + is.idlePct + '%</span>';
+    colInterrupt.classList.remove('highlight');
+    await new Promise(function(r) { setTimeout(r, 500); });
+
+    /* ---- Phase 3: DMA 动画 ---- */
+    descEl.textContent = '正在播放：DMA 模式——CPU 几乎全程空闲，DMA 控制器自主完成所有数据搬运...';
+    descEl.style.color = '#ff9800';
+    colDma.classList.add('highlight');
+    await animateTimeline(timelineDmaCpu, dmaSegments.cpu, totalUnits, stepDelay);
+    await animateTimeline(timelineDmaCtrl, dmaSegments.dma, totalUnits, stepDelay);
+    var ds = calcStats(dmaSegments.cpu);
+    statsDma.innerHTML = 'CPU 忙碌: <span class="busy-pct">' + ds.busyPct + '%</span> | 空闲: <span class="idle-pct">' + ds.idlePct + '%</span>';
+    colDma.classList.remove('highlight');
+
+    /* ---- 总结 ---- */
+    descEl.textContent = '对比结论：轮询 CPU 忙碌 ' + ps.busyPct + '%，中断 CPU 忙碌 ' + is.busyPct + '%，DMA CPU 忙碌仅 ' + ds.busyPct + '%——DMA 效率最高，CPU 几乎完全解放！';
+    descEl.style.color = '#ffd700';
+
+    playBtn.disabled = false;
+    resetBtn.disabled = false;
+  }
+
+  /* ---- 按钮事件 ---- */
+  playBtn.addEventListener('click', playAllAnimations);
+  resetBtn.addEventListener('click', function() {
+    resetAllTimelines();
+  });
+
+  /* ---- 初始化 ---- */
+  resetAllTimelines();
+
+})();
+</script>
+其他扩展
+</div>
+</div>
+<div class="archive-list" style="display:none;font-size: 14px;line-height: 1.8;margin-top: 20px;padding: 10px;">
+<div class="archive-list-item">
+<div class="post-intro" id="ai-info" style="width: 100%;">AI 思考中...</div>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../computer-organization/computer-bus-system.html" rel="prev">总线 — 计算机内部的「公路系统」</a> </div>
+<div class="next-design-link"><a href="../computer-organization/instruction-journey-summary.html" rel="next">一条指令的完整旅程</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="sidebar-box">
+</div>
+笔记列表
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>点我分享笔记</h3>
+&lt;p style="font-size:14px;"&gt;笔记需要是本篇文章的内容扩展！&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;文章投稿，可点击这里&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;注册邀请码获取方式&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; 分享笔记前必须&lt;a href=";.html" class="runoob-pop"&gt;登录&lt;/a&gt;！&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;注册邀请码获取方式&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=";.html" id="cancel-comment-reply-link">取消</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="31890"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>分享笔记</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">昵称</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">昵称 (必填)</span></li>
+<li class="form-inline"><label class="hide" for="email">邮箱</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">邮箱 (必填)</span></li>
+<li class="form-inline"><label class="hide" for="url">引用地址</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">引用地址</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  31890;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 31890, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":31890},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+</div>
+</div>
+<!-- 右边栏 -->
+<div class="fivecol last right-column">
+<style>
+.sidebar-tree .double-li {
+    width:300px;
+}
+.sidebar-tree .double-li li {
+    width: 44%;
+    line-height: 1.5em;
+    border-bottom: 1px solid #ccc;
+    float: left;
+    display: inline;
+}
+</style>
+<div class="sidebar-box re-box re-box-large">
+<div class="sidebar-box recommend-here" style="margin: 0 auto;">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;"> <i aria-hidden="true" class="fa fa-list"></i> 分类导航</a>
+</div>
+<div class="sidebar-box sidebar-cate">
+<div class="sidebar-tree">
+<ul><li style="margin: 0;"><a class="tit" href="#"> Python / 数据科学</a><ul class="double-li"><li><a href="../python3/python3-tutorial.html" title="Python 教程">Python 教程</a></li><li><a href="../python/python-tutorial.html" title="Python2.x 教程">Python2.x 教程</a></li><li><a href="../fastapi/fastapi-tutorial.html" title="FastAPI 教程">FastAPI 教程</a></li><li><a href="../flask/flask-tutorial.html" title="Flask 教程">Flask 教程</a></li><li><a href="../django/django-tutorial.html" title="Django 教程">Django 教程</a></li><li><a href="../numpy/numpy-tutorial.html" title="NumPy 教程">NumPy 教程</a></li><li><a href="../pandas/pandas-tutorial.html" title="Pandas 教程">Pandas 教程</a></li><li><a href="../scipy/scipy-tutorial.html" title="SciPy 教程">SciPy 教程</a></li><li><a href="../matplotlib/matplotlib-tutorial.html" title="Matplotlib 教程">Matplotlib 教程</a></li><li><a href="../dash/dash-tutorial.html" title="Dash 教程">Dash 教程</a></li><li><a href="../jupyter-notebook/jupyter-notebook-tutorial.html" title="Jupyter Notebook 教程">Jupyter Notebook 教程</a></li><li><a href="../pillow/pillow-tutorial.html" title="Pillow 教程">Pillow 教程</a></li><li><a href="../qt/qt-tutorial.html" title="量化交易">量化交易</a></li><li><a href="../r/r-tutorial.html" title="R 教程">R 教程</a></li><li><a href="../julia/julia-tutorial.html" title="Julia 教程">Julia 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> AI / 智能开发</a><ul class="double-li"><li><a href="../ai-agent/ai-agent-tutorial.html" title="AI Agent（智能体）">AI Agent（智能体）</a></li><li><a href="../ai/ai-tutorial.html" title="AI（人工智能）">AI（人工智能）</a></li><li><a href="../codex/codex-tutorial.html" title="Codex 教程">Codex 教程</a></li><li><a href="../vibe-coding/vibe-coding-tutorial.html" title="Vibe Coding 教程">Vibe Coding 教程</a></li><li><a href="../claude-code/claude-code-tutorial.html" title="Claude Code">Claude Code</a></li><li><a href="../opencode/opencode-tutorial.html" title="OpenCode">OpenCode</a></li><li><a href="../skills/skills-tutorial.html" title="Skills（技能）">Skills（技能）</a></li><li><a href="../ollama/ollama-tutorial.html" title="Ollama 教程">Ollama 教程</a></li><li><a href="../hermes-agent/hermes-agent-tutorial.html" title="Hermes Agent">Hermes Agent</a></li><li><a href="../deepseek-harness/deepseek-harness-tutorial.html" title="DeepSeek Harness">DeepSeek Harness</a></li><li><a href="../pi-agent/pi-agent-tutorial.html" title="Pi Agent">Pi Agent</a></li><li><a href="../ai-math/ai-math-tutorial.html" title="AI 数学基础">AI 数学基础</a></li><li><a href="../tensorflow/tensorflow-tutorial.html" title="TensorFlow 教程">TensorFlow 教程</a></li><li><a href="../pytorch/pytorch-tutorial.html" title="PyTorch 教程">PyTorch 教程</a></li><li><a href="../sklearn/sklearn-tutorial.html" title="Scikit-learn 教程">Scikit-learn 教程</a></li><li><a href="../ml/ml-tutorial.html" title="机器 教程">机器 教程</a></li><li><a href="../langchain/langchain-tutorial.html" title="LangChain">LangChain</a></li><li><a href="../nlp/nlp-tutorial.html" title="自然语言处理 NLP">自然语言处理 NLP</a></li><li><a href="../opencv/opencv-tutorial.html" title="OpenCV 教程">OpenCV 教程</a></li><li><a href="../selenium/selenium-tutorial.html" title="Selenium 教程">Selenium 教程</a></li><li><a href="../playwright/playwright-tutorial.html" title="Playwright 教程">Playwright 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 前端开发</a><ul class="double-li"><li><a href="../html/html-tutorial.html" title="HTML 教程">HTML 教程</a></li><li><a href="../html/html5-intro.html" title="HTML5 教程">HTML5 教程</a></li><li><a href="../css/css-tutorial.html" title="CSS 教程">CSS 教程</a></li><li><a href="../css3/css3-tutorial.html" title="CSS3 教程">CSS3 教程</a></li><li><a href="../js/js-tutorial.html" title="JavaScript 教程">JavaScript 教程</a></li><li><a href="../htmldom/htmldom-tutorial.html" title="HTML DOM 教程">HTML DOM 教程</a></li><li><a href="../typescript/ts-tutorial.html" title="TypeScript 教程">TypeScript 教程</a></li><li><a href="../ajax/ajax-tutorial.html" title="AJAX 教程">AJAX 教程</a></li><li><a href="../json/json-tutorial.html" title="JSON 教程">JSON 教程</a></li><li><a href="../tailwindcss/tailwindcss-tutorial.html" title="Tailwind CSS 教程">Tailwind CSS 教程</a></li><li><a href="../bootstrap4/bootstrap4-tutorial.html" title="Bootstrap4 教程">Bootstrap4 教程</a></li><li><a href="../bootstrap5/bootstrap5-tutorial.html" title="Bootstrap5 教程">Bootstrap5 教程</a></li><li><a href="../foundation/foundation-tutorial.html" title="Foundation 教程">Foundation 教程</a></li><li><a href="../vue2/vue-tutorial.html" title="Vue.js 教程">Vue.js 教程</a></li><li><a href="../vue3/vue3-tutorial.html" title="Vue3 教程">Vue3 教程</a></li><li><a href="../react/react-tutorial.html" title="React 教程">React 教程</a></li><li><a href="../nextjs/nextjs-tutorial.html" title="Next.js 教程">Next.js 教程</a></li><li><a href="../angularjs/angularjs-tutorial.html" title="AngularJS 教程">AngularJS 教程</a></li><li><a href="../angularjs2/angularjs2-tutorial.html" title="Angular 教程">Angular 教程</a></li><li><a href="../jquery/jquery-tutorial.html" title="jQuery 教程">jQuery 教程</a></li><li><a href="../jqueryui/jqueryui-tutorial.html" title="jQuery UI 教程">jQuery UI 教程</a></li><li><a href="../jeasyui/jqueryeasyui-tutorial.html" title="jQuery EasyUI 教程">jQuery EasyUI 教程</a></li><li><a href="../echarts/echarts-tutorial.html" title="ECharts 教程">ECharts 教程</a></li><li><a href="../chartjs/chartjs-tutorial.html" title="Chart.js 教程">Chart.js 教程</a></li><li><a href="../highcharts/highcharts-tutorial.html" title="Highcharts 教程">Highcharts 教程</a></li><li><a href="../googleapi/google-maps-basic.html" title="Google 地图 教程">Google 地图 教程</a></li><li><a href="../svg/svg-tutorial.html" title="SVG 教程">SVG 教程</a></li><li><a href="../font-awesome/fontawesome-tutorial.html" title="Font Awesome 教程">Font Awesome 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 后端开发</a><ul class="double-li"><li><a href="../nodejs/nodejs-tutorial.html" title="Node.js 教程">Node.js 教程</a></li><li><a href="../electron/electron-tutorial.html" title="Electron 教程">Electron 教程</a></li><li><a href="../php/php-tutorial.html" title="PHP 教程">PHP 教程</a></li><li><a href="../java/java-tutorial.html" title="Java 教程">Java 教程</a></li><li><a href="../go/go-tutorial.html" title="Go 教程">Go 教程</a></li><li><a href="../rust/rust-tutorial.html" title="Rust 教程">Rust 教程</a></li><li><a href="../csharp/csharp-tutorial.html" title="C# 教程">C# 教程</a></li><li><a href="../servlet/servlet-tutorial.html" title="Servlet 教程">Servlet 教程</a></li><li><a href="../jsp/jsp-tutorial.html" title="JSP 教程">JSP 教程</a></li><li><a href="../asp/asp-tutorial.html" title="ASP 教程">ASP 教程</a></li><li><a href="../appml/appml-tutorial.html" title="AppML 教程">AppML 教程</a></li><li><a href="../vbscript/vbscript-tutorial.html" title="VBScript 教程">VBScript 教程</a></li><li><a href="../swagger/swagger-tutorial.html" title="Swagger 教程">Swagger 教程</a></li><li><a href="../restfulapi/restful-api-tutorial.html" title="RESTful API 教程">RESTful API 教程</a></li><li><a href="../docker/docker-tutorial.html" title="Docker 教程">Docker 教程</a></li><li><a href="../linux/linux-tutorial.html" title="Linux 教程">Linux 教程</a></li><li><a href="../w3cnote/zookeeper-tutorial.html" title="ZooKeeper 教程">ZooKeeper 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 数据库</a><ul class="double-li"><li><a href="../sql/sql-tutorial.html" title="SQL 教程">SQL 教程</a></li><li><a href="../mysql/mysql-tutorial.html" title="MySQL 教程">MySQL 教程</a></li><li><a href="../postgresql/postgresql-tutorial.html" title="PostgreSQL 教程">PostgreSQL 教程</a></li><li><a href="../sqlite/sqlite-tutorial.html" title="SQLite 教程">SQLite 教程</a></li><li><a href="../mongodb/mongodb-tutorial.html" title="MongoDB 教程">MongoDB 教程</a></li><li><a href="../redis/redis-tutorial.html" title="Redis 教程">Redis 教程</a></li><li><a href="../memcached/memcached-tutorial.html" title="Memcached 教程">Memcached 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 移动开发</a><ul class="double-li"><li><a href="../w3cnote/android-tutorial-intro.html" title="Android 教程">Android 教程</a></li><li><a href="../flutter/flutter-tutorial.html" title="Flutter 教程">Flutter 教程</a></li><li><a href="../ionic/ionic-tutorial.html" title="Ionic 教程">Ionic 教程</a></li><li><a href="../jquerymobile/jquerymobile-tutorial.html" title="jQuery Mobile 教程">jQuery Mobile 教程</a></li><li><a href="../swift/swift-tutorial.html" title="Swift 教程">Swift 教程</a></li><li><a href="../kotlin/kotlin-tutorial.html" title="Kotlin 教程">Kotlin 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> DevOps / 工程化</a><ul class="double-li"><li><a href="../git/git-tutorial.html" title="Git 教程">Git 教程</a></li><li><a href="../svn/svn-tutorial.html" title="SVN 教程">SVN 教程</a></li><li><a href="../cmake/cmake-tutorial.html" title="CMake 教程">CMake 教程</a></li><li><a href="../maven/maven-tutorial.html" title="Maven 教程">Maven 教程</a></li><li><a href="../vscode/vscode-tutorial.html" title="VS Code 教程">VS Code 教程</a></li><li><a href="../obsidian/obsidian-tutorial.html" title="Obsidian 教程">Obsidian 教程</a></li><li><a href="../pycharm/pycharm-tutorial.html" title="PyCharm 教程">PyCharm 教程</a></li><li><a href="../eclipse/eclipse-tutorial.html" title="Eclipse 教程">Eclipse 教程</a></li><li><a href="../markdown/md-tutorial.html" title="Markdown 教程">Markdown 教程</a></li><li><a href="../latex/latex-tutorial.html" title="LaTeX 教程">LaTeX 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 编程语言</a><ul class="double-li"><li><a href="../c/c-tutorial.html" title="C 教程">C 教程</a></li><li><a href="../cplusplus/cpp-tutorial.html" title="C++ 教程">C++ 教程</a></li><li><a href="../zig/zig-tutorial.html" title="Zig 教程">Zig 教程</a></li><li><a href="../scala/scala-tutorial.html" title="Scala 教程">Scala 教程</a></li><li><a href="../ruby/ruby-tutorial.html" title="Ruby 教程">Ruby 教程</a></li><li><a href="../perl/perl-tutorial.html" title="Perl 教程">Perl 教程</a></li><li><a href="../lua/lua-tutorial.html" title="Lua 教程">Lua 教程</a></li><li><a href="../dart/dart-tutorial.html" title="Dart 教程">Dart 教程</a></li><li><a href="../assembly/assembly-tutorial.html" title="汇编语言 教程">汇编语言 教程</a></li><li><a href="../w3cnote/verilog-tutorial.html" title="Verilog 教程">Verilog 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 计算机基础</a><ul class="double-li"><li><a href="../computer-organization/computer-organization-tutorial.html" title="计算机组成原理">计算机组成原理</a></li><li><a href="../data-structures/data-structures-tutorial.html" title="数据结构与算法">数据结构与算法</a></li><li><a href="../c-dsa/c-dsa-tutorial.html" title="C 语言数据结构与算法">C 语言数据结构与算法</a></li><li><a href="../design-pattern/design-pattern-tutorial.html" title="设计模式">设计模式</a></li><li><a href="../python-design-pattern/python-design-pattern-tutorial.html" title="Python 设计模式">Python 设计模式</a></li><li><a href="../regexp/regexp-tutorial.html" title="正则表达式">正则表达式</a></li><li><a href="../http/http-tutorial.html" title="HTTP 教程">HTTP 教程</a></li><li><a href="../tcpip/tcpip-tutorial.html" title="TCP/IP 教程">TCP/IP 教程</a></li><li><a href="../np/np-tutorial.html" title="网络协议">网络协议</a></li><li><a href="../w3c/w3c-tutorial.html" title="W3C 教程">W3C 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> XML / Web Service</a><ul class="double-li"><li><a href="../xml/xml-tutorial.html" title="XML 教程">XML 教程</a></li><li><a href="../dtd/dtd-tutorial.html" title="DTD 教程">DTD 教程</a></li><li><a href="../dom/dom-tutorial.html" title="XML DOM 教程">XML DOM 教程</a></li><li><a href="../xsl/xsl-tutorial.html" title="XSLT 教程">XSLT 教程</a></li><li><a href="../xpath/xpath-tutorial.html" title="XPath 教程">XPath 教程</a></li><li><a href="../xquery/xquery-tutorial.html" title="XQuery 教程">XQuery 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XLink 教程">XLink 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XPointer 教程">XPointer 教程</a></li><li><a href="../schema/schema-tutorial.html" title="XML Schema 教程">XML Schema 教程</a></li><li><a href="../xslfo/xslfo-tutorial.html" title="XSL-FO 教程">XSL-FO 教程</a></li><li><a href="../webservices/webservices-tutorial.html" title="Web Service 教程">Web Service 教程</a></li><li><a href="../wsdl/wsdl-tutorial.html" title="WSDL 教程">WSDL 教程</a></li><li><a href="../soap/soap-tutorial.html" title="SOAP 教程">SOAP 教程</a></li><li><a href="../rss/rss-tutorial.html" title="RSS 教程">RSS 教程</a></li><li><a href="../rdf/rdf-tutorial.html" title="RDF 教程">RDF 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> .NET</a><ul class="double-li"><li><a href="../aspnet/aspnet-tutorial.html" title="ASP.NET 教程">ASP.NET 教程</a></li><li><a href="../aspnet/mvc-intro.html" title="MVC 教程">MVC 教程</a></li><li><a href="../aspnet/razor-intro.html" title="Razor 教程">Razor 教程</a></li><li><a href="../aspnet/aspnet-intro.html" title="Web Forms 教程">Web Forms 教程</a></li><li><a href="../aspnet/webpages-intro.html" title="Web Pages 教程">Web Pages 教程</a></li><li><a href="../powershell/powershell-tutorial.html" title="PowerShell 教程">PowerShell 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 网站建设</a><ul class="double-li"><li><a href="../web/web-buildingprimer.html" title="网站建设指南">网站建设指南</a></li><li><a href="../browsers/browser-information.html" title="浏览器信息">浏览器信息</a></li><li><a href="../hosting/hosting-tutorial.html" title="网站主机教程">网站主机教程</a></li><li><a href="../quality/quality-tutorial.html" title="网站品质">网站品质</a></li></ul></li></ul> </div>
+</div>
+</div>
+<br/>
+<div class="sidebar-box re-box re-box-large">
+</div>
+</div></div>
+</div>
+<script>
+var aid = 31890;
+function coll() {
+	$.post( '/wp-content/themes/runoob/option/user/userinfo.php', {aid:aid, action:"collarticle", opt:'add'},function( data ) {
+		if(data.error==0) {
+			$("#content").find("h1:first").find("a").attr("href","javascript:void(0);");
+			$("#content").find("h1:first").find("img").attr("src","http://www.runoob.com/wp-content/themes/runoob/assets/img/coll2.png").css({width:32+"px",height:32+"px"});
+		}
+		alert(data.msg);
+	},'json');
+}
+
+(function () {
+    // 1. 仅 HTML 页面
+    if (!document.contentType || !document.contentType.includes('text/html')) return;
+
+    // 2. 容器判断
+    var container = document.querySelector('.article-intro');
+    if (!container) return;
+
+    var h1 = container.querySelector('h1');
+    if (!h1) return;
+
+    // 3. URL 判断
+    var url = window.location.href.toLowerCase();
+    var version = null;
+
+    if (url.includes('/python3/')) {
+        version = 'Python3.x';
+    } else if (url.includes('/python/')) {
+        version = 'Python2.x';
+    }
+
+    if (!version) return;
+
+    // 4. 防重复
+    if (h1.querySelector('.py-version-badge')) return;
+
+    // 5. 创建标签
+    var badge = document.createElement('span');
+    badge.className = 'py-version-badge';
+    badge.innerText = version;
+
+    // 6. 样式（核心：float 实现右上角）
+    badge.style.float = 'right';
+    badge.style.fontSize = '12px';
+    badge.style.padding = '2px 8px';
+    badge.style.borderRadius = '999px';
+
+   // 自适应亮/暗色 + 渐变背景（增强版）
+	badge.style.color = 'inherit';
+
+	// 渐变背景（低透明度，不影响暗黑模式）
+	if (version.includes('3')) {
+		badge.style.background = 'linear-gradient(90deg, rgba(79,172,254,0.15), rgba(0,242,254,0.15))';
+	} else {
+		badge.style.background = 'linear-gradient(90deg, rgba(161,140,209,0.15), rgba(251,194,235,0.15))';
+	}
+
+	// 边框弱化（更精致）
+	badge.style.border = '1px solid rgba(127,127,127,0.3)';
+
+	// 提升可读性
+	badge.style.opacity = '0.95';
+
+    // 微调位置（更贴近“右上角”）
+    badge.style.marginTop = '4px';
+    badge.style.marginLeft = '10px';
+
+    // 7. 插入到 h1 最前面（让 float 生效更稳定）
+    h1.insertBefore(badge, h1.firstChild);
+
+})();
+</script>
+<!-- 反馈对话框开始 -->
+<script src="../wp-content/themes/runoob/assets/js/runoob-article-dir.min.js"></script>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

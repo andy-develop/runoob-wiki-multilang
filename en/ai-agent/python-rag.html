@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Python Implementation of RAG and Knowledge Retrieval | Runoob Tutorial</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<link href="../manifest.webmanifest.html" rel="manifest"/>
+<meta content="#10151c" name="theme-color"/>
+<link href="../pwa/icon-192.png.html" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="application-name"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="../ai-agent/python-rag.html" rel="canonical"/>
+<meta content="Python 实现 RAG 与知识检索" name="keywords"/>
+<meta content="Python 实现 RAG 与知识检索  本章节介绍检索增强生成（Retrieval-Augmented Generation，RAG）技术。  RAG 是构建知识密集型 Agent 的核心技术之一。  通过将向量检索与语言生成模型结合，RAG 让 Agent 具备了访问和利用外部知识的能力，而不再只能依赖模型参数中'记住'的内容。    RAG 基础原理  RAG 的核心思想是把'信息检索'和&amp;.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div>
+<!-- 导航栏 -->
+<style>
+/* 主题切换按钮 */
+/* ===== 主题变量（核心）===== */
+:root {
+  --theme-bg: #ffffff;
+  --theme-border: #e5e7eb;
+  --theme-icon: #333;
+  --theme-hover: #f3f4f6;
+}
+
+.dark {
+  --theme-bg: #1f2937;
+  --theme-border: #374151;
+  --theme-icon: #e5e7eb;
+  --theme-hover: #374151;
+}
+
+/* ===== 按钮容器 ===== */
+.nav-theme-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== 按钮本体 ===== */
+.nav-theme-toggle button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  border-radius: 6px;
+  border: 1px solid var(--theme-border);
+
+  background: var(--theme-bg);
+  color: var(--theme-icon);
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* ===== 图标大小 ===== */
+.nav-theme-toggle i {
+  font-size: 14px;
+}
+
+/* ===== hover 效果 ===== */
+.nav-theme-toggle button:hover {
+  background: var(--theme-hover);
+  transform: translateY(-1px);
+}
+
+/* ===== 点击反馈 ===== */
+.nav-theme-toggle button:active {
+  transform: scale(0.95);
+}
+
+/* ===== 当前激活态（可选）===== */
+.nav-theme-toggle button.active {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+</style>
+<!-- 导航栏 -->
+<nav aria-label="主导航" class="container navigation">
+<div class="row">
+<div class="col nav">
+<!-- PC 导航 -->
+<ul class="pc-nav" id="runoob-detail-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../js/js-tutorial.html">JavaScript</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a data-id="vue" href="#">Vue</a></li>
+<li><a href="../react/react-tutorial.html">React</a></li>
+<li><a href="../python3/python3-tutorial.html">Python3</a></li>
+<li><a href="../java/java-tutorial.html">Java</a></li>
+<li><a href="../cprogramming/c-tutorial.html">C</a></li>
+<li><a href="../cplusplus/cpp-tutorial.html">C++</a></li>
+<li><a href="../csharp/csharp-tutorial.html">C#</a></li>
+<li><a data-id="aiNav" href="#">AI</a></li>
+<li><a href="../go/go-tutorial.html">Go</a></li>
+<li><a href="../sql/sql-tutorial.html">SQL</a></li>
+<li><a href="../linux/linux-tutorial.html">Linux</a></li>
+<li><a href="../vscode/vscode-tutorial.html">VS Code</a></li>
+<li><a data-id="bootstrap" href="#">Bootstrap</a></li>
+<li><a href="../git/git-tutorial.html">Git</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<!-- 主题切换按钮，固定在最右侧 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+<!-- 移动端导航 -->
+<ul class="mobile-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a href="../js/js-tutorial.html">JS</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<li><a class="search-reveal" href="#">搜索</a></li>
+<!-- 移动端主题切换 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon-mobile" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun-mobile" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<!-- 二级导航 -->
+<!--  内容  -->
+<div class="container main">
+<!-- 中间 -->
+<div class="row">
+<div class="runoob-col-md2">
+<div class="left-column">
+<div class="tab" style="overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
+<i aria-hidden="true" class="fa fa-list"></i>
+<span>AI Agent 教程</span>
+</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+<a data-p="par" href="../ai-agent/ai-agent-tutorial.html" target="_top" title="AI Agent(智能体) 教程">
+			AI Agent(智能体) 教程			</a>
+<a data-p="par" href="../ai-agent/ai-agent-intro.html" target="_top" title="AI Agent 简介">
+			AI Agent 简介			</a>
+<a data-p="par" href="../ai-agent/ai-agent-core.html" target="_top" title="AI Agent  核心组件">
+			AI Agent  核心组件			</a>
+<a href="../ai-agent/ai-terminology.html" target="_top" title="AI Agent 术语">AI Agent 术语</a>
+<a href="../ai-agent/ai-agent-working-principle.html" target="_top" title="AI Agent 工作原理">AI Agent 工作原理</a>
+<a href="../ai-agent/ai-architecture.html" target="_top" title="AI 底层架构">AI 底层架构</a>
+<a href="../ai-agent/ai-agent-llm.html" target="_top" title="大语言模型基础">大语言模型基础</a>
+<a href="../ai-agent/llm-multimodal.html" target="_top" title="大模型多模态">大模型多模态</a>
+<a href="../ai-agent/prompt-engineering.html" target="_top" title="提示词工程">提示词工程</a>
+<a href="../ai-agent/token-intro.html" target="_top" title="Token (词元)">Token (词元)</a>
+<a href="../ai-agent/reasoning-planning.html" target="_top" title="推理与规划">推理与规划</a>
+<a href="../ai-agent/vector-database.html" target="_top" title="向量数据库">向量数据库</a>
+<a href="../ai-agent/retrieval-augmented-generation.html" target="_top" title="RAG 与知识检索">RAG 与知识检索</a>
+<a href="../ai-agent/agent-context-engineering.html" target="_top" title="Agent 上下文工程">Agent 上下文工程</a>
+<a href="../ai-agent/agent-architecture.html" target="_top" title="Agent 架构">Agent 架构</a>
+<br/>
+<h2 class="left"> <span class="left_h2">智能体工具</span></h2> <a data-p="par" href="../ai-agent/first-ai-agent.html" target="_top" title="第一个 AI Agent">
+			第一个 AI Agent			</a>
+<a href="../ai-agent/ai-monkeycode.html" target="_top" title="AI 开发平台"> AI 开发平台</a>
+<a href="../ai-agent/openclaw-clawdbot-tutorial.html" target="_top" title="OpenClaw (Clawdbot) 教程"> OpenClaw (Clawdbot) 教程</a>
+<a href="../ai-agent/openclaw-quickstart.html" target="_top" title="OpenClaw 快速上手"> OpenClaw 快速上手</a>
+<a href="../ai-agent/qoderwork.html" target="_top" title="QoderWork 教程"> QoderWork 教程</a>
+<a href="../ai-agent/qoderwake-usage.html" target="_top" title="QoderWake 教程"> QoderWake 教程</a>
+<a href="../ai-agent/workbuddy-usage.html" target="_top" title="WorkBuddy 入门教程"> WorkBuddy 入门教程</a>
+<a href="../ai-agent/ai-workflow.html" target="_top" title="AI 工作流"> AI 工作流</a>
+<a data-p="par" href="../ai-agent/crewai-agent.html" target="_top" title="CrewAI 构建智能体">
+			CrewAI 构建智能体			</a>
+<a data-p="par" href="../ai-agent/langchain-agent.html" target="_top" title="LangChain 制作智能体">
+			LangChain 制作智能体			</a>
+<a href="../ai-agent/langgraph-quick-start.html" target="_top" title="LangGraph 入门教程">LangGraph 入门教程</a>
+<a href="../ai-agent/deep-agents-usage.html" target="_top" title="Deep Agents 入门教程">Deep Agents 入门教程</a>
+<a href="../ai-agent/graphrag-usage.html" target="_top" title="GraphRAG 入门教程">GraphRAG 入门教程</a>
+<a href="../ai-agent/harness-engineering.html" target="_top" title="Harness Engineering">Harness Engineering</a>
+<a href="../ai-agent/hermes-agent.html" target="_top" title="Hermes Agent">Hermes Agent</a>
+<a href="../ai-agent/loop-engineering.html" target="_top" title="Loop Engineering">Loop Engineering</a>
+<a href="../ai-agent/vibe-coding-start.html" target="_top" title="Vibe Coding 入门教程">Vibe Coding</a>
+<a href="../ai-agent/dify-usage.html" title="Dify 入门教程">Dify 入门教程</a>
+<a href="../ai-agent/n8n-usage.html" title="n8n 入门教程">n8n 入门教程 </a>
+<a href="../ai-agent/pi-coding-agent.html" title="Pi Coding Agent">Pi Coding Agent </a>
+<br/><h2 class="left"> <span class="left_h2">Python 实现智能体</span></h2>
+<a href="../ai-agent/python-ai-agent.html" target="_top" title="Python 实现 AI Agent">Python 实现 AI Agent</a>
+<a href="../ai-agent/ai-agent-function-calling.html" target="_top" title="工具调用">工具调用</a>
+<a href="../ai-agent/ai-agent-memory-system-design.html" target="_top" title="记忆系统">记忆系统</a>
+<a data-p="par" href="../ai-agent/ai-agent-python-setup.html" target="_top" title="Python 智能体环境配置">
+			Python 智能体环境配置			</a>
+<a data-p="par" href="../ai-agent/ai-agent-answer-demo.html" target="_top" title="AI Agent 问答实例">
+			AI Agent 问答实例			</a>
+<a data-p="par" href="../ai-agent/python-reasoning-planning.html" target="_top" title="Python 实现推理与规划">
+			推理与规划			</a>
+<a data-p="par" href="../ai-agent/python-rag.html" target="_top" title="Python 实现 RAG 与知识检索">
+			RAG 与知识检索			</a>
+<a data-p="par" href="../ai-agent/multi-agent-system.html" target="_top" title="多智能体系统（Multi-Agent System）">
+			多智能体系统			</a>
+<a data-p="par" href="../ai-agent/tools-integration.html" target="_top" title="AI Agent 工具与外部集成">
+			工具与外部集成			</a>
+<a data-p="par" href="../ai-agent/multimodal-agent.html" target="_top" title="多模态 Agent">
+			多模态 Agent			</a>
+<a data-p="par" href="../ai-agent/evaluation-safety-alignment.html" target="_top" title="Agent 评估、安全与对齐">
+			评估、安全与对齐			</a>
+<a data-p="par" href="../ai-agent/production-deployment.html" target="_top" title="AI Agent 生产部署与工程化">
+			生产部署与工程化			</a>
+<a data-p="par" href="../ai-agent/vertical-applications.html" target="_top" title="AI Agent 垂直应用场景">
+			垂直应用场景			</a>
+<a data-p="par" href="../ai-agent/hugging-face-transformers.html" target="_top" title="Hugging Face Transformers">
+			Hugging Face Transformers			</a>
+</div>
+</div>
+</div>
+</div> <div class="col middle-column">
+<div class="article">
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../ai-agent/python-reasoning-planning.html" rel="prev">Python Implementation of Reasoning and Planning</a> </div>
+<div class="next-design-link"><a href="../ai-agent/multi-agent-system.html" rel="next">Multi-Agent System</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="article-body">
+<div class="article-intro" id="content">
+<h1>Python Implementation of RAG and Knowledge Retrieval</h1>
+<p>This chapter introduces Retrieval-Augmented Generation (RAG) technology.</p>
+<p>RAG is one of the core technologies for building knowledge-intensive agents.</p>
+<p>By combining vector retrieval with language generation models, RAG gives agents the ability to access and utilize external knowledge, rather than relying solely on content "remembered" in model parameters.</p>
+<hr/>
+<h2>RAG Fundamentals</h2>
+<p>The core idea of RAG is to combine two stages, "information retrieval" and "language generation", to form a complete question-answering pipeline.</p>
+<p>When a user asks a question, the system first retrieves content relevant to the question from the knowledge base.</p>
+<p>Then, the system provides the retrieved content as context to the generation model, helping it produce more accurate and well-supported answers.</p>
+<h3>Why RAG is Needed</h3>
+<p>Language models have a knowledge cutoff date and cannot perceive events that occurred after training was completed.</p>
+<p>Model parameters are finite, and it is impossible to memorize all the world's knowledge in them.</p>
+<p>If the model relies entirely on "recalling" knowledge from parameters, when it encounters content it cannot remember precisely or has never learned, it often fabricates answers with a straight face. This is what is commonly called "hallucination".</p>
+<p>RAG's approach is to have the model consult real data before answering, turning "answering from memory" into "open-book answering". The knowledge source can also be updated at any time without retraining the model.</p>
+<h3>Core Architecture</h3>
+<p>A complete RAG system usually consists of three core components:</p>
+<p><span class="marked">Retriever</span>: Responsible for finding the most relevant information snippets from the knowledge base.</p>
+<p><span class="marked">Vector Store</span>: Stores vector representations of document content, supporting large-scale, low-latency similarity search.</p>
+<p><span class="marked">Generator</span>: Generates the final natural language answer based on the retrieved content and the user's original question.</p>
+<p>The relationship among the three can be understood as: the retriever is responsible for "finding materials", the vector store is responsible for "storing materials and quickly finding similar materials", and the generator is responsible for "organizing the answer while looking at the materials".</p>
+<h3>Workflow</h3>
+<p>Step 1:<b>Indexing phase</b>. Split the original documents into several text chunks, vectorize them one by one, and store them in the vector database. This step is usually done offline and in advance.</p>
+<p>Step 2:<b>Retrieval phase</b>. When a user asks a query, the query is also vectorized, and a similarity search is performed in the vector database to find the most relevant text chunks.</p>
+<p>Step 3:<b>Augmentation phase</b>. Concatenate the retrieved relevant text chunks with the user's original question to construct a more complete prompt.</p>
+<p>Step 4:<b>Generation phase</b>. The generation model produces the final answer based on this augmented context.</p>
+<p>Among these four steps, only the first step is offline preprocessing; the other three happen in real time when the user asks. Therefore, retrieval speed and retrieval quality directly determine the response speed and answer quality of the entire system.</p>
+<h3>Code Implementation</h3>
+<div class="example">
+<h2 class="example">Basic RAG Implementation</h2>
+<div class="example_code">
+<span style="color: Green;font-weight:bold;">class</span> SimpleRAG:<br/>
+    <span style="color: #a11;">"""<br/>Simplified RAG System Implementation<br/>Contains three core components: embedder, vector store, generator<br/>
+    """</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> embedder<span style="color: Gray;">,</span> vector_store<span style="color: Gray;">,</span> generator<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a50"># Embedder: responsible for converting text into vectors</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">embedder</span> <span style="color: Gray;">=</span> embedder<br/>
+        <span style="color: #a50"># Vector database: responsible for storing vectors and supporting similarity search</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">vector_store</span> <span style="color: Gray;">=</span> vector_store<br/>
+        <span style="color: #a50"># Generator: generates answers based on context</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">generator</span> <span style="color: Gray;">=</span> generator<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> add_documents<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> documents<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""<br/>Add documents to knowledge base<br/>:param documents: original document list (each element is a complete piece of text)<br/>
+        """</span><br/>
+        <span style="color: #a50"># Step 1: Split long documents into smaller text chunks for precise retrieval</span><br/>
+        chunks <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">chunk_documents</span><span style="color: Olive;">(</span>documents<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># Step 2: Convert all text chunks into vectors</span><br/>
+        embeddings <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">embedder</span>.<span style="color: #05a;">embed</span><span style="color: Olive;">(</span>chunks<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># Step 3: Store the vectors together with the corresponding original text in the vector database</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">vector_store</span>.<span style="color: #05a;">add</span><span style="color: Olive;">(</span>embeddings<span style="color: Gray;">,</span> chunks<span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> chunk_documents<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> documents<span style="color: Gray;">,</span> chunk_size<span style="color: Gray;">=</span><span style="color: Maroon;">500</span><span style="color: Gray;">,</span> overlap<span style="color: Gray;">=</span><span style="color: Maroon;">50</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""<br/>Document splitting: split long documents into text chunks of fixed length with some overlap.<br/>
+<br/>:param documents: raw document list<br/>:param chunk_size: number of characters per text chunk<br/>:param overlap: number of overlapping characters between adjacent text chunks (to avoid semantics being cut off at the split point)<br/>:return: list of text chunks after splitting<br/>
+        """</span><br/>
+        chunks <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> doc <span style="color: Green;font-weight:bold;">in</span> documents:<br/>
+            <span style="color: #a50"># Sliding split with a stride of (chunk_size - overlap), retaining a certain overlapping region</span><br/>
+            <span style="color: Green;font-weight:bold;">for</span> i <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Gray;">,</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>doc<span style="color: Olive;">)</span><span style="color: Gray;">,</span> chunk_size - overlap<span style="color: Olive;">)</span>:<br/>
+                <span style="color: #05a;">chunk</span> <span style="color: Gray;">=</span> doc<span style="color: Olive;">[</span>i:i + chunk_size<span style="color: Olive;">]</span><br/>
+                chunks.<span style="color: #05a;">append</span><span style="color: Olive;">(</span><span style="color: #05a;">chunk</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> chunks<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> query<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> question<span style="color: Gray;">,</span> top_k<span style="color: Gray;">=</span><span style="color: Maroon;">5</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""<br/>Process user query and return the generated answer<br/>
+<br/>:param question: question asked by the user<br/>:param top_k: number of relevant text chunks returned during retrieval<br/>:return: final answer given by the generation model<br/>
+        """</span><br/>
+        <span style="color: #a50"># 1. Convert the question into a vector so it can be compared with vectors in the knowledge base</span><br/>
+        question_embedding <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">embedder</span>.<span style="color: #05a;">embed</span><span style="color: Olive;">(</span><span style="color: Olive;">[</span>question<span style="color: Olive;">]</span><span style="color: Olive;">)</span><span style="color: Olive;">[</span><span style="color: Maroon;">0</span><span style="color: Olive;">]</span><br/>
+<br/>
+        <span style="color: #a50"># 2. Retrieve the top_k most similar text chunks from the vector database</span><br/>
+        results <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">vector_store</span>.<span style="color: #05a;">search</span><span style="color: Olive;">(</span>question_embedding<span style="color: Gray;">,</span> top_k<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># 3. Concatenate the retrieved text chunks into context</span><br/>
+        context <span style="color: Gray;">=</span> <span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>"</span>.<span style="color: #05a;">join</span><span style="color: Olive;">(</span><span style="color: Olive;">[</span>doc <span style="color: Green;font-weight:bold;">for</span> doc<span style="color: Gray;">,</span> _ <span style="color: Green;font-weight:bold;">in</span> results<span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># 4. Organize the context and the original question into a prompt</span><br/>
+        prompt <span style="color: Gray;">=</span> f<span style="color: #a11;">"Answer the question based on the following content:<span style="color: #000099; font-weight: bold;">\n</span>{context}<span style="color: #000099; font-weight: bold;">\n</span><span style="color: #000099; font-weight: bold;">\n</span>Question: {question}"</span><br/>
+<br/>
+        <span style="color: #a50"># 5. Hand it to the generation model to produce the final answer</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">generator</span>.<span style="color: #05a;">generate</span><span style="color: Olive;">(</span>prompt<span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<p>This basic implementation can already run the complete RAG pipeline, but it is often not enough in real projects: the chunking method is too crude, and retrieval ranking relies only on a single vector similarity calculation, resulting in limited accuracy. Below are some common optimization ideas.</p>
+<hr/>
+<h2>Advanced RAG</h2>
+<p>Common problems in basic RAG include: poor quality of retrieved content, insufficient ranking accuracy, and irrelevant information mixed into the context.</p>
+<p>Advanced RAG further optimizes the basic pipeline by introducing techniques such as reranking and hybrid retrieval, thereby improving the accuracy of the final answer.</p>
+<h3>Reranking</h3>
+<p>Vector retrieval in basic RAG is fast, but ranking accuracy is limited, and it can easily rank less semantically relevant content higher.</p>
+<p>The reranking approach is: first use vector retrieval to quickly filter out a set of candidate texts (e.g., top-20), then use a more computationally expensive but more accurate cross-encoder (Cross-Encoder) to score each candidate one by one, re-rank them, and extract the truly most relevant few (e.g., top-5).</p>
+<p>This two-stage approach of "rough filtering first, then precise ranking" balances retrieval speed and retrieval accuracy.</p>
+<div class="example">
+<h2 class="example">RAG with Reranking</h2>
+<div class="example_code">
+<span style="color: Green;font-weight:bold;">class</span> AdvancedRAG:<br/>
+    <span style="color: #a11;">"""<br/>Advanced RAG system<br/>Add a reranking step on top of the basic pipeline<br/>
+    """</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> embedder<span style="color: Gray;">,</span> vector_store<span style="color: Gray;">,</span> reranker<span style="color: Gray;">,</span> generator<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a50"># Embedder</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">embedder</span> <span style="color: Gray;">=</span> embedder<br/>
+        <span style="color: #a50"># Vector database</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">vector_store</span> <span style="color: Gray;">=</span> vector_store<br/>
+        <span style="color: #a50"># Reranking model (cross-encoder) for fine-grained ranking</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">reranker</span> <span style="color: Gray;">=</span> reranker<br/>
+        <span style="color: #a50"># Generator</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">generator</span> <span style="color: Gray;">=</span> generator<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> query<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> question<span style="color: Gray;">,</span> initial_k<span style="color: Gray;">=</span><span style="color: Maroon;">20</span><span style="color: Gray;">,</span> final_k<span style="color: Gray;">=</span><span style="color: Maroon;">5</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""<br/>Process query, including two-stage retrieval of "rough filtering + precise ranking"<br/>
+<br/>: :param question: user question<br/>: :param initial_k: The number of candidates returned by the first stage of vector retrieval.<br/>:param final_k: The number of items ultimately retained after re-ranking.<br/>
+        """</span><br/>
+        <span style="color: #a50"># ==================== Phase 1: Initial Retrieval (Coarse Screening) ====================</span><br/>
+        <span style="color: #a50">Convert the problem into a vector.</span><br/>
+        question_embedding <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">embedder</span>.<span style="color: #05a;">embed</span><span style="color: Olive;">(</span><span style="color: Olive;">[</span>question<span style="color: Olive;">]</span><span style="color: Olive;">)</span><span style="color: Olive;">[</span><span style="color: Maroon;">0</span><span style="color: Olive;">]</span><br/>
+<br/>
+        <span style="color: #a50"># Quickly recall a batch of candidate texts using vector similarity (fast, average accuracy)</span><br/>
+        initial_results <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">vector_store</span>.<span style="color: #05a;">search</span><span style="color: Olive;">(</span><br/>
+            question_embedding<span style="color: Gray;">,</span><br/>
+            initial_k<br/>
+        <span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># ==================== Phase 2: Re-ranking (Fine Ranking) ====================</span><br/>
+        <span style="color: #a50">Construct (question, candidate document) pairs and feed them to the cross-encoder for scoring one by one.</span><br/>
+        doc_pairs <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">(</span>question<span style="color: Gray;">,</span> doc<span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> doc<span style="color: Gray;">,</span> _ <span style="color: Green;font-weight:bold;">in</span> initial_results<span style="color: Olive;">]</span><br/>
+<br/>
+        <span style="color: #a50">Cross-encoders encode the question and document simultaneously, allowing for more accurate judgment of their relevance.</span><br/>
+        reranked <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">reranker</span>.<span style="color: #05a;">rerank</span><span style="color: Olive;">(</span>doc_pairs<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># Take the truly most relevant final_k items after re-ranking.</span><br/>
+        final_context <span style="color: Gray;">=</span> <span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>"</span>.<span style="color: #05a;">join</span><span style="color: Olive;">(</span><span style="color: Olive;">[</span>doc <span style="color: Green;font-weight:bold;">for</span> doc<span style="color: Gray;">,</span> _ <span style="color: Green;font-weight:bold;">in</span> reranked<span style="color: Olive;">[</span>:final_k<span style="color: Olive;">]</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># ==================== Stage 3: Generation =====================</span><br/>
+        prompt <span style="color: Gray;">=</span> f<span style="color: #a11;">Context: {final_context}<span style="color: #000099; font-weight: bold;">\n</span><span style="color: #000099; font-weight: bold;">\n</span>Question: {question}</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">generator</span>.<span style="color: #05a;">generate</span><span style="color: Olive;">(</span>prompt<span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<h3>Hybrid Retrieval</h3>
+<p>Hybrid Retrieval combines the advantages of dense retrieval and sparse retrieval.</p>
+<p>Dense Retrieval is based on vector similarity and excels at capturing semantic relevance, matching user queries and documents even when they do not use exactly the same words.</p>
+<p>Sparse retrieval (such as BM25) is based on keyword frequency statistics, excels at exact literal matching, and is often more reliable than vector retrieval for scenarios such as proper nouns, numbers, and code snippets.</p>
+<p>Both have blind spots: vector retrieval may "understand the meaning but fail to find the exact keywords," while keyword retrieval may "match the words but fail to understand the semantics." Hybrid retrieval fuses the results of the two retrieval paths, complementing each other's strengths and weaknesses.</p>
+<div class="example">
+<h2 class="example">Hybrid Retrieval RAG</h2>
+<div class="example_code">
+<span style="color: Green;font-weight:bold;">class</span> HybridRAG:<br/>
+    <span style="color: #a11;">"""<br/>Hybrid retrieval RAG<br/>Combining dense retrieval (vector) and sparse retrieval (keyword)<br/>
+    """</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> dense_retriever<span style="color: Gray;">,</span> sparse_retriever<span style="color: Gray;">,</span> fusion_fn<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a50"># Dense Retriever: Based on vector similarity, excels at semantic matching.</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">dense_retriever</span> <span style="color: Gray;">=</span> dense_retriever<br/>
+        <span style="color: #a50"># Sparse Retriever: Based on keyword statistics (e.g., BM25), excels at exact matching.</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">sparse_retriever</span> <span style="color: Gray;">=</span> sparse_retriever<br/>
+        <span style="color: #a50"># Fusion function: used to merge two retrieval results, e.g., RRF (see implementation below)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">fusion_fn</span> <span style="color: Gray;">=</span> fusion_fn<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> query<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> question<span style="color: Gray;">,</span> top_k<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""<br/>Perform hybrid retrieval and return the fused ranked results.<br/>
+<br/>: :param question: user question<br/>:param top_k: The final number of results to return.<br/>
+        """</span><br/>
+        <span style="color: #a50"># ==================== Dense Retrieval =====================</span><br/>
+        <span style="color: #a50"># Retrieve more candidates (top_k * 2) to leave room for filtering during fusion</span><br/>
+        dense_results <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">dense_retriever</span>.<span style="color: #05a;">search</span><span style="color: Olive;">(</span>question<span style="color: Gray;">,</span> top_k * <span style="color: Maroon;">2</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># ==================== Sparse Retrieval ====================</span><br/>
+        <span style="color: #a50"># Keyword-based retrieval, also retrieve more candidates</span><br/>
+        sparse_results <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">sparse_retriever</span>.<span style="color: #05a;">search</span><span style="color: Olive;">(</span>question<span style="color: Gray;">,</span> top_k * <span style="color: Maroon;">2</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># ==================== Result Fusion ====================</span><br/>
+        <span style="color: #a50"># Use strategies like Reciprocal Rank Fusion (RRF) to fuse the ranking results of both channels</span><br/>
+        fused <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">fusion_fn</span><span style="color: Olive;">(</span>dense_results<span style="color: Gray;">,</span> sparse_results<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># Take the top_k items with the highest fused ranking</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> fused<span style="color: Olive;">[</span>:top_k<span style="color: Olive;">]</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> reciprocal_rank_fusion<span style="color: Olive;">(</span>results_a<span style="color: Gray;">,</span> results_b<span style="color: Gray;">,</span> k<span style="color: Gray;">=</span><span style="color: Maroon;">60</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""<br/>Reciprocal Rank Fusion (RRF) algorithm<br/>Used to fuse the ranking results from two (or multiple) retrieval channels into a unified ranking<br/>
+<br/>Core idea: only look at the "rank" of each document in each channel's results, not the specific score,<br/>This avoids the problem that vector similarity scores and BM25 scores have different scales and cannot be directly compared.<br/>
+<br/>:param results_a: Retrieval results A, formatted as [(doc, score), ...]<br/>:param results_b: Retrieval results B, formatted as [(doc, score), ...]<br/>:param k: Smoothing constant, used to reduce the weight difference for lower-ranked documents, usually set to 60<br/>:return: List of [(doc, score), ...] sorted by fused score from high to low<br/>
+    """</span><br/>
+    scores <span style="color: Gray;">=</span> <span style="color: Olive;">{</span><span style="color: Olive;">}</span><br/>
+<br/>
+    <span style="color: #a50"># Process results A: the higher the rank, the higher the score contributed</span><br/>
+    <span style="color: Green;font-weight:bold;">for</span> rank<span style="color: Gray;">,</span> <span style="color: Olive;">(</span>doc<span style="color: Gray;">,</span> _<span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">enumerate</span><span style="color: Olive;">(</span>results_a<span style="color: Olive;">)</span>:<br/>
+        scores<span style="color: Olive;">[</span>doc<span style="color: Olive;">]</span> <span style="color: Gray;">=</span> scores.<span style="color: #05a;">get</span><span style="color: Olive;">(</span>doc<span style="color: Gray;">,</span> <span style="color: Maroon;">0</span><span style="color: Olive;">)</span> + <span style="color: Maroon;">1</span> / <span style="color: Olive;">(</span>k + rank + <span style="color: Maroon;">1</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># Process results B, similarly accumulate scores by rank</span><br/>
+    <span style="color: Green;font-weight:bold;">for</span> rank<span style="color: Gray;">,</span> <span style="color: Olive;">(</span>doc<span style="color: Gray;">,</span> _<span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">enumerate</span><span style="color: Olive;">(</span>results_b<span style="color: Olive;">)</span>:<br/>
+        scores<span style="color: Olive;">[</span>doc<span style="color: Olive;">]</span> <span style="color: Gray;">=</span> scores.<span style="color: #05a;">get</span><span style="color: Olive;">(</span>doc<span style="color: Gray;">,</span> <span style="color: Maroon;">0</span><span style="color: Olive;">)</span> + <span style="color: Maroon;">1</span> / <span style="color: Olive;">(</span>k + rank + <span style="color: Maroon;">1</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># Sort by the accumulated fused score from high to low</span><br/>
+    sorted_docs <span style="color: Gray;">=</span> <span style="color: Teal;">sorted</span><span style="color: Olive;">(</span>scores.<span style="color: #05a;">items</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span> key<span style="color: Gray;">=</span><span style="color: Green;font-weight:bold;">lambda</span> x: -x<span style="color: Olive;">[</span><span style="color: Maroon;">1</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">return</span> sorted_docs<br/>
+</div>
+</div>
+<h3>Other Optimization Strategies</h3>
+<p><b>Query expansion</b>: Expand the original query by adding synonyms or related terms to broaden the recall range and improve recall rate.</p>
+<p><b>Query rewriting</b>: Use models to understand the user's true intent, rewriting colloquial or ambiguous questions into formulations more suitable for retrieval.</p>
+<p><b>Context compression</b>: Before passing retrieval results to the generation model, remove redundant and irrelevant parts, keeping only key information. This reduces cost and also lowers the risk of the generation model being disturbed by irrelevant content.</p>
+<hr/>
+<h2>Vector Database</h2>
+<p>A vector database is the infrastructure of the RAG system, responsible for storing massive high-dimensional vectors and supporting large-scale, low-latency similarity retrieval.</p>
+<h3>Core Concepts</h3>
+<p><b>Embedding</b>: The process of converting text (or images, audio, etc.) into a set of dense numerical vectors, where semantically similar content is closer in vector space.</p>
+<p><b>Vector dimension</b>: 嵌入向量的长度。维度越高，理论上能表达的语义信息越丰富，但存储和计算开销也会随之增加。</p>
+<p><b>相似度度量</b>：用来衡量两个向量之间“相似程度”或“距离”的具体计算方法，不同度量方式适合不同场景。</p>
+<h3>Common Similarity Metrics</h3>
+<table class="reference">
+<tbody>
+<tr>
+<th>度量方法</th>
+<th>公式</th>
+<th>特点</th>
+<th>适用场景</th>
+</tr>
+<tr>
+<td>余弦相似度</td>
+<td>cos(A,B) = A·B/(|A||B|)</td>
+<td>只衡量方向上的相似性，与向量长度无关，取值范围 [-1,1]</td>
+<td>文档/文本相似度</td>
+</tr>
+<tr>
+<td>欧氏距离</td>
+<td>d(A,B) = sqrt(sum((Ai-Bi)^2))</td>
+<td>衡量向量间的绝对空间距离，取值范围 [0,+∞)</td>
+<td>图像特征匹配</td>
+</tr>
+<tr>
+<td>点积</td>
+<td>A·B = sum(Ai*Bi)</td>
+<td>同时受方向和长度影响，计算效率高</td>
+<td>推荐系统</td>
+</tr>
+</tbody>
+</table>
+<h3>Comparison of Mainstream Vector Databases</h3>
+<table class="reference">
+<tbody>
+<tr>
+<th>数据库</th>
+<th>类型</th>
+<th>特点</th>
+<th>适用场景</th>
+</tr>
+<tr>
+<td>Pinecone</td>
+<td>云服务</td>
+<td>全托管服务，上手简单，自动扩容，无需自行运维</td>
+<td>希望快速上线的生产环境</td>
+</tr>
+<tr>
+<td>Weaviate</td>
+<td>开源</td>
+<td>原生支持混合检索（向量 + 关键词），模块化程度高</td>
+<td>需要灵活定制检索逻辑的场景</td>
+</tr>
+<tr>
+<td>Milvus</td>
+<td>开源</td>
+<td>高可用、易水平扩展，可支撑十亿级以上向量规模</td>
+<td>超大规模向量检索</td>
+</tr>
+<tr>
+<td>Chroma</td>
+<td>开源</td>
+<td>轻量级、API 简洁，几行代码即可跑起来</td>
+<td>原型开发、教学与本地测试</td>
+</tr>
+<tr>
+<td>Qdrant</td>
+<td>开源</td>
+<td>基于 Rust 实现，性能优秀，支持丰富的过滤条件</td>
+<td>需要高吞吐、复杂过滤的场景</td>
+</tr>
+</tbody>
+</table>
+<h3>Code Examples</h3>
+<div class="example">
+<h2 class="example">Using Chroma Vector Database</h2>
+<div class="example_code">
+<span style="color: Green;font-weight:bold;">import</span> chroma_client<br/>
+<span style="color: Green;font-weight:bold;">from</span> chroma_client <span style="color: Green;font-weight:bold;">import</span> ChromaClient<br/>
+<br/>
+<span style="color: #a50"># 创建客户端（可连接本地实例，也可连接远程服务）</span><br/>
+client <span style="color: Gray;">=</span> ChromaClient<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 创建或获取一个集合（Collection），相当于关系型数据库里的“表”</span><br/>
+collection <span style="color: Gray;">=</span> client.<span style="color: #05a;">get_or_create_collection</span><span style="color: Olive;">(</span><span style="color: #a11;">"knowledge_base"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 添加文档：ID、向量、原文、元数据需要一一对应</span><br/>
+collection.<span style="color: #05a;">add</span><span style="color: Olive;">(</span><br/>
+    ids<span style="color: Gray;">=</span><span style="color: Olive;">[</span><span style="color: #a11;">"doc1"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"doc2"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"doc3"</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span>  <span style="color: #a50"># 每条文档的唯一标识</span><br/>
+    embeddings<span style="color: Gray;">=</span><span style="color: Olive;">[</span><br/>
+        <span style="color: Olive;">[</span><span style="color: Maroon;">0.1</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.2</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.3</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span>  <span style="color: #a50"># 文档1对应的向量（实际维度通常远高于3维）</span><br/>
+        <span style="color: Olive;">[</span><span style="color: Maroon;">0.4</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.5</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.6</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span>  <span style="color: #a50"># 文档2对应的向量</span><br/>
+        <span style="color: Olive;">[</span><span style="color: Maroon;">0.7</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.8</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.9</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span>  <span style="color: #a50"># 文档3对应的向量</span><br/>
+    <span style="color: Olive;">]</span><span style="color: Gray;">,</span><br/>
+    documents<span style="color: Gray;">=</span><span style="color: Olive;">[</span><br/>
+        <span style="color: #a11;">“人工智能是计算机科学的一个分支”</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">“机器学习是人工智能的子领域”</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">“深度学习是机器学习的子领域”</span><br/>
+    <span style="color: Olive;">]</span><span style="color: Gray;">,</span><br/>
+    metadatas<span style="color: Gray;">=</span><span style="color: Olive;">[</span><br/>
+        <span style="color: Olive;">{</span><span style="color: #a11;">"source"</span>: <span style="color: #a11;">“教科书”</span><span style="color: Olive;">}</span><span style="color: Gray;">,</span>  <span style="color: #a50"># 文档1的来源信息，可用于后续过滤</span><br/>
+        <span style="color: Olive;">{</span><span style="color: #a11;">"source"</span>: <span style="color: #a11;">Paper</span><span style="color: Olive;">}</span><span style="color: Gray;">,</span><br/>
+        <span style="color: Olive;">{</span><span style="color: #a11;">"source"</span>: <span style="color: #a11;">Paper</span><span style="color: Olive;">}</span><br/>
+    <span style="color: Olive;">]</span><br/>
+<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># Retrieve: pass in query vector, return the most similar n_results results</span><br/>
+results <span style="color: Gray;">=</span> collection.<span style="color: #05a;">query</span><span style="color: Olive;">(</span><br/>
+    query_embeddings<span style="color: Gray;">=</span><span style="color: Olive;">[</span><span style="color: Olive;">[</span><span style="color: Maroon;">0.15</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.25</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.35</span><span style="color: Olive;">]</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span>  <span style="color: #a50"># Vector corresponding to the query</span><br/>
+    n_results<span style="color: Gray;">=</span><span style="color: Maroon;">2</span>  <span style="color: #a50"># Return top-2 most similar results</span><br/>
+<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># Output retrieval results</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>results<span style="color: Olive;">[</span><span style="color: #a11;">"documents"</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span>   <span style="color: #a50"># Matched original text content</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>results<span style="color: Olive;">[</span><span style="color: #a11;">"distances"</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span>   <span style="color: #a50"># Corresponding distance/similarity score; smaller values usually indicate higher similarity</span><br/>
+</div>
+</div>
+<blockquote><p>When choosing a vector database, you need to comprehensively consider data scale, query latency requirements, deployment method (cloud-hosted or self-hosted), and the team's operational capabilities. For small-scale prototype development, prefer Chroma; for a production environment that is out-of-the-box, choose Pinecone; for ultra-large-scale scenarios requiring autonomy and control, Milvus or Qdrant are more suitable.</p></blockquote>
+<hr/>
+<h2>GraphRAG</h2>
+<p>GraphRAG is an advanced solution that combines Knowledge Graph with RAG.</p>
+<p>It enhances the system's retrieval and reasoning capabilities by constructing a graph structure composed of entities and relations.</p>
+<h3>Why GraphRAG is Needed</h3>
+<p>Traditional RAG is based on similarity retrieval over text chunks, making it difficult to handle problems that require "multi-hop reasoning" (i.e., answers that require connecting multiple pieces of information).</p>
+<p>Traditional RAG also has difficulty explicitly capturing semantic relationships between entities, such as structured information like "who is whose superior" or "which company acquired which company."</p>
+<p>GraphRAG explicitly organizes these entities and relations into a graph structure, allowing the system to reason along relation paths instead of just "finding similar text."</p>
+<h3>Core Advantages</h3>
+<p>Can capture semantic relationships between entities, forming a structured knowledge network rather than scattered text fragments.</p>
+<p>Supports path-based reasoning and can better answer relational questions.</p>
+<p>Can handle complex problems requiring multi-hop reasoning, such as "who is someone's advisor's advisor," which require traversing multiple relation nodes in sequence to derive the answer.</p>
+<h3>Code Implementation</h3>
+<div class="example">
+<h2 class="example">GraphRAG Implementation</h2>
+<div class="example_code">
+<span style="color: Green;font-weight:bold;">class</span> GraphRAG:<br/>
+    <span style="color: #a11;">"""<br/>GraphRAG system<br/>Combines knowledge graph retrieval and vector retrieval, balancing relational reasoning and semantic similarity.<br/>
+    """</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> kg_builder<span style="color: Gray;">,</span> embedder<span style="color: Gray;">,</span> vector_store<span style="color: Gray;">,</span> generator<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a50"># Knowledge graph builder: responsible for entity/relation extraction and graph queries</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">kg_builder</span> <span style="color: Gray;">=</span> kg_builder<br/>
+        <span style="color: #a50"># Embedder: used to convert documents and questions into vectors</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">embedder</span> <span style="color: Gray;">=</span> embedder<br/>
+        <span style="color: #a50"># Vector database: serves as a supplementary channel for knowledge graph retrieval</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">vector_store</span> <span style="color: Gray;">=</span> vector_store<br/>
+        <span style="color: #a50"># Generator: generates the final answer based on the fused context</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">generator</span> <span style="color: Gray;">=</span> generator<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> index_documents<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> documents<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""<br/>Index documents into both the knowledge graph and the vector database<br/>:param documents: list of documents<br/>
+        """</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> doc <span style="color: Green;font-weight:bold;">in</span> documents:<br/>
+            <span style="color: #a50"># Extract entities from documents</span><br/>
+            <span style="color: #a50"># For example, extract from "OpenAI was founded in 2015"</span><br/>
+            <span style="color: #a50"># Entity: OpenAI (organization), 2015 (time)</span><br/>
+            entities <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">kg_builder</span>.<span style="color: #05a;">extract_entities</span><span style="color: Olive;">(</span>doc<span style="color: Olive;">)</span><br/>
+<br/>
+            <span style="color: #a50"># Extract relationships between entities from documents</span><br/>
+            <span style="color: #a50"># For example, extract a relation triplet: (OpenAI, founded in, 2015)</span><br/>
+            relations <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">kg_builder</span>.<span style="color: #05a;">extract_relations</span><span style="color: Olive;">(</span>doc<span style="color: Olive;">)</span><br/>
+<br/>
+            <span style="color: #a50"># Write entities and relationships into the knowledge graph</span><br/>
+            <span style="color: Teal;">self</span>.<span style="color: #05a;">kg_builder</span>.<span style="color: #05a;">add_entities</span><span style="color: Olive;">(</span>entities<span style="color: Olive;">)</span><br/>
+            <span style="color: Teal;">self</span>.<span style="color: #05a;">kg_builder</span>.<span style="color: #05a;">add_relations</span><span style="color: Olive;">(</span>relations<span style="color: Olive;">)</span><br/>
+<br/>
+            <span style="color: #a50"># Simultaneously vectorize the original text and store it in a vector database to supplement semantic retrieval</span><br/>
+            embedding <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">embedder</span>.<span style="color: #05a;">embed</span><span style="color: Olive;">(</span><span style="color: Olive;">[</span>doc<span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+            <span style="color: Teal;">self</span>.<span style="color: #05a;">vector_store</span>.<span style="color: #05a;">add</span><span style="color: Olive;">(</span>embedding<span style="color: Gray;">,</span> <span style="color: Olive;">[</span>doc<span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> query<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> question<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""<br/>Handle queries: combine knowledge graph reasoning and vector retrieval<br/>
+        """</span><br/>
+        <span style="color: #a50"># ==================== Knowledge Graph Retrieval ====================</span><br/>
+        <span style="color: #a50"># First identify the relevant entities mentioned in the question</span><br/>
+        <span style="color: #a50"># For example, "Who founded OpenAI?" -&gt; identify the entity "OpenAI"</span><br/>
+        relevant_entities <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">kg_builder</span>.<span style="color: #05a;">query_entities</span><span style="color: Olive;">(</span>question<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># Based on these entities, extract the subgraph directly related to them from the graph</span><br/>
+        <span style="color: #a50"># The subgraph contains relevant entities and their adjacent nodes and connecting edges</span><br/>
+        subgraph <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">kg_builder</span>.<span style="color: #05a;">get_subgraph</span><span style="color: Olive;">(</span>relevant_entities<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># ==================== Vector Retrieval ====================</span><br/>
+        <span style="color: #a50"># As a supplementary channel, retrieve semantically similar text content</span><br/>
+        vector_results <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">vector_store</span>.<span style="color: #05a;">search</span><span style="color: Olive;">(</span>question<span style="color: Gray;">,</span> top_k<span style="color: Gray;">=</span><span style="color: Maroon;">5</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># ==================== Result Fusion ====================</span><br/>
+        <span style="color: #a50"># Fuse the graph reasoning results and vector retrieval results into a unified context</span><br/>
+        combined_context <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">fuse_results</span><span style="color: Olive;">(</span>subgraph<span style="color: Gray;">,</span> vector_results<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># ==================== Generation ====================</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">generator</span>.<span style="color: #05a;">generate</span><span style="color: Olive;">(</span>combined_context<span style="color: Gray;">,</span> question<span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> fuse_results<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> subgraph<span style="color: Gray;">,</span> vector_results<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""<br/>Fuse the knowledge graph subgraph and vector retrieval results into context text readable by a generative model<br/>
+        """</span><br/>
+        <span style="color: #a50"># Convert the subgraph into natural language descriptions (e.g., "OpenAI -founded in-&gt; 2015")</span><br/>
+        kg_text <span style="color: Gray;">=</span> subgraph.<span style="color: #05a;">to_text</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># Concatenate the original text segments retrieved by vector retrieval</span><br/>
+        vector_text <span style="color: Gray;">=</span> <span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>"</span>.<span style="color: #05a;">join</span><span style="color: Olive;">(</span><span style="color: Olive;">[</span>doc <span style="color: Green;font-weight:bold;">for</span> doc<span style="color: Gray;">,</span> _ <span style="color: Green;font-weight:bold;">in</span> vector_results<span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">return</span> f<span style="color: #a11;">"{kg_text}<span style="color: #000099; font-weight: bold;">\n</span>{vector_text}"</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> KnowledgeGraphBuilder:<br/>
+    <span style="color: #a11;">"""Knowledge Graph Builder (illustrative implementation; in real projects, dedicated NER/relation extraction models are usually called)"""</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> extract_entities<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> text<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""<br/># Extract named entities from text, usually done with NER (Named Entity Recognition) models<br/># Common entity types include PERSON (person), ORG (organization), TIME (time), etc.<br/>
+        """</span><br/>
+        entities <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> entities<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> extract_relations<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> text<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""<br/># Extract relationships between entities from text, usually done with relation extraction models<br/># Relationships are generally represented as triplets: (head entity, relation type, tail entity)<br/>
+        """</span><br/>
+        relations <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> relations<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> query_entities<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> question<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""Based on the user question, identify the entities involved in the question for subsequent subgraph retrieval"""</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+</div>
+</div>
+<h3>Application Scenarios</h3>
+<p>GraphRAG is especially suitable for the following scenarios:</p>
+<p>Question answering that requires understanding entity relationships, e.g., "Who is the CEO of this company?"</p>
+<p>Questions that require multi-hop reasoning to arrive at an answer, e.g., "Who is the advisor of Zhang San's advisor?"</p>
+<p>Scenarios that require mining implicit relationships in the knowledge base that are not explicitly written.</p>
+<p>It should be noted that building and maintaining a knowledge graph itself incurs certain engineering costs (entity/relation extraction accuracy, graph update and maintenance, etc.), so it is more suitable for scenarios with clear relational reasoning requirements, and is not recommended as the default starting point for all RAG projects.</p>
+<hr/>
+<h2>Solution Comparison and Recommendations</h2>
+<table class="reference">
+<tbody>
+<tr>
+<th>Solution</th>
+<th>Core Approach</th>
+<th>Advantages</th>
+<th>Limitations</th>
+<th>Applicable Scenarios</th>
+</tr>
+<tr>
+<td>Basic RAG</td>
+<td>Vector retrieval + direct generation</td>
+<td>Simple to implement, low cost, quick to get started</td>
+<td>Limited retrieval precision, prone to recalling content that is not relevant enough</td>
+<td>Simple Q&amp;A, rapid prototype validation</td>
+</tr>
+<tr>
+<td>Advanced RAG (reranking)</td>
+<td>Vector coarse filtering + cross-encoder fine ranking</td>
+<td>Significantly improves the precision of retrieval ranking</td>
+<td>Adds an extra model inference pass, increasing latency and cost</td>
+<td>Scenarios with high requirements for answer accuracy</td>
+</tr>
+<tr>
+<td>Hybrid Retrieval</td>
+<td>Fusion of vector retrieval and keyword retrieval</td>
+<td>Balances semantic matching and precise keyword matching</td>
+<td>Requires maintaining two retrieval indexes simultaneously</td>
+<td>Knowledge bases with many proper nouns, code, and identifiers</td>
+</tr>
+<tr>
+<td>GraphRAG</td>
+<td>Knowledge graph + vector retrieval fusion</td>
+<td>Supports relational reasoning and multi-hop Q&amp;A</td>
+<td>High graph construction and maintenance costs</td>
+<td>Scenarios with clear relational and multi-hop reasoning requirements</td>
+</tr>
+</tbody>
+</table>
+<h2>Chapter Summary</h2>
+<p>This chapter introduces the core technologies of RAG and knowledge retrieval.</p>
+<p><span class="marked">RAG Basic Principles</span>: By combining retrieval with generation, it enables agents to answer questions using external knowledge rather than relying entirely on memory in model parameters.</p>
+<p><span class="marked">Advanced RAG</span>: Through techniques such as reranking and hybrid retrieval, it further improves retrieval quality and answer accuracy on top of the basic pipeline.</p>
+<p><span class="marked">Vector Database</span>: It serves as the infrastructure of RAG systems, responsible for efficiently storing and retrieving vector representations of documents; the choice of solution should be made based on data scale and deployment method.</p>
+<p><span class="marked">GraphRAG</span>: Combined with knowledge graphs, it enhances relational reasoning and multi-hop Q&amp;A capabilities, but also brings additional construction and maintenance costs.</p>
+<p>The key to choosing an appropriate RAG solution is to first understand the real needs of the business scenario: for simple Q&amp;A scenarios, basic RAG is often sufficient; when higher retrieval precision is required, reranking can be introduced; when the knowledge base contains many proper nouns/keywords, hybrid retrieval is suitable; when a large amount of relational reasoning and multi-hop Q&amp;A is involved, consider introducing GraphRAG. The more complex the technology, the higher the engineering and maintenance costs, so choosing based on actual needs is more important than blindly pursuing "more advanced solutions".</p> Other Extensions
+</div>
+</div>
+<div class="archive-list" style="display:none;font-size: 14px;line-height: 1.8;margin-top: 20px;padding: 10px;">
+<div class="archive-list-item">
+<div class="post-intro" id="ai-info" style="width: 100%;">AI thinking...</div>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../ai-agent/python-reasoning-planning.html" rel="prev">Implementing Reasoning and Planning in Python</a> </div>
+<div class="next-design-link"><a href="../ai-agent/multi-agent-system.html" rel="next">Multi-Agent System</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="sidebar-box">
+</div>
+Note list
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>Click to Share Notes</h3>
+&lt;p style="font-size:14px;"&gt;Notes must be an extension of the content of this article!&lt;/p&gt;&lt;br&gt;
+&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;Article submission, click here&lt;/a&gt;&lt;/p&gt;
+&lt;p style="font-size:14px;"&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;How to get a registration invitation code&lt;/a&gt;&lt;/p&gt;
+&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; You must &lt;a href=";.html" class="runoob-pop"&gt;log in&lt;/a&gt; before sharing notes!&lt;/h3&gt;
+&lt;p&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;How to get a registration invitation code&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=";.html" id="cancel-comment-reply-link">Cancel</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="30008"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>Share notes</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">Nickname</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">Nickname (required)</span></li>
+<li class="form-inline"><label class="hide" for="email">Mailbox</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">Email (required)</span></li>
+<li class="form-inline"><label class="hide" for="url">Reference address</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">Reference URL</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  30008;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 30008, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":30008},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+</div>
+</div>
+<!-- 右边栏 -->
+<div class="fivecol last right-column">
+<style>
+.sidebar-tree .double-li {
+    width:300px;
+}
+.sidebar-tree .double-li li {
+    width: 44%;
+    line-height: 1.5em;
+    border-bottom: 1px solid #ccc;
+    float: left;
+    display: inline;
+}
+</style>
+<div class="sidebar-box re-box re-box-large">
+<div class="sidebar-box recommend-here" style="margin: 0 auto;">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;"> <i aria-hidden="true" class="fa fa-list"></i> 分类导航</a>
+</div>
+<div class="sidebar-box sidebar-cate">
+<div class="sidebar-tree">
+<ul><li style="margin: 0;"><a class="tit" href="#"> Python / 数据科学</a><ul class="double-li"><li><a href="../python3/python3-tutorial.html" title="Python 教程">Python 教程</a></li><li><a href="../python/python-tutorial.html" title="Python2.x 教程">Python2.x 教程</a></li><li><a href="../fastapi/fastapi-tutorial.html" title="FastAPI 教程">FastAPI 教程</a></li><li><a href="../flask/flask-tutorial.html" title="Flask 教程">Flask 教程</a></li><li><a href="../django/django-tutorial.html" title="Django 教程">Django 教程</a></li><li><a href="../numpy/numpy-tutorial.html" title="NumPy 教程">NumPy 教程</a></li><li><a href="../pandas/pandas-tutorial.html" title="Pandas 教程">Pandas 教程</a></li><li><a href="../scipy/scipy-tutorial.html" title="SciPy 教程">SciPy 教程</a></li><li><a href="../matplotlib/matplotlib-tutorial.html" title="Matplotlib 教程">Matplotlib 教程</a></li><li><a href="../dash/dash-tutorial.html" title="Dash 教程">Dash 教程</a></li><li><a href="../jupyter-notebook/jupyter-notebook-tutorial.html" title="Jupyter Notebook 教程">Jupyter Notebook 教程</a></li><li><a href="../pillow/pillow-tutorial.html" title="Pillow 教程">Pillow 教程</a></li><li><a href="../qt/qt-tutorial.html" title="量化交易">量化交易</a></li><li><a href="../r/r-tutorial.html" title="R 教程">R 教程</a></li><li><a href="../julia/julia-tutorial.html" title="Julia 教程">Julia 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> AI / 智能开发</a><ul class="double-li"><li><a href="../ai-agent/ai-agent-tutorial.html" title="AI Agent（智能体）">AI Agent（智能体）</a></li><li><a href="../ai/ai-tutorial.html" title="AI（人工智能）">AI（人工智能）</a></li><li><a href="../codex/codex-tutorial.html" title="Codex 教程">Codex 教程</a></li><li><a href="../vibe-coding/vibe-coding-tutorial.html" title="Vibe Coding 教程">Vibe Coding 教程</a></li><li><a href="../claude-code/claude-code-tutorial.html" title="Claude Code">Claude Code</a></li><li><a href="../opencode/opencode-tutorial.html" title="OpenCode">OpenCode</a></li><li><a href="../skills/skills-tutorial.html" title="Skills（技能）">Skills（技能）</a></li><li><a href="../ollama/ollama-tutorial.html" title="Ollama 教程">Ollama 教程</a></li><li><a href="../hermes-agent/hermes-agent-tutorial.html" title="Hermes Agent">Hermes Agent</a></li><li><a href="../deepseek-harness/deepseek-harness-tutorial.html" title="DeepSeek Harness">DeepSeek Harness</a></li><li><a href="../pi-agent/pi-agent-tutorial.html" title="Pi Agent">Pi Agent</a></li><li><a href="../ai-math/ai-math-tutorial.html" title="AI 数学基础">AI 数学基础</a></li><li><a href="../tensorflow/tensorflow-tutorial.html" title="TensorFlow 教程">TensorFlow 教程</a></li><li><a href="../pytorch/pytorch-tutorial.html" title="PyTorch 教程">PyTorch 教程</a></li><li><a href="../sklearn/sklearn-tutorial.html" title="Scikit-learn 教程">Scikit-learn 教程</a></li><li><a href="../ml/ml-tutorial.html" title="机器 教程">机器 教程</a></li><li><a href="../langchain/langchain-tutorial.html" title="LangChain">LangChain</a></li><li><a href="../nlp/nlp-tutorial.html" title="自然语言处理 NLP">自然语言处理 NLP</a></li><li><a href="../opencv/opencv-tutorial.html" title="OpenCV 教程">OpenCV 教程</a></li><li><a href="../selenium/selenium-tutorial.html" title="Selenium 教程">Selenium 教程</a></li><li><a href="../playwright/playwright-tutorial.html" title="Playwright 教程">Playwright 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 前端开发</a><ul class="double-li"><li><a href="../html/html-tutorial.html" title="HTML 教程">HTML 教程</a></li><li><a href="../html/html5-intro.html" title="HTML5 教程">HTML5 教程</a></li><li><a href="../css/css-tutorial.html" title="CSS 教程">CSS 教程</a></li><li><a href="../css3/css3-tutorial.html" title="CSS3 教程">CSS3 教程</a></li><li><a href="../js/js-tutorial.html" title="JavaScript 教程">JavaScript 教程</a></li><li><a href="../htmldom/htmldom-tutorial.html" title="HTML DOM 教程">HTML DOM 教程</a></li><li><a href="../typescript/ts-tutorial.html" title="TypeScript 教程">TypeScript 教程</a></li><li><a href="../ajax/ajax-tutorial.html" title="AJAX 教程">AJAX 教程</a></li><li><a href="../json/json-tutorial.html" title="JSON 教程">JSON 教程</a></li><li><a href="../tailwindcss/tailwindcss-tutorial.html" title="Tailwind CSS 教程">Tailwind CSS 教程</a></li><li><a href="../bootstrap4/bootstrap4-tutorial.html" title="Bootstrap4 教程">Bootstrap4 教程</a></li><li><a href="../bootstrap5/bootstrap5-tutorial.html" title="Bootstrap5 教程">Bootstrap5 教程</a></li><li><a href="../foundation/foundation-tutorial.html" title="Foundation 教程">Foundation 教程</a></li><li><a href="../vue2/vue-tutorial.html" title="Vue.js 教程">Vue.js 教程</a></li><li><a href="../vue3/vue3-tutorial.html" title="Vue3 教程">Vue3 教程</a></li><li><a href="../react/react-tutorial.html" title="React 教程">React 教程</a></li><li><a href="../nextjs/nextjs-tutorial.html" title="Next.js 教程">Next.js 教程</a></li><li><a href="../angularjs/angularjs-tutorial.html" title="AngularJS 教程">AngularJS 教程</a></li><li><a href="../angularjs2/angularjs2-tutorial.html" title="Angular 教程">Angular 教程</a></li><li><a href="../jquery/jquery-tutorial.html" title="jQuery 教程">jQuery 教程</a></li><li><a href="../jqueryui/jqueryui-tutorial.html" title="jQuery UI 教程">jQuery UI 教程</a></li><li><a href="../jeasyui/jqueryeasyui-tutorial.html" title="jQuery EasyUI 教程">jQuery EasyUI 教程</a></li><li><a href="../echarts/echarts-tutorial.html" title="ECharts 教程">ECharts 教程</a></li><li><a href="../chartjs/chartjs-tutorial.html" title="Chart.js 教程">Chart.js 教程</a></li><li><a href="../highcharts/highcharts-tutorial.html" title="Highcharts 教程">Highcharts 教程</a></li><li><a href="../googleapi/google-maps-basic.html" title="Google 地图 教程">Google 地图 教程</a></li><li><a href="../svg/svg-tutorial.html" title="SVG 教程">SVG 教程</a></li><li><a href="../font-awesome/fontawesome-tutorial.html" title="Font Awesome 教程">Font Awesome 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 后端开发</a><ul class="double-li"><li><a href="../nodejs/nodejs-tutorial.html" title="Node.js 教程">Node.js 教程</a></li><li><a href="../electron/electron-tutorial.html" title="Electron 教程">Electron 教程</a></li><li><a href="../php/php-tutorial.html" title="PHP 教程">PHP 教程</a></li><li><a href="../java/java-tutorial.html" title="Java 教程">Java 教程</a></li><li><a href="../go/go-tutorial.html" title="Go 教程">Go 教程</a></li><li><a href="../rust/rust-tutorial.html" title="Rust 教程">Rust 教程</a></li><li><a href="../csharp/csharp-tutorial.html" title="C# 教程">C# 教程</a></li><li><a href="../servlet/servlet-tutorial.html" title="Servlet 教程">Servlet 教程</a></li><li><a href="../jsp/jsp-tutorial.html" title="JSP 教程">JSP 教程</a></li><li><a href="../asp/asp-tutorial.html" title="ASP 教程">ASP 教程</a></li><li><a href="../appml/appml-tutorial.html" title="AppML 教程">AppML 教程</a></li><li><a href="../vbscript/vbscript-tutorial.html" title="VBScript 教程">VBScript 教程</a></li><li><a href="../swagger/swagger-tutorial.html" title="Swagger 教程">Swagger 教程</a></li><li><a href="../restfulapi/restful-api-tutorial.html" title="RESTful API 教程">RESTful API 教程</a></li><li><a href="../docker/docker-tutorial.html" title="Docker 教程">Docker 教程</a></li><li><a href="../linux/linux-tutorial.html" title="Linux 教程">Linux 教程</a></li><li><a href="../w3cnote/zookeeper-tutorial.html" title="ZooKeeper 教程">ZooKeeper 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 数据库</a><ul class="double-li"><li><a href="../sql/sql-tutorial.html" title="SQL 教程">SQL 教程</a></li><li><a href="../mysql/mysql-tutorial.html" title="MySQL 教程">MySQL 教程</a></li><li><a href="../postgresql/postgresql-tutorial.html" title="PostgreSQL 教程">PostgreSQL 教程</a></li><li><a href="../sqlite/sqlite-tutorial.html" title="SQLite 教程">SQLite 教程</a></li><li><a href="../mongodb/mongodb-tutorial.html" title="MongoDB 教程">MongoDB 教程</a></li><li><a href="../redis/redis-tutorial.html" title="Redis 教程">Redis 教程</a></li><li><a href="../memcached/memcached-tutorial.html" title="Memcached 教程">Memcached 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 移动开发</a><ul class="double-li"><li><a href="../w3cnote/android-tutorial-intro.html" title="Android 教程">Android 教程</a></li><li><a href="../flutter/flutter-tutorial.html" title="Flutter 教程">Flutter 教程</a></li><li><a href="../ionic/ionic-tutorial.html" title="Ionic 教程">Ionic 教程</a></li><li><a href="../jquerymobile/jquerymobile-tutorial.html" title="jQuery Mobile 教程">jQuery Mobile 教程</a></li><li><a href="../swift/swift-tutorial.html" title="Swift 教程">Swift 教程</a></li><li><a href="../kotlin/kotlin-tutorial.html" title="Kotlin 教程">Kotlin 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> DevOps / 工程化</a><ul class="double-li"><li><a href="../git/git-tutorial.html" title="Git 教程">Git 教程</a></li><li><a href="../svn/svn-tutorial.html" title="SVN 教程">SVN 教程</a></li><li><a href="../cmake/cmake-tutorial.html" title="CMake 教程">CMake 教程</a></li><li><a href="../maven/maven-tutorial.html" title="Maven 教程">Maven 教程</a></li><li><a href="../vscode/vscode-tutorial.html" title="VS Code 教程">VS Code 教程</a></li><li><a href="../obsidian/obsidian-tutorial.html" title="Obsidian 教程">Obsidian 教程</a></li><li><a href="../pycharm/pycharm-tutorial.html" title="PyCharm 教程">PyCharm 教程</a></li><li><a href="../eclipse/eclipse-tutorial.html" title="Eclipse 教程">Eclipse 教程</a></li><li><a href="../markdown/md-tutorial.html" title="Markdown 教程">Markdown 教程</a></li><li><a href="../latex/latex-tutorial.html" title="LaTeX 教程">LaTeX 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 编程语言</a><ul class="double-li"><li><a href="../c/c-tutorial.html" title="C 教程">C 教程</a></li><li><a href="../cplusplus/cpp-tutorial.html" title="C++ 教程">C++ 教程</a></li><li><a href="../zig/zig-tutorial.html" title="Zig 教程">Zig 教程</a></li><li><a href="../scala/scala-tutorial.html" title="Scala 教程">Scala 教程</a></li><li><a href="../ruby/ruby-tutorial.html" title="Ruby 教程">Ruby 教程</a></li><li><a href="../perl/perl-tutorial.html" title="Perl 教程">Perl 教程</a></li><li><a href="../lua/lua-tutorial.html" title="Lua 教程">Lua 教程</a></li><li><a href="../dart/dart-tutorial.html" title="Dart 教程">Dart 教程</a></li><li><a href="../assembly/assembly-tutorial.html" title="汇编语言 教程">汇编语言 教程</a></li><li><a href="../w3cnote/verilog-tutorial.html" title="Verilog 教程">Verilog 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 计算机基础</a><ul class="double-li"><li><a href="../computer-organization/computer-organization-tutorial.html" title="计算机组成原理">计算机组成原理</a></li><li><a href="../data-structures/data-structures-tutorial.html" title="数据结构与算法">数据结构与算法</a></li><li><a href="../c-dsa/c-dsa-tutorial.html" title="C 语言数据结构与算法">C 语言数据结构与算法</a></li><li><a href="../design-pattern/design-pattern-tutorial.html" title="设计模式">设计模式</a></li><li><a href="../python-design-pattern/python-design-pattern-tutorial.html" title="Python 设计模式">Python 设计模式</a></li><li><a href="../regexp/regexp-tutorial.html" title="正则表达式">正则表达式</a></li><li><a href="../http/http-tutorial.html" title="HTTP 教程">HTTP 教程</a></li><li><a href="../tcpip/tcpip-tutorial.html" title="TCP/IP 教程">TCP/IP 教程</a></li><li><a href="../np/np-tutorial.html" title="网络协议">网络协议</a></li><li><a href="../w3c/w3c-tutorial.html" title="W3C 教程">W3C 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> XML / Web Service</a><ul class="double-li"><li><a href="../xml/xml-tutorial.html" title="XML 教程">XML 教程</a></li><li><a href="../dtd/dtd-tutorial.html" title="DTD 教程">DTD 教程</a></li><li><a href="../dom/dom-tutorial.html" title="XML DOM 教程">XML DOM 教程</a></li><li><a href="../xsl/xsl-tutorial.html" title="XSLT 教程">XSLT 教程</a></li><li><a href="../xpath/xpath-tutorial.html" title="XPath 教程">XPath 教程</a></li><li><a href="../xquery/xquery-tutorial.html" title="XQuery 教程">XQuery 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XLink 教程">XLink 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XPointer 教程">XPointer 教程</a></li><li><a href="../schema/schema-tutorial.html" title="XML Schema 教程">XML Schema 教程</a></li><li><a href="../xslfo/xslfo-tutorial.html" title="XSL-FO 教程">XSL-FO 教程</a></li><li><a href="../webservices/webservices-tutorial.html" title="Web Service 教程">Web Service 教程</a></li><li><a href="../wsdl/wsdl-tutorial.html" title="WSDL 教程">WSDL 教程</a></li><li><a href="../soap/soap-tutorial.html" title="SOAP 教程">SOAP 教程</a></li><li><a href="../rss/rss-tutorial.html" title="RSS 教程">RSS 教程</a></li><li><a href="../rdf/rdf-tutorial.html" title="RDF 教程">RDF 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> .NET</a><ul class="double-li"><li><a href="../aspnet/aspnet-tutorial.html" title="ASP.NET 教程">ASP.NET 教程</a></li><li><a href="../aspnet/mvc-intro.html" title="MVC 教程">MVC 教程</a></li><li><a href="../aspnet/razor-intro.html" title="Razor 教程">Razor 教程</a></li><li><a href="../aspnet/aspnet-intro.html" title="Web Forms 教程">Web Forms 教程</a></li><li><a href="../aspnet/webpages-intro.html" title="Web Pages 教程">Web Pages 教程</a></li><li><a href="../powershell/powershell-tutorial.html" title="PowerShell 教程">PowerShell 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 网站建设</a><ul class="double-li"><li><a href="../web/web-buildingprimer.html" title="网站建设指南">网站建设指南</a></li><li><a href="../browsers/browser-information.html" title="浏览器信息">浏览器信息</a></li><li><a href="../hosting/hosting-tutorial.html" title="网站主机教程">网站主机教程</a></li><li><a href="../quality/quality-tutorial.html" title="网站品质">网站品质</a></li></ul></li></ul> </div>
+</div>
+</div>
+<br/>
+<div class="sidebar-box re-box re-box-large">
+</div>
+</div></div>
+</div>
+<script>
+var aid = 30008;
+function coll() {
+	$.post( '/wp-content/themes/runoob/option/user/userinfo.php', {aid:aid, action:"collarticle", opt:'add'},function( data ) {
+		if(data.error==0) {
+			$("#content").find("h1:first").find("a").attr("href","javascript:void(0);");
+			$("#content").find("h1:first").find("img").attr("src","http://www.runoob.com/wp-content/themes/runoob/assets/img/coll2.png").css({width:32+"px",height:32+"px"});
+		}
+		alert(data.msg);
+	},'json');
+}
+
+(function () {
+    // 1. 仅 HTML 页面
+    if (!document.contentType || !document.contentType.includes('text/html')) return;
+
+    // 2. 容器判断
+    var container = document.querySelector('.article-intro');
+    if (!container) return;
+
+    var h1 = container.querySelector('h1');
+    if (!h1) return;
+
+    // 3. URL 判断
+    var url = window.location.href.toLowerCase();
+    var version = null;
+
+    if (url.includes('/python3/')) {
+        version = 'Python3.x';
+    } else if (url.includes('/python/')) {
+        version = 'Python2.x';
+    }
+
+    if (!version) return;
+
+    // 4. 防重复
+    if (h1.querySelector('.py-version-badge')) return;
+
+    // 5. 创建标签
+    var badge = document.createElement('span');
+    badge.className = 'py-version-badge';
+    badge.innerText = version;
+
+    // 6. 样式（核心：float 实现右上角）
+    badge.style.float = 'right';
+    badge.style.fontSize = '12px';
+    badge.style.padding = '2px 8px';
+    badge.style.borderRadius = '999px';
+
+   // 自适应亮/暗色 + 渐变背景（增强版）
+	badge.style.color = 'inherit';
+
+	// 渐变背景（低透明度，不影响暗黑模式）
+	if (version.includes('3')) {
+		badge.style.background = 'linear-gradient(90deg, rgba(79,172,254,0.15), rgba(0,242,254,0.15))';
+	} else {
+		badge.style.background = 'linear-gradient(90deg, rgba(161,140,209,0.15), rgba(251,194,235,0.15))';
+	}
+
+	// 边框弱化（更精致）
+	badge.style.border = '1px solid rgba(127,127,127,0.3)';
+
+	// 提升可读性
+	badge.style.opacity = '0.95';
+
+    // 微调位置（更贴近“右上角”）
+    badge.style.marginTop = '4px';
+    badge.style.marginLeft = '10px';
+
+    // 7. 插入到 h1 最前面（让 float 生效更稳定）
+    h1.insertBefore(badge, h1.firstChild);
+
+})();
+</script>
+<!-- 反馈对话框开始 -->
+<script src="../wp-content/themes/runoob/assets/js/runoob-article-dir.min.js"></script>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

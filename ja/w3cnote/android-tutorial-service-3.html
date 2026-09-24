@@ -1,0 +1,1463 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>4.2.3 Service精通 | 初心者向けチュートリアル</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="./android-tutorial-service-3.html" rel="canonical"/>
+<meta content="4.2.3 Service精通" name="keywords"/>
+<meta content="本节引言：  本节，我们继续来研究Service(服务)组件，本节将会学习下Android中的AIDL跨进程通信的一些 概念，并不深入到源码层次，暂时知道是什么，会用即可！开始本节内容~ 本节对应官方文档：Binder    1.Binder机制初涉    1）IBinder和Binder是什么鬼？  我们来看看官方文档怎么说：    中文翻译：  IBinder是远程对象的基本接口，是饿了高性能而设计的轻量级远程调用机制的核心部分。但.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div><!-- 导航栏 -->
+<!--  内容  -->
+<div class="container main">
+<div class="row">
+<!--  Android 基础入门教程 start  -->
+<div class="col left-column" style="display:none;">
+<div class="tab">Android 基础入门教程</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+</div>
+</div>
+</div>
+<!--  Android 基础入门教程 end  -->
+<div class="col middle-column big-middle-column">
+<div class="article">
+<div class="article-heading">
+<h2>4.2.3 Service精通</h2> <h3><em>カテゴリ</em> <a href="../w3cnote_genre/android.html" title="Android 基础入门教程">Android 基礎入門チュートリアル</a> </h3>
+</div>
+<div class="article-body note-body">
+<div class="article-intro">
+<!-- ad start-->
+<!-- ad end-->
+<h2>この節の導入：</h2>
+<blockquote><p>この節では、引き続きService（サービス）コンポーネントについて研究します。この節では、AndroidのAIDLプロセス間通信のいくつかの概念を学びます。ソースコードのレベルには深く立ち入らず、とりあえずそれが何かを知って、使えれば十分です！それではこの節の内容を始めましょう。
+この節に対応する公式ドキュメント：<a href="http://developer.android.com/intl/zh-cn/reference/android/os/Binder.html">Binder</a></p></blockquote>
+<hr/>
+<h2>1. Binderメカニズム初歩</h2>
+<hr/>
+<h3>1）IBinderとBinderって何者？</h3>
+<p>公式ドキュメントがどう言っているか見てみましょう：</p>
+<p><img alt="" decoding="async" src="../wp-content/uploads/2015/08/12024442.jpg"/></p>
+<p>日本語訳：</p>
+<blockquote><p>IBinderはリモートオブジェクトの基本インターフェースであり、高性能のために設計された軽量なリモート呼び出しメカニズムの中核部分です。しかし、リモート呼び出しだけでなく、プロセス内呼び出しにも使用されます。このインターフェースは、リモートオブジェクトと対話するためのプロトコルを定義します。ただし、このインターフェースを直接実装するのではなく、<strong>継承</strong>(extends)<strong>Binder</strong>。</p>
+<p>IBinderの主要なAPIは<strong>transact()</strong>、それに対応するAPIは<strong>Binder.onTransact()</strong>です。前者を使うと、リモートのIBinderオブジェクトに呼び出しを送信でき、後者によってリモートオブジェクトは受け取った呼び出しに応答できます。IBinderのAPIはすべて<strong>Syncronous（同期）</strong>で実行されます。例えば<strong>transact()</strong>相手のメソッド呼び出しが完了するまで<strong>Binder.onTransact()</strong>戻りません。プロセス内で呼び出しが発生する場合は確かにこのようになりますが、プロセス間の場合は、<strong>IPC</strong>Binderの助けを借りても同じ効果です。</p>
+<p>を通じて<strong>transact()</strong>送信されるデータは<strong>Parcel</strong>、Parcelは一般的なバッファであり、データの他にその内容を記述するメタデータも含んでいます。メタデータはIBinderオブジェクトの参照を管理するために使用され、これによりバッファがプロセスからプロセスへ移動する際にこれらの参照を保存できます。これにより、あるIBinderがParcelに書き込まれて別のプロセスに送信されたとき、もし別のプロセスが同じIBinderの参照を元のプロセスに送り返すと、元のプロセスは送信したそのIBinderの参照を受け取ることができます。このメカニズムにより、IBinderとBinderはプロセス間で一意の識別子のように管理されます。</p>
+<p>システムは各プロセスに対して、インタラクションスレッドを格納するスレッドプールを維持しています。これらのインタラクションスレッドは、他のプロセスから送信されたすべてのIPC呼び出しを配送するために使用されます。例えば、IPCがプロセスAからプロセスBに送信されると、Aの中でその呼び出しを発信したスレッド（これはスレッドプールにはないはずです）はブロックされ<strong>transact()</strong>た状態になります。<strong>Binder.onTransact()</strong>プロセスBのインタラクションスレッドプール内の1つのスレッドがこの呼び出しを受信し、それを呼び出し</p>
+<p>、完了後にParcelを使って結果として返します。その後、プロセスAで待機していたスレッドは、返されたParcelを受け取った後、実行を続行できます。実際には、別のプロセスは現在のプロセスの1つのスレッドのように見えますが、現在のプロセスによって作成されたものではありません。</p>
+<p>リモートオブジェクトを操作するとき、それらが有効かどうかを確認する必要がよくあります。使用できる方法は3つあります：</p>
+<ul>
+<li>1. transact()メソッドは、IBinderが存在するプロセスが存在しない場合にRemoteException例外をスローします。</li>
+<li>2. ターゲットプロセスが存在しない場合、pingBinder()を呼び出すとfalseが返ります。</li>
+<li>3. linkToDeath()メソッドを使ってIBinderにIBinder.DeathRecipientを登録できます。これはIBinderが表すプロセスが終了したときに呼び出されます。</li>
+</ul>
+<p>PS: 翻訳は以下から引用：<a href="http://blog.csdn.net/niu_gao/article/details/6453218">Android開発：IBinderとは</a></p></blockquote>
+<p>さて、上記の一連の内容を読み終えても、おそらく頭が混乱しているかもしれません。ここで簡単にまとめます：</p>
+<p><strong>IBinderはAndroidが私たちに提供するプロセス間通信用のインターフェースであり、通常はこのインターフェースを直接実装するのではなく、</strong>
+<strong>Binderクラスを継承してプロセス間通信を実装します！これはAndroidでIPC（プロセス間通信）を実現する方法の1つです！</strong></p>
+<hr/>
+<h3>2）Binderメカニズムの簡単な分析</h3>
+<blockquote><p>AndroidのBinderメカニズムは一連のシステムコンポーネントで構成されています：<strong>Client、Server、Service Manager、Binderドライバ</strong></p></blockquote>
+<p>おおよその呼び出しフローは以下の通りです。また、Service Managerは複雑なので、ここでは詳しく研究しません！</p>
+<p><img alt="" decoding="async" src="../wp-content/uploads/2015/08/40423368.jpg"/></p>
+<p><strong>フロー解析：</strong></p>
+<blockquote><p><strong>-&gt;</strong>Clientが何らかのプロキシインターフェースのメソッドを呼び出すと、プロキシインターフェースのメソッドはClientから渡されたパラメータをParcelオブジェクトにパッケージ化します；<br/>
+<strong>-&gt;</strong>その後、プロキシインターフェースはそのParcelオブジェクトをカーネル内のBinderドライバに送信します；<br/>
+<strong>-&gt;</strong>その後、ServerはBinder Driver内のリクエストデータを読み取ります。もし自分宛てに送信されたものであれば、Parcelオブジェクトを解包し、処理して結果を返します；<br/>PS：プロキシインターフェースで定義されたメソッドとServerで定義されたメソッドは一対一に対応しています。また、呼び出しプロセス全体は同期であり、つまりServerが処理している間、ClientはBlock（ロック）されます！そして、ここで言うプロキシインターフェースの定義とは、後で説明する<strong>AIDL</strong>（Androidインターフェース記述言語）！</p></blockquote>
+<hr/>
+<h3>3）なぜAndroidはプロセス間通信にBinderメカニズムを使用するのか？</h3>
+<blockquote><ol>
+<li><strong>信頼性</strong>：モバイルデバイスでは、通常、Client-Serverベースの通信方式を採用して、インターネットとデバイス間の内部通信を実現します。現在LinuxがサポートするIPCには、従来のパイプ、System V IPC（メッセージキュー/共有メモリ/セマフォ）、およびsocketが含まれますが、Client-Server通信方式をサポートするのはsocketだけです。Androidシステムは開発者に豊富なプロセス間通信の機能インターフェースを提供しています。メディア再生、センサー、ワイヤレス転送などです。これらの機能はすべて異なるserverによって管理されています。開発者は自分のアプリケーションのclientとserverの通信を確立することだけを気にすれば、このサービスを利用できます。疑いなく、底层にClient-Server通信を実現するためのプロトコルを構築すると、システムの複雑さが増します。リソースが限られたスマートフォンでこのような複雑な環境を実装する場合、信頼性は保証しにくいです。</li>
+<li><strong>伝送性能</strong>：socketは主にネットワークを越えたプロセス間通信と同一ホスト上のプロセス間通信に使用されますが、伝送効率が低く、オーバーヘッドが大きいです。メッセージキューとパイプはストアアンドフォワード方式を採用しています。つまり、データはまず送信側のバッファからカーネルが開設したバッファにコピーされ、その後カーネルバッファから受信側のバッファにコピーされます。その過程で少なくとも2回のコピーがあります。共有メモリはコピーが不要ですが、制御が複雑です。各種IPC方式のデータコピー回数を比較すると、共有メモリ：0回。Binder：1回。Socket/パイプ/メッセージキュー：2回。</li>
+<li><strong>安全性</strong>：Androidはオープンなプラットフォームであるため、アプリケーションの安全性を確保することが非常に重要です。AndroidはインストールされたすべてのアプリケーションにUID/PIDを割り当てます。そのうちプロセスのUIDはプロセスIDを識別するために使用できます。従来はユーザーがデータパケット内にUID/PIDを記入するだけだったため、信頼性が低く、悪意のあるプログラムに悪用されやすいです。しかし、私たちはカーネルが信頼できるUIDを追加することを要求します。そのため、信頼性、伝送性、安全性の観点から、Androidは新しいプロセス間通信方式を確立しました。――出典：<a href="http://www.linuxidc.com/Linux/2012-07/66195.htm">AndroidにおけるBinderメカニズムの簡単な理解</a></li>
+</ol>
+</blockquote>
+<p>もちろん、初級開発者として私たちは上記のことを気にしません。Binderメカニズムが私たちにもたらす最も直接的な利点は次のとおりです：<strong>私たちは底层がどのように実装されているかを気にする必要はありません。AIDLのルールに従って、独自のインターフェースファイルを定義し、</strong>
+<strong>その後、インターフェース内のメソッドを呼び出せば、2つのプロセス間の通信を完了できます！</strong></p>
+<hr/>
+<h2>2. AIDL使用詳細解説</h2>
+<hr/>
+<h3>1）AIDLとは？</h3>
+<blockquote><p>えへへ、先ほど説明した<strong>IPC</strong>この用語の正式名称は次のとおりです：<strong>プロセス間通信（interprocess communication）、</strong>なぜなら、Androidシステムでは、各アプリケーションが自分のプロセス内で実行されており、プロセス間では通常、直接データ交換ができないからです。そして、プロセス間通信を実現するために、Androidは前述のBinderメカニズムを提供しています。このメカニズムが使用するインターフェース言語は次のとおりです：<strong>AIDL</strong>(Android Interface Definition Language) は構文が非常に簡単で、このインターフェース言語は実際のプログラミング言語ではなく、単に2つのプロセス間の通信インターフェースを定義するだけです！そして、通信プロトコルに準拠したJavaコードを生成するのは、Android SDKのplatform-toolsディレクトリ内の<strong>aidl.exe</strong>ツールによって生成され、対応するインターフェースファイルはgenディレクトリの下に生成されます。一般的にはXxx.javaというインターフェースです！そしてそのインターフェース内には、<strong>Stub</strong>の内部クラスがあり、そのクラス内では<strong>IBinder</strong>インターフェースとカスタム通信インターフェースを実装しています。このクラスはリモートServiceのコールバッククラスとして使用されます。IBinderインターフェースを実装しているため、ServiceのonBind()メソッドの戻り値として使えます！</p></blockquote>
+<hr/>
+<h3>2）AIDLによる2つのプロセス間の簡単な通信の実現</h3>
+<p>AIDLインターフェースファイルの作成を始める前に、AIDLを書く際の注意事項をいくつか理解しておきましょう：</p>
+<p><strong>AIDLの注意事項：</strong></p>
+<blockquote><ul>
+<li>インターフェース名はaidlファイル名と同じである必要があります。</li>
+<li>インターフェースとメソッドの前には<strong>アクセス修飾子を付けないでください。</strong>public、private、protectedなどは使えません。また、static finalも使えません！</li>
+<li>AIDLがデフォルトでサポートする型には、以下が含まれます：<strong>Javaの基本型</strong>，<strong>String</strong>，<strong>List</strong>，<strong>Map</strong>，<strong>CharSequence</strong>それ以外の型はすべてimport宣言が必要です。カスタム型をパラメータや戻り値として使用する場合、カスタム型はParcelableインターフェースを実装する必要があります。詳細は後述の「複雑なデータ型の受け渡し」を参照してください。</li>
+<li>カスタム型とAIDLで生成された他のインターフェース型は、aidl記述ファイル内で明示的にimportする必要があります。たとえそのクラスが定義されたパッケージと同じパッケージ内にある場合でも同様です。</li>
+</ul>
+<p>また、aidlを書くために使うコンパイラがEclipseの場合、注意してください：直接new fileで作成しないでください！そうするとファイルを開けず、コードを書くことができません！<br/>① まずtxtファイルを新規作成し、内容を書いた後、.aidl形式で保存し、対応するパスにコピーします。<br/>② aidlはインターフェースと似ているので、直接new interfaceで作成し、内容を書いたら、対応するjavaファイルがあるディレクトリに移動してファイルの拡張子を変更します。</p>
+<p>Android Studioを使用する場合、Eclipseとは異なります。Eclipseと同じようにAIDLファイルを作成すると、対応するXXX.javaファイルがコンパイル生成されないことがわかります。ASでAIDLを作成するには、mainディレクトリの下にaidlフォルダを新規作成し、aidlのパッケージ名と同じパッケージを定義し、最後にaidlファイルを作成して、ctrl + f9で再コンパイルすればOKです。</p>
+<p><img alt="" decoding="async" src="../wp-content/uploads/2015/08/10624316.jpg"/></p>
+<p>上記の2つの方法で正常にコンパイルされた結果は以下のとおりです。それぞれ対応するディレクトリで対応するAIDLファイルを見つけることができます。</p>
+<p><img alt="" decoding="async" src="../wp-content/uploads/2015/08/83128316.jpg"/> <img alt="" decoding="async" src="../wp-content/uploads/2015/08/25437793.jpg"/></p></blockquote>
+<hr/>
+<p><strong>1. サーバー側：</strong></p>
+<p><strong>Step 1：</strong>AIDLファイルを作成：</p>
+<p><strong>IPerson.aidl</strong>
+</p>
+<pre>
+package com.jay.aidl;
+
+interface IPerson {
+    String queryPerson(int num);
+}
+</pre>
+<p><strong>IPerson.javaを開いて、その中のコードを見てみましょう：</strong></p><p>
+<strong>IPerson.java</strong></p>
+<pre>
+/*
+ * This file is auto-generated.  DO NOT MODIFY.
+ * Original file: C:\\Code\\ASCode\\AIDLServer\\app\\src\\main\\aidl\\com\\jay\\aidl\\IPerson.aidl
+ */
+package com.jay.aidl;
+public interface IPerson extends android.os.IInterface
+{
+/** Local-side IPC implementation stub class. */
+public static abstract class Stub extends android.os.Binder implements com.jay.aidl.IPerson
+{
+private static final java.lang.String DESCRIPTOR = "com.jay.aidl.IPerson";
+/** Construct the stub at attach it to the interface. */
+public Stub()
+{
+this.attachInterface(this, DESCRIPTOR);
+}
+/**
+ * Cast an IBinder object into an com.jay.aidl.IPerson interface,
+ * generating a proxy if needed.
+ */
+public static com.jay.aidl.IPerson asInterface(android.os.IBinder obj)
+{
+if ((obj==null)) {
+return null;
+}
+android.os.IInterface iin = obj.queryLocalInterface(DESCRIPTOR);
+if (((iin!=null)&amp;&amp;(iin instanceof com.jay.aidl.IPerson))) {
+return ((com.jay.aidl.IPerson)iin);
+}
+return new com.jay.aidl.IPerson.Stub.Proxy(obj);
+}
+@Override public android.os.IBinder asBinder()
+{
+return this;
+}
+@Override public boolean onTransact(int code, android.os.Parcel data, android.os.Parcel reply, int flags) throws android.os.RemoteException
+{
+switch (code)
+{
+case INTERFACE_TRANSACTION:
+{
+reply.writeString(DESCRIPTOR);
+return true;
+}
+case TRANSACTION_queryPerson:
+{
+data.enforceInterface(DESCRIPTOR);
+int _arg0;
+_arg0 = data.readInt();
+java.lang.String _result = this.queryPerson(_arg0);
+reply.writeNoException();
+reply.writeString(_result);
+return true;
+}
+}
+return super.onTransact(code, data, reply, flags);
+}
+private static class Proxy implements com.jay.aidl.IPerson
+{
+private android.os.IBinder mRemote;
+Proxy(android.os.IBinder remote)
+{
+mRemote = remote;
+}
+@Override public android.os.IBinder asBinder()
+{
+return mRemote;
+}
+public java.lang.String getInterfaceDescriptor()
+{
+return DESCRIPTOR;
+}
+@Override public java.lang.String queryPerson(int num) throws android.os.RemoteException
+{
+android.os.Parcel _data = android.os.Parcel.obtain();
+android.os.Parcel _reply = android.os.Parcel.obtain();
+java.lang.String _result;
+try {
+_data.writeInterfaceToken(DESCRIPTOR);
+_data.writeInt(num);
+mRemote.transact(Stub.TRANSACTION_queryPerson, _data, _reply, 0);
+_reply.readException();
+_result = _reply.readString();
+}
+finally {
+_reply.recycle();
+_data.recycle();
+}
+return _result;
+}
+}
+static final int TRANSACTION_queryPerson = (android.os.IBinder.FIRST_CALL_TRANSACTION + 0);
+}
+public java.lang.String queryPerson(int num) throws android.os.RemoteException;
+}
+</pre><p>ここで注目するのは、**asInterface(IBinder)** と、私たちが定義したインターフェース内の **queryPerson()** メソッドだけです！</p><p>このメソッドは、IBinder型のオブジェクトをIPerson型に変換し、必要に応じて代理オブジェクトを生成して結果を返します！</p><p>その他は見なくても問題ないので、そのままスキップして次のステップに進みます。</p>
+<p><b>ステップ2：**Serviceクラスをカスタマイズして、以下の操作を実行します：</b></p>
+<p>1) Serviceクラスを継承し、同時にPersonQueryBinderクラスをカスタマイズして、<b>IPerson.Stubクラスを継承します。</b>つまり<b>IPersonインターフェースとIBinderインターフェースを実装します。</b></p><p>2) カスタマイズしたStubクラスをインスタンス化し、ServiceのonBindメソッドをオーバーライドして、binderオブジェクトを返します！</p><p><b>AIDLService.java</b></p>
+<pre>
+package com.jay.aidlserver;
+
+import android.app.Service;
+import android.content.Intent;
+import android.os.IBinder;
+import android.os.RemoteException;
+import com.jay.aidl.IPerson.Stub;
+
+/**
+ * Created by Jay on 2015/8/18 0018.
+ */
+public class AIDLService extends Service {
+
+    private IBinder binder = new PersonQueryBinder();
+    private String[] names = {"B神","艹神","基神","J神","翔神"};
+
+    private String query(int num)
+    {
+        if(num &gt; 0 &amp;&amp; num &lt; 6){
+            return names[num - 1];
+        }
+        return null;
+    }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
+    }
+
+    private final class PersonQueryBinder extends Stub{
+        @Override
+        public String queryPerson(int num) throws RemoteException {
+            return query(num);
+        }
+    }
+}
+</pre>
+<p><strong>Step 3：</strong>AndroidManifest.xmlファイルでServiceを登録します。</p>
+<pre>
+&lt;service android:name=".AIDLService"&gt;
+            &lt;intent-filter&gt;
+                &lt;action android:name="android.intent.action.AIDLService" /&gt;
+                &lt;category android:name="android.intent.category.DEFAULT" /&gt;
+            &lt;/intent-filter&gt;
+        &lt;/service&gt;
+</pre>
+<p>ここではActivityの画面は用意していませんが、このアプリが提供するServiceは他のアプリから呼び出せます！</p>
+<hr/>
+<p data-anchor-id="5gyv"><strong>2. クライアント側</strong> <br/>サーバー側のaidlファイルをそのままコピーし、MainActivity内で直接行います。ローカルServiceのバインド操作と<br/>少し似ています。処理の流れは以下のとおりです：<br/>1) PersonConnectionクラスをカスタマイズします。<strong>ServiceConnectionインターフェースを実装します。</strong> <br/>2) PersonConnectionオブジェクトをパラメータとして、bindServiceを呼び出し、リモートServiceをバインドします。<br/>
+<strong>bindService(service,conn,BIND_AUTO_CREATE);</strong> <br/>ps: 3つ目のパラメータは、サービスが起動していない場合に自動的に作成するための設定です。<br/>3) ローカルServiceとは異なり、<strong>リモートServiceをバインドするServiceConnectionでは、ServiceのonBind()メソッド</strong> <br/>が返すIBinderオブジェクトを直接取得することはできず、取得できるのは<strong>onBind( )</strong>メソッドが返す<strong>代理オブジェクトだけです。</strong>次のような処理が必要です：<br/>
+<strong>iPerson = IPerson.Stub.asInterface(service);</strong> <br/>続いて、初期化やボタンイベントなどを実装すれば完了です。</p>
+<p>具体的なコードは次のとおりです：</p>
+<p><strong>MainActivity.java</strong>
+</p>
+<pre>
+package com.jay.aidlclient;
+
+import android.content.ComponentName;
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.os.Bundle;
+import android.os.IBinder;
+import android.os.RemoteException;
+import android.support.v7.app.AppCompatActivity;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
+
+import com.jay.aidl.IPerson;
+
+public class MainActivity extends AppCompatActivity implements View.OnClickListener{
+
+    private EditText edit_num;
+    private Button btn_query;
+    private TextView txt_name;
+    private IPerson iPerson;
+    private PersonConnection conn = new PersonConnection();
+
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        bindViews();
+        //绑定远程Service
+        Intent service = new Intent("android.intent.action.AIDLService");
+        service.setPackage("com.jay.aidlserver");
+
+        bindService(service, conn, BIND_AUTO_CREATE);
+        btn_query.setOnClickListener(this);
+    }
+
+    private void bindViews() {
+        edit_num = (EditText) findViewById(R.id.edit_num);
+        btn_query = (Button) findViewById(R.id.btn_query);
+        txt_name = (TextView) findViewById(R.id.txt_name);
+    }
+
+    @Override
+    public void onClick(View v) {
+        String number = edit_num.getText().toString();
+        int num = Integer.valueOf(number);
+        try {
+            txt_name.setText(iPerson.queryPerson(num));
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+        edit_num.setText("");
+    }
+
+    private final class PersonConnection implements ServiceConnection {
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            iPerson = IPerson.Stub.asInterface(service);
+        }
+        public void onServiceDisconnected(ComponentName name) {
+            iPerson = null;
+        }
+    }
+}
+</pre>
+<p>次に、まずAIDLServivceを起動し、その後AIDLClientを起動して、照会番号を入力すると、対応する名前が取得できます！もちろん、AIDLClientを直接起動しても同じ結果が得られます：</p>
+<p><strong>効果図は以下のとおりです：</strong></p>
+<p><img alt="" decoding="async" src="../wp-content/uploads/2015/08/16117222.jpg"/></p>
+<hr/>
+<h3>3）複雑なデータを渡すAIDL Service</h3>
+<blockquote><p>上記の例では、int型のパラメータだけを渡し、サーバー側はString型のパラメータを返しました。一見すると基本的なニーズを満たしているように見えますが、実際の開発では、複雑なデータ型を渡すケースを考慮する必要があるかもしれません！次に、サーバー側に複雑なデータ型のデータを渡す方法を学びましょう。始める前に、まず次について理解しておきましょう。<strong>Parcelableインターフェース</strong>！</p></blockquote>
+<p><strong>——Parcelableインターフェースの紹介：</strong></p>
+<p>シリアライズを使ったことがある人なら、このインターフェースをご存知でしょう。これ以外にもSerializableという別のインターフェースがあり、同じくシリアライズに使用されます。ただし、Parcelableはより軽量で高速です！しかし、書くのは少し面倒です。もちろん、ASを使っているなら、プラグインを使ってシリアライズを完了することもできます。例えば：<strong>Android Parcelable Code Generator</strong>もちろん、ここではこのインターフェースの実装方法を丁寧に説明します。</p>
+<p><strong>まず</strong>実装する必要があるのは：<strong>writeToParcel</strong>和<strong>readFromPacel</strong>書き込みメソッドはオブジェクトをparcelに書き込み、読み取りメソッドはparcelからオブジェクトを読み取ります。書き込む属性の順序は読み取る順序と一致している必要があることに注意してください。</p>
+<p><strong>次に</strong>このクラスに、次の名前の<strong>CREATOR</strong>的<strong>static final</strong>属性を追加する必要があります。この属性は、android.os.Parcelable.Creator<t>インターフェースを実装する必要があります。</t></p>
+<p><strong>さらに</strong>インターフェース内の2つのメソッドをオーバーライドする必要があります：<strong>createFromParcel</strong>createFromParcel(Parcel source)メソッド：sourceからJavaBeanインスタンスを作成する機能を実装します。<strong>newArray</strong>newArray(int size)メソッド：型T、長さsizeの配列を作成します。単にreturn new T[size]; と書くだけです（ここでのTはPersonクラスです）。</p>
+<p><strong>最後に、describeContents()</strong>が何に使うのか私もよくわかりませんが、直接0を返すだけでOKです！気にしなくて大丈夫です。</p>
+<p><strong>——また</strong>，<strong>非プリミティブ型のうち、</strong>String以外は、<strong>String</strong>和<strong>CharSequence</strong>その他すべてが<strong>方向指示子を1つ必要とします。</strong>方向指示子には<strong>in</strong>、<strong>out</strong>、<strong>in、out、inoutがあります。</strong>inはクライアント側で設定されることを表し、outはサーバー側で設定されることを表し、inoutはクライアント側とサーバー側の両方で設定されることを表します。</p>
+<hr/>
+<p>では、続いてコードを書いて試してみましょう（ASではカスタム型に問題があり、まだ解決していないので、Eclipseに戻って行います）：</p>
+<p><strong>コード例：</strong></p>
+<p>PersonとSalaryという2つのオブジェクト型を定義します。PersonはリモートServiceを呼び出すためのパラメータ、Salaryは戻り値として使用します！まず最初に行うのは、PersonクラスとSalaryクラスを作成し、同時にParcelableインターフェースを実装することです。</p>
+<p><strong>1. ——サーバー側</strong></p>
+<p><strong>Step 1</strong>Person.aidlとSalary.aidlファイルを作成します。それらはParcelableインターフェースを実装する必要があるため、次の1つのステートメントだけを記述します：</p>
+<pre>
+Person.aidl:     parcelable Person; 
+Salary.aidl:     parcelable Salary; 
+</pre>
+<strong>Step 2</strong>PersonクラスとSalaryクラスをそれぞれ作成し、Parcelableインターフェースを実装して、対応するメソッドをオーバーライドします！
+<blockquote><p>PS: 後でPersonオブジェクトに基づいてMapコレクションのデータを取得するため、Person.javaではhashCodeとequalsメソッドをオーバーライドしています。Salaryクラスでは必要ありません！</p></blockquote>
+<p><strong>Person.java:</strong>
+</p>
+<pre>
+package com.jay.example.aidl; 
+
+import android.os.Parcel;
+import android.os.Parcelable;
+
+/**
+ * Created by Jay on 2015/8/18 0018.
+ */
+public class Person implements Parcelable{
+
+    private Integer id;
+    private String name;
+
+    public Person() {}
+
+    public Person(Integer id, String name) {
+        this.id = id;
+        this.name = name;
+    }
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+
+    //实现Parcelable必须实现的方法,不知道拿来干嘛的,直接返回0就行了
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+
+    //写入数据到Parcel中的方法
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        //把对象所包含的数据写入到parcel中
+        dest.writeInt(id);
+        dest.writeString(name);
+    }
+
+    //必须提供一个名为CREATOR的static final属性 该属性需要实现
+    //android.os.Parcelable.Creator&lt;T&gt;接口
+    public static final Parcelable.Creator&lt;Person&gt; CREATOR = new Parcelable.Creator&lt;Person&gt;() {
+        //从Parcel中读取数据,返回Person对象
+        @Override
+        public Person createFromParcel(Parcel source) {
+            return new Person(source.readInt(),source.readString());
+        }
+        @Override
+        public Person[] newArray(int size) {
+            return new Person[size];
+        }
+    };
+
+    //因为我们集合取出元素的时候是根据Person对象来取得,所以比较麻烦,
+    //需要我们重写hashCode()和equals()方法
+    @Override
+    public int hashCode()
+    {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((name == null) ? 0 : name.hashCode());
+        return result;
+    }
+    @Override
+    public boolean equals(Object obj)
+    {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        Person other = (Person) obj;
+        if (name == null)
+        {
+            if (other.name != null)
+                return false;
+        }
+        else if (!name.equals(other.name))
+            return false;
+        return true;
+    }
+}
+&lt;pre&gt;&lt;p&gt;&lt;strong&gt;Salary.java&lt;/strong&gt;~照葫芦画瓢&lt;/p&gt;
+
+&lt;pre&gt;
+package com.jay.example.aidl; 
+
+import android.os.Parcel;
+import android.os.Parcelable;
+
+/**
+ * Created by Jay on 2015/8/18 0018.
+ */
+public class Salary implements Parcelable {
+
+    private String type;
+    private Integer salary;
+
+    public Salary() {
+    }
+
+    public Salary(String type, Integer salary) {
+        this.type = type;
+        this.salary = salary;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public Integer getSalary() {
+        return salary;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public void setSalary(Integer salary) {
+        this.salary = salary;
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(type);
+        dest.writeInt(salary);
+    }
+
+    public static final Parcelable.Creator&lt;Salary&gt; CREATOR = new Parcelable.Creator&lt;Salary&gt;() {
+        //从Parcel中读取数据,返回Person对象
+        @Override
+        public Salary createFromParcel(Parcel source) {
+            return new Salary(source.readString(), source.readInt());
+        }
+
+        @Override
+        public Salary[] newArray(int size) {
+            return new Salary[size];
+        }
+    };
+
+    public String toString() {
+        return "工作:" + type + "    薪水: " + salary;
+    }
+}
+</pre>
+<p><strong>Step 3</strong>ISalary.aidlというファイルを作成し、その中に給与情報を取得する簡単なメソッドを記述します：</p>
+<pre>
+package com.jay.example.aidl;
+  
+import com.jay.example.aidl.Salary;  
+import com.jay.example.aidl.Person;  
+interface ISalary  
+{  
+    //定义一个Person对象作为传入参数  
+    //接口中定义方法时,需要制定新参的传递模式,这里是传入,所以前面有一个in  
+    Salary getMsg(in Person owner);  
+}  
+</pre>
+<p><strong>ps:</strong>ここで覚えておきましょう。カスタムデータ型を使用する場合はimportが必要です！！！必ず覚えておいてください！！!</p>
+<p><strong>Step 4：</strong>コアServiceの作成：SalaryBinderクラスを定義してStubを継承し、ISalaryとIBinderインターフェースを実装します。情報を格納するMapコレクションを定義します！onBindメソッドをオーバーライドし、SalaryBinderクラスのオブジェクトインスタンスを返します！</p>
+<p><strong>AidlService.java</strong></p>
+<pre>
+package com.jay.example.aidl_complexservice;  
+  
+import java.util.HashMap;  
+import java.util.Map;  
+import com.jay.example.aidl.ISalary.Stub;  
+import com.jay.example.aidl.Person;  
+import com.jay.example.aidl.Salary;  
+import android.app.Service;  
+import android.content.Intent;  
+import android.os.IBinder;  
+import android.os.RemoteException;  
+  
+public class AidlService extends Service {  
+  
+    private SalaryBinder salaryBinder;  
+    private static Map&lt;Person,Salary&gt; ss = new HashMap&lt;Person, Salary&gt;();  
+    //初始化Map集合,这里在静态代码块中进行初始化,当然你可也以在构造方法中完成初始化  
+    static  
+    {  
+        ss.put(new Person(1, "Jay"), new Salary("码农", 2000));  
+        ss.put(new Person(2, "GEM"), new Salary("歌手", 20000));  
+        ss.put(new Person(3, "XM"), new Salary("学生", 20));  
+        ss.put(new Person(4, "MrWang"), new Salary("老师", 2000));  
+    }  
+      
+      
+    @Override  
+    public void onCreate() {  
+        super.onCreate();  
+        salaryBinder = new SalaryBinder();  
+    }  
+      
+    @Override  
+    public IBinder onBind(Intent intent) {  
+        return salaryBinder;  
+    }  
+  
+      
+    //同样是继承Stub,即同时实现ISalary接口和IBinder接口  
+    public class SalaryBinder extends Stub  
+    {  
+        @Override  
+        public Salary getMsg(Person owner) throws RemoteException {  
+            return ss.get(owner);  
+        }  
+    }  
+      
+    @Override  
+    public void onDestroy() {  
+        System.out.println("服务结束！");  
+        super.onDestroy();  
+    }  
+}  
+</pre>
+<p><strong>Serviceを登録：</strong></p>
+<pre>
+&lt;service android:name=".AidlService"&gt;  
+    &lt;intent-filter&gt;    
+        &lt;action android:name="android.intent.action.AIDLService" /&gt;  
+        &lt;category android:name="android.intent.category.DEFAULT" /&gt;  
+    &lt;/intent-filter&gt;    
+&lt;/service&gt;
+</pre>
+<hr/>
+<p><strong>2——クライアント側のコーディング</strong></p>
+<p><strong>Step 1：</strong>サービス側のAIDLファイルをコピーしてください。コピー後のディレクトリは以下の通りです：</p>
+<p><img alt="" decoding="async" src="../wp-content/uploads/2015/08/39100068.jpg"/></p>
+<p><strong>Step 2</strong>簡単なレイアウトを作成し、次に核心となるMainActvitiyの実装です。ServciceConnectionオブジェクトを定義し、対応するメソッドをオーバーライドします。これは前述の通常データの場合と似ています。続いてbindServiceを呼び出し、ButtonのクリックイベントでSalaryオブジェクトを取得して表示します！</p>
+<p><strong>MainActivity.java</strong></p>
+<pre>package com.jay.example.aidl_complexclient;  
+  
+import com.jay.example.aidl.ISalary;  
+import com.jay.example.aidl.Person;  
+import com.jay.example.aidl.Salary;  
+  
+import android.app.Activity;  
+import android.app.Service;  
+import android.content.ComponentName;  
+import android.content.Intent;  
+import android.content.ServiceConnection;  
+import android.os.Bundle;  
+import android.os.IBinder;  
+import android.os.RemoteException;  
+import android.view.View;  
+import android.view.View.OnClickListener;  
+import android.widget.Button;  
+import android.widget.EditText;  
+import android.widget.TextView;  
+  
+  
+public class MainActivity extends Activity {  
+  
+    private ISalary salaryService;  
+    private Button btnquery;  
+    private EditText editname;  
+    private TextView textshow;  
+    private ServiceConnection conn = new ServiceConnection() {  
+          
+        @Override  
+        public void onServiceDisconnected(ComponentName name) {  
+            salaryService = null;  
+        }  
+          
+        @Override  
+        public void onServiceConnected(ComponentName name, IBinder service) {  
+            //返回的是代理对象,要调用这个方法哦!  
+            salaryService = ISalary.Stub.asInterface(service);  
+        }  
+    };  
+      
+      
+    @Override  
+    protected void onCreate(Bundle savedInstanceState) {  
+        super.onCreate(savedInstanceState);  
+        setContentView(R.layout.activity_main);  
+          
+        btnquery = (Button) findViewById(R.id.btnquery);  
+        editname = (EditText) findViewById(R.id.editname);  
+        textshow = (TextView) findViewById(R.id.textshow);  
+          
+        Intent it = new Intent();  
+        it.setAction("com.jay.aidl.AIDL_SERVICE");  
+        bindService(it, conn, Service.BIND_AUTO_CREATE);  
+          
+        btnquery.setOnClickListener(new OnClickListener() {           
+            @Override  
+            public void onClick(View v) {  
+                try  
+                {  
+                    String name = editname.getText().toString();  
+                    Salary salary = salaryService.getMsg(new Person(1,name));  
+                    textshow.setText(name + salary.toString());  
+                }catch(RemoteException e){e.printStackTrace();}  
+            }  
+        });  
+          
+    }  
+    @Override  
+    protected void onDestroy() {  
+        super.onDestroy();  
+        this.unbindService(conn);  
+    }  
+      
+} 
+</pre>
+<p><strong>実行スクリーンショット：</strong></p>
+<p><img alt="" decoding="async" src="../wp-content/uploads/2015/08/20219303.jpg"/></p>
+<p><strong>PS：</strong>ここのコードは以前Eclipseで書いたものです。Android Studioではカスタム型に少し問題があり、今のところ解決方法が見つかっていません。もしご存知の方がいらっしゃいましたら教えてください！！！非常に感謝します！！！発生した問題は以下の通りです：<img alt="" decoding="async" src="../wp-content/uploads/2015/08/96099606.jpg"/></p>
+<p>2つのサンプルのコードダウンロード（Eclipseベース）：<br/>
+1)<a href="../try/download/AIDL-sample-demo.zip">AIDLを使用したプロセス間の簡単な通信</a><br/>
+2）<a href="../try/download/complex-data-AIDL.zip">複雑なデータを渡すAIDL Serviceの実装</a></p>
+<hr/>
+<h2>3. BinderのonTransactを直接使ってプロセス間通信を完了する</h2>
+<p>先ほど、AndroidはBinderのonTrensactメソッドを使って通信できると説明しました。次に簡単に試してみましょう。以前の、番号で名前を検索する例を使います：</p>
+<p><strong>サービス側の実装</strong>：
+</p>
+<pre>
+/**
+ * Created by Jay on 2015/8/18 0018.
+ */
+public class IPCService extends Service{
+
+    private static final String DESCRIPTOR = "IPCService";
+    private final String[] names = {"B神","艹神","基神","J神","翔神"};
+    private MyBinder mBinder = new MyBinder();
+
+
+    private class MyBinder extends Binder {
+        @Override
+        protected boolean onTransact(int code, Parcel data, Parcel reply, int flags) throws RemoteException {
+            switch (code){
+                case 0x001: {
+                    data.enforceInterface(DESCRIPTOR);
+                    int num = data.readInt();
+                    reply.writeNoException();
+                    reply.writeString(names[num]);
+                    return true;
+                }
+            }
+            return super.onTransact(code, data, reply, flags);
+        }
+    }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        return mBinder;
+    }
+}
+</pre>
+<p><strong>クライアント側の実装</strong>：</p>
+<pre>
+public class MainActivity extends AppCompatActivity implements View.OnClickListener{
+
+    private EditText edit_num;
+    private Button btn_query;
+    private TextView txt_result;
+    private IBinder mIBinder;
+    private ServiceConnection PersonConnection  = new ServiceConnection()
+    {
+        @Override
+        public void onServiceDisconnected(ComponentName name)
+        {
+            mIBinder = null;
+        }
+
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service)
+        {
+            mIBinder = service;
+        }
+    };
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        bindViews();
+
+        //绑定远程Service
+        Intent service = new Intent("android.intent.action.IPCService");
+        service.setPackage("com.jay.ipcserver");
+        bindService(service, PersonConnection, BIND_AUTO_CREATE);
+        btn_query.setOnClickListener(this);
+    }
+
+    private void bindViews() {
+        edit_num = (EditText) findViewById(R.id.edit_num);
+        btn_query = (Button) findViewById(R.id.btn_query);
+        txt_result = (TextView) findViewById(R.id.txt_result);
+    }
+
+    @Override
+    public void onClick(View v) {
+        int num = Integer.parseInt(edit_num.getText().toString());
+        if (mIBinder == null)
+        {
+            Toast.makeText(this, "未连接服务端或服务端被异常杀死", Toast.LENGTH_SHORT).show();
+        } else {
+            android.os.Parcel _data = android.os.Parcel.obtain();
+            android.os.Parcel _reply = android.os.Parcel.obtain();
+            String _result = null;
+            try{
+                _data.writeInterfaceToken("IPCService");
+                _data.writeInt(num);
+                mIBinder.transact(0x001, _data, _reply, 0);
+                _reply.readException();
+                _result = _reply.readString();
+                txt_result.setText(_result);
+                edit_num.setText("");
+            }catch (RemoteException e)
+            {
+                e.printStackTrace();
+            } finally
+            {
+                _reply.recycle();
+                _data.recycle();
+            }
+        }
+    }
+}
+</pre>
+<p><strong>実行スクリーンショット：</strong></p>
+<p><img alt="" decoding="async" src="../wp-content/uploads/2015/08/33184779.jpg"/></p>
+<p>コードは比較的簡単なので、詳しい説明は省きます〜使うときに自分で修正してください！<strong>PS</strong>:コード参考元:<a href="http://blog.csdn.net/lmj623565791/article/details/38461079#t9">Android aidl Binderフレームワークの簡単な分析</a></p>
+<hr/>
+<h2>4. Android 5.0以降のServiceで注意すべき点：</h2>
+<blockquote><p>今日、Serviceを暗黙的に起動しようとしたときに、次のような問題に遭遇しました。<img alt="" decoding="async" src="../wp-content/uploads/2015/08/3192647.jpg"/>するとプログラムが起動した瞬間にクラッシュしました。長い間調べてようやく原因がAndroid 5.0にあることがわかりました。実は5.0以降には新しい仕様があり、それは次の通りです：<strong>Service Intent  must be explitict！</strong>つまり、Serviceを暗黙的に起動できないということです。解決方法もとても簡単です！例えばStartServiceの場合：</p>
+<p><strong>startService(new Intent(getApplicationContext(), "com.aaa.xxxserver"));</strong>このように書くとプログラムが直接クラッシュします。次のように書く必要があります：<strong>startService(new Intent(getApplicationContext(), LoadContactsService.class));</strong></p>
+<p>BindServiceの場合は：<strong>Intent service = new Intent("android.intent.action.AIDLService");</strong>を基本として、パッケージ名を追加する必要があります：<strong>service.setPackage("com.jay.ipcserver");</strong>これで大丈夫です〜</p></blockquote>
+<p>公式ドキュメント：<a href="http://developer.android.com/intl/zh-cn/guide/components/intents-filters.html#Types">http://developer.android.com/intl/zh-cn/guide/components/intents-filters.html#Types</a>ドキュメントの説明箇所：<img alt="" decoding="async" src="../wp-content/uploads/2015/08/12090445.jpg"/></p>
+<hr/>
+<h2>この節のまとめ：</h2>
+<blockquote><p>では、Serviceに関する最後のセクションはここまでです。このセクションではBinderの基本概念と、プロセス間通信を実現する2つの方法（AIDLとBinder.onTransact()によるプロセス間通信）について解説しました！最後に、Android 5.0以降ではServiceを暗黙的に起動できないという注意点も解説しました！ここまでです、ありがとうございました〜</p></blockquote> </div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link">← <a href="./android-tutorial-service-2.html" rel="prev">4.2.2 Service応用編</a> </div>
+<div class="next-design-link"><a href="./android-tutorial-seekbar.html" rel="next">2.3.8 SeekBar(シークバー)</a> →</div>
+</div>
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>クリックしてノートを共有</h3>
+&lt;p style="font-size:14px;"&gt;ノートはこの記事の内容の拡張である必要があります！&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;記事の投稿はこちらをクリック&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; ノートを共有する前に&lt;a href=".." class="runoob-pop"&gt;ログイン&lt;/a&gt;が必要です！&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=".." id="cancel-comment-reply-link">キャンセル</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="13237"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>ノートを共有</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">ニックネーム</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">ニックネーム (必須)</span></li>
+<li class="form-inline"><label class="hide" for="email">メールアドレス</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">メールアドレス (必須)</span></li>
+<li class="form-inline"><label class="hide" for="url">引用URL</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">引用URL</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  13237;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 13237, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":13237},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+<style>
+@media screen and (max-width: 768px) {
+	#w3cnote-ad728 {
+		display: none;
+	}
+}
+p.note-author {
+    border-bottom: 1px solid #ddd;
+    font-size: 18px;
+    font-weight: bold;
+    color: #78a15a;
+    padding-bottom: 2px;
+    margin-bottom: 4px;
+}
+</style>
+<script>
+var aid = 13237;
+</script>
+</div>
+</div>
+<div class="listcol last right-column">
+<script type="text/javascript">
+jQuery(document).ready(function ($){
+	var total = $(".membership li").length;
+	var left_list = '';
+	href = window.location.href;
+	
+	$(".membership li").each(function(index, value){
+
+		left_list += $(this).html();
+
+		cur_href = $(this).find("a").attr("href");
+		cur_obj = $(this);
+		
+		if(href.match(cur_href) != null) {
+			if(index==0) {
+				$(".previous-design-link").hide();
+			}
+			if(index==(total-1)) {
+				$(".next-design-link").hide();
+			}
+			prev_href = cur_obj.prev("li").find("a").attr("href");
+			prev_title = cur_obj.prev("li").find("a").attr("title");
+
+			next_href = cur_obj.next("li").find("a").attr("href");
+			next_title = cur_obj.next("li").find("a").attr("title");
+			if(prev_title) {
+				$(".previous-design-link a").attr("href", prev_href);
+				$(".previous-design-link a").attr("title", prev_title);
+				$(".previous-design-link a").text(prev_title);
+			} else {
+				$(".previous-design-link").html("");
+			}
+
+			if(next_title) {
+				$(".next-design-link a").attr("href", next_href);
+				$(".next-design-link a").attr("title", next_title);
+				$(".next-design-link a").text(next_title);
+			} else {
+				$(".next-design-link").html("");
+			}
+		}
+	});
+
+	$("#leftcolumn").html(left_list);
+});
+	</script>
+<div class="sidebar-box cate-list">
+<div class="sidebar-box recommend-here list-link">
+<a href="#">Android 基础入门教程</a> </div>
+<ul class="membership">
+<li><a data-id="12252" href="./android-tutorial-intro.html" target="_top" title="1.0 Android基础入门教程">1.0 Android基础入门教程</a></li>
+<li><a data-id="14860" href="./android-tutorial-contents.html" target="_top" title="1.0.1 2015年最新Android基础入门教程目录">1.0.1 2015年最新Android基础入门教程目录</a></li>
+<li><a data-id="12255" href="./android-tutorial-system-architecture-analysis.html" target="_top" title="1.1 背景相关与系统架构分析">1.1 背景相关与系统架构分析</a></li>
+<li><a data-id="12259" href="./android-tutorial-development-environment-build.html" target="_top" title="1.2 开发环境搭建">1.2 开发环境搭建</a></li>
+<li><a data-id="12270" href="./android-tutorial-eclipse-adt-sdk-app.html" target="_top" title="1.2.1 使用Eclipse + ADT + SDK开发Android APP">1.2.1 使用Eclipse + ADT + SDK开发Android APP</a></li>
+<li><a data-id="12280" href="./android-tutorial-android-studio.html" target="_top" title="1.2.2 使用Android Studio开发Android APP">1.2.2 使用Android Studio开发Android APP</a></li>
+<li><a data-id="12293" href="./android-tutorial-sdk-problem-solve.html" target="_top" title="1.3 SDK更新不了问题解决">1.3 SDK更新不了问题解决</a></li>
+<li><a data-id="12329" href="./android-tutorial-genymotion-install.html" target="_top" title="1.4 Genymotion模拟器安装">1.4 Genymotion模拟器安装</a></li>
+<li><a data-id="12331" href="./android-tutorial-git-repo-operate.html" target="_top" title="1.5.1 Git使用教程之本地仓库的基本操作">1.5.1 Git使用教程之本地仓库的基本操作</a></li>
+<li><a data-id="12366" href="./android-tutorial-git-repo-create.html" target="_top" title="1.5.2 Git之使用GitHub搭建远程仓库">1.5.2 Git之使用GitHub搭建远程仓库</a></li>
+<li><a data-id="12394" href="./android-tutorial-9-image.html" target="_top" title="1.6  9(九妹)图片怎么玩">1.6  9(九妹)图片怎么玩</a></li>
+<li><a data-id="12478" href="./android-tutorial-interface-design.html" target="_top" title="1.7 界面原型设计">1.7 界面原型设计</a></li>
+<li><a data-id="12479" href="./android-tutorial-project-src-analysis.html" target="_top" title="1.8 工程相关解析(各种文件，资源访问)">1.8 工程相关解析(各种文件，资源访问)</a></li>
+<li><a data-id="12507" href="./android-tutorial-sign-package.html" target="_top" title="1.9 Android程序签名打包">1.9 Android程序签名打包</a></li>
+<li><a data-id="12523" href="./android-tutorial-decompile-apk-get-code-resources.html" target="_top" title="1.11 反编译APK获取代码&amp;资源">1.11 反编译APK获取代码&amp;资源</a></li>
+<li><a data-id="12539" href="./android-tutorial-view-viewgroup-intro.html" target="_top" title="2.1 View与ViewGroup的概念">2.1 View与ViewGroup的概念</a></li>
+<li><a data-id="12555" href="./android-tutorial-linearlayout.html" target="_top" title="2.2.1 LinearLayout(线性布局)">2.2.1 LinearLayout(线性布局)</a></li>
+<li><a data-id="12569" href="./android-tutorial-relativelayout.html" target="_top" title="2.2.2 RelativeLayout(相对布局)">2.2.2 RelativeLayout(相对布局)</a></li>
+<li><a data-id="12577" href="./android-tutorial-tablelayout.html" target="_top" title="2.2.3 TableLayout(表格布局)">2.2.3 TableLayout(表格布局)</a></li>
+<li><a data-id="12582" href="./android-tutorial-framelayout.html" target="_top" title="2.2.4 FrameLayout(帧布局)">2.2.4 FrameLayout(帧布局)</a></li>
+<li><a data-id="12587" href="./android-tutorial-gridlayout.html" target="_top" title="2.2.5 GridLayout(网格布局)">2.2.5 GridLayout(网格布局)</a></li>
+<li><a data-id="12591" href="./android-tutorial-absolutelayout.html" target="_top" title="2.2.6 AbsoluteLayout(绝对布局)">2.2.6 AbsoluteLayout(绝对布局)</a></li>
+<li><a data-id="12624" href="./android-tutorial-textview.html" target="_top" title="2.3.1 TextView(文本框)详解">2.3.1 TextView(文本框)详解</a></li>
+<li><a data-id="12701" href="./android-tutorial-edittext.html" target="_top" title="2.3.2 EditText(输入框)详解">2.3.2 EditText(输入框)详解</a></li>
+<li><a data-id="12745" href="./android-tutorial-button-imagebutton.html" target="_top" title="2.3.3 Button(按钮)与ImageButton(图像按钮)">2.3.3 Button(按钮)与ImageButton(图像按钮)</a></li>
+<li><a data-id="12770" href="./android-tutorial-imageview.html" target="_top" title="2.3.4 ImageView(图像视图)">2.3.4 ImageView(图像视图)</a></li>
+<li><a data-id="12790" href="./android-tutorial-radiobutton-checkbox.html" target="_top" title="2.3.5.RadioButton(单选按钮)&amp;Checkbox(复选框)">2.3.5.RadioButton(单选按钮)&amp;Checkbox(复选框)</a></li>
+<li><a data-id="12829" href="./android-tutorial-togglebutton-switch.html" target="_top" title="2.3.6 开关按钮ToggleButton和开关Switch">2.3.6 开关按钮ToggleButton和开关Switch</a></li>
+<li><a data-id="13133" href="./android-tutorial-progressbar.html" target="_top" title="2.3.7 ProgressBar(进度条)">2.3.7 ProgressBar(进度条)</a></li>
+<li><a data-id="13258" href="./android-tutorial-seekbar.html" target="_top" title="2.3.8 SeekBar(拖动条)">2.3.8 SeekBar(拖动条)</a></li>
+<li><a data-id="13267" href="./android-tutorial-ratingbar.html" target="_top" title="2.3.9 RatingBar(星级评分条)">2.3.9 RatingBar(星级评分条)</a></li>
+<li><a data-id="13293" href="./android-tutorial-scrollview.html" target="_top" title="2.4.1 ScrollView(滚动条)">2.4.1 ScrollView(滚动条)</a></li>
+<li><a data-id="13357" href="./android-tutorial-date-time-1.html" target="_top" title="2.4.2 Date &amp; Time组件(上)">2.4.2 Date &amp; Time组件(上)</a></li>
+<li><a data-id="13364" href="./android-tutorial-date-time-2.html" target="_top" title="2.4.3 Date &amp; Time组件(下)">2.4.3 Date &amp; Time组件(下)</a></li>
+<li><a data-id="13477" href="./android-tutorial-adapter.html" target="_top" title="2.4.4 Adapter基础讲解">2.4.4 Adapter基础讲解</a></li>
+<li><a data-id="13784" href="./android-tutorial-listview.html" target="_top" title="2.4.5 ListView简单实用">2.4.5 ListView简单实用</a></li>
+<li><a data-id="13807" href="./android-tutorial-baseadapter.html" target="_top" title="2.4.6 BaseAdapter优化">2.4.6 BaseAdapter优化</a></li>
+<li><a data-id="13808" href="./android-tutorial-listview-focus.html" target="_top" title="2.4.7ListView的焦点问题">2.4.7ListView的焦点问题</a></li>
+<li><a data-id="13809" href="./android-tutorial-listview-checkbox.html" target="_top" title="2.4.8 ListView之checkbox错位问题解决">2.4.8 ListView之checkbox错位问题解决</a></li>
+<li><a data-id="13812" href="./android-tutorial-listview-update.html" target="_top" title="2.4.9 ListView的数据更新问题">2.4.9 ListView的数据更新问题</a></li>
+<li><a data-id="13823" href="./android-tutorial-customer-baseadapter.html" target="_top" title="2.5.0 构建一个可复用的自定义BaseAdapter">2.5.0 构建一个可复用的自定义BaseAdapter</a></li>
+<li><a data-id="13839" href="./android-tutorial-listview-item.html" target="_top" title="2.5.1 ListView Item多布局的实现">2.5.1 ListView Item多布局的实现</a></li>
+<li><a data-id="13885" href="./android-tutorial-gridview.html" target="_top" title="2.5.2 GridView(网格视图)的基本使用">2.5.2 GridView(网格视图)的基本使用</a></li>
+<li><a data-id="13897" href="./android-tutorial-spinner.html" target="_top" title="2.5.3 Spinner(列表选项框)的基本使用">2.5.3 Spinner(列表选项框)的基本使用</a></li>
+<li><a data-id="13900" href="./android-tutorial-autocompletetextview.html" target="_top" title="2.5.4 AutoCompleteTextView(自动完成文本框)的基本使用">2.5.4 AutoCompleteTextView(自动完成文本框)的基本使用</a></li>
+<li><a data-id="13933" href="./android-tutorial-expandablelistview.html" target="_top" title="2.5.5 ExpandableListView(可折叠列表)的基本使用">2.5.5 ExpandableListView(可折叠列表)的基本使用</a></li>
+<li><a data-id="13936" href="./android-tutorial-viewflipper.html" target="_top" title="2.5.6 ViewFlipper(翻转视图)的基本使用">2.5.6 ViewFlipper(翻转视图)的基本使用</a></li>
+<li><a data-id="13952" href="./android-tutorial-toast.html" target="_top" title="2.5.7 Toast(吐司)的基本使用">2.5.7 Toast(吐司)的基本使用</a></li>
+<li><a data-id="13957" href="./android-tutorial-notification.html" target="_top" title="2.5.8 Notification(状态栏通知)详解">2.5.8 Notification(状态栏通知)详解</a></li>
+<li><a data-id="13963" href="./android-tutorial-alertdialog.html" target="_top" title="2.5.9 AlertDialog(对话框)详解">2.5.9 AlertDialog(对话框)详解</a></li>
+<li><a data-id="13981" href="./android-tutorial-dialog.html" target="_top" title="2.6.0 其他几种常用对话框基本使用">2.6.0 其他几种常用对话框基本使用</a></li>
+<li><a data-id="13984" href="./android-tutorial-popupwindow.html" target="_top" title="2.6.1 PopupWindow(悬浮框)的基本使用">2.6.1 PopupWindow(悬浮框)的基本使用</a></li>
+<li><a data-id="13986" href="./android-tutorial-menu.html" target="_top" title="2.6.2 菜单(Menu)">2.6.2 菜单(Menu)</a></li>
+<li><a data-id="14001" href="./android-tutorial-viewpager.html" target="_top" title="2.6.3 ViewPager的简单使用">2.6.3 ViewPager的简单使用</a></li>
+<li><a data-id="14007" href="./android-tutorial-drawerlayout.html" target="_top" title="2.6.4 DrawerLayout(官方侧滑菜单)的简单使用">2.6.4 DrawerLayout(官方侧滑菜单)的简单使用</a></li>
+<li><a data-id="12714" href="./android-tutorial-listen-event-handle.html" target="_top" title="3.1.1 基于监听的事件处理机制">3.1.1 基于监听的事件处理机制</a></li>
+<li><a data-id="12721" href="./android-tutorial-callback-event-handle.html" target="_top" title="3.2 基于回调的事件处理机制">3.2 基于回调的事件处理机制</a></li>
+<li><a data-id="12715" href="./android-tutorial-handler-message.html" target="_top" title="3.3 Handler消息传递机制浅析">3.3 Handler消息传递机制浅析</a></li>
+<li><a data-id="12730" href="./android-tutorial-touchlistener-ontouchevent.html" target="_top" title="3.4 TouchListener PK OnTouchEvent + 多点触碰">3.4 TouchListener PK OnTouchEvent + 多点触碰</a></li>
+<li><a data-id="12749" href="./android-tutorial-listener-edittext-change.html" target="_top" title="3.5 监听EditText的内容变化">3.5 监听EditText的内容变化</a></li>
+<li><a data-id="12752" href="./android-tutorial-configuration.html" target="_top" title="3.6 响应系统设置的事件(Configuration类)">3.6 响应系统设置的事件(Configuration类)</a></li>
+<li><a data-id="12807" href="./android-tutorial-ansynctask.html" target="_top" title="3.7 AsyncTask异步任务">3.7 AsyncTask异步任务</a></li>
+<li><a data-id="12915" href="./android-tutorial-gestures.html" target="_top" title="3.8 Gestures(手势)">3.8 Gestures(手势)</a></li>
+<li><a data-id="13148" href="./android-tutorial-activity.html" target="_top" title="4.1.1 Activity初学乍练">4.1.1 Activity初学乍练</a></li>
+<li><a data-id="13160" href="./android-tutorial-activity-start.html" target="_top" title="4.1.2 Activity初窥门径">4.1.2 Activity初窥门径</a></li>
+<li><a data-id="13168" href="./android-tutorial-activity-intro.html" target="_top" title="4.1.3 Activity登堂入室">4.1.3 Activity登堂入室</a></li>
+<li><a data-id="13198" href="./android-tutorial-service-1.html" target="_top" title="4.2.1 Service初涉">4.2.1 Service初涉</a></li>
+<li><a data-id="13212" href="./android-tutorial-service-2.html" target="_top" title="4.2.2 Service进阶">4.2.2 Service进阶</a></li>
+<li>
+	4.2.3 Service精通	</li>
+<li><a data-id="13273" href="./android-tutorial-broadcastreceiver.html" target="_top" title="4.3.1 BroadcastReceiver牛刀小试">4.3.1 BroadcastReceiver牛刀小试</a></li>
+<li><a data-id="13284" href="./android-tutorial-broadcastreceiver-2.html" target="_top" title="4.3.2 BroadcastReceiver庖丁解牛">4.3.2 BroadcastReceiver庖丁解牛</a></li>
+<li><a data-id="13297" href="./android-tutorial-contentprovider.html" target="_top" title="4.4.1 ContentProvider初探">4.4.1 ContentProvider初探</a></li>
+<li><a data-id="13319" href="./android-tutorial-contentprovider-2.html" target="_top" title="4.4.2 ContentProvider再探——Document Provider">4.4.2 ContentProvider再探——Document Provider</a></li>
+<li><a data-id="13329" href="./android-tutorial-intent-base.html" target="_top" title="4.5.1 Intent的基本使用">4.5.1 Intent的基本使用</a></li>
+<li><a data-id="13346" href="./android-tutorial-intent-pass-data.html" target="_top" title="4.5.2 Intent之复杂数据的传递">4.5.2 Intent之复杂数据的传递</a></li>
+<li><a data-id="13401" href="./android-tutorial-fragment-base.html" target="_top" title="5.1 Fragment基本概述">5.1 Fragment基本概述</a></li>
+<li><a data-id="13431" href="./android-tutorial-fragment-demo1.html" target="_top" title="5.2.1 Fragment实例精讲——底部导航栏的实现(方法1)">5.2.1 Fragment实例精讲——底部导航栏的实现(方法1)</a></li>
+<li><a data-id="13432" href="./android-tutorial-fragment-demo2.html" target="_top" title="5.2.2 Fragment实例精讲——底部导航栏的实现(方法2)">5.2.2 Fragment实例精讲——底部导航栏的实现(方法2)</a></li>
+<li><a data-id="13439" href="./android-tutorial-fragment-demo3.html" target="_top" title="5.2.3 Fragment实例精讲——底部导航栏的实现(方法3)">5.2.3 Fragment实例精讲——底部导航栏的实现(方法3)</a></li>
+<li><a data-id="13448" href="./android-tutorial-fragment-demo4.html" target="_top" title="5.2.4 Fragment实例精讲——底部导航栏+ViewPager滑动切换页面">5.2.4 Fragment实例精讲——底部导航栏+ViewPager滑动切换页面</a></li>
+<li><a data-id="13597" href="./android-tutorial-fragment-demo5.html" target="_top" title="5.2.5 Fragment实例精讲——新闻(购物)类App列表Fragment的简单实现">5.2.5 Fragment实例精讲——新闻(购物)类App列表Fragment的简单实现</a></li>
+<li><a data-id="13478" href="./android-tutorial-file.html" target="_top" title="6.1 数据存储与访问之——文件存储读写">6.1 数据存储与访问之——文件存储读写</a></li>
+<li><a data-id="13523" href="./android-tutorial-sharedpreferences.html" target="_top" title="6.2 数据存储与访问之——SharedPreferences保存用户偏好参数">6.2 数据存储与访问之——SharedPreferences保存用户偏好参数</a></li>
+<li><a data-id="13574" href="./android-tutorial-sqlite-intro.html" target="_top" title="6.3.1 数据存储与访问之——初见SQLite数据库">6.3.1 数据存储与访问之——初见SQLite数据库</a></li>
+<li><a data-id="13590" href="./android-tutorial-sqlite-2.html" target="_top" title="6.3.2 数据存储与访问之——又见SQLite数据库">6.3.2 数据存储与访问之——又见SQLite数据库</a></li>
+<li><a data-id="13601" href="./android-tutorial-http.html" target="_top" title="7.1.1 Android网络编程要学的东西与Http协议学习">7.1.1 Android网络编程要学的东西与Http协议学习</a></li>
+<li><a data-id="13607" href="./android-tutorial-http-response-header.html" target="_top" title="7.1.2 Android Http请求头与响应头的学习">7.1.2 Android Http请求头与响应头的学习</a></li>
+<li><a data-id="13620" href="./android-tutorial-httpurlconnection.html" target="_top" title="7.1.3 Android HTTP请求方式:HttpURLConnection">7.1.3 Android HTTP请求方式:HttpURLConnection</a></li>
+<li><a data-id="13631" href="./android-tutorial-httpclient.html" target="_top" title="7.1.4 Android HTTP请求方式:HttpClient">7.1.4 Android HTTP请求方式:HttpClient</a></li>
+<li><a data-id="13633" href="./android-tutorial-xml.html" target="_top" title="7.2.1 Android XML数据解析">7.2.1 Android XML数据解析</a></li>
+<li><a data-id="13681" href="./android-tutorial-json.html" target="_top" title="7.2.2 Android JSON数据解析">7.2.2 Android JSON数据解析</a></li>
+<li><a data-id="13685" href="./android-tutorial-upload-file.html" target="_top" title="7.3.1 Android 文件上传">7.3.1 Android 文件上传</a></li>
+<li><a data-id="13688" href="./android-tutorial-download1.html" target="_top" title="7.3.2 Android 文件下载（1）">7.3.2 Android 文件下载（1）</a></li>
+<li><a data-id="13697" href="./android-tutorial-download2.html" target="_top" title="7.3.3 Android 文件下载（2）">7.3.3 Android 文件下载（2）</a></li>
+<li><a data-id="13706" href="./android-tutorial-webservice.html" target="_top" title="7.4 Android 调用 WebService">7.4 Android 调用 WebService</a></li>
+<li><a data-id="13724" href="./android-tutorial-webview.html" target="_top" title="7.5.1 WebView(网页视图)基本用法">7.5.1 WebView(网页视图)基本用法</a></li>
+<li><a data-id="13731" href="./android-tutorial-webview-javascrip.html" target="_top" title="7.5.2 WebView和JavaScrip交互基础">7.5.2 WebView和JavaScrip交互基础</a></li>
+<li><a data-id="13738" href="./android-tutorial-webview-attention.html" target="_top" title="7.5.3 Android 4.4后WebView的一些注意事项">7.5.3 Android 4.4后WebView的一些注意事项</a></li>
+<li><a data-id="13748" href="./android-tutorial-webview-download-file.html" target="_top" title="7.5.4 WebView文件下载">7.5.4 WebView文件下载</a></li>
+<li><a data-id="13751" href="./android-tutorial-webview-cache.html" target="_top" title="7.5.5 WebView缓存问题">7.5.5 WebView缓存问题</a></li>
+<li><a data-id="13756" href="./android-tutorial-webview-error-code.html" target="_top" title="7.5.6 WebView处理网页返回的错误码信息">7.5.6 WebView处理网页返回的错误码信息</a></li>
+<li><a data-id="13760" href="./android-tutorial-socket-intro.html" target="_top" title="7.6.1 Socket学习网络基础准备">7.6.1 Socket学习网络基础准备</a></li>
+<li><a data-id="13768" href="./android-tutorial-socket1.html" target="_top" title="7.6.2 基于TCP协议的Socket通信(1)">7.6.2 基于TCP协议的Socket通信(1)</a></li>
+<li><a data-id="13775" href="./android-tutorial-socket2.html" target="_top" title="7.6.3 基于TCP协议的Socket通信(2)">7.6.3 基于TCP协议的Socket通信(2)</a></li>
+<li><a data-id="13788" href="./android-tutorial-udp-socket.html" target="_top" title="7.6.4 基于UDP协议的Socket通信">7.6.4 基于UDP协议的Socket通信</a></li>
+<li><a data-id="14013" href="./android-tutorial-drawable1.html" target="_top" title="8.1.1 Android中的13种Drawable小结 Part 1">8.1.1 Android中的13种Drawable小结 Part 1</a></li>
+<li><a data-id="14018" href="./android-tutorial-drawable2.html" target="_top" title="8.1.2 Android中的13种Drawable小结 Part 2">8.1.2 Android中的13种Drawable小结 Part 2</a></li>
+<li><a data-id="14035" href="./android-tutorial-drawable3.html" target="_top" title="8.1.3 Android中的13种Drawable小结 Part 3">8.1.3 Android中的13种Drawable小结 Part 3</a></li>
+<li><a data-id="14092" href="./android-tutorial-bitmap1.html" target="_top" title="8.2.1 Bitmap(位图)全解析 Part 1">8.2.1 Bitmap(位图)全解析 Part 1</a></li>
+<li><a data-id="14102" href="./android-tutorial-bitmap2.html" target="_top" title="8.2.2 Bitmap引起的OOM问题">8.2.2 Bitmap引起的OOM问题</a></li>
+<li><a data-id="14113" href="./android-tutorial-drawable-tool.html" target="_top" title="8.3.1 三个绘图工具类详解">8.3.1 三个绘图工具类详解</a></li>
+<li><a data-id="14144" href="./android-tutorial-bitmap-demo.html" target="_top" title="8.3.2 绘图类实战示例">8.3.2 绘图类实战示例</a></li>
+<li><a data-id="14301" href="./android-tutorial-maskfilter.html" target="_top" title="8.3.3 Paint API之—— MaskFilter(面具)">8.3.3 Paint API之—— MaskFilter(面具)</a></li>
+<li><a data-id="14307" href="./android-tutorial-xfermode-porterduff.html" target="_top" title="8.3.4 Paint API之—— Xfermode与PorterDuff详解(一)">8.3.4 Paint API之—— Xfermode与PorterDuff详解(一)</a></li>
+<li><a data-id="14343" href="./android-tutorial-xfermode-porterduff2.html" target="_top" title="8.3.5 Paint API之—— Xfermode与PorterDuff详解(二)">8.3.5 Paint API之—— Xfermode与PorterDuff详解(二)</a></li>
+<li><a data-id="14387" href="./android-tutorial-xfermode-porterduff3.html" target="_top" title="8.3.6 Paint API之—— Xfermode与PorterDuff详解(三)">8.3.6 Paint API之—— Xfermode与PorterDuff详解(三)</a></li>
+<li><a data-id="14398" href="./android-tutorial-xfermode-porterduff4.html" target="_top" title="8.3.7 Paint API之—— Xfermode与PorterDuff详解(四)">8.3.7 Paint API之—— Xfermode与PorterDuff详解(四)</a></li>
+<li><a data-id="14410" href="./android-tutorial-xfermode-porterduff5.html" target="_top" title="8.3.8 Paint API之—— Xfermode与PorterDuff详解(五)">8.3.8 Paint API之—— Xfermode与PorterDuff详解(五)</a></li>
+<li><a data-id="14411" href="./android-tutorial-colorfilter1.html" target="_top" title="8.3.9 Paint API之—— ColorFilter(颜色过滤器)(1/3)">8.3.9 Paint API之—— ColorFilter(颜色过滤器)(1/3)</a></li>
+<li><a data-id="14427" href="./android-tutorial-colorfilterl2.html" target="_top" title="8.3.10 Paint API之—— ColorFilter(颜色过滤器)(2-3)">8.3.10 Paint API之—— ColorFilter(颜色过滤器)(2-3)</a></li>
+<li><a data-id="14430" href="./android-tutorial-colorfilter3.html" target="_top" title="8.3.11 Paint API之—— ColorFilter(颜色过滤器)(3-3)">8.3.11 Paint API之—— ColorFilter(颜色过滤器)(3-3)</a></li>
+<li><a data-id="14517" href="./android-tutorial-patheffect.html" target="_top" title="8.3.12 Paint API之—— PathEffect(路径效果)">8.3.12 Paint API之—— PathEffect(路径效果)</a></li>
+<li><a data-id="14520" href="./android-tutorial-shader.html" target="_top" title="8.3.13 Paint API之—— Shader(图像渲染)">8.3.13 Paint API之—— Shader(图像渲染)</a></li>
+<li><a data-id="14523" href="./android-tutorial-shadowlayer.html" target="_top" title="8.3.14 Paint几个枚举/常量值以及ShadowLayer阴影效果">8.3.14 Paint几个枚举/常量值以及ShadowLayer阴影效果</a></li>
+<li><a data-id="14538" href="./android-tutorial-typeface.html" target="_top" title="8.3.15 Paint API之——Typeface(字型)">8.3.15 Paint API之——Typeface(字型)</a></li>
+<li><a data-id="14589" href="./android-tutorial-canvas-api1.html" target="_top" title="8.3.16 Canvas API详解(Part 1)">8.3.16 Canvas API详解(Part 1)</a></li>
+<li><a data-id="14678" href="./android-tutorial-canvas-api2.html" target="_top" title="8.3.17 Canvas API详解(Part 2)剪切方法合集">8.3.17 Canvas API详解(Part 2)剪切方法合集</a></li>
+<li><a data-id="14692" href="./android-tutorial-canvas-api3.html" target="_top" title="8.3.18 Canvas API详解(Part 3)Matrix和drawBitmapMesh">8.3.18 Canvas API详解(Part 3)Matrix和drawBitmapMesh</a></li>
+<li><a data-id="14718" href="./android-tutorial-animation.html" target="_top" title="8.4.1 Android动画合集之帧动画">8.4.1 Android动画合集之帧动画</a></li>
+<li><a data-id="14722" href="./android-tutorial-alphaanimation.html" target="_top" title="8.4.2 Android动画合集之补间动画">8.4.2 Android动画合集之补间动画</a></li>
+<li><a data-id="14730" href="./android-tutorial-valueanimator.html" target="_top" title="8.4.3 Android动画合集之属性动画-初见">8.4.3 Android动画合集之属性动画-初见</a></li>
+<li><a data-id="14768" href="./android-tutorial-valueanimator2.html" target="_top" title="8.4.4 Android动画合集之属性动画-又见">8.4.4 Android动画合集之属性动画-又见</a></li>
+<li><a data-id="14149" href="./android-tutorial-soundpool.html" target="_top" title="9.1 使用SoundPool播放音效(Duang~)">9.1 使用SoundPool播放音效(Duang~)</a></li>
+<li><a data-id="14612" href="./android-tutorial-mediaplayer.html" target="_top" title="9.2 MediaPlayer播放音频与视频">9.2 MediaPlayer播放音频与视频</a></li>
+<li><a data-id="14831" href="./android-tutorial-camera.html" target="_top" title="9.3 使用Camera拍照">9.3 使用Camera拍照</a></li>
+<li><a data-id="14832" href="./android-tutorial-mediarecord.html" target="_top" title="9.4 使用MediaRecord录音">9.4 使用MediaRecord录音</a></li>
+<li><a data-id="14156" href="./android-tutorial-telephonymanager.html" target="_top" title="10.1 TelephonyManager(电话管理器)">10.1 TelephonyManager(电话管理器)</a></li>
+<li><a data-id="14163" href="./android-tutorial-smsmanager.html" target="_top" title="10.2 SmsManager(短信管理器)">10.2 SmsManager(短信管理器)</a></li>
+<li><a data-id="14166" href="./android-tutorial-audiomanager.html" target="_top" title="10.3 AudioManager(音频管理器)">10.3 AudioManager(音频管理器)</a></li>
+<li><a data-id="14319" href="./android-tutorial-vibrator.html" target="_top" title="10.4 Vibrator(振动器)">10.4 Vibrator(振动器)</a></li>
+<li><a data-id="14400" href="./android-tutorial-alarmmanager.html" target="_top" title="10.5 AlarmManager(闹钟服务)">10.5 AlarmManager(闹钟服务)</a></li>
+<li><a data-id="14438" href="./android-tutorial-powermanager.html" target="_top" title="10.6 PowerManager(电源服务)">10.6 PowerManager(电源服务)</a></li>
+<li><a data-id="14697" href="./android-tutorial-windowmanager.html" target="_top" title="10.7 WindowManager(窗口管理服务)">10.7 WindowManager(窗口管理服务)</a></li>
+<li><a data-id="14702" href="./android-tutorial-layoutinflater.html" target="_top" title="10.8 LayoutInflater(布局服务)">10.8 LayoutInflater(布局服务)</a></li>
+<li><a data-id="14737" href="./android-tutorial-wallpapermanager.html" target="_top" title="10.9 WallpaperManager(壁纸管理器)">10.9 WallpaperManager(壁纸管理器)</a></li>
+<li><a data-id="14743" href="./android-tutorial-sensor1.html" target="_top" title="10.10 传感器专题(1)——相关介绍">10.10 传感器专题(1)——相关介绍</a></li>
+<li><a data-id="14746" href="./android-tutorial-sensor2.html" target="_top" title="10.11 传感器专题(2)——方向传感器">10.11 传感器专题(2)——方向传感器</a></li>
+<li><a data-id="14778" href="./android-tutorial-sensor3.html" target="_top" title="10.12 传感器专题(3)——加速度/陀螺仪传感器">10.12 传感器专题(3)——加速度/陀螺仪传感器</a></li>
+<li><a data-id="14835" href="./android-tutorial-sensor4.html" target="_top" title="10.12 传感器专题(4)——其他传感器了解">10.12 传感器专题(4)——其他传感器了解</a></li>
+<li><a data-id="14837" href="./android-tutorial-gps.html" target="_top" title="10.14 Android GPS初涉">10.14 Android GPS初涉</a></li>
+<li><a data-id="14846" href="./android-tutorial-end.html" target="_top" title="11.0《2015最新Android基础入门教程》完结散花~">11.0《2015最新Android基础入门教程》完结散花~</a></li>
+<li><a data-id="19314" href="./android-tutorial-exercise-1.html" target="_top" title="12.1Android 实战 ：DrySister看妹子应用(第一版) -- 项目搭建与简单实现">12.1Android 实战 ：DrySister看妹子应用(第一版) -- 项目搭建与简单实现</a></li>
+<li><a data-id="19321" href="./android-tutorial-exercise-2.html" target="_top" title="12.2 DrySister看妹子应用(第一版)——2.解析后台数据">12.2 DrySister看妹子应用(第一版)——2.解析后台数据</a></li>
+<li><a data-id="19334" href="./android-tutorial-exercise-3.html" target="_top" title="12.3 DrySister看妹子应用(第一版)——3.图片加载优化(写个图片缓存小框架)">12.3 DrySister看妹子应用(第一版)——3.图片加载优化(写个图片缓存小框架)</a></li>
+<li><a data-id="19349" href="./android-tutorial-exercise-4.html" target="_top" title="12.4 DrySister看妹子应用(第一版)——4.添加数据缓存(加入SQLite)">12.4 DrySister看妹子应用(第一版)——4.添加数据缓存(加入SQLite)</a></li>
+<li><a data-id="19355" href="./android-tutorial-exercise-5.html" target="_top" title="12.5 DrySister看妹子应用(第一版)——5.代码回顾，调整与日志类编写">12.5 DrySister看妹子应用(第一版)——5.代码回顾，调整与日志类编写</a></li>
+<li><a data-id="19386" href="./android-tutorial-exercise-6-html.html" target="_top" title="12.6 DrySister看妹子应用(第一版)——6.图标制作，混淆，签名打包，APK瘦身，应用发布">12.6 DrySister看妹子应用(第一版)——6.图标制作，混淆，签名打包，APK瘦身，应用发布</a></li>
+</ul></div> </div>
+</div>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+</div><script src="../../lang-switcher.js"></script>
+</body>
+</html>

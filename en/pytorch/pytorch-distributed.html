@@ -1,0 +1,1675 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PyTorch Distributed Training | Beginner Tutorial</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<link href="../manifest.webmanifest.html" rel="manifest"/>
+<meta content="#10151c" name="theme-color"/>
+<link href="../pwa/icon-192.png.html" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="application-name"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="../pytorch/pytorch-distributed.html" rel="canonical"/>
+<meta content="PyTorch 分布式训练" name="keywords"/>
+<meta content="PyTorch 分布式训练  当模型越来越大、数据越来越多时，单 GPU 已经无法满足训练需求。分布式训练通过多 GPU 甚至多台机器并行计算，可以显著缩短训练时间。本节详细介绍 PyTorch 中的分布式训练技术，包括 DataParallel、DistributedDataParallel 以及混合精度分布式训练。    1. 分布式训练基础  1.1 为什么需要分布式训练  深度学习模型的规模逐年增长，训练时间也随之增加。分布式训.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div>
+<!-- 导航栏 -->
+<style>
+/* 主题切换按钮 */
+/* ===== 主题变量（核心）===== */
+:root {
+  --theme-bg: #ffffff;
+  --theme-border: #e5e7eb;
+  --theme-icon: #333;
+  --theme-hover: #f3f4f6;
+}
+
+.dark {
+  --theme-bg: #1f2937;
+  --theme-border: #374151;
+  --theme-icon: #e5e7eb;
+  --theme-hover: #374151;
+}
+
+/* ===== 按钮容器 ===== */
+.nav-theme-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== 按钮本体 ===== */
+.nav-theme-toggle button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  border-radius: 6px;
+  border: 1px solid var(--theme-border);
+
+  background: var(--theme-bg);
+  color: var(--theme-icon);
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* ===== 图标大小 ===== */
+.nav-theme-toggle i {
+  font-size: 14px;
+}
+
+/* ===== hover 效果 ===== */
+.nav-theme-toggle button:hover {
+  background: var(--theme-hover);
+  transform: translateY(-1px);
+}
+
+/* ===== 点击反馈 ===== */
+.nav-theme-toggle button:active {
+  transform: scale(0.95);
+}
+
+/* ===== 当前激活态（可选）===== */
+.nav-theme-toggle button.active {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+</style>
+<!-- 导航栏 -->
+<nav aria-label="主导航" class="container navigation">
+<div class="row">
+<div class="col nav">
+<!-- PC 导航 -->
+<ul class="pc-nav" id="runoob-detail-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../js/js-tutorial.html">JavaScript</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a data-id="vue" href="#">Vue</a></li>
+<li><a href="../react/react-tutorial.html">React</a></li>
+<li><a href="../python3/python3-tutorial.html">Python3</a></li>
+<li><a href="../java/java-tutorial.html">Java</a></li>
+<li><a href="../cprogramming/c-tutorial.html">C</a></li>
+<li><a href="../cplusplus/cpp-tutorial.html">C++</a></li>
+<li><a href="../csharp/csharp-tutorial.html">C#</a></li>
+<li><a data-id="aiNav" href="#">AI</a></li>
+<li><a href="../go/go-tutorial.html">Go</a></li>
+<li><a href="../sql/sql-tutorial.html">SQL</a></li>
+<li><a href="../linux/linux-tutorial.html">Linux</a></li>
+<li><a href="../vscode/vscode-tutorial.html">VS Code</a></li>
+<li><a data-id="bootstrap" href="#">Bootstrap</a></li>
+<li><a href="../git/git-tutorial.html">Git</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<!-- 主题切换按钮，固定在最右侧 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+<!-- 移动端导航 -->
+<ul class="mobile-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a href="../js/js-tutorial.html">JS</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<li><a class="search-reveal" href="#">搜索</a></li>
+<!-- 移动端主题切换 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon-mobile" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun-mobile" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<!-- 二级导航 -->
+<!--  内容  -->
+<div class="container main">
+<!-- 中间 -->
+<div class="row">
+<div class="runoob-col-md2">
+<div class="left-column">
+<div class="tab" style="overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
+<i aria-hidden="true" class="fa fa-list"></i>
+<span>PyTorch 教程</span>
+</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+<a data-p="par" href="../pytorch/pytorch-tutorial.html" target="_top" title="PyTorch 教程">
+			PyTorch 教程			</a>
+<a data-p="par" href="../pytorch/pytorch-intro.html" target="_top" title="PyTorch 简介">
+			PyTorch 简介			</a>
+<a data-p="par" href="../pytorch/pytorch-install.html" target="_top" title="PyTorch 安装">
+			PyTorch 安装			</a>
+<a data-p="par" href="../pytorch/pytorch-basic.html" target="_top" title="PyTorch 基础">
+			PyTorch 基础			</a>
+<a href="../pytorch/pytorch-tensor.html" target="_top" title="PyTorch 张量">PyTorch 张量</a> <a data-p="par" href="../pytorch/pytorch-neural-network.html" target="_top" title="PyTorch 神经网络基础">
+			PyTorch 神经网络基础			</a>
+<a href="../pytorch/pytorch-first-neural-network.html" target="_top" title="PyTorch 第一个神经网络">PyTorch 第一个神经网络</a> <a data-p="par" href="../pytorch/pytorch-dataset-dataloader.html" target="_top" title="PyTorch 数据处理与加载">
+			PyTorch 数据处理与加载			</a>
+<a data-p="par" href="../pytorch/pytorch-linear-regression.html" target="_top" title="PyTorch 线性回归">
+			PyTorch 线性回归			</a>
+<a data-p="par" href="../pytorch/pytorch-cnn.html" target="_top" title="PyTorch 卷积神经网络">
+			PyTorch 卷积神经网络			</a>
+<a data-p="par" href="../pytorch/pytorch-recurrent-neural-network.html" target="_top" title="PyTorch 循环神经网络">
+			PyTorch 循环神经网络			</a>
+<a data-p="par" href="../pytorch/pytorch-datasets.html" target="_top" title="PyTorch 数据集">
+			PyTorch 数据集			</a>
+<a data-p="par" href="../pytorch/pytorch-transforms.html" target="_top" title="PyTorch 数据转换">
+			PyTorch 数据转换			</a>
+<a data-p="par" href="../pytorch/pytorch-torch-ref.html" target="_top" title="Pytorch torch 参考手册">
+			Pytorch torch			</a>
+<a data-p="par" href="../pytorch/pytorch-torch-nn-ref.html" target="_top" title="PyTorch torch.nn 参考手册">
+			PyTorch torch.nn			</a>
+<a data-p="par" href="../pytorch/transformer-model.html" target="_top" title="Transformer 模型">
+			Transformer 模型			</a>
+<a data-p="par" href="../pytorch/pytorch-transformer-model.html" target="_top" title="PyTorch 构建 Transformer 模型">
+			PyTorch Transformer			</a>
+<a data-p="par" href="../pytorch/pytorch-torch-optim.html" target="_top" title="PyTorch torch.optim 优化器模块">
+			PyTorch torch.optim			</a>
+<a data-p="par" href="../pytorch/pytorch-torchvision.html" target="_top" title="PyTorch torchvision 计算机视觉模块">
+			PyTorch torchvision			</a>
+<a data-p="par" href="../pytorch/pytorch-model-deployment.html" target="_top" title="PyTorch 模型部署">
+			PyTorch 模型部署			</a>
+<a data-p="par" href="../pytorch/pytorch-model-save.html" target="_top" title="PyTorch 模型保存和加载">
+			PyTorch 模型保存和加载			</a>
+<a data-p="par" href="../pytorch/pytorch-image-classification.html" target="_top" title="PyTorch 实例 – 图像分类项目">
+			PyTorch 图像分类			</a>
+<a data-p="par" href="../pytorch/pytorch-text-classification.html" target="_top" title="PyTorch 实例 – 文本情感分析项目">
+			PyTorc 文本情感分析			</a>
+<a data-p="par" href="../pytorch/pytorch-autograd.html" target="_top" title="PyTorch Autograd 自动微分">
+			PyTorch Autograd			</a>
+<a data-p="par" href="../pytorch/pytorch-gpu-cuda.html" target="_top" title="PyTorch GPU / CUDA 加速">
+			PyTorch GPU / CUDA 加速			</a>
+<a data-p="par" href="../pytorch/pytorch-loss-function.html" target="_top" title="PyTorch 损失函数">
+			PyTorch 损失函数			</a>
+<a data-p="par" href="../pytorch/pytorch-lr-scheduler.html" target="_top" title="PyTorch 学习率调度器">
+			PyTorch 学习率调度器			</a>
+<a data-p="par" href="../pytorch/pytorch-transfer-learning.html" target="_top" title="PyTorch 迁移学习">
+			PyTorch 迁移学习			</a>
+<a data-p="par" href="../pytorch/pytorch-batchnorm-dropout.html" target="_top" title="PyTorch 批归一化与 Dropout">
+			PyTorch 批归一化			</a>
+<a data-p="par" href="../pytorch/pytorch-lstm-gru.html" target="_top" title="PyTorch LSTM / GRU">
+			PyTorch LSTM / GRU			</a>
+<a data-p="par" href="../pytorch/pytorch-embedding.html" target="_top" title="PyTorch 词嵌入 (Embedding)">
+			PyTorch 词嵌入			</a>
+<a data-p="par" href="../pytorch/pytorch-gan.html" target="_top" title="PyTorch 生成对抗网络 (GAN)">
+			PyTorch 生成对抗网络			</a>
+<a data-p="par" href="../pytorch/pytorch-autoencoder.html" target="_top" title="PyTorch 自编码器 (Autoencoder)">
+			PyTorch 自编码器			</a>
+<a data-p="par" href="../pytorch/pytorch-evaluation-debugging.html" target="_top" title="PyTorch 模型评估与调试">
+			PyTorch 模型评估与调试			</a>
+<a data-p="par" href="../pytorch/pytorch-torchtext.html" target="_top" title="PyTorch torchtext">
+			PyTorch torchtext			</a>
+<a data-p="par" href="../pytorch/pytorch-amp.html" target="_top" title="PyTorch 混合精度训练 (AMP)">
+			PyTorch 混合精度训练			</a>
+<a data-p="par" href="../pytorch/pytorch-torchscript-onnx-export.html" target="_top" title="PyTorch TorchScript/ONNX 导出">
+			PyTorch TorchScript/ONNX 导出			</a>
+<a data-p="par" href="../pytorch/pytorch-distributed.html" target="_top" title="PyTorch 分布式训练">
+			PyTorch 分布式训练			</a>
+<a data-p="par" href="../pytorch/pytorch-attention.html" target="_top" title="PyTorch 注意力机制">
+			PyTorch 注意力机制			</a>
+</div>
+</div>
+</div>
+</div> <div class="col middle-column">
+<div class="article">
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../pytorch/pytorch-torchscript-onnx-export.html" rel="prev">PyTorch TorchScript/ONNX Export</a> </div>
+<div class="next-design-link"><a href="../pytorch/pytorch-attention.html" rel="next">PyTorch Attention Mechanism</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="article-body">
+<div class="article-intro" id="content">
+<h1>PyTorch Distributed Training</h1>
+<p>When models grow larger and data grows larger, a single GPU can no longer meet training requirements.</p><p>Distributed training uses parallel computing across multiple GPUs or even multiple machines, significantly reducing training time.</p><p>This section details distributed training techniques in PyTorch, including DataParallel, DistributedDataParallel, and mixed-precision distributed training.</p>
+<hr/>
+<h2>1. Distributed Training Basics</h2>
+<h3>1.1 Why Do We Need Distributed Training</h3>
+<p>The scale of deep learning models grows year by year, and training time increases accordingly. The core goal of distributed training is:<span class="marked">Distribute computing tasks across multiple compute units to complete training of large-scale models and data within an acceptable time.</span>。</p>
+<p>Distributed training mainly solves two problems:</p>
+<ul>
+<li><strong>Insufficient memory</strong>: Large models' parameters, optimizer states, and gradients require a large amount of GPU memory.</li>
+<li><strong>Excessive training time</strong>: Training a large model on a single GPU may take weeks or even months.</li>
+</ul>
+<h3>1.2 Two Major Modes of Distributed Training</h3>
+<p>Distributed training is mainly divided into two modes:</p>
+<table class="reference">
+<tr>
+<th>Mode</th>
+<th>Principle</th>
+<th>Applicable scenario</th>
+</tr>
+<tr>
+<td>Data Parallel</td>
+<td>Each compute unit stores a complete model; different compute units process different data.</td>
+<td>The model can fit into the GPU memory of a single card; large data volume requires accelerated training; small teams with limited machine resources.</td>
+</tr>
+<tr>
+<td>Model Parallel</td>
+<td>Split the model across multiple compute units; each compute unit stores only part of the model.</td>
+<td>The model is too large to fit on a single card; dedicated clusters, multi-machine training.</td>
+</tr>
+</table>
+<blockquote><p>In actual production environments, data parallelism is the most commonly used approach. PyTorch provides two implementations: DataParallel and DistributedDataParallel.</p></blockquote>
+<hr/>
+<h2>2. DataParallel Usage Guide</h2>
+<h3>2.1 Single-Machine Multi-GPU: DataParallel</h3>
+<p><span class="marked">DataParallel（DP）</span>It is the simplest multi-GPU training method provided by PyTorch. It only requires modifying a few lines of code to train using multiple GPUs on a single machine.</p>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: Green;font-weight:bold;">import</span> torch<br/>
+<span style="color: Green;font-weight:bold;">import</span> torch.<span style="color: #05a;">nn</span> <span style="color: Green;font-weight:bold;">as</span> nn<br/>
+<span style="color: Green;font-weight:bold;">import</span> torch.<span style="color: #05a;">optim</span> <span style="color: Green;font-weight:bold;">as</span> optim<br/>
+<br/>
+<span style="color: #a50"># ── Model Definition ──────────────────────────────────────</span><br/>
+<span style="color: Green;font-weight:bold;">class</span> SimpleModel<span style="color: Olive;">(</span>nn.<span style="color: #05a;">Module</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: Teal;">super</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span>.<span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">net</span> <span style="color: Gray;">=</span> nn.<span style="color: #05a;">Sequential</span><span style="color: Olive;">(</span><br/>
+            nn.<span style="color: #05a;">Linear</span><span style="color: Olive;">(</span><span style="color: Maroon;">128</span><span style="color: Gray;">,</span> <span style="color: Maroon;">256</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+            nn.<span style="color: #05a;">ReLU</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+            nn.<span style="color: #05a;">Linear</span><span style="color: Olive;">(</span><span style="color: Maroon;">256</span><span style="color: Gray;">,</span> <span style="color: Maroon;">256</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+            nn.<span style="color: #05a;">ReLU</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+            nn.<span style="color: #05a;">Linear</span><span style="color: Olive;">(</span><span style="color: Maroon;">256</span><span style="color: Gray;">,</span> <span style="color: Maroon;">10</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> forward<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> x<span style="color: Olive;">)</span>:<br/>
+        <span style="color: Green;font-weight:bold;">return</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">net</span><span style="color: Olive;">(</span>x<span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: #a50"># Check the number of available GPUs</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Available GPU count: {torch.cuda.device_count()}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># Create the model and move it to GPU</span><br/>
+model <span style="color: Gray;">=</span> SimpleModel<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># ── Method 1: Use DataParallel (simplest way)───────</span><br/>
+<span style="color: Green;font-weight:bold;">if</span> torch.<span style="color: #05a;">cuda</span>.<span style="color: #05a;">device_count</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span> <span style="color: Gray;">&gt;</span> <span style="color: Maroon;">1</span>:<br/>
+    model <span style="color: Gray;">=</span> nn.<span style="color: #05a;">DataParallel</span><span style="color: Olive;">(</span>model<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># Move to GPU (if using DataParallel, device_ids are handled automatically)</span><br/>
+device <span style="color: Gray;">=</span> torch.<span style="color: #05a;">device</span><span style="color: Olive;">(</span><span style="color: #a11;">"cuda"</span> <span style="color: Green;font-weight:bold;">if</span> torch.<span style="color: #05a;">cuda</span>.<span style="color: #05a;">is_available</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">else</span> <span style="color: #a11;">"cpu"</span><span style="color: Olive;">)</span><br/>
+model <span style="color: Gray;">=</span> model.<span style="color: #05a;">to</span><span style="color: Olive;">(</span>device<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># Loss function and optimizer</span><br/>
+criterion <span style="color: Gray;">=</span> nn.<span style="color: #05a;">CrossEntropyLoss</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+optimizer <span style="color: Gray;">=</span> optim.<span style="color: #05a;">Adam</span><span style="color: Olive;">(</span>model.<span style="color: #05a;">parameters</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span> lr<span style="color: Gray;">=</span><span style="color: Maroon;">1e-3</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># ── Training Loop ──────────────────────────────────────</span><br/>
+<span style="color: Green;font-weight:bold;">def</span> train_epoch_dp<span style="color: Olive;">(</span>model<span style="color: Gray;">,</span> loader<span style="color: Gray;">,</span> criterion<span style="color: Gray;">,</span> optimizer<span style="color: Gray;">,</span> device<span style="color: Olive;">)</span>:<br/>
+    model.<span style="color: #05a;">train</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+    total_loss <span style="color: Gray;">=</span> <span style="color: Maroon;">0</span><br/>
+    correct <span style="color: Gray;">=</span> <span style="color: Maroon;">0</span><br/>
+    total <span style="color: Gray;">=</span> <span style="color: Maroon;">0</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">for</span> inputs<span style="color: Gray;">,</span> labels <span style="color: Green;font-weight:bold;">in</span> loader:<br/>
+        inputs <span style="color: Gray;">=</span> inputs.<span style="color: #05a;">to</span><span style="color: Olive;">(</span>device<span style="color: Gray;">,</span> non_blocking<span style="color: Gray;">=</span><span style="color: Teal;">True</span><span style="color: Olive;">)</span><br/>
+        labels <span style="color: Gray;">=</span> labels.<span style="color: #05a;">to</span><span style="color: Olive;">(</span>device<span style="color: Gray;">,</span> non_blocking<span style="color: Gray;">=</span><span style="color: Teal;">True</span><span style="color: Olive;">)</span><br/>
+<br/>
+        optimizer.<span style="color: #05a;">zero_grad</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+        outputs <span style="color: Gray;">=</span> model<span style="color: Olive;">(</span>inputs<span style="color: Olive;">)</span><br/>
+        loss <span style="color: Gray;">=</span> criterion<span style="color: Olive;">(</span>outputs<span style="color: Gray;">,</span> labels<span style="color: Olive;">)</span><br/>
+        loss.<span style="color: #05a;">backward</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+        optimizer.<span style="color: #05a;">step</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+        total_loss +<span style="color: Gray;">=</span> loss.<span style="color: #05a;">item</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span> * inputs.<span style="color: #05a;">size</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Olive;">)</span><br/>
+        _<span style="color: Gray;">,</span> predicted <span style="color: Gray;">=</span> outputs.<span style="color: Teal;">max</span><span style="color: Olive;">(</span><span style="color: Maroon;">1</span><span style="color: Olive;">)</span><br/>
+        correct +<span style="color: Gray;">=</span> predicted.<span style="color: #05a;">eq</span><span style="color: Olive;">(</span>labels<span style="color: Olive;">)</span>.<span style="color: Teal;">sum</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span>.<span style="color: #05a;">item</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+        total +<span style="color: Gray;">=</span> labels.<span style="color: #05a;">size</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">return</span> total_loss / total<span style="color: Gray;">,</span> correct / total<br/>
+<br/>
+<br/>
+<span style="color: #a50"># Simulated data</span><br/>
+train_loader <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><br/>
+    <span style="color: Olive;">(</span>torch.<span style="color: #05a;">randn</span><span style="color: Olive;">(</span><span style="color: Maroon;">32</span><span style="color: Gray;">,</span> <span style="color: Maroon;">128</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span> torch.<span style="color: #05a;">randint</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">10</span><span style="color: Gray;">,</span> <span style="color: Olive;">(</span><span style="color: Maroon;">32</span><span style="color: Gray;">,</span><span style="color: Olive;">)</span><span style="color: Olive;">)</span><span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Maroon;">10</span><span style="color: Olive;">)</span><br/>
+<span style="color: Olive;">]</span><br/>
+<br/>
+<span style="color: #a50"># Start training</span><br/>
+<span style="color: Green;font-weight:bold;">for</span> epoch <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Maroon;">3</span><span style="color: Olive;">)</span>:<br/>
+    loss<span style="color: Gray;">,</span> acc <span style="color: Gray;">=</span> train_epoch_dp<span style="color: Olive;">(</span>model<span style="color: Gray;">,</span> train_loader<span style="color: Gray;">,</span> criterion<span style="color: Gray;">,</span> optimizer<span style="color: Gray;">,</span> device<span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Epoch {epoch+1}: Loss={loss:.4f}, Acc={acc:.4f}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"DataParallel training complete!"</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<h3>2.2 How DataParallel Works</h3>
+<p>The workflow of DataParallel is as follows:</p>
+<ol>
+<li><strong>Model replication</strong>: Copy the model to each GPU.</li>
+<li><strong>Data distribution</strong>: Evenly distribute batch data to each GPU.</li>
+<li><strong>Parallel computation</strong>: Each GPU independently computes the forward pass.</li>
+<li><strong>Gradient aggregation</strong>: Aggregate gradients from all GPUs to the main GPU.</li>
+<li><strong>Parameter update</strong>: The main GPU updates parameters and synchronizes them to other GPUs.</li>
+</ol>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># Description of key DataParallel parameters</span><br/>
+model <span style="color: Gray;">=</span> nn.<span style="color: #05a;">DataParallel</span><span style="color: Olive;">(</span><br/>
+    module<span style="color: Gray;">,</span>                    <span style="color: #a50"># The model to parallelize (required)</span><br/>
+    device_ids<span style="color: Gray;">=</span><span style="color: Olive;">[</span><span style="color: Maroon;">0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">1</span><span style="color: Gray;">,</span> <span style="color: Maroon;">2</span><span style="color: Gray;">,</span> <span style="color: Maroon;">3</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span>   <span style="color: #a50"># GPU device IDs to use; by default, all GPUs are used</span><br/>
+    output_device<span style="color: Gray;">=</span><span style="color: Maroon;">0</span><span style="color: Gray;">,</span>            <span style="color: #a50"># Device to gather output results to; by default, the first GPU</span><br/>
+    dim<span style="color: Gray;">=</span><span style="color: Maroon;">0</span>                      <span style="color: #a50"># Dimension along which data is split; by default, the batch dimension</span><br/>
+<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># Check the device of the current model</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Model device: {next(model.parameters()).device}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># Check the devices actually in use</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Number of GPUs used: {model.device_ids if hasattr(model, 'device_ids') else 'N/A'}"</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<blockquote><p>DataParallel is simple and easy to use, but has two main problems: 1) the main GPU has high memory pressure (it needs to aggregate gradients); 2) communication efficiency between GPUs is low. Therefore, the official recommendation is to use DistributedDataParallel.</p></blockquote>
+<hr/>
+<h2>3. Detailed Explanation of DistributedDataParallel</h2>
+<h3>3.1 DDP Basics</h3>
+<p><span class="marked">DistributedDataParallel（DDP）</span>It is the distributed training method recommended by PyTorch. Compared with DataParallel, DDP has the following advantages:</p>
+<ul>
+<li>Each GPU computes gradients independently, without needing to aggregate them on the main GPU.</li>
+<li>Uses an efficient gradient synchronization algorithm (Ring AllReduce).</li>
+<li>Supports multi-machine multi-GPU training.</li>
+<li>Faster training speed and more efficient memory usage.</li>
+</ul>
+<h3>3.2 DDP Single-Machine Multi-GPU Training</h3>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: Green;font-weight:bold;">import</span> torch<br/>
+<span style="color: Green;font-weight:bold;">import</span> torch.<span style="color: #05a;">nn</span> <span style="color: Green;font-weight:bold;">as</span> nn<br/>
+<span style="color: Green;font-weight:bold;">import</span> torch.<span style="color: #05a;">optim</span> <span style="color: Green;font-weight:bold;">as</span> optim<br/>
+<span style="color: Green;font-weight:bold;">import</span> torch.<span style="color: #05a;">distributed</span> <span style="color: Green;font-weight:bold;">as</span> dist<br/>
+<span style="color: Green;font-weight:bold;">from</span> torch.<span style="color: #05a;">nn</span>.<span style="color: #05a;">parallel</span> <span style="color: Green;font-weight:bold;">import</span> DistributedDataParallel <span style="color: Green;font-weight:bold;">as</span> DDP<br/>
+<span style="color: Green;font-weight:bold;">import</span> <span style="color: #05a;">os</span><br/>
+<br/>
+<span style="color: #a50"># ── Initialize the Distributed Environment ────────────────────────────</span><br/>
+<span style="color: Green;font-weight:bold;">def</span> setup<span style="color: Olive;">(</span>rank<span style="color: Gray;">,</span> world_size<span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""Set up the distributed environment"""</span><br/>
+    <span style="color: #a50"># Set the GPU used by the current process</span><br/>
+    torch.<span style="color: #05a;">cuda</span>.<span style="color: #05a;">set_device</span><span style="color: Olive;">(</span>rank<span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># Initialize the process group</span><br/>
+    dist.<span style="color: #05a;">init_process_group</span><span style="color: Olive;">(</span><br/>
+        backend<span style="color: Gray;">=</span><span style="color: #a11;">"nccl"</span><span style="color: Gray;">,</span>           <span style="color: #a50"># Use the NCCL backend (recommended for GPU)</span><br/>
+        init_method<span style="color: Gray;">=</span><span style="color: #a11;">"env://"</span><span style="color: Gray;">,</span>     <span style="color: #a50"># Environment variable initialization method</span><br/>
+        world_size<span style="color: Gray;">=</span>world_size<span style="color: Gray;">,</span>    <span style="color: #a50"># Total number of processes</span><br/>
+        rank<span style="color: Gray;">=</span>rank                 <span style="color: #a50"># Rank of the current process</span><br/>
+    <span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> cleanup<span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""Clean up the distributed environment"""</span><br/>
+    dist.<span style="color: #05a;">destroy_process_group</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: #a50"># ── Data Loader (distributed support)───────────────────────</span><br/>
+<span style="color: Green;font-weight:bold;">def</span> get_distributed_loader<span style="color: Olive;">(</span>batch_size<span style="color: Gray;">,</span> world_size<span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""Create a data loader with distributed support"""</span><br/>
+    <span style="color: Green;font-weight:bold;">from</span> torch.<span style="color: #05a;">utils</span>.<span style="color: #05a;">data</span> <span style="color: Green;font-weight:bold;">import</span> DataLoader<span style="color: Gray;">,</span> DistributedSampler<br/>
+<br/>
+    <span style="color: #a50"># Simulated dataset</span><br/>
+    dataset <span style="color: Gray;">=</span> torch.<span style="color: #05a;">utils</span>.<span style="color: #05a;">data</span>.<span style="color: #05a;">TensorDataset</span><span style="color: Olive;">(</span><br/>
+        torch.<span style="color: #05a;">randn</span><span style="color: Olive;">(</span><span style="color: Maroon;">100</span><span style="color: Gray;">,</span> <span style="color: Maroon;">3</span><span style="color: Gray;">,</span> <span style="color: Maroon;">32</span><span style="color: Gray;">,</span> <span style="color: Maroon;">32</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+        torch.<span style="color: #05a;">randint</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">10</span><span style="color: Gray;">,</span> <span style="color: Olive;">(</span><span style="color: Maroon;">100</span><span style="color: Gray;">,</span><span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># DistributedSampler automatically splits data</span><br/>
+    sampler <span style="color: Gray;">=</span> DistributedSampler<span style="color: Olive;">(</span><br/>
+        dataset<span style="color: Gray;">,</span><br/>
+        num_replicas<span style="color: Gray;">=</span>world_size<span style="color: Gray;">,</span><br/>
+        rank<span style="color: Gray;">=</span>rank<span style="color: Gray;">,</span><br/>
+        shuffle<span style="color: Gray;">=</span><span style="color: Teal;">True</span><br/>
+    <span style="color: Olive;">)</span><br/>
+<br/>
+    loader <span style="color: Gray;">=</span> DataLoader<span style="color: Olive;">(</span><br/>
+        dataset<span style="color: Gray;">,</span><br/>
+        batch_size<span style="color: Gray;">=</span>batch_size<span style="color: Gray;">,</span><br/>
+        sampler<span style="color: Gray;">=</span>sampler<span style="color: Gray;">,</span><br/>
+        num_workers<span style="color: Gray;">=</span><span style="color: Maroon;">2</span><span style="color: Gray;">,</span><br/>
+        pin_memory<span style="color: Gray;">=</span><span style="color: Teal;">True</span><br/>
+    <span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">return</span> loader<br/>
+<br/>
+<br/>
+<span style="color: #a50"># ── Model Definition ──────────────────────────────────────</span><br/>
+<span style="color: Green;font-weight:bold;">class</span> ImageClassifier<span style="color: Olive;">(</span>nn.<span style="color: #05a;">Module</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: Teal;">super</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span>.<span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">features</span> <span style="color: Gray;">=</span> nn.<span style="color: #05a;">Sequential</span><span style="color: Olive;">(</span><br/>
+            nn.<span style="color: #05a;">Conv2d</span><span style="color: Olive;">(</span><span style="color: Maroon;">3</span><span style="color: Gray;">,</span> <span style="color: Maroon;">32</span><span style="color: Gray;">,</span> <span style="color: Maroon;">3</span><span style="color: Gray;">,</span> padding<span style="color: Gray;">=</span><span style="color: Maroon;">1</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+            nn.<span style="color: #05a;">ReLU</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+            nn.<span style="color: #05a;">MaxPool2d</span><span style="color: Olive;">(</span><span style="color: Maroon;">2</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+            nn.<span style="color: #05a;">Conv2d</span><span style="color: Olive;">(</span><span style="color: Maroon;">32</span><span style="color: Gray;">,</span> <span style="color: Maroon;">64</span><span style="color: Gray;">,</span> <span style="color: Maroon;">3</span><span style="color: Gray;">,</span> padding<span style="color: Gray;">=</span><span style="color: Maroon;">1</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+            nn.<span style="color: #05a;">ReLU</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+            nn.<span style="color: #05a;">AdaptiveAvgPool2d</span><span style="color: Olive;">(</span><span style="color: Maroon;">1</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+            nn.<span style="color: #05a;">Flatten</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Olive;">)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">classifier</span> <span style="color: Gray;">=</span> nn.<span style="color: #05a;">Linear</span><span style="color: Olive;">(</span><span style="color: Maroon;">64</span><span style="color: Gray;">,</span> <span style="color: Maroon;">10</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> forward<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> x<span style="color: Olive;">)</span>:<br/>
+        x <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">features</span><span style="color: Olive;">(</span>x<span style="color: Olive;">)</span><br/>
+        x <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">classifier</span><span style="color: Olive;">(</span>x<span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> x<br/>
+<br/>
+<br/>
+<span style="color: #a50"># ── DDP Training Function ──────────────────────────────────</span><br/>
+<span style="color: Green;font-weight:bold;">def</span> train_ddp<span style="color: Olive;">(</span>rank<span style="color: Gray;">,</span> world_size<span style="color: Gray;">,</span> epochs<span style="color: Gray;">=</span><span style="color: Maroon;">3</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""Main function for distributed training"""</span><br/>
+    <span style="color: #a50"># Initialize</span><br/>
+    setup<span style="color: Olive;">(</span>rank<span style="color: Gray;">,</span> world_size<span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># Create the model and move it to the corresponding GPU</span><br/>
+    model <span style="color: Gray;">=</span> ImageClassifier<span style="color: Olive;">(</span><span style="color: Olive;">)</span>.<span style="color: #05a;">cuda</span><span style="color: Olive;">(</span>rank<span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># Wrap it as a DDP model</span><br/>
+    ddp_model <span style="color: Gray;">=</span> DDP<span style="color: Olive;">(</span><br/>
+        model<span style="color: Gray;">,</span><br/>
+        device_ids<span style="color: Gray;">=</span><span style="color: Olive;">[</span>rank<span style="color: Olive;">]</span><span style="color: Gray;">,</span>        <span style="color: #a50"># Specify the device used by the current process</span><br/>
+        output_device<span style="color: Gray;">=</span>rank<span style="color: Gray;">,</span><br/>
+        find_unused_parameters<span style="color: Gray;">=</span><span style="color: Teal;">False</span>  <span style="color: #a50"># Whether to detect unused parameters</span><br/>
+    <span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># Loss function and optimizer</span><br/>
+    criterion <span style="color: Gray;">=</span> nn.<span style="color: #05a;">CrossEntropyLoss</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+    optimizer <span style="color: Gray;">=</span> optim.<span style="color: #05a;">Adam</span><span style="color: Olive;">(</span>ddp_model.<span style="color: #05a;">parameters</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span> lr<span style="color: Gray;">=</span><span style="color: Maroon;">1e-3</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># Get the data loader</span><br/>
+    loader <span style="color: Gray;">=</span> get_distributed_loader<span style="color: Olive;">(</span>batch_size<span style="color: Gray;">=</span><span style="color: Maroon;">16</span><span style="color: Gray;">,</span> world_size<span style="color: Gray;">=</span>world_size<span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># Training loop</span><br/>
+    <span style="color: Green;font-weight:bold;">for</span> epoch <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>epochs<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a50"># Set the epoch number at the start of each epoch (used for shuffling data)</span><br/>
+        loader.<span style="color: #05a;">sampler</span>.<span style="color: #05a;">set_epoch</span><span style="color: Olive;">(</span>epoch<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">for</span> batch_idx<span style="color: Gray;">,</span> <span style="color: Olive;">(</span>inputs<span style="color: Gray;">,</span> labels<span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">enumerate</span><span style="color: Olive;">(</span>loader<span style="color: Olive;">)</span>:<br/>
+            inputs <span style="color: Gray;">=</span> inputs.<span style="color: #05a;">cuda</span><span style="color: Olive;">(</span>rank<span style="color: Gray;">,</span> non_blocking<span style="color: Gray;">=</span><span style="color: Teal;">True</span><span style="color: Olive;">)</span><br/>
+            labels <span style="color: Gray;">=</span> labels.<span style="color: #05a;">cuda</span><span style="color: Olive;">(</span>rank<span style="color: Gray;">,</span> non_blocking<span style="color: Gray;">=</span><span style="color: Teal;">True</span><span style="color: Olive;">)</span><br/>
+<br/>
+            optimizer.<span style="color: #05a;">zero_grad</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+            outputs <span style="color: Gray;">=</span> ddp_model<span style="color: Olive;">(</span>inputs<span style="color: Olive;">)</span><br/>
+            loss <span style="color: Gray;">=</span> criterion<span style="color: Olive;">(</span>outputs<span style="color: Gray;">,</span> labels<span style="color: Olive;">)</span><br/>
+            loss.<span style="color: #05a;">backward</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+            optimizer.<span style="color: #05a;">step</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+            <span style="color: Green;font-weight:bold;">if</span> rank <span style="color: Gray;">==</span> <span style="color: Maroon;">0</span> <span style="color: Green;font-weight:bold;">and</span> batch_idx % <span style="color: Maroon;">5</span> <span style="color: Gray;">==</span> <span style="color: Maroon;">0</span>:<br/>
+                <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Epoch {epoch+1}, Batch {batch_idx}, Loss: {loss.item():.4f}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># Cleanup</span><br/>
+    <span style="color: Green;font-weight:bold;">if</span> rank <span style="color: Gray;">==</span> <span style="color: Maroon;">0</span>:<br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Training complete!"</span><span style="color: Olive;">)</span><br/>
+    cleanup<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: #a50"># Note: In actual execution, you need to specify rank and world_size via command-line arguments</span><br/>
+<span style="color: #a50"># This code needs to run independently in each process</span><br/>
+</div>
+</div>
+<h3>3.3 Launching Distributed Training</h3>
+<p>PyTorch distributed training needs to be launched via<span class="marked">torchrun</span> 或 <span class="marked">torch.distributed.launch</span>. Here are the common launch methods:</p>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #666666; font-style: italic;"># Method 1: Using torchrun (recommended, PyTorch 2.0+)</span><br/>
+<span style="color: #666666; font-style: italic;"># File: train_ddp.py</span><br/>
+<br/>
+<span style="color: #a10;">""</span><span style="color: #a10;">"<br/>Usage:<br/>
+torchrun --nproc_per_node=4 train_ddp.py<br/>
+"</span><span style="color: #a10;">""</span><br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># Method 2: Using python -m (traditional method)</span><br/>
+<span style="color: #a10;">""</span><span style="color: #a10;">"<br/>
+python -m torch.distributed.launch --nproc_per_node=4 train_ddp.py<br/>
+"</span><span style="color: #a10;">""</span><br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># Method 3: Multi-node multi-GPU launch</span><br/>
+<span style="color: #666666; font-style: italic;"># Machine 1 (master node)</span><br/>
+torchrun <span style="color: #660033;">--nnodes</span>=<span style="color: #000000;">2</span> --nproc_per_node=<span style="color: #000000;">4</span> --node_rank=<span style="color: #000000;">0</span> --master_addr=192.168.1.1 --master_port=<span style="color: #000000;">29500</span> train_ddp.py<br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># Machine 2 (worker node)</span><br/>
+torchrun <span style="color: #660033;">--nnodes</span>=<span style="color: #000000;">2</span> --nproc_per_node=<span style="color: #000000;">4</span> --node_rank=<span style="color: #000000;">1</span> --master_addr=192.168.1.1 --master_port=<span style="color: #000000;">29500</span> train_ddp.py<br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># Parameter descriptions:</span><br/>
+<span style="color: #666666; font-style: italic;"># --nproc_per_node: number of GPUs per node</span><br/>
+<span style="color: #666666; font-style: italic;"># --nnodes: number of nodes</span><br/>
+<span style="color: #666666; font-style: italic;"># --node_rank: current node index (starting from 0)</span><br/>
+<span style="color: #666666; font-style: italic;"># --master_addr: master node IP address</span><br/>
+<span style="color: #666666; font-style: italic;"># --master_port: master node port number</span><br/>
+</div>
+</div>
+<h3>3.4 Complete DDP Training Script</h3>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># Complete DDP training script (save as train_ddp.py)</span><br/>
+<span style="color: Green;font-weight:bold;">import</span> torch<br/>
+<span style="color: Green;font-weight:bold;">import</span> torch.<span style="color: #05a;">nn</span> <span style="color: Green;font-weight:bold;">as</span> nn<br/>
+<span style="color: Green;font-weight:bold;">import</span> torch.<span style="color: #05a;">optim</span> <span style="color: Green;font-weight:bold;">as</span> optim<br/>
+<span style="color: Green;font-weight:bold;">import</span> torch.<span style="color: #05a;">distributed</span> <span style="color: Green;font-weight:bold;">as</span> dist<br/>
+<span style="color: Green;font-weight:bold;">from</span> torch.<span style="color: #05a;">nn</span>.<span style="color: #05a;">parallel</span> <span style="color: Green;font-weight:bold;">import</span> DistributedDataParallel <span style="color: Green;font-weight:bold;">as</span> DDP<br/>
+<span style="color: Green;font-weight:bold;">from</span> torch.<span style="color: #05a;">utils</span>.<span style="color: #05a;">data</span> <span style="color: Green;font-weight:bold;">import</span> DataLoader<span style="color: Gray;">,</span> DistributedSampler<br/>
+<span style="color: Green;font-weight:bold;">import</span> argparse<br/>
+<span style="color: Green;font-weight:bold;">import</span> <span style="color: #05a;">os</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> parse_args<span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: #05a;">parser</span> <span style="color: Gray;">=</span> argparse.<span style="color: #05a;">ArgumentParser</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+    <span style="color: #05a;">parser</span>.<span style="color: #05a;">add_argument</span><span style="color: Olive;">(</span><span style="color: #a11;">"--local_rank"</span><span style="color: Gray;">,</span> <span style="color: Teal;">type</span><span style="color: Gray;">=</span><span style="color: Teal;">int</span><span style="color: Gray;">,</span> default<span style="color: Gray;">=</span>-<span style="color: Maroon;">1</span><span style="color: Gray;">,</span> <span style="color: Teal;">help</span><span style="color: Gray;">=</span><span style="color: #a11;">"Automatically passed by torchrun"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: #05a;">parser</span>.<span style="color: #05a;">add_argument</span><span style="color: Olive;">(</span><span style="color: #a11;">"--epochs"</span><span style="color: Gray;">,</span> <span style="color: Teal;">type</span><span style="color: Gray;">=</span><span style="color: Teal;">int</span><span style="color: Gray;">,</span> default<span style="color: Gray;">=</span><span style="color: Maroon;">10</span><span style="color: Olive;">)</span><br/>
+    <span style="color: #05a;">parser</span>.<span style="color: #05a;">add_argument</span><span style="color: Olive;">(</span><span style="color: #a11;">"--batch_size"</span><span style="color: Gray;">,</span> <span style="color: Teal;">type</span><span style="color: Gray;">=</span><span style="color: Teal;">int</span><span style="color: Gray;">,</span> default<span style="color: Gray;">=</span><span style="color: Maroon;">32</span><span style="color: Olive;">)</span><br/>
+    <span style="color: #05a;">parser</span>.<span style="color: #05a;">add_argument</span><span style="color: Olive;">(</span><span style="color: #a11;">"--lr"</span><span style="color: Gray;">,</span> <span style="color: Teal;">type</span><span style="color: Gray;">=</span><span style="color: Teal;">float</span><span style="color: Gray;">,</span> default<span style="color: Gray;">=</span><span style="color: Maroon;">1e-3</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> <span style="color: #05a;">parser</span>.<span style="color: #05a;">parse_args</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> TrainModel<span style="color: Olive;">(</span>nn.<span style="color: #05a;">Module</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: Teal;">super</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span>.<span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">net</span> <span style="color: Gray;">=</span> nn.<span style="color: #05a;">Sequential</span><span style="color: Olive;">(</span><br/>
+            nn.<span style="color: #05a;">Conv2d</span><span style="color: Olive;">(</span><span style="color: Maroon;">3</span><span style="color: Gray;">,</span> <span style="color: Maroon;">64</span><span style="color: Gray;">,</span> <span style="color: Maroon;">3</span><span style="color: Gray;">,</span> padding<span style="color: Gray;">=</span><span style="color: Maroon;">1</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+            nn.<span style="color: #05a;">ReLU</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+            nn.<span style="color: #05a;">MaxPool2d</span><span style="color: Olive;">(</span><span style="color: Maroon;">2</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+            nn.<span style="color: #05a;">Conv2d</span><span style="color: Olive;">(</span><span style="color: Maroon;">64</span><span style="color: Gray;">,</span> <span style="color: Maroon;">128</span><span style="color: Gray;">,</span> <span style="color: Maroon;">3</span><span style="color: Gray;">,</span> padding<span style="color: Gray;">=</span><span style="color: Maroon;">1</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+            nn.<span style="color: #05a;">ReLU</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+            nn.<span style="color: #05a;">AdaptiveAvgPool2d</span><span style="color: Olive;">(</span><span style="color: Maroon;">1</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+            nn.<span style="color: #05a;">Flatten</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+            nn.<span style="color: #05a;">Linear</span><span style="color: Olive;">(</span><span style="color: Maroon;">128</span><span style="color: Gray;">,</span> <span style="color: Maroon;">10</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> forward<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> x<span style="color: Olive;">)</span>:<br/>
+        <span style="color: Green;font-weight:bold;">return</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">net</span><span style="color: Olive;">(</span>x<span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> setup<span style="color: Olive;">(</span>rank<span style="color: Gray;">,</span> world_size<span style="color: Olive;">)</span>:<br/>
+    <span style="color: #05a;">os</span>.<span style="color: #05a;">environ</span><span style="color: Olive;">[</span><span style="color: #a11;">"MASTER_ADDR"</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: #a11;">"localhost"</span><br/>
+    <span style="color: #05a;">os</span>.<span style="color: #05a;">environ</span><span style="color: Olive;">[</span><span style="color: #a11;">"MASTER_PORT"</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: #a11;">"12355"</span><br/>
+    dist.<span style="color: #05a;">init_process_group</span><span style="color: Olive;">(</span><span style="color: #a11;">"nccl"</span><span style="color: Gray;">,</span> rank<span style="color: Gray;">=</span>rank<span style="color: Gray;">,</span> world_size<span style="color: Gray;">=</span>world_size<span style="color: Olive;">)</span><br/>
+    torch.<span style="color: #05a;">cuda</span>.<span style="color: #05a;">set_device</span><span style="color: Olive;">(</span>rank<span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> cleanup<span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+    dist.<span style="color: #05a;">destroy_process_group</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> train<span style="color: Olive;">(</span>rank<span style="color: Gray;">,</span> world_size<span style="color: Gray;">,</span> args<span style="color: Olive;">)</span>:<br/>
+    setup<span style="color: Olive;">(</span>rank<span style="color: Gray;">,</span> world_size<span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># Create the model</span><br/>
+    model <span style="color: Gray;">=</span> TrainModel<span style="color: Olive;">(</span><span style="color: Olive;">)</span>.<span style="color: #05a;">cuda</span><span style="color: Olive;">(</span>rank<span style="color: Olive;">)</span><br/>
+    model <span style="color: Gray;">=</span> DDP<span style="color: Olive;">(</span>model<span style="color: Gray;">,</span> device_ids<span style="color: Gray;">=</span><span style="color: Olive;">[</span>rank<span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># Optimizer and loss function</span><br/>
+    optimizer <span style="color: Gray;">=</span> optim.<span style="color: #05a;">Adam</span><span style="color: Olive;">(</span>model.<span style="color: #05a;">parameters</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span> lr<span style="color: Gray;">=</span>args.<span style="color: #05a;">lr</span><span style="color: Olive;">)</span><br/>
+    criterion <span style="color: Gray;">=</span> nn.<span style="color: #05a;">CrossEntropyLoss</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># Dataset</span><br/>
+    dataset <span style="color: Gray;">=</span> torch.<span style="color: #05a;">utils</span>.<span style="color: #05a;">data</span>.<span style="color: #05a;">TensorDataset</span><span style="color: Olive;">(</span><br/>
+        torch.<span style="color: #05a;">randn</span><span style="color: Olive;">(</span><span style="color: Maroon;">1000</span><span style="color: Gray;">,</span> <span style="color: Maroon;">3</span><span style="color: Gray;">,</span> <span style="color: Maroon;">32</span><span style="color: Gray;">,</span> <span style="color: Maroon;">32</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+        torch.<span style="color: #05a;">randint</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">10</span><span style="color: Gray;">,</span> <span style="color: Olive;">(</span><span style="color: Maroon;">1000</span><span style="color: Gray;">,</span><span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># DistributedSampler ensures each process sees different data</span><br/>
+    sampler <span style="color: Gray;">=</span> DistributedSampler<span style="color: Olive;">(</span><br/>
+        dataset<span style="color: Gray;">,</span><br/>
+        num_replicas<span style="color: Gray;">=</span>world_size<span style="color: Gray;">,</span><br/>
+        rank<span style="color: Gray;">=</span>rank<span style="color: Gray;">,</span><br/>
+        shuffle<span style="color: Gray;">=</span><span style="color: Teal;">True</span><br/>
+    <span style="color: Olive;">)</span><br/>
+<br/>
+    loader <span style="color: Gray;">=</span> DataLoader<span style="color: Olive;">(</span><br/>
+        dataset<span style="color: Gray;">,</span><br/>
+        batch_size<span style="color: Gray;">=</span>args.<span style="color: #05a;">batch_size</span><span style="color: Gray;">,</span><br/>
+        sampler<span style="color: Gray;">=</span>sampler<span style="color: Gray;">,</span><br/>
+        num_workers<span style="color: Gray;">=</span><span style="color: Maroon;">2</span><span style="color: Gray;">,</span><br/>
+        pin_memory<span style="color: Gray;">=</span><span style="color: Teal;">True</span><br/>
+    <span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># Training loop</span><br/>
+    <span style="color: Green;font-weight:bold;">for</span> epoch <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>args.<span style="color: #05a;">epochs</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a50"># Key: set the epoch every epoch to shuffle the data partition</span><br/>
+        sampler.<span style="color: #05a;">set_epoch</span><span style="color: Olive;">(</span>epoch<span style="color: Olive;">)</span><br/>
+        model.<span style="color: #05a;">train</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+        epoch_loss <span style="color: Gray;">=</span> <span style="color: Maroon;">0</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> inputs<span style="color: Gray;">,</span> labels <span style="color: Green;font-weight:bold;">in</span> loader:<br/>
+            inputs <span style="color: Gray;">=</span> inputs.<span style="color: #05a;">cuda</span><span style="color: Olive;">(</span>rank<span style="color: Gray;">,</span> non_blocking<span style="color: Gray;">=</span><span style="color: Teal;">True</span><span style="color: Olive;">)</span><br/>
+            labels <span style="color: Gray;">=</span> labels.<span style="color: #05a;">cuda</span><span style="color: Olive;">(</span>rank<span style="color: Gray;">,</span> non_blocking<span style="color: Gray;">=</span><span style="color: Teal;">True</span><span style="color: Olive;">)</span><br/>
+<br/>
+            optimizer.<span style="color: #05a;">zero_grad</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+            outputs <span style="color: Gray;">=</span> model<span style="color: Olive;">(</span>inputs<span style="color: Olive;">)</span><br/>
+            loss <span style="color: Gray;">=</span> criterion<span style="color: Olive;">(</span>outputs<span style="color: Gray;">,</span> labels<span style="color: Olive;">)</span><br/>
+            loss.<span style="color: #05a;">backward</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+            optimizer.<span style="color: #05a;">step</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+            epoch_loss +<span style="color: Gray;">=</span> loss.<span style="color: #05a;">item</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># Synchronize all processes to ensure every process finishes the current epoch</span><br/>
+        dist.<span style="color: #05a;">barrier</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">if</span> rank <span style="color: Gray;">==</span> <span style="color: Maroon;">0</span>:<br/>
+            avg_loss <span style="color: Gray;">=</span> epoch_loss / <span style="color: Teal;">len</span><span style="color: Olive;">(</span>loader<span style="color: Olive;">)</span><br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Epoch {epoch+1}/{args.epochs}, Loss: {avg_loss:.4f}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+    cleanup<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">if</span> __name__ <span style="color: Gray;">==</span> <span style="color: #a11;">"__main__"</span>:<br/>
+    args <span style="color: Gray;">=</span> parse_args<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># Get world_size from environment variables</span><br/>
+    world_size <span style="color: Gray;">=</span> <span style="color: Teal;">int</span><span style="color: Olive;">(</span><span style="color: #05a;">os</span>.<span style="color: #05a;">environ</span><span style="color: Olive;">[</span><span style="color: #a11;">"WORLD_SIZE"</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># Get rank from environment variables (automatically set by torchrun)</span><br/>
+    rank <span style="color: Gray;">=</span> <span style="color: Teal;">int</span><span style="color: Olive;">(</span><span style="color: #05a;">os</span>.<span style="color: #05a;">environ</span><span style="color: Olive;">[</span><span style="color: #a11;">"RANK"</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">if</span> torch.<span style="color: #05a;">cuda</span>.<span style="color: #05a;">is_available</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+        train<span style="color: Olive;">(</span>rank<span style="color: Gray;">,</span> world_size<span style="color: Gray;">,</span> args<span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">else</span>:<br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"CUDA environment is required to run distributed training"</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<blockquote><p>Key point: every epoch needs to call<code>sampler.set_epoch(epoch)</code>, to ensure the data partition is shuffled, otherwise multiple processes will see the same data.</p></blockquote>
+<hr/>
+<h2>4. Mixed Precision in Distributed Training</h2>
+<h3>4.1 DDP + AMP Combination</h3>
+<p>Combining distributed training with mixed precision training can further improve training speed. DDP in PyTorch 2.0+ is fully integrated with AMP.</p>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: Green;font-weight:bold;">import</span> torch<br/>
+<span style="color: Green;font-weight:bold;">import</span> torch.<span style="color: #05a;">nn</span> <span style="color: Green;font-weight:bold;">as</span> nn<br/>
+<span style="color: Green;font-weight:bold;">import</span> torch.<span style="color: #05a;">optim</span> <span style="color: Green;font-weight:bold;">as</span> optim<br/>
+<span style="color: Green;font-weight:bold;">import</span> torch.<span style="color: #05a;">distributed</span> <span style="color: Green;font-weight:bold;">as</span> dist<br/>
+<span style="color: Green;font-weight:bold;">from</span> torch.<span style="color: #05a;">nn</span>.<span style="color: #05a;">parallel</span> <span style="color: Green;font-weight:bold;">import</span> DistributedDataParallel <span style="color: Green;font-weight:bold;">as</span> DDP<br/>
+<span style="color: Green;font-weight:bold;">from</span> torch.<span style="color: #05a;">cuda</span>.<span style="color: #05a;">amp</span> <span style="color: Green;font-weight:bold;">import</span> autocast<span style="color: Gray;">,</span> GradScaler<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> AMPModel<span style="color: Olive;">(</span>nn.<span style="color: #05a;">Module</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: Teal;">super</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span>.<span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">net</span> <span style="color: Gray;">=</span> nn.<span style="color: #05a;">Sequential</span><span style="color: Olive;">(</span><br/>
+            nn.<span style="color: #05a;">Conv2d</span><span style="color: Olive;">(</span><span style="color: Maroon;">3</span><span style="color: Gray;">,</span> <span style="color: Maroon;">64</span><span style="color: Gray;">,</span> <span style="color: Maroon;">3</span><span style="color: Gray;">,</span> padding<span style="color: Gray;">=</span><span style="color: Maroon;">1</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+            nn.<span style="color: #05a;">ReLU</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+            nn.<span style="color: #05a;">MaxPool2d</span><span style="color: Olive;">(</span><span style="color: Maroon;">2</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+            nn.<span style="color: #05a;">Conv2d</span><span style="color: Olive;">(</span><span style="color: Maroon;">64</span><span style="color: Gray;">,</span> <span style="color: Maroon;">128</span><span style="color: Gray;">,</span> <span style="color: Maroon;">3</span><span style="color: Gray;">,</span> padding<span style="color: Gray;">=</span><span style="color: Maroon;">1</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+            nn.<span style="color: #05a;">ReLU</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+            nn.<span style="color: #05a;">AdaptiveAvgPool2d</span><span style="color: Olive;">(</span><span style="color: Maroon;">1</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+            nn.<span style="color: #05a;">Flatten</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+            nn.<span style="color: #05a;">Linear</span><span style="color: Olive;">(</span><span style="color: Maroon;">128</span><span style="color: Gray;">,</span> <span style="color: Maroon;">10</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> forward<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> x<span style="color: Olive;">)</span>:<br/>
+        <span style="color: Green;font-weight:bold;">return</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">net</span><span style="color: Olive;">(</span>x<span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> train_ddp_amp<span style="color: Olive;">(</span>rank<span style="color: Gray;">,</span> world_size<span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""Distributed + mixed precision training"""</span><br/>
+    <span style="color: #a50"># Initialization</span><br/>
+    torch.<span style="color: #05a;">cuda</span>.<span style="color: #05a;">set_device</span><span style="color: Olive;">(</span>rank<span style="color: Olive;">)</span><br/>
+    dist.<span style="color: #05a;">init_process_group</span><span style="color: Olive;">(</span><span style="color: #a11;">"nccl"</span><span style="color: Gray;">,</span> rank<span style="color: Gray;">=</span>rank<span style="color: Gray;">,</span> world_size<span style="color: Gray;">=</span>world_size<span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># Create the model</span><br/>
+    model <span style="color: Gray;">=</span> AMPModel<span style="color: Olive;">(</span><span style="color: Olive;">)</span>.<span style="color: #05a;">cuda</span><span style="color: Olive;">(</span>rank<span style="color: Olive;">)</span><br/>
+    model <span style="color: Gray;">=</span> DDP<span style="color: Olive;">(</span>model<span style="color: Gray;">,</span> device_ids<span style="color: Gray;">=</span><span style="color: Olive;">[</span>rank<span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># Optimizer and GradScaler</span><br/>
+    optimizer <span style="color: Gray;">=</span> optim.<span style="color: #05a;">Adam</span><span style="color: Olive;">(</span>model.<span style="color: #05a;">parameters</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span> lr<span style="color: Gray;">=</span><span style="color: Maroon;">1e-3</span><span style="color: Olive;">)</span><br/>
+    scaler <span style="color: Gray;">=</span> GradScaler<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+    criterion <span style="color: Gray;">=</span> nn.<span style="color: #05a;">CrossEntropyLoss</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># Training loop</span><br/>
+    model.<span style="color: #05a;">train</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">for</span> inputs<span style="color: Gray;">,</span> labels <span style="color: Green;font-weight:bold;">in</span> loader:<br/>
+        inputs <span style="color: Gray;">=</span> inputs.<span style="color: #05a;">cuda</span><span style="color: Olive;">(</span>rank<span style="color: Gray;">,</span> non_blocking<span style="color: Gray;">=</span><span style="color: Teal;">True</span><span style="color: Olive;">)</span><br/>
+        labels <span style="color: Gray;">=</span> labels.<span style="color: #05a;">cuda</span><span style="color: Olive;">(</span>rank<span style="color: Gray;">,</span> non_blocking<span style="color: Gray;">=</span><span style="color: Teal;">True</span><span style="color: Olive;">)</span><br/>
+<br/>
+        optimizer.<span style="color: #05a;">zero_grad</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># Use autocast to automatically switch precision</span><br/>
+        <span style="color: Green;font-weight:bold;">with</span> autocast<span style="color: Olive;">(</span>device_type<span style="color: Gray;">=</span><span style="color: #a11;">'cuda'</span><span style="color: Olive;">)</span>:<br/>
+            outputs <span style="color: Gray;">=</span> model<span style="color: Olive;">(</span>inputs<span style="color: Olive;">)</span><br/>
+            loss <span style="color: Gray;">=</span> criterion<span style="color: Olive;">(</span>outputs<span style="color: Gray;">,</span> labels<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># Use scaler to handle gradient scaling</span><br/>
+        scaler.<span style="color: #05a;">scale</span><span style="color: Olive;">(</span>loss<span style="color: Olive;">)</span>.<span style="color: #05a;">backward</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># Gradient clipping (requires unscaling first)</span><br/>
+        scaler.<span style="color: #05a;">unscale_</span><span style="color: Olive;">(</span>optimizer<span style="color: Olive;">)</span><br/>
+        torch.<span style="color: #05a;">nn</span>.<span style="color: #05a;">utils</span>.<span style="color: #05a;">clip_grad_norm_</span><span style="color: Olive;">(</span>model.<span style="color: #05a;">parameters</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span> max_norm<span style="color: Gray;">=</span><span style="color: Maroon;">1.0</span><span style="color: Olive;">)</span><br/>
+<br/>
+        scaler.<span style="color: #05a;">step</span><span style="color: Olive;">(</span>optimizer<span style="color: Olive;">)</span><br/>
+        scaler.<span style="color: #05a;">update</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+    dist.<span style="color: #05a;">destroy_process_group</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: #a50"># Launch command</span><br/>
+<span style="color: #a50"># torchrun --nproc_per_node=4 train_ddp_amp.py</span><br/>
+</div>
+</div>
+<h3>4.2 Gradient Synchronization in Distributed Training</h3>
+<p>DDP uses<span class="marked">Ring AllReduce</span>algorithm for gradient synchronization, and it works as follows:</p>
+<ol>
+<li>Each GPU splits the gradients into n parts (n is the number of GPUs)</li>
+<li>Each GPU exchanges one gradient part with an adjacent GPU</li>
+<li>After repeating n times, each GPU has the complete gradients</li>
+</ol>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># DDP gradient synchronization related configuration</span><br/>
+<br/>
+<span style="color: #a50"># 1. Set the buffer size for gradient buckets</span><br/>
+model <span style="color: Gray;">=</span> DDP<span style="color: Olive;">(</span><br/>
+    model<span style="color: Gray;">,</span><br/>
+    device_ids<span style="color: Gray;">=</span><span style="color: Olive;">[</span>rank<span style="color: Olive;">]</span><span style="color: Gray;">,</span><br/>
+    gradient_as_bucket_view<span style="color: Gray;">=</span><span style="color: Teal;">True</span><span style="color: Gray;">,</span>  <span style="color: #a50"># Save memory (PyTorch 1.8+)</span><br/>
+    broadcast_buffers<span style="color: Gray;">=</span><span style="color: Teal;">False</span><span style="color: Gray;">,</span>        <span style="color: #a50"># Do not broadcast buffers to reduce communication</span><br/>
+    bucket_cap_mb<span style="color: Gray;">=</span><span style="color: Maroon;">25</span>               <span style="color: #a50"># Gradient bucket size (MB)</span><br/>
+<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 2. Manually synchronize model parameters (if needed)</span><br/>
+<span style="color: #a50"># In some scenarios, model parameters need to be manually synchronized</span><br/>
+<span style="color: Green;font-weight:bold;">def</span> sync_params<span style="color: Olive;">(</span>model<span style="color: Olive;">)</span>:<br/>
+    <span style="color: Green;font-weight:bold;">for</span> param <span style="color: Green;font-weight:bold;">in</span> model.<span style="color: #05a;">parameters</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+        dist.<span style="color: #05a;">broadcast</span><span style="color: Olive;">(</span>param<span style="color: Gray;">,</span> src<span style="color: Gray;">=</span><span style="color: Maroon;">0</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 3. Check gradient synchronization status</span><br/>
+<span style="color: #a50"># DDP automatically handles gradient synchronization; no manual operation is needed</span><br/>
+<span style="color: #a50"># But it can be checked in the following way</span><br/>
+<span style="color: Green;font-weight:bold;">for</span> name<span style="color: Gray;">,</span> param <span style="color: Green;font-weight:bold;">in</span> model.<span style="color: #05a;">named_parameters</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: Green;font-weight:bold;">if</span> param.<span style="color: #05a;">grad</span> <span style="color: Green;font-weight:bold;">is</span> <span style="color: Green;font-weight:bold;">not</span> <span style="color: Teal;">None</span>:<br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"{name}: grad requires_grad={param.grad.requires_grad}"</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<hr/>
+<h2>5. Model Parallelism and Pipelining</h2>
+<h3>5.1 Simple Model Parallelism</h3>
+<p>When the model is too large to fit on a single GPU, it needs to be split across multiple GPUs.</p>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># Model parallelism example: place different layers of the model on different GPUs</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> ModelParallel<span style="color: Olive;">(</span>nn.<span style="color: #05a;">Module</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> num_gpus<span style="color: Gray;">=</span><span style="color: Maroon;">2</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: Teal;">super</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span>.<span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">num_gpus</span> <span style="color: Gray;">=</span> num_gpus<br/>
+<br/>
+        <span style="color: #a50"># Part 1: GPU 0</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">features1</span> <span style="color: Gray;">=</span> nn.<span style="color: #05a;">Sequential</span><span style="color: Olive;">(</span><br/>
+            nn.<span style="color: #05a;">Conv2d</span><span style="color: Olive;">(</span><span style="color: Maroon;">3</span><span style="color: Gray;">,</span> <span style="color: Maroon;">64</span><span style="color: Gray;">,</span> <span style="color: Maroon;">3</span><span style="color: Gray;">,</span> padding<span style="color: Gray;">=</span><span style="color: Maroon;">1</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+            nn.<span style="color: #05a;">ReLU</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+            nn.<span style="color: #05a;">MaxPool2d</span><span style="color: Olive;">(</span><span style="color: Maroon;">2</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Olive;">)</span>.<span style="color: #05a;">to</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"cuda:0"</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># Part 2: GPU 1</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">features2</span> <span style="color: Gray;">=</span> nn.<span style="color: #05a;">Sequential</span><span style="color: Olive;">(</span><br/>
+            nn.<span style="color: #05a;">Conv2d</span><span style="color: Olive;">(</span><span style="color: Maroon;">64</span><span style="color: Gray;">,</span> <span style="color: Maroon;">128</span><span style="color: Gray;">,</span> <span style="color: Maroon;">3</span><span style="color: Gray;">,</span> padding<span style="color: Gray;">=</span><span style="color: Maroon;">1</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+            nn.<span style="color: #05a;">ReLU</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+            nn.<span style="color: #05a;">AdaptiveAvgPool2d</span><span style="color: Olive;">(</span><span style="color: Maroon;">1</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+            nn.<span style="color: #05a;">Flatten</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Olive;">)</span>.<span style="color: #05a;">to</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"cuda:1"</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># Classifier: GPU 0</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">classifier</span> <span style="color: Gray;">=</span> nn.<span style="color: #05a;">Linear</span><span style="color: Olive;">(</span><span style="color: Maroon;">128</span><span style="color: Gray;">,</span> <span style="color: Maroon;">10</span><span style="color: Olive;">)</span>.<span style="color: #05a;">to</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"cuda:0"</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> forward<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> x<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a50"># Data is passed between different GPUs</span><br/>
+        x <span style="color: Gray;">=</span> x.<span style="color: #05a;">to</span><span style="color: Olive;">(</span><span style="color: #a11;">"cuda:0"</span><span style="color: Olive;">)</span><br/>
+        x <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">features1</span><span style="color: Olive;">(</span>x<span style="color: Olive;">)</span><br/>
+        x <span style="color: Gray;">=</span> x.<span style="color: #05a;">to</span><span style="color: Olive;">(</span><span style="color: #a11;">"cuda:1"</span><span style="color: Olive;">)</span><br/>
+        x <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">features2</span><span style="color: Olive;">(</span>x<span style="color: Olive;">)</span><br/>
+        x <span style="color: Gray;">=</span> x.<span style="color: #05a;">to</span><span style="color: Olive;">(</span><span style="color: #a11;">"cuda:0"</span><span style="color: Olive;">)</span><br/>
+        x <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">classifier</span><span style="color: Olive;">(</span>x<span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> x<br/>
+<br/>
+<br/>
+<span style="color: #a50"># Use</span><br/>
+model <span style="color: Gray;">=</span> ModelParallel<span style="color: Olive;">(</span>num_gpus<span style="color: Gray;">=</span><span style="color: Maroon;">2</span><span style="color: Olive;">)</span><br/>
+output <span style="color: Gray;">=</span> model<span style="color: Olive;">(</span>torch.<span style="color: #05a;">randn</span><span style="color: Olive;">(</span><span style="color: Maroon;">1</span><span style="color: Gray;">,</span> <span style="color: Maroon;">3</span><span style="color: Gray;">,</span> <span style="color: Maroon;">32</span><span style="color: Gray;">,</span> <span style="color: Maroon;">32</span><span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Output device: {output.device}"</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<h3>5.2 Pipeline Parallelism</h3>
+<p>PyTorch provides<span class="marked">torch.distributed.pipeline.sync</span>module (PP package) to implement pipeline parallelism, splitting the model by layers to form a computational pipeline.</p>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># Pipeline parallelism example (requires installing the torch-pipeline dependency)</span><br/>
+<span style="color: #a50"># pip install torch-pipeline</span><br/>
+<br/>
+<span style="color: #a11;">"""<br/># Note: PyTorch native pipeline requires a specific version or a third-party library<br/># Here we demonstrate the concept with a simplified implementation<br/>
+<br/>
+from torch.distributed.pipeline.sync import Pipe<br/>
+<br/>
+class SimpleModel(nn.Module):<br/>
+    def __init__(self):<br/>
+        super().__init__()<br/>
+        self.layer1 = nn.Linear(128, 256)<br/>
+        self.layer2 = nn.Linear(256, 256)<br/>
+        self.layer3 = nn.Linear(256, 10)<br/>
+<br/>
+    def forward(self, x):<br/>
+        x = torch.relu(self.layer1(x))<br/>
+        x = torch.relu(self.layer2(x))<br/>
+        x = self.layer3(x)<br/>
+        return x<br/>
+<br/>
+<br/># Split the model across different GPUs by layers<br/>
+# layer1 -&gt; GPU 0<br/>
+# layer2 -&gt; GPU 1<br/>
+# layer3 -&gt; GPU 2<br/>
+<br/>
+model = SimpleModel()<br/>
+model.layer1 = model.layer1.cuda(0)<br/>
+model.layer2 = model.layer2.cuda(1)<br/>
+model.layer3 = model.layer3.cuda(2)<br/>
+<br/># Use Pipeline to connect the model<br/># Note: Actual usage requires installing the corresponding version of the pipeline library<br/>
+# from torch.distributed.pipeline.sync import Pipe<br/>
+# model = Pipe(model, chunks=4)<br/>
+"""</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Pipeline parallelism requires additional installation of the torch-pipeline library"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"pip install torch-pipeline-sync"</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<hr/>
+<h2>6. Best Practices for Distributed Training</h2>
+<h3>6.1 Performance Optimization Tips</h3>
+<table class="reference">
+<tr>
+<th>Optimization Item</th>
+<th>Technique</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>Communication optimization</td>
+<td>Use NCCL backend</td>
+<td>NCCL is the best choice for GPUs; faster than Gloo</td>
+</tr>
+<tr>
+<td>Data loading</td>
+<td>Set num_workers and pin_memory</td>
+<td>Set num_workers to the number of CPU cores; pin_memory accelerates CPU-to-GPU transfer</td>
+</tr>
+<tr>
+<td>Gradient synchronization</td>
+<td>Adjust bucket_cap_mb</td>
+<td>Larger models can increase the bucket; smaller models can decrease it to improve responsiveness</td>
+</tr>
+<tr>
+<td>Mixed precision</td>
+<td>DDP + AMP</td>
+<td>Reduces communication volume; improves training speed</td>
+</tr>
+</table>
+<h3>6.2 Common Problems and Solutions</h3>
+<table class="reference">
+<tr>
+<th>Problem</th>
+<th>Cause</th>
+<th>Solution</th>
+</tr>
+<tr>
+<td>Slow communication</td>
+<td>Insufficient network bandwidth</td>
+<td>Use InfiniBand or high-speed network</td>
+</tr>
+<tr>
+<td>Insufficient GPU memory</td>
+<td>Batch size too large</td>
+<td>Reduce batch size or use gradient accumulation</td>
+</tr>
+<tr>
+<td>Unbalanced load</td>
+<td>Unreasonable model partitioning</td>
+<td>Adjust layer distribution to be as even as possible</td>
+</tr>
+<tr>
+<td>Synchronization error</td>
+<td>Gradient NaN</td>
+<td>Check gradient clipping and scaling settings</td>
+</tr>
+</table>
+<h3>6.3 Complete Multi-Machine Multi-GPU Training Script</h3>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># Complete multi-node multi-GPU training script template</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">import</span> torch<br/>
+<span style="color: Green;font-weight:bold;">import</span> torch.<span style="color: #05a;">nn</span> <span style="color: Green;font-weight:bold;">as</span> nn<br/>
+<span style="color: Green;font-weight:bold;">import</span> torch.<span style="color: #05a;">optim</span> <span style="color: Green;font-weight:bold;">as</span> optim<br/>
+<span style="color: Green;font-weight:bold;">import</span> torch.<span style="color: #05a;">distributed</span> <span style="color: Green;font-weight:bold;">as</span> dist<br/>
+<span style="color: Green;font-weight:bold;">from</span> torch.<span style="color: #05a;">nn</span>.<span style="color: #05a;">parallel</span> <span style="color: Green;font-weight:bold;">import</span> DistributedDataParallel <span style="color: Green;font-weight:bold;">as</span> DDP<br/>
+<span style="color: Green;font-weight:bold;">from</span> torch.<span style="color: #05a;">utils</span>.<span style="color: #05a;">data</span> <span style="color: Green;font-weight:bold;">import</span> DataLoader<span style="color: Gray;">,</span> DistributedSampler<br/>
+<span style="color: Green;font-weight:bold;">import</span> argparse<br/>
+<span style="color: Green;font-weight:bold;">import</span> <span style="color: #05a;">os</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> TrainingConfig:<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">local_rank</span> <span style="color: Gray;">=</span> -<span style="color: Maroon;">1</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">epochs</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">30</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">batch_size</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">32</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">lr</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">1e-3</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">num_workers</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">4</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">gradient_clip</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">1.0</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">use_amp</span> <span style="color: Gray;">=</span> <span style="color: Teal;">True</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> init_distributed<span style="color: Olive;">(</span>config<span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""Initialize distributed environment"""</span><br/>
+    <span style="color: #a50"># Get configuration from environment variables</span><br/>
+    local_rank <span style="color: Gray;">=</span> config.<span style="color: #05a;">local_rank</span><br/>
+<br/>
+    <span style="color: #a50"># NCCL configuration</span><br/>
+    <span style="color: #05a;">os</span>.<span style="color: #05a;">environ</span><span style="color: Olive;">[</span><span style="color: #a11;">"NCCL_DEBUG"</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: #a11;">"WARN"</span><br/>
+<br/>
+    torch.<span style="color: #05a;">cuda</span>.<span style="color: #05a;">set_device</span><span style="color: Olive;">(</span>local_rank<span style="color: Olive;">)</span><br/>
+    dist.<span style="color: #05a;">init_process_group</span><span style="color: Olive;">(</span>backend<span style="color: Gray;">=</span><span style="color: #a11;">"nccl"</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">return</span> local_rank<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> create_dataloader<span style="color: Olive;">(</span>dataset<span style="color: Gray;">,</span> config<span style="color: Gray;">,</span> world_size<span style="color: Gray;">,</span> rank<span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""Create data loader"""</span><br/>
+    sampler <span style="color: Gray;">=</span> DistributedSampler<span style="color: Olive;">(</span><br/>
+        dataset<span style="color: Gray;">,</span><br/>
+        num_replicas<span style="color: Gray;">=</span>world_size<span style="color: Gray;">,</span><br/>
+        rank<span style="color: Gray;">=</span>rank<span style="color: Gray;">,</span><br/>
+        shuffle<span style="color: Gray;">=</span><span style="color: Teal;">True</span><span style="color: Gray;">,</span><br/>
+        drop_last<span style="color: Gray;">=</span><span style="color: Teal;">True</span><br/>
+    <span style="color: Olive;">)</span><br/>
+<br/>
+    loader <span style="color: Gray;">=</span> DataLoader<span style="color: Olive;">(</span><br/>
+        dataset<span style="color: Gray;">,</span><br/>
+        batch_size<span style="color: Gray;">=</span>config.<span style="color: #05a;">batch_size</span><span style="color: Gray;">,</span><br/>
+        sampler<span style="color: Gray;">=</span>sampler<span style="color: Gray;">,</span><br/>
+        num_workers<span style="color: Gray;">=</span>config.<span style="color: #05a;">num_workers</span><span style="color: Gray;">,</span><br/>
+        pin_memory<span style="color: Gray;">=</span><span style="color: Teal;">True</span><span style="color: Gray;">,</span><br/>
+        persistent_workers<span style="color: Gray;">=</span><span style="color: Teal;">True</span><br/>
+    <span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">return</span> loader<span style="color: Gray;">,</span> sampler<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> train_epoch<span style="color: Olive;">(</span>model<span style="color: Gray;">,</span> loader<span style="color: Gray;">,</span> criterion<span style="color: Gray;">,</span> optimizer<span style="color: Gray;">,</span> scaler<span style="color: Gray;">,</span> config<span style="color: Gray;">,</span> rank<span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""Train one epoch"""</span><br/>
+    model.<span style="color: #05a;">train</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+    total_loss <span style="color: Gray;">=</span> <span style="color: Maroon;">0</span><br/>
+    correct <span style="color: Gray;">=</span> <span style="color: Maroon;">0</span><br/>
+    total <span style="color: Gray;">=</span> <span style="color: Maroon;">0</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">for</span> inputs<span style="color: Gray;">,</span> labels <span style="color: Green;font-weight:bold;">in</span> loader:<br/>
+        inputs <span style="color: Gray;">=</span> inputs.<span style="color: #05a;">cuda</span><span style="color: Olive;">(</span>rank<span style="color: Gray;">,</span> non_blocking<span style="color: Gray;">=</span><span style="color: Teal;">True</span><span style="color: Olive;">)</span><br/>
+        labels <span style="color: Gray;">=</span> labels.<span style="color: #05a;">cuda</span><span style="color: Olive;">(</span>rank<span style="color: Gray;">,</span> non_blocking<span style="color: Gray;">=</span><span style="color: Teal;">True</span><span style="color: Olive;">)</span><br/>
+<br/>
+        optimizer.<span style="color: #05a;">zero_grad</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">if</span> config.<span style="color: #05a;">use_amp</span> <span style="color: Green;font-weight:bold;">and</span> scaler <span style="color: Green;font-weight:bold;">is</span> <span style="color: Green;font-weight:bold;">not</span> <span style="color: Teal;">None</span>:<br/>
+            <span style="color: #a50"># Mixed precision training</span><br/>
+            <span style="color: Green;font-weight:bold;">with</span> torch.<span style="color: #05a;">cuda</span>.<span style="color: #05a;">amp</span>.<span style="color: #05a;">autocast</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+                outputs <span style="color: Gray;">=</span> model<span style="color: Olive;">(</span>inputs<span style="color: Olive;">)</span><br/>
+                loss <span style="color: Gray;">=</span> criterion<span style="color: Olive;">(</span>outputs<span style="color: Gray;">,</span> labels<span style="color: Olive;">)</span><br/>
+<br/>
+            scaler.<span style="color: #05a;">scale</span><span style="color: Olive;">(</span>loss<span style="color: Olive;">)</span>.<span style="color: #05a;">backward</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+            scaler.<span style="color: #05a;">unscale_</span><span style="color: Olive;">(</span>optimizer<span style="color: Olive;">)</span><br/>
+            torch.<span style="color: #05a;">nn</span>.<span style="color: #05a;">utils</span>.<span style="color: #05a;">clip_grad_norm_</span><span style="color: Olive;">(</span>model.<span style="color: #05a;">parameters</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span> config.<span style="color: #05a;">gradient_clip</span><span style="color: Olive;">)</span><br/>
+            scaler.<span style="color: #05a;">step</span><span style="color: Olive;">(</span>optimizer<span style="color: Olive;">)</span><br/>
+            scaler.<span style="color: #05a;">update</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">else</span>:<br/>
+            <span style="color: #a50"># Normal training</span><br/>
+            outputs <span style="color: Gray;">=</span> model<span style="color: Olive;">(</span>inputs<span style="color: Olive;">)</span><br/>
+            loss <span style="color: Gray;">=</span> criterion<span style="color: Olive;">(</span>outputs<span style="color: Gray;">,</span> labels<span style="color: Olive;">)</span><br/>
+            loss.<span style="color: #05a;">backward</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+            torch.<span style="color: #05a;">nn</span>.<span style="color: #05a;">utils</span>.<span style="color: #05a;">clip_grad_norm_</span><span style="color: Olive;">(</span>model.<span style="color: #05a;">parameters</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span> config.<span style="color: #05a;">gradient_clip</span><span style="color: Olive;">)</span><br/>
+            optimizer.<span style="color: #05a;">step</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+        total_loss +<span style="color: Gray;">=</span> loss.<span style="color: #05a;">item</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span> * inputs.<span style="color: #05a;">size</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Olive;">)</span><br/>
+        _<span style="color: Gray;">,</span> predicted <span style="color: Gray;">=</span> outputs.<span style="color: Teal;">max</span><span style="color: Olive;">(</span><span style="color: Maroon;">1</span><span style="color: Olive;">)</span><br/>
+        correct +<span style="color: Gray;">=</span> predicted.<span style="color: #05a;">eq</span><span style="color: Olive;">(</span>labels<span style="color: Olive;">)</span>.<span style="color: Teal;">sum</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span>.<span style="color: #05a;">item</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+        total +<span style="color: Gray;">=</span> labels.<span style="color: #05a;">size</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">return</span> total_loss / total<span style="color: Gray;">,</span> correct / total<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> main<span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: #05a;">parser</span> <span style="color: Gray;">=</span> argparse.<span style="color: #05a;">ArgumentParser</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+    <span style="color: #05a;">parser</span>.<span style="color: #05a;">add_argument</span><span style="color: Olive;">(</span><span style="color: #a11;">"--local_rank"</span><span style="color: Gray;">,</span> <span style="color: Teal;">type</span><span style="color: Gray;">=</span><span style="color: Teal;">int</span><span style="color: Gray;">,</span> default<span style="color: Gray;">=</span>-<span style="color: Maroon;">1</span><span style="color: Olive;">)</span><br/>
+    args <span style="color: Gray;">=</span> <span style="color: #05a;">parser</span>.<span style="color: #05a;">parse_args</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+    config <span style="color: Gray;">=</span> TrainingConfig<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+    config.<span style="color: #05a;">local_rank</span> <span style="color: Gray;">=</span> args.<span style="color: #05a;">local_rank</span><br/>
+<br/>
+    rank <span style="color: Gray;">=</span> init_distributed<span style="color: Olive;">(</span>config<span style="color: Olive;">)</span><br/>
+    world_size <span style="color: Gray;">=</span> dist.<span style="color: #05a;">get_world_size</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Process {rank}/{world_size} initialization complete"</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># Create the model</span><br/>
+    model <span style="color: Gray;">=</span> YourModel<span style="color: Olive;">(</span><span style="color: Olive;">)</span>.<span style="color: #05a;">cuda</span><span style="color: Olive;">(</span>rank<span style="color: Olive;">)</span><br/>
+    model <span style="color: Gray;">=</span> DDP<span style="color: Olive;">(</span>model<span style="color: Gray;">,</span> device_ids<span style="color: Gray;">=</span><span style="color: Olive;">[</span>rank<span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># Optimizer</span><br/>
+    optimizer <span style="color: Gray;">=</span> optim.<span style="color: #05a;">Adam</span><span style="color: Olive;">(</span>model.<span style="color: #05a;">parameters</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span> lr<span style="color: Gray;">=</span>config.<span style="color: #05a;">lr</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># GradScaler (if using mixed precision)</span><br/>
+    scaler <span style="color: Gray;">=</span> GradScaler<span style="color: Olive;">(</span><span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">if</span> config.<span style="color: #05a;">use_amp</span> <span style="color: Green;font-weight:bold;">else</span> <span style="color: Teal;">None</span><br/>
+<br/>
+    <span style="color: #a50"># Dataset (replace with your dataset)</span><br/>
+    dataset <span style="color: Gray;">=</span> YourDataset<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+    loader<span style="color: Gray;">,</span> sampler <span style="color: Gray;">=</span> create_dataloader<span style="color: Olive;">(</span>dataset<span style="color: Gray;">,</span> config<span style="color: Gray;">,</span> world_size<span style="color: Gray;">,</span> rank<span style="color: Olive;">)</span><br/>
+<br/>
+    criterion <span style="color: Gray;">=</span> nn.<span style="color: #05a;">CrossEntropyLoss</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># Training loop</span><br/>
+    <span style="color: Green;font-weight:bold;">for</span> epoch <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>config.<span style="color: #05a;">epochs</span><span style="color: Olive;">)</span>:<br/>
+        sampler.<span style="color: #05a;">set_epoch</span><span style="color: Olive;">(</span>epoch<span style="color: Olive;">)</span><br/>
+<br/>
+        loss<span style="color: Gray;">,</span> acc <span style="color: Gray;">=</span> train_epoch<span style="color: Olive;">(</span>model<span style="color: Gray;">,</span> loader<span style="color: Gray;">,</span> criterion<span style="color: Gray;">,</span> optimizer<span style="color: Gray;">,</span> scaler<span style="color: Gray;">,</span> config<span style="color: Gray;">,</span> rank<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># Print only on rank 0</span><br/>
+        <span style="color: Green;font-weight:bold;">if</span> rank <span style="color: Gray;">==</span> <span style="color: Maroon;">0</span>:<br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Epoch {epoch+1}/{config.epochs}: Loss={loss:.4f}, Acc={acc:.4f}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+    dist.<span style="color: #05a;">destroy_process_group</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: #a50"># Launch method:</span><br/>
+<span style="color: #a50"># torchrun --nnodes=2 --nproc_per_node=4 --node_rank=0 --master_addr=192.168.1.1 --master_port=29500 train.py</span><br/>
+<span style="color: #a50"># torchrun --nnodes=2 --nproc_per_node=4 --node_rank=1 --master_addr=192.168.1.1 --master_port=29500 train.py</span><br/>
+</div>
+</div>
+<blockquote><p>The key to distributed training is: 1) choose the appropriate parallel mode (data parallelism vs model parallelism); 2) use DDP instead of DataParallel for better performance; 3) combine with mixed precision training to further accelerate; 4) properly configure the data loader and communication parameters.</p></blockquote>
+<hr/>
+<h2>7. Distributed Training Monitoring and Debugging</h2>
+<h3>7.1 Common Monitoring Tools</h3>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># Distributed training monitoring code</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> monitor_training<span style="color: Olive;">(</span>rank<span style="color: Gray;">,</span> world_size<span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""Monitor distributed training status"""</span><br/>
+    <span style="color: #a50"># 1. Check process group status</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Rank: {rank}, World Size: {world_size}"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Backend: {dist.get_backend()}"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Rank: {dist.get_rank()}"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"CUDA Device: {torch.cuda.current_device()}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 2. Monitor GPU memory usage</span><br/>
+    <span style="color: Green;font-weight:bold;">if</span> torch.<span style="color: #05a;">cuda</span>.<span style="color: #05a;">is_available</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: Green;font-weight:bold;">for</span> i <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>torch.<span style="color: #05a;">cuda</span>.<span style="color: #05a;">device_count</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><span style="color: Olive;">)</span>:<br/>
+            allocated <span style="color: Gray;">=</span> torch.<span style="color: #05a;">cuda</span>.<span style="color: #05a;">memory_allocated</span><span style="color: Olive;">(</span>i<span style="color: Olive;">)</span> / <span style="color: Maroon;">1024</span>**<span style="color: Maroon;">2</span><br/>
+            reserved <span style="color: Gray;">=</span> torch.<span style="color: #05a;">cuda</span>.<span style="color: #05a;">memory_reserved</span><span style="color: Olive;">(</span>i<span style="color: Olive;">)</span> / <span style="color: Maroon;">1024</span>**<span style="color: Maroon;">2</span><br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"GPU {i}: allocated {allocated:.1f} MB, reserved {reserved:.1f} MB"</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 3. Monitor gradient synchronization</span><br/>
+    <span style="color: #a50"># DDP automatically records synchronization time</span><br/>
+    <span style="color: #a50"># Detailed logging can be enabled by setting environment variables</span><br/>
+    <span style="color: #a50"># os.environ["NCCL_DEBUG"] = "INFO"</span><br/>
+<br/>
+<br/>
+<span style="color: #a50"># Call periodically in the training loop</span><br/>
+monitor_training<span style="color: Olive;">(</span>rank<span style="color: Gray;">,</span> dist.<span style="color: #05a;">get_world_size</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<h3>7.2 Debugging Tips</h3>
+<ul>
+<li>Test on a single machine first, then scale to multiple machines</li>
+<li>Use<code>os.environ["NCCL_DEBUG"] = "INFO"</code>View detailed communication logs</li>
+<li>Ensure that the clocks on all machines are synchronized (using NTP)</li>
+<li>Check whether the firewall allows NCCL communication ports</li>
+</ul>
+<blockquote><p>Although distributed training adds complexity, the performance improvement it brings is significant. For large model training, it is almost an essential technique.</p></blockquote>
+Other Extensions
+</div>
+</div>
+<div class="archive-list" style="display:none;font-size: 14px;line-height: 1.8;margin-top: 20px;padding: 10px;">
+<div class="archive-list-item">
+<div class="post-intro" id="ai-info" style="width: 100%;">AI thinking...</div>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../pytorch/pytorch-torchscript-onnx-export.html" rel="prev">PyTorch TorchScript/ONNX Export</a> </div>
+<div class="next-design-link"><a href="../pytorch/pytorch-attention.html" rel="next">PyTorch Attention Mechanism</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="sidebar-box">
+</div>
+Note List
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>Click me to share notes</h3>
+&lt;p style="font-size:14px;"&gt;Notes must be an extension of the content of this article!&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;Article submission, click here&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;How to get the registration invitation code&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; You must &lt;a href=";.html" class="runoob-pop"&gt;log in&lt;/a&gt; before sharing notes!&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;How to get the registration invitation code&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=";.html" id="cancel-comment-reply-link">Cancel</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="30670"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>Share Note</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">Nickname</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">Nickname (required)</span></li>
+<li class="form-inline"><label class="hide" for="email">Email</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">Email (required)</span></li>
+<li class="form-inline"><label class="hide" for="url">Reference address</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">Reference address</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  30670;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 30670, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":30670},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+</div>
+</div>
+<!-- 右边栏 -->
+<div class="fivecol last right-column">
+<style>
+.sidebar-tree .double-li {
+    width:300px;
+}
+.sidebar-tree .double-li li {
+    width: 44%;
+    line-height: 1.5em;
+    border-bottom: 1px solid #ccc;
+    float: left;
+    display: inline;
+}
+</style>
+<div class="sidebar-box re-box re-box-large">
+<div class="sidebar-box recommend-here" style="margin: 0 auto;">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;"> <i aria-hidden="true" class="fa fa-list"></i> 分类导航</a>
+</div>
+<div class="sidebar-box sidebar-cate">
+<div class="sidebar-tree">
+<ul><li style="margin: 0;"><a class="tit" href="#"> Python / 数据科学</a><ul class="double-li"><li><a href="../python3/python3-tutorial.html" title="Python 教程">Python 教程</a></li><li><a href="../python/python-tutorial.html" title="Python2.x 教程">Python2.x 教程</a></li><li><a href="../fastapi/fastapi-tutorial.html" title="FastAPI 教程">FastAPI 教程</a></li><li><a href="../flask/flask-tutorial.html" title="Flask 教程">Flask 教程</a></li><li><a href="../django/django-tutorial.html" title="Django 教程">Django 教程</a></li><li><a href="../numpy/numpy-tutorial.html" title="NumPy 教程">NumPy 教程</a></li><li><a href="../pandas/pandas-tutorial.html" title="Pandas 教程">Pandas 教程</a></li><li><a href="../scipy/scipy-tutorial.html" title="SciPy 教程">SciPy 教程</a></li><li><a href="../matplotlib/matplotlib-tutorial.html" title="Matplotlib 教程">Matplotlib 教程</a></li><li><a href="../dash/dash-tutorial.html" title="Dash 教程">Dash 教程</a></li><li><a href="../jupyter-notebook/jupyter-notebook-tutorial.html" title="Jupyter Notebook 教程">Jupyter Notebook 教程</a></li><li><a href="../pillow/pillow-tutorial.html" title="Pillow 教程">Pillow 教程</a></li><li><a href="../qt/qt-tutorial.html" title="量化交易">量化交易</a></li><li><a href="../r/r-tutorial.html" title="R 教程">R 教程</a></li><li><a href="../julia/julia-tutorial.html" title="Julia 教程">Julia 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> AI / 智能开发</a><ul class="double-li"><li><a href="../ai-agent/ai-agent-tutorial.html" title="AI Agent（智能体）">AI Agent（智能体）</a></li><li><a href="../ai/ai-tutorial.html" title="AI（人工智能）">AI（人工智能）</a></li><li><a href="../codex/codex-tutorial.html" title="Codex 教程">Codex 教程</a></li><li><a href="../vibe-coding/vibe-coding-tutorial.html" title="Vibe Coding 教程">Vibe Coding 教程</a></li><li><a href="../claude-code/claude-code-tutorial.html" title="Claude Code">Claude Code</a></li><li><a href="../opencode/opencode-tutorial.html" title="OpenCode">OpenCode</a></li><li><a href="../skills/skills-tutorial.html" title="Skills（技能）">Skills（技能）</a></li><li><a href="../ollama/ollama-tutorial.html" title="Ollama 教程">Ollama 教程</a></li><li><a href="../hermes-agent/hermes-agent-tutorial.html" title="Hermes Agent">Hermes Agent</a></li><li><a href="../deepseek-harness/deepseek-harness-tutorial.html" title="DeepSeek Harness">DeepSeek Harness</a></li><li><a href="../pi-agent/pi-agent-tutorial.html" title="Pi Agent">Pi Agent</a></li><li><a href="../ai-math/ai-math-tutorial.html" title="AI 数学基础">AI 数学基础</a></li><li><a href="../tensorflow/tensorflow-tutorial.html" title="TensorFlow 教程">TensorFlow 教程</a></li><li><a href="../pytorch/pytorch-tutorial.html" title="PyTorch 教程">PyTorch 教程</a></li><li><a href="../sklearn/sklearn-tutorial.html" title="Scikit-learn 教程">Scikit-learn 教程</a></li><li><a href="../ml/ml-tutorial.html" title="机器 教程">机器 教程</a></li><li><a href="../langchain/langchain-tutorial.html" title="LangChain">LangChain</a></li><li><a href="../nlp/nlp-tutorial.html" title="自然语言处理 NLP">自然语言处理 NLP</a></li><li><a href="../opencv/opencv-tutorial.html" title="OpenCV 教程">OpenCV 教程</a></li><li><a href="../selenium/selenium-tutorial.html" title="Selenium 教程">Selenium 教程</a></li><li><a href="../playwright/playwright-tutorial.html" title="Playwright 教程">Playwright 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 前端开发</a><ul class="double-li"><li><a href="../html/html-tutorial.html" title="HTML 教程">HTML 教程</a></li><li><a href="../html/html5-intro.html" title="HTML5 教程">HTML5 教程</a></li><li><a href="../css/css-tutorial.html" title="CSS 教程">CSS 教程</a></li><li><a href="../css3/css3-tutorial.html" title="CSS3 教程">CSS3 教程</a></li><li><a href="../js/js-tutorial.html" title="JavaScript 教程">JavaScript 教程</a></li><li><a href="../htmldom/htmldom-tutorial.html" title="HTML DOM 教程">HTML DOM 教程</a></li><li><a href="../typescript/ts-tutorial.html" title="TypeScript 教程">TypeScript 教程</a></li><li><a href="../ajax/ajax-tutorial.html" title="AJAX 教程">AJAX 教程</a></li><li><a href="../json/json-tutorial.html" title="JSON 教程">JSON 教程</a></li><li><a href="../tailwindcss/tailwindcss-tutorial.html" title="Tailwind CSS 教程">Tailwind CSS 教程</a></li><li><a href="../bootstrap4/bootstrap4-tutorial.html" title="Bootstrap4 教程">Bootstrap4 教程</a></li><li><a href="../bootstrap5/bootstrap5-tutorial.html" title="Bootstrap5 教程">Bootstrap5 教程</a></li><li><a href="../foundation/foundation-tutorial.html" title="Foundation 教程">Foundation 教程</a></li><li><a href="../vue2/vue-tutorial.html" title="Vue.js 教程">Vue.js 教程</a></li><li><a href="../vue3/vue3-tutorial.html" title="Vue3 教程">Vue3 教程</a></li><li><a href="../react/react-tutorial.html" title="React 教程">React 教程</a></li><li><a href="../nextjs/nextjs-tutorial.html" title="Next.js 教程">Next.js 教程</a></li><li><a href="../angularjs/angularjs-tutorial.html" title="AngularJS 教程">AngularJS 教程</a></li><li><a href="../angularjs2/angularjs2-tutorial.html" title="Angular 教程">Angular 教程</a></li><li><a href="../jquery/jquery-tutorial.html" title="jQuery 教程">jQuery 教程</a></li><li><a href="../jqueryui/jqueryui-tutorial.html" title="jQuery UI 教程">jQuery UI 教程</a></li><li><a href="../jeasyui/jqueryeasyui-tutorial.html" title="jQuery EasyUI 教程">jQuery EasyUI 教程</a></li><li><a href="../echarts/echarts-tutorial.html" title="ECharts 教程">ECharts 教程</a></li><li><a href="../chartjs/chartjs-tutorial.html" title="Chart.js 教程">Chart.js 教程</a></li><li><a href="../highcharts/highcharts-tutorial.html" title="Highcharts 教程">Highcharts 教程</a></li><li><a href="../googleapi/google-maps-basic.html" title="Google 地图 教程">Google 地图 教程</a></li><li><a href="../svg/svg-tutorial.html" title="SVG 教程">SVG 教程</a></li><li><a href="../font-awesome/fontawesome-tutorial.html" title="Font Awesome 教程">Font Awesome 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 后端开发</a><ul class="double-li"><li><a href="../nodejs/nodejs-tutorial.html" title="Node.js 教程">Node.js 教程</a></li><li><a href="../electron/electron-tutorial.html" title="Electron 教程">Electron 教程</a></li><li><a href="../php/php-tutorial.html" title="PHP 教程">PHP 教程</a></li><li><a href="../java/java-tutorial.html" title="Java 教程">Java 教程</a></li><li><a href="../go/go-tutorial.html" title="Go 教程">Go 教程</a></li><li><a href="../rust/rust-tutorial.html" title="Rust 教程">Rust 教程</a></li><li><a href="../csharp/csharp-tutorial.html" title="C# 教程">C# 教程</a></li><li><a href="../servlet/servlet-tutorial.html" title="Servlet 教程">Servlet 教程</a></li><li><a href="../jsp/jsp-tutorial.html" title="JSP 教程">JSP 教程</a></li><li><a href="../asp/asp-tutorial.html" title="ASP 教程">ASP 教程</a></li><li><a href="../appml/appml-tutorial.html" title="AppML 教程">AppML 教程</a></li><li><a href="../vbscript/vbscript-tutorial.html" title="VBScript 教程">VBScript 教程</a></li><li><a href="../swagger/swagger-tutorial.html" title="Swagger 教程">Swagger 教程</a></li><li><a href="../restfulapi/restful-api-tutorial.html" title="RESTful API 教程">RESTful API 教程</a></li><li><a href="../docker/docker-tutorial.html" title="Docker 教程">Docker 教程</a></li><li><a href="../linux/linux-tutorial.html" title="Linux 教程">Linux 教程</a></li><li><a href="../w3cnote/zookeeper-tutorial.html" title="ZooKeeper 教程">ZooKeeper 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 数据库</a><ul class="double-li"><li><a href="../sql/sql-tutorial.html" title="SQL 教程">SQL 教程</a></li><li><a href="../mysql/mysql-tutorial.html" title="MySQL 教程">MySQL 教程</a></li><li><a href="../postgresql/postgresql-tutorial.html" title="PostgreSQL 教程">PostgreSQL 教程</a></li><li><a href="../sqlite/sqlite-tutorial.html" title="SQLite 教程">SQLite 教程</a></li><li><a href="../mongodb/mongodb-tutorial.html" title="MongoDB 教程">MongoDB 教程</a></li><li><a href="../redis/redis-tutorial.html" title="Redis 教程">Redis 教程</a></li><li><a href="../memcached/memcached-tutorial.html" title="Memcached 教程">Memcached 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 移动开发</a><ul class="double-li"><li><a href="../w3cnote/android-tutorial-intro.html" title="Android 教程">Android 教程</a></li><li><a href="../flutter/flutter-tutorial.html" title="Flutter 教程">Flutter 教程</a></li><li><a href="../ionic/ionic-tutorial.html" title="Ionic 教程">Ionic 教程</a></li><li><a href="../jquerymobile/jquerymobile-tutorial.html" title="jQuery Mobile 教程">jQuery Mobile 教程</a></li><li><a href="../swift/swift-tutorial.html" title="Swift 教程">Swift 教程</a></li><li><a href="../kotlin/kotlin-tutorial.html" title="Kotlin 教程">Kotlin 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> DevOps / 工程化</a><ul class="double-li"><li><a href="../git/git-tutorial.html" title="Git 教程">Git 教程</a></li><li><a href="../svn/svn-tutorial.html" title="SVN 教程">SVN 教程</a></li><li><a href="../cmake/cmake-tutorial.html" title="CMake 教程">CMake 教程</a></li><li><a href="../maven/maven-tutorial.html" title="Maven 教程">Maven 教程</a></li><li><a href="../vscode/vscode-tutorial.html" title="VS Code 教程">VS Code 教程</a></li><li><a href="../obsidian/obsidian-tutorial.html" title="Obsidian 教程">Obsidian 教程</a></li><li><a href="../pycharm/pycharm-tutorial.html" title="PyCharm 教程">PyCharm 教程</a></li><li><a href="../eclipse/eclipse-tutorial.html" title="Eclipse 教程">Eclipse 教程</a></li><li><a href="../markdown/md-tutorial.html" title="Markdown 教程">Markdown 教程</a></li><li><a href="../latex/latex-tutorial.html" title="LaTeX 教程">LaTeX 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 编程语言</a><ul class="double-li"><li><a href="../c/c-tutorial.html" title="C 教程">C 教程</a></li><li><a href="../cplusplus/cpp-tutorial.html" title="C++ 教程">C++ 教程</a></li><li><a href="../zig/zig-tutorial.html" title="Zig 教程">Zig 教程</a></li><li><a href="../scala/scala-tutorial.html" title="Scala 教程">Scala 教程</a></li><li><a href="../ruby/ruby-tutorial.html" title="Ruby 教程">Ruby 教程</a></li><li><a href="../perl/perl-tutorial.html" title="Perl 教程">Perl 教程</a></li><li><a href="../lua/lua-tutorial.html" title="Lua 教程">Lua 教程</a></li><li><a href="../dart/dart-tutorial.html" title="Dart 教程">Dart 教程</a></li><li><a href="../assembly/assembly-tutorial.html" title="汇编语言 教程">汇编语言 教程</a></li><li><a href="../w3cnote/verilog-tutorial.html" title="Verilog 教程">Verilog 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 计算机基础</a><ul class="double-li"><li><a href="../computer-organization/computer-organization-tutorial.html" title="计算机组成原理">计算机组成原理</a></li><li><a href="../data-structures/data-structures-tutorial.html" title="数据结构与算法">数据结构与算法</a></li><li><a href="../c-dsa/c-dsa-tutorial.html" title="C 语言数据结构与算法">C 语言数据结构与算法</a></li><li><a href="../design-pattern/design-pattern-tutorial.html" title="设计模式">设计模式</a></li><li><a href="../python-design-pattern/python-design-pattern-tutorial.html" title="Python 设计模式">Python 设计模式</a></li><li><a href="../regexp/regexp-tutorial.html" title="正则表达式">正则表达式</a></li><li><a href="../http/http-tutorial.html" title="HTTP 教程">HTTP 教程</a></li><li><a href="../tcpip/tcpip-tutorial.html" title="TCP/IP 教程">TCP/IP 教程</a></li><li><a href="../np/np-tutorial.html" title="网络协议">网络协议</a></li><li><a href="../w3c/w3c-tutorial.html" title="W3C 教程">W3C 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> XML / Web Service</a><ul class="double-li"><li><a href="../xml/xml-tutorial.html" title="XML 教程">XML 教程</a></li><li><a href="../dtd/dtd-tutorial.html" title="DTD 教程">DTD 教程</a></li><li><a href="../dom/dom-tutorial.html" title="XML DOM 教程">XML DOM 教程</a></li><li><a href="../xsl/xsl-tutorial.html" title="XSLT 教程">XSLT 教程</a></li><li><a href="../xpath/xpath-tutorial.html" title="XPath 教程">XPath 教程</a></li><li><a href="../xquery/xquery-tutorial.html" title="XQuery 教程">XQuery 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XLink 教程">XLink 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XPointer 教程">XPointer 教程</a></li><li><a href="../schema/schema-tutorial.html" title="XML Schema 教程">XML Schema 教程</a></li><li><a href="../xslfo/xslfo-tutorial.html" title="XSL-FO 教程">XSL-FO 教程</a></li><li><a href="../webservices/webservices-tutorial.html" title="Web Service 教程">Web Service 教程</a></li><li><a href="../wsdl/wsdl-tutorial.html" title="WSDL 教程">WSDL 教程</a></li><li><a href="../soap/soap-tutorial.html" title="SOAP 教程">SOAP 教程</a></li><li><a href="../rss/rss-tutorial.html" title="RSS 教程">RSS 教程</a></li><li><a href="../rdf/rdf-tutorial.html" title="RDF 教程">RDF 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> .NET</a><ul class="double-li"><li><a href="../aspnet/aspnet-tutorial.html" title="ASP.NET 教程">ASP.NET 教程</a></li><li><a href="../aspnet/mvc-intro.html" title="MVC 教程">MVC 教程</a></li><li><a href="../aspnet/razor-intro.html" title="Razor 教程">Razor 教程</a></li><li><a href="../aspnet/aspnet-intro.html" title="Web Forms 教程">Web Forms 教程</a></li><li><a href="../aspnet/webpages-intro.html" title="Web Pages 教程">Web Pages 教程</a></li><li><a href="../powershell/powershell-tutorial.html" title="PowerShell 教程">PowerShell 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 网站建设</a><ul class="double-li"><li><a href="../web/web-buildingprimer.html" title="网站建设指南">网站建设指南</a></li><li><a href="../browsers/browser-information.html" title="浏览器信息">浏览器信息</a></li><li><a href="../hosting/hosting-tutorial.html" title="网站主机教程">网站主机教程</a></li><li><a href="../quality/quality-tutorial.html" title="网站品质">网站品质</a></li></ul></li></ul> </div>
+</div>
+</div>
+<br/>
+<div class="sidebar-box re-box re-box-large">
+</div>
+</div></div>
+</div>
+<script>
+var aid = 30670;
+function coll() {
+	$.post( '/wp-content/themes/runoob/option/user/userinfo.php', {aid:aid, action:"collarticle", opt:'add'},function( data ) {
+		if(data.error==0) {
+			$("#content").find("h1:first").find("a").attr("href","javascript:void(0);");
+			$("#content").find("h1:first").find("img").attr("src","http://www.runoob.com/wp-content/themes/runoob/assets/img/coll2.png").css({width:32+"px",height:32+"px"});
+		}
+		alert(data.msg);
+	},'json');
+}
+
+(function () {
+    // 1. 仅 HTML 页面
+    if (!document.contentType || !document.contentType.includes('text/html')) return;
+
+    // 2. 容器判断
+    var container = document.querySelector('.article-intro');
+    if (!container) return;
+
+    var h1 = container.querySelector('h1');
+    if (!h1) return;
+
+    // 3. URL 判断
+    var url = window.location.href.toLowerCase();
+    var version = null;
+
+    if (url.includes('/python3/')) {
+        version = 'Python3.x';
+    } else if (url.includes('/python/')) {
+        version = 'Python2.x';
+    }
+
+    if (!version) return;
+
+    // 4. 防重复
+    if (h1.querySelector('.py-version-badge')) return;
+
+    // 5. 创建标签
+    var badge = document.createElement('span');
+    badge.className = 'py-version-badge';
+    badge.innerText = version;
+
+    // 6. 样式（核心：float 实现右上角）
+    badge.style.float = 'right';
+    badge.style.fontSize = '12px';
+    badge.style.padding = '2px 8px';
+    badge.style.borderRadius = '999px';
+
+   // 自适应亮/暗色 + 渐变背景（增强版）
+	badge.style.color = 'inherit';
+
+	// 渐变背景（低透明度，不影响暗黑模式）
+	if (version.includes('3')) {
+		badge.style.background = 'linear-gradient(90deg, rgba(79,172,254,0.15), rgba(0,242,254,0.15))';
+	} else {
+		badge.style.background = 'linear-gradient(90deg, rgba(161,140,209,0.15), rgba(251,194,235,0.15))';
+	}
+
+	// 边框弱化（更精致）
+	badge.style.border = '1px solid rgba(127,127,127,0.3)';
+
+	// 提升可读性
+	badge.style.opacity = '0.95';
+
+    // 微调位置（更贴近“右上角”）
+    badge.style.marginTop = '4px';
+    badge.style.marginLeft = '10px';
+
+    // 7. 插入到 h1 最前面（让 float 生效更稳定）
+    h1.insertBefore(badge, h1.firstChild);
+
+})();
+</script>
+<!-- 反馈对话框开始 -->
+<script src="../wp-content/themes/runoob/assets/js/runoob-article-dir.min.js"></script>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

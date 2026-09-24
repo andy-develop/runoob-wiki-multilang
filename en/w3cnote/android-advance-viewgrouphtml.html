@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>1.3 Custom ViewGroup | Rookie Tutorial</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="./android-advance-viewgrouphtml.html" rel="canonical"/>
+<meta content="1.3 自定义 ViewGroup" name="keywords"/>
+<meta content="引言 上一节我们讲了自定义 View,接下来就要说说和他差不多的自定义 ViewGroup。两个实现的方法名差不多，比如他们的构造方法，比如同样需要去测量，布局，自定义属性，所以就不再重复说明这些，不如写一个 demo 吧。 View 与 ViewGroup 的不同点总结  测量: ViewGroup 作为一个容器，他需要去测量子 View 的宽高，打包成他们的期望 布局: ViewGroup 要去覆写 onLayout,去布局孩子，调.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div><!-- 导航栏 -->
+<!--  内容  -->
+<div class="container main">
+<div class="row">
+<div class="col middle-column big-middle-column">
+<div class="article">
+<div class="article-heading">
+<h2>1.3 Custom ViewGroup</h2> <h3><em>Category</em> <a href="../w3cnote_genre/android-advance.html" title="Android 扩展教程">Android Extended Tutorial</a> </h3>
+</div>
+<div class="article-body note-body">
+<div class="article-intro">
+<!-- ad start-->
+<!-- ad end-->
+<h2>Introduction</h2>
+<p>In the previous section, we talked about custom View. Next, let's talk about custom ViewGroup, which is similar to it. The method names for implementing the two are similar, such as their constructors, and they also need to measure, lay out, and use custom attributes. So we won't repeat these explanations; let's just write a demo.</p>
+<p><strong>Summary of Differences Between View and ViewGroup</strong></p>
+<ul>
+<li>Measurement:
+As a container, ViewGroup needs to measure the width and height of child Views and package them into their expectations.</li>
+<li>Layout:
+ViewGroup needs to override onLayout to lay out children, call the child's layout method, and specify the child's top, bottom, left, and right positions.</li>
+<li>Drawing: ViewGroup generally does not draw itself.</li>
+</ul>
+<hr/>
+<h2>Methods to Override</h2>
+<h3>generateLayoutParams</h3>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-code">@</span><span class="hl-identifier">Override</span><span class="hl-code">
+</span><span class="hl-reserved">protected</span><span class="hl-code"> </span><span class="hl-identifier">LayoutParams</span><span class="hl-code"> </span><span class="hl-identifier">generateLayoutParams</span><span class="hl-brackets">(</span><span class="hl-identifier">LayoutParams</span><span class="hl-code"> </span><span class="hl-identifier">p</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-reserved">super</span><span class="hl-code">.</span><span class="hl-identifier">generateLayoutParams</span><span class="hl-brackets">(</span><span class="hl-identifier">p</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span></div>
+</div>
+</div>
+<p>But I still want to put it first, because there is a very important concept here, that is<code>LayoutParams</code> !</p>
+<p>You might recall that if we are in a<code>RelativeLayout</code>layout and add a View, this View can define<b>android:layout_toXXXOf</b>，<b>android:layout_alignXX</b>...these attributes. Similarly, in<b>LinearLayout</b>the child Views in it will have<b>android:layout_weight</b>this attribute. If you look at their source code, you will find that it internally defines LinearLayout.LayoutParams. In this class, you can find the attributes you are using.</p>
+<h3>onMeasure</h3>
+<p>The onMeasure method of ViewGroup is different from that of View. It needs to manage child Views, and one point is to be responsible for the display size of child Views.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-code">@</span><span class="hl-identifier">Override</span><span class="hl-code">
+</span><span class="hl-reserved">protected</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">onMeasure</span><span class="hl-brackets">(</span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">widthMeasureSpec</span><span class="hl-code">, </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">heightMeasureSpec</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">super</span><span class="hl-code">.</span><span class="hl-identifier">onMeasure</span><span class="hl-brackets">(</span><span class="hl-identifier">widthMeasureSpec</span><span class="hl-code">, </span><span class="hl-identifier">heightMeasureSpec</span><span class="hl-brackets">)</span><span class="hl-code">;
+    </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">childCount</span><span class="hl-code"> = </span><span class="hl-identifier">getChildCount</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;       </span><span class="hl-comment">//</span><span class="hl-comment">Get the number of child Views</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">Use traversal to notify child Views to measure themselves.</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-reserved">for</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">i</span><span class="hl-code">=</span><span class="hl-number">0</span><span class="hl-code">;</span><span class="hl-identifier">i</span><span class="hl-code">&lt;</span><span class="hl-identifier">childCount</span><span class="hl-code">;</span><span class="hl-identifier">i</span><span class="hl-code">++</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">View</span><span class="hl-code"> </span><span class="hl-identifier">childView</span><span class="hl-code"> = </span><span class="hl-identifier">getChildAt</span><span class="hl-brackets">(</span><span class="hl-identifier">i</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-identifier">measureChild</span><span class="hl-brackets">(</span><span class="hl-identifier">childView</span><span class="hl-code">,</span><span class="hl-identifier">widthMeasureSpec</span><span class="hl-code">,</span><span class="hl-identifier">heightMeasureSpec</span><span class="hl-brackets">)</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span></div>
+</div>
+</div>
+<h3>onLayout</h3>
+<p>When we draw a custom ViewGroup, we must override its onLayout, which is used to manage the display positions of child Views.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-code">@</span><span class="hl-identifier">Override</span><span class="hl-code">
+</span><span class="hl-reserved">protected</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">onLayout</span><span class="hl-brackets">(</span><span class="hl-types">boolean</span><span class="hl-code"> </span><span class="hl-identifier">b</span><span class="hl-code">, </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">l</span><span class="hl-code">, </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">i1</span><span class="hl-code">, </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">i2</span><span class="hl-code">, </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">i3</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">Initialize some variables</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">count</span><span class="hl-code"> = </span><span class="hl-identifier">getChildCount</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+    </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">width</span><span class="hl-code"> = </span><span class="hl-number">0</span><span class="hl-code">;
+    </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">height</span><span class="hl-code"> = </span><span class="hl-number">0</span><span class="hl-code">;
+    </span><span class="hl-identifier">MarginLayoutParams</span><span class="hl-code"> </span><span class="hl-identifier">params</span><span class="hl-code"> = </span><span class="hl-reserved">null</span><span class="hl-code">;
+ 
+    </span><span class="hl-comment">//</span><span class="hl-comment">Loop through child Views and define their positions</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-reserved">for</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">i</span><span class="hl-code"> = </span><span class="hl-number">0</span><span class="hl-code">; </span><span class="hl-identifier">i</span><span class="hl-code"> &lt; </span><span class="hl-identifier">count</span><span class="hl-code">; </span><span class="hl-identifier">i</span><span class="hl-code">++</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">View</span><span class="hl-code"> </span><span class="hl-identifier">childView</span><span class="hl-code"> = </span><span class="hl-identifier">getChildAt</span><span class="hl-brackets">(</span><span class="hl-identifier">i</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-identifier">width</span><span class="hl-code"> = </span><span class="hl-identifier">childView</span><span class="hl-code">.</span><span class="hl-identifier">getMeasuredWidth</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-identifier">height</span><span class="hl-code"> = </span><span class="hl-identifier">childView</span><span class="hl-code">.</span><span class="hl-identifier">getMeasuredHeight</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-identifier">params</span><span class="hl-code"> = </span><span class="hl-brackets">(</span><span class="hl-identifier">MarginLayoutParams</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-identifier">getLayoutParams</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+ 
+        </span><span class="hl-reserved">switch</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-identifier">i</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">case</span><span class="hl-code"> </span><span class="hl-number">0</span><span class="hl-code">:     </span><span class="hl-comment">//</span><span class="hl-comment">First component</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">l</span><span class="hl-code"> = </span><span class="hl-identifier">params</span><span class="hl-code">.</span><span class="hl-identifier">leftMargin</span><span class="hl-code">;
+                </span><span class="hl-identifier">i1</span><span class="hl-code"> = </span><span class="hl-identifier">getHeight</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code"> - </span><span class="hl-identifier">height</span><span class="hl-code"> - </span><span class="hl-identifier">params</span><span class="hl-code">.</span><span class="hl-identifier">bottomMargin</span><span class="hl-code">;
+                </span><span class="hl-reserved">break</span><span class="hl-code">;
+            </span><span class="hl-reserved">case</span><span class="hl-code"> </span><span class="hl-number">1</span><span class="hl-code">:     </span><span class="hl-comment">//</span><span class="hl-comment">Second component</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">l</span><span class="hl-code"> = </span><span class="hl-identifier">getWidth</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code"> - </span><span class="hl-identifier">width</span><span class="hl-code"> - </span><span class="hl-identifier">params</span><span class="hl-code">.</span><span class="hl-identifier">leftMargin</span><span class="hl-code"> - </span><span class="hl-identifier">params</span><span class="hl-code">.</span><span class="hl-identifier">rightMargin</span><span class="hl-code">;
+                </span><span class="hl-identifier">i1</span><span class="hl-code"> = </span><span class="hl-identifier">getHeight</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code"> - </span><span class="hl-identifier">height</span><span class="hl-code"> - </span><span class="hl-identifier">params</span><span class="hl-code">.</span><span class="hl-identifier">bottomMargin</span><span class="hl-code">;
+                </span><span class="hl-reserved">break</span><span class="hl-code">;
+        </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">i2</span><span class="hl-code"> = </span><span class="hl-identifier">l</span><span class="hl-code"> + </span><span class="hl-identifier">width</span><span class="hl-code">;
+        </span><span class="hl-identifier">i3</span><span class="hl-code"> = </span><span class="hl-identifier">height</span><span class="hl-code"> + </span><span class="hl-identifier">i1</span><span class="hl-code">;
+        </span><span class="hl-comment">//</span><span class="hl-comment">Call the child View's layout, which is the layout method mentioned in the previous custom View article.</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">childView</span><span class="hl-code">.</span><span class="hl-identifier">layout</span><span class="hl-brackets">(</span><span class="hl-identifier">l</span><span class="hl-code">, </span><span class="hl-identifier">i1</span><span class="hl-code">, </span><span class="hl-identifier">i2</span><span class="hl-code">, </span><span class="hl-identifier">i3</span><span class="hl-brackets">)</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span></div>
+</div>
+</div>
+<p>The code is very easy to understand, isn't it? In the end, we magically find that it is ViewGroup that actively calls View's layout method to determine its position. This is the difference between a container and a component.</p>
+<p>Next, let's use our custom ViewGroup in a layout. Let's look at the layout and effects.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-brackets">&lt;?</span><span class="hl-reserved">xml</span><span class="hl-code"> </span><span class="hl-var">version</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string">1.0</span><span class="hl-quotes">"</span><span class="hl-code"> </span><span class="hl-var">encoding</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string">utf-8</span><span class="hl-quotes">"</span><span class="hl-brackets">?&gt;</span><span class="hl-code">
+</span><span class="hl-brackets">&lt;</span><span class="hl-reserved">com</span><span class="hl-code">.</span><span class="hl-var">xlh</span><span class="hl-code">.</span><span class="hl-var">demo</span><span class="hl-code">.</span><span class="hl-var">MyViewGroup</span><span class="hl-code"> </span><span class="hl-var">xmlns:android</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string">http://schemas.android.com/apk/res/android</span><span class="hl-quotes">"</span><span class="hl-code">
+</span><span class="hl-var">android:layout_width</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string">match_parent</span><span class="hl-quotes">"</span><span class="hl-code">
+</span><span class="hl-var">android:layout_height</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string">match_parent</span><span class="hl-quotes">"</span><span class="hl-brackets">&gt;</span><span class="hl-code">
+</span><span class="hl-brackets">&lt;</span><span class="hl-reserved">TextView</span><span class="hl-code">
+</span><span class="hl-var">android:background</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string">@color/colorAccent</span><span class="hl-quotes">"</span><span class="hl-code">
+</span><span class="hl-var">android:layout_width</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string">100dp</span><span class="hl-quotes">"</span><span class="hl-code">
+</span><span class="hl-var">android:layout_height</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string">100dp</span><span class="hl-quotes">"</span><span class="hl-brackets">/&gt;</span><span class="hl-code">
+</span><span class="hl-brackets">&lt;</span><span class="hl-reserved">TextView</span><span class="hl-code">
+</span><span class="hl-var">android:background</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string">@color/colorPrimary</span><span class="hl-quotes">"</span><span class="hl-code">
+</span><span class="hl-var">android:layout_width</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string">100dp</span><span class="hl-quotes">"</span><span class="hl-code">
+</span><span class="hl-var">android:layout_height</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string">100dp</span><span class="hl-quotes">"</span><span class="hl-code"> </span><span class="hl-brackets">/&gt;</span><span class="hl-code">
+</span><span class="hl-brackets">&lt;/</span><span class="hl-reserved">com</span><span class="hl-code">.</span><span class="hl-var">example</span><span class="hl-code">.</span><span class="hl-var">xlh</span><span class="hl-code">.</span><span class="hl-var">demo</span><span class="hl-code">.</span><span class="hl-var">MyViewGroup</span><span class="hl-brackets">&gt;</span></div>
+</div>
+</div>
+<p><img decoding="async" src="../wp-content/uploads/2016/12/13.png"/></p>
+<p>We now have a basic understanding of custom ViewGroup. More learning requires using it in actual projects and taking apart wheels. But the blogger does not want to end this article so quickly; being too hasty would let the readers down. Let's make a small case study!</p>
+<h3>First Look at the Effect Diagram</h3>
+<p><img decoding="async" src="../wp-content/uploads/2016/12/14.gif"/></p>
+<p>Next, let's go straight to the code. It's not too difficult.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-reserved">class</span><span class="hl-code"> </span><span class="hl-identifier">CustomScrollView</span><span class="hl-code"> </span><span class="hl-reserved">extends</span><span class="hl-code"> </span><span class="hl-identifier">ViewGroup</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">mScreenHeight</span><span class="hl-code">;
+    </span><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">mStartY</span><span class="hl-code">;
+    </span><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">mEnd</span><span class="hl-code">;
+    </span><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-identifier">Scroller</span><span class="hl-code"> </span><span class="hl-identifier">mScroller</span><span class="hl-code">;
+    </span><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">mLastY</span><span class="hl-code">;
+    </span><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">childCount</span><span class="hl-code">;
+    </span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-identifier">CustomScrollView</span><span class="hl-brackets">(</span><span class="hl-identifier">Context</span><span class="hl-code"> </span><span class="hl-identifier">context</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">this</span><span class="hl-brackets">(</span><span class="hl-identifier">context</span><span class="hl-code">,</span><span class="hl-reserved">null</span><span class="hl-brackets">)</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-identifier">CustomScrollView</span><span class="hl-brackets">(</span><span class="hl-identifier">Context</span><span class="hl-code"> </span><span class="hl-identifier">context</span><span class="hl-code">, </span><span class="hl-identifier">AttributeSet</span><span class="hl-code"> </span><span class="hl-identifier">attrs</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">super</span><span class="hl-brackets">(</span><span class="hl-identifier">context</span><span class="hl-code">,</span><span class="hl-identifier">attrs</span><span class="hl-brackets">)</span><span class="hl-code">;
+ 
+        </span><span class="hl-comment">//</span><span class="hl-comment">Initialize some required attributes</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">WindowManager</span><span class="hl-code"> </span><span class="hl-identifier">wm</span><span class="hl-code">= </span><span class="hl-brackets">(</span><span class="hl-identifier">WindowManager</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-identifier">getContext</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">.</span><span class="hl-identifier">getSystemService</span><span class="hl-brackets">(</span><span class="hl-identifier">Context</span><span class="hl-code">.</span><span class="hl-identifier">WINDOW_SERVICE</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-identifier">mScreenHeight</span><span class="hl-code">=</span><span class="hl-identifier">wm</span><span class="hl-code">.</span><span class="hl-identifier">getDefaultDisplay</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">.</span><span class="hl-identifier">getHeight</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-identifier">mScroller</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Scroller</span><span class="hl-brackets">(</span><span class="hl-identifier">getContext</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-brackets">)</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">Measure child views in onMeasure</span><span class="hl-comment"></span><span class="hl-code">
+    @</span><span class="hl-identifier">Override</span><span class="hl-code">
+</span><span class="hl-reserved">protected</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">onMeasure</span><span class="hl-brackets">(</span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">widthMeasureSpec</span><span class="hl-code">, </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">heightMeasureSpec</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">super</span><span class="hl-code">.</span><span class="hl-identifier">onMeasure</span><span class="hl-brackets">(</span><span class="hl-identifier">widthMeasureSpec</span><span class="hl-code">, </span><span class="hl-identifier">heightMeasureSpec</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">childCount</span><span class="hl-code"> = </span><span class="hl-identifier">getChildCount</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-reserved">for</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">i</span><span class="hl-code">=</span><span class="hl-number">0</span><span class="hl-code">;</span><span class="hl-identifier">i</span><span class="hl-code">&lt;</span><span class="hl-identifier">childCount</span><span class="hl-code">;</span><span class="hl-identifier">i</span><span class="hl-code">++</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">View</span><span class="hl-code"> </span><span class="hl-identifier">childView</span><span class="hl-code"> = </span><span class="hl-identifier">getChildAt</span><span class="hl-brackets">(</span><span class="hl-identifier">i</span><span class="hl-brackets">)</span><span class="hl-code">;
+            </span><span class="hl-identifier">measureChild</span><span class="hl-brackets">(</span><span class="hl-identifier">childView</span><span class="hl-code">,</span><span class="hl-identifier">widthMeasureSpec</span><span class="hl-code">,</span><span class="hl-identifier">heightMeasureSpec</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">Determine the positions of child Views</span><span class="hl-comment"></span><span class="hl-code">
+    @</span><span class="hl-identifier">Override</span><span class="hl-code">
+</span><span class="hl-reserved">protected</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">onLayout</span><span class="hl-brackets">(</span><span class="hl-types">boolean</span><span class="hl-code"> </span><span class="hl-identifier">changed</span><span class="hl-code">, </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">l</span><span class="hl-code">, </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">t</span><span class="hl-code">, </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">r</span><span class="hl-code">, </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">b</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">childCount</span><span class="hl-code"> = </span><span class="hl-identifier">getChildCount</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-comment">//</span><span class="hl-comment">Set the height of this ViewGroup</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">MarginLayoutParams</span><span class="hl-code"> </span><span class="hl-identifier">lp</span><span class="hl-code"> = </span><span class="hl-brackets">(</span><span class="hl-identifier">MarginLayoutParams</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-identifier">getLayoutParams</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-identifier">lp</span><span class="hl-code">.</span><span class="hl-identifier">height</span><span class="hl-code">=</span><span class="hl-identifier">mScreenHeight</span><span class="hl-code"> * </span><span class="hl-identifier">childCount</span><span class="hl-code">;
+        </span><span class="hl-identifier">setLayoutParams</span><span class="hl-brackets">(</span><span class="hl-identifier">lp</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-comment">//</span><span class="hl-comment">Draw the positions of child views</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-reserved">for</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">i</span><span class="hl-code"> = </span><span class="hl-number">0</span><span class="hl-code">; </span><span class="hl-identifier">i</span><span class="hl-code">&lt; </span><span class="hl-identifier">childCount</span><span class="hl-code">; </span><span class="hl-identifier">i</span><span class="hl-code">++</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">View</span><span class="hl-code"> </span><span class="hl-identifier">childView</span><span class="hl-code"> = </span><span class="hl-identifier">getChildAt</span><span class="hl-brackets">(</span><span class="hl-identifier">i</span><span class="hl-brackets">)</span><span class="hl-code">;
+            </span><span class="hl-reserved">if</span><span class="hl-brackets">(</span><span class="hl-identifier">childView</span><span class="hl-code">.</span><span class="hl-identifier">getVisibility</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">!=</span><span class="hl-identifier">View</span><span class="hl-code">.</span><span class="hl-identifier">GONE</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">childView</span><span class="hl-code">.</span><span class="hl-identifier">layout</span><span class="hl-brackets">(</span><span class="hl-identifier">l</span><span class="hl-code">,</span><span class="hl-identifier">i</span><span class="hl-code">*</span><span class="hl-identifier">mScreenHeight</span><span class="hl-code">,</span><span class="hl-identifier">r</span><span class="hl-code">,</span><span class="hl-brackets">(</span><span class="hl-identifier">i</span><span class="hl-code">+</span><span class="hl-number">1</span><span class="hl-brackets">)</span><span class="hl-code">*</span><span class="hl-identifier">mScreenHeight</span><span class="hl-brackets">)</span><span class="hl-code">;
+            </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">step3: Add the touch response events we need</span><span class="hl-comment"></span><span class="hl-code">
+    @</span><span class="hl-identifier">Override</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">boolean</span><span class="hl-code"> </span><span class="hl-identifier">onTouchEvent</span><span class="hl-brackets">(</span><span class="hl-identifier">MotionEvent</span><span class="hl-code"> </span><span class="hl-identifier">event</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">In this touch event, we need to determine two distances: one is the distance the finger moves, and the other is the distance the view scrolls.</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">This is the amount that changes as the finger moves.</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">y</span><span class="hl-code"> = </span><span class="hl-brackets">(</span><span class="hl-types">int</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-identifier">event</span><span class="hl-code">.</span><span class="hl-identifier">getY</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-reserved">switch</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-identifier">event</span><span class="hl-code">.</span><span class="hl-identifier">getAction</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">case</span><span class="hl-code"> </span><span class="hl-identifier">MotionEvent</span><span class="hl-code">.</span><span class="hl-identifier">ACTION_DOWN</span><span class="hl-code">:
+                </span><span class="hl-identifier">mLastY</span><span class="hl-code"> = </span><span class="hl-identifier">y</span><span class="hl-code">;
+                </span><span class="hl-identifier">mStartY</span><span class="hl-code"> = </span><span class="hl-identifier">getScrollY</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+ 
+                </span><span class="hl-reserved">break</span><span class="hl-code">;
+            </span><span class="hl-reserved">case</span><span class="hl-code"> </span><span class="hl-identifier">MotionEvent</span><span class="hl-code">.</span><span class="hl-identifier">ACTION_MOVE</span><span class="hl-code">:
+                </span><span class="hl-comment">//</span><span class="hl-comment">When we touch the screen again, if the previous scroll animation has not stopped, we also let it stop immediately.</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-reserved">if</span><span class="hl-brackets">(</span><span class="hl-code">!</span><span class="hl-identifier">mScroller</span><span class="hl-code">.</span><span class="hl-identifier">isFinished</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">mScroller</span><span class="hl-code">.</span><span class="hl-identifier">abortAnimation</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+                </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">dY</span><span class="hl-code">= </span><span class="hl-identifier">mLastY</span><span class="hl-code"> -</span><span class="hl-identifier">y</span><span class="hl-code">;
+                </span><span class="hl-comment">//</span><span class="hl-comment">When scrolling touches the upper edge, give a pull-down rebound effect.</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-reserved">if</span><span class="hl-brackets">(</span><span class="hl-identifier">getScrollY</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">&lt;</span><span class="hl-number">0</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">dY</span><span class="hl-code">/=</span><span class="hl-number">3</span><span class="hl-code">;
+                </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">Determine the scrolling</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-reserved">if</span><span class="hl-brackets">(</span><span class="hl-identifier">getScrollY</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">&gt;</span><span class="hl-identifier">mScreenHeight</span><span class="hl-code">*</span><span class="hl-identifier">getChildCount</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">-</span><span class="hl-identifier">mScreenHeight</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">dY</span><span class="hl-code">=</span><span class="hl-number">0</span><span class="hl-code">;
+                </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">Let our view scroll the corresponding dy distance</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">scrollBy</span><span class="hl-brackets">(</span><span class="hl-number">0</span><span class="hl-code">,</span><span class="hl-identifier">dY</span><span class="hl-brackets">)</span><span class="hl-code">;
+                </span><span class="hl-identifier">mLastY</span><span class="hl-code">=</span><span class="hl-identifier">y</span><span class="hl-code">;
+                </span><span class="hl-reserved">break</span><span class="hl-code">;
+            </span><span class="hl-reserved">case</span><span class="hl-code"> </span><span class="hl-identifier">MotionEvent</span><span class="hl-code">.</span><span class="hl-identifier">ACTION_UP</span><span class="hl-code">:
+                </span><span class="hl-identifier">mEnd</span><span class="hl-code"> = </span><span class="hl-identifier">getScrollY</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+                </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">dScrollY</span><span class="hl-code"> = </span><span class="hl-identifier">mEnd</span><span class="hl-code"> - </span><span class="hl-identifier">mStartY</span><span class="hl-code">;
+                </span><span class="hl-reserved">if</span><span class="hl-brackets">(</span><span class="hl-identifier">dScrollY</span><span class="hl-code">&gt;</span><span class="hl-number">0</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-comment">//</span><span class="hl-comment">Case of scrolling up</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-reserved">if</span><span class="hl-brackets">(</span><span class="hl-identifier">getScrollY</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">&lt;</span><span class="hl-number">0</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">mScroller</span><span class="hl-code">.</span><span class="hl-identifier">startScroll</span><span class="hl-brackets">(</span><span class="hl-number">0</span><span class="hl-code">,</span><span class="hl-identifier">getScrollY</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">,</span><span class="hl-number">0</span><span class="hl-code">,-</span><span class="hl-identifier">dScrollY</span><span class="hl-brackets">)</span><span class="hl-code">;
+                    </span><span class="hl-brackets">}</span><span class="hl-reserved">else</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">if</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-identifier">dScrollY</span><span class="hl-code">&lt;</span><span class="hl-identifier">mScreenHeight</span><span class="hl-code">/</span><span class="hl-number">3</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">mScroller</span><span class="hl-code">.</span><span class="hl-identifier">startScroll</span><span class="hl-brackets">(</span><span class="hl-number">0</span><span class="hl-code">,</span><span class="hl-identifier">getScrollY</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">,</span><span class="hl-number">0</span><span class="hl-code">,-</span><span class="hl-identifier">dScrollY</span><span class="hl-brackets">)</span><span class="hl-code">;
+                        </span><span class="hl-brackets">}</span><span class="hl-reserved">else</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">mScroller</span><span class="hl-code">.</span><span class="hl-identifier">startScroll</span><span class="hl-brackets">(</span><span class="hl-number">0</span><span class="hl-code">,</span><span class="hl-identifier">getScrollY</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">,</span><span class="hl-number">0</span><span class="hl-code">,</span><span class="hl-identifier">mScreenHeight</span><span class="hl-code">-</span><span class="hl-identifier">dScrollY</span><span class="hl-brackets">)</span><span class="hl-code">;
+                        </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-reserved">else</span><span class="hl-brackets">{</span><span class="hl-comment">//</span><span class="hl-comment">Case of scrolling down</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-reserved">if</span><span class="hl-brackets">(</span><span class="hl-identifier">getScrollY</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">&gt;</span><span class="hl-identifier">mScreenHeight</span><span class="hl-code">*</span><span class="hl-identifier">getChildCount</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">-</span><span class="hl-identifier">mScreenHeight</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">mScroller</span><span class="hl-code">.</span><span class="hl-identifier">startScroll</span><span class="hl-brackets">(</span><span class="hl-number">0</span><span class="hl-code">,</span><span class="hl-identifier">getScrollY</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">,</span><span class="hl-number">0</span><span class="hl-code">,-</span><span class="hl-identifier">dScrollY</span><span class="hl-brackets">)</span><span class="hl-code">;
+                    </span><span class="hl-brackets">}</span><span class="hl-reserved">else</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">if</span><span class="hl-brackets">(</span><span class="hl-code">-</span><span class="hl-identifier">dScrollY</span><span class="hl-code">&lt;</span><span class="hl-identifier">mScreenHeight</span><span class="hl-code">/</span><span class="hl-number">3</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">mScroller</span><span class="hl-code">.</span><span class="hl-identifier">startScroll</span><span class="hl-brackets">(</span><span class="hl-number">0</span><span class="hl-code">,</span><span class="hl-identifier">getScrollY</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">,</span><span class="hl-number">0</span><span class="hl-code">,-</span><span class="hl-identifier">dScrollY</span><span class="hl-brackets">)</span><span class="hl-code">;
+                        </span><span class="hl-brackets">}</span><span class="hl-reserved">else</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">mScroller</span><span class="hl-code">.</span><span class="hl-identifier">startScroll</span><span class="hl-brackets">(</span><span class="hl-number">0</span><span class="hl-code">, </span><span class="hl-identifier">getScrollY</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">, </span><span class="hl-number">0</span><span class="hl-code">, -</span><span class="hl-identifier">mScreenHeight</span><span class="hl-code"> - </span><span class="hl-identifier">dScrollY</span><span class="hl-brackets">)</span><span class="hl-code">;
+                        </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-reserved">break</span><span class="hl-code">;
+        </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">Redraw the interface</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">postInvalidate</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-reserved">true</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">Control screen sliding control</span><span class="hl-comment"></span><span class="hl-code">
+    @</span><span class="hl-identifier">Override</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">computeScroll</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">super</span><span class="hl-code">.</span><span class="hl-identifier">computeScroll</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-reserved">if</span><span class="hl-brackets">(</span><span class="hl-identifier">mScroller</span><span class="hl-code">.</span><span class="hl-identifier">computeScrollOffset</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">scrollTo</span><span class="hl-brackets">(</span><span class="hl-number">0</span><span class="hl-code">,</span><span class="hl-identifier">mScroller</span><span class="hl-code">.</span><span class="hl-identifier">getCurrY</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-brackets">)</span><span class="hl-code">;
+            </span><span class="hl-identifier">postInvalidate</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span></div>
+</div>
+</div>
+<p>Layout file</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-brackets">&lt;?</span><span class="hl-reserved">xml</span><span class="hl-code"> </span><span class="hl-var">version</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string">1.0</span><span class="hl-quotes">"</span><span class="hl-code"> </span><span class="hl-var">encoding</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string">utf-8</span><span class="hl-quotes">"</span><span class="hl-brackets">?&gt;</span><span class="hl-code">
+</span><span class="hl-brackets">&lt;</span><span class="hl-reserved">com</span><span class="hl-code">.</span><span class="hl-var">timen4</span><span class="hl-code">.</span><span class="hl-var">ronnny</span><span class="hl-code">.</span><span class="hl-var">customscrollview</span><span class="hl-code">.</span><span class="hl-var">widget</span><span class="hl-code">.</span><span class="hl-var">CustomScrollView</span><span class="hl-code"> </span><span class="hl-var">xmlns:android</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string">http://schemas.android.com/apk/res/android</span><span class="hl-quotes">"</span><span class="hl-code">
+</span><span class="hl-var">xmlns:tools</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string">http://schemas.android.com/tools</span><span class="hl-quotes">"</span><span class="hl-code">
+</span><span class="hl-var">android:id</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string">@+id/main</span><span class="hl-quotes">"</span><span class="hl-code">
+</span><span class="hl-var">android:layout_width</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string">match_parent</span><span class="hl-quotes">"</span><span class="hl-code">
+</span><span class="hl-var">android:layout_height</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string">match_parent</span><span class="hl-quotes">"</span><span class="hl-code">
+</span><span class="hl-var">tools:context</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string">com.timen4.ronnny.customscrollview.MainActivity</span><span class="hl-quotes">"</span><span class="hl-brackets">&gt;</span><span class="hl-code">
+</span><span class="hl-brackets">&lt;</span><span class="hl-reserved">View</span><span class="hl-code">
+</span><span class="hl-var">android:background</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string">#ff0000</span><span class="hl-quotes">"</span><span class="hl-code">
+</span><span class="hl-var">android:layout_width</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string">wrap_content</span><span class="hl-quotes">"</span><span class="hl-code">
+</span><span class="hl-var">android:layout_height</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string">wrap_content</span><span class="hl-quotes">"</span><span class="hl-brackets">/&gt;</span><span class="hl-code">
+</span><span class="hl-brackets">&lt;</span><span class="hl-reserved">View</span><span class="hl-code">
+</span><span class="hl-var">android:background</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string">#0000ff</span><span class="hl-quotes">"</span><span class="hl-code">
+</span><span class="hl-var">android:layout_width</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string">wrap_content</span><span class="hl-quotes">"</span><span class="hl-code">
+</span><span class="hl-var">android:layout_height</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string">wrap_content</span><span class="hl-quotes">"</span><span class="hl-brackets">/&gt;</span><span class="hl-code">
+</span><span class="hl-brackets">&lt;</span><span class="hl-reserved">View</span><span class="hl-code">
+</span><span class="hl-var">android:background</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string">#ffff00</span><span class="hl-quotes">"</span><span class="hl-code">
+</span><span class="hl-var">android:layout_width</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string">wrap_content</span><span class="hl-quotes">"</span><span class="hl-code">
+</span><span class="hl-var">android:layout_height</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string">wrap_content</span><span class="hl-quotes">"</span><span class="hl-brackets">/&gt;</span><span class="hl-code">
+</span><span class="hl-brackets">&lt;</span><span class="hl-reserved">View</span><span class="hl-code">
+</span><span class="hl-var">android:background</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string">#00ff00</span><span class="hl-quotes">"</span><span class="hl-code">
+</span><span class="hl-var">android:layout_width</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string">wrap_content</span><span class="hl-quotes">"</span><span class="hl-code">
+</span><span class="hl-var">android:layout_height</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string">wrap_content</span><span class="hl-quotes">"</span><span class="hl-brackets">/&gt;</span><span class="hl-code">
+</span><span class="hl-brackets">&lt;/</span><span class="hl-reserved">com</span><span class="hl-code">.</span><span class="hl-var">timen4</span><span class="hl-code">.</span><span class="hl-var">ronnny</span><span class="hl-code">.</span><span class="hl-var">customscrollview</span><span class="hl-code">.</span><span class="hl-var">widget</span><span class="hl-code">.</span><span class="hl-var">CustomScrollView</span><span class="hl-brackets">&gt;</span></div>
+</div>
+</div> </div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link">← <a href="./android-advance-custom-view.html" rel="prev">1.2 Custom View</a> </div>
+<div class="next-design-link"><a href="./android-advance-authority-management.html" rel="next">1.4 Android 6.0 Permission Management - Open Source Framework Source Code Analysis</a> →</div>
+</div>
+<style>
+@media screen and (max-width: 768px) {
+	#w3cnote-ad728 {
+		display: none;
+	}
+}
+p.note-author {
+    border-bottom: 1px solid #ddd;
+    font-size: 18px;
+    font-weight: bold;
+    color: #78a15a;
+    padding-bottom: 2px;
+    margin-bottom: 4px;
+}
+</style>
+<script>
+var aid = 17085;
+</script>
+</div>
+</div>
+<div class="listcol last right-column">
+<script type="text/javascript">
+jQuery(document).ready(function ($){
+	var total = $(".membership li").length;
+	var left_list = '';
+	href = window.location.href;
+	
+	$(".membership li").each(function(index, value){
+
+		left_list += $(this).html();
+
+		cur_href = $(this).find("a").attr("href");
+		cur_obj = $(this);
+		
+		if(href.match(cur_href) != null) {
+			if(index==0) {
+				$(".previous-design-link").hide();
+			}
+			if(index==(total-1)) {
+				$(".next-design-link").hide();
+			}
+			prev_href = cur_obj.prev("li").find("a").attr("href");
+			prev_title = cur_obj.prev("li").find("a").attr("title");
+
+			next_href = cur_obj.next("li").find("a").attr("href");
+			next_title = cur_obj.next("li").find("a").attr("title");
+			if(prev_title) {
+				$(".previous-design-link a").attr("href", prev_href);
+				$(".previous-design-link a").attr("title", prev_title);
+				$(".previous-design-link a").text(prev_title);
+			} else {
+				$(".previous-design-link").html("");
+			}
+
+			if(next_title) {
+				$(".next-design-link a").attr("href", next_href);
+				$(".next-design-link a").attr("title", next_title);
+				$(".next-design-link a").text(next_title);
+			} else {
+				$(".next-design-link").html("");
+			}
+		}
+	});
+
+	$("#leftcolumn").html(left_list);
+});
+	</script>
+<div class="sidebar-box cate-list">
+<div class="sidebar-box recommend-here list-link">
+<a href="#">Android 进阶教程</a> </div>
+<ul class="membership">
+<li><a data-id="17013" href="./android-advance-screen-adaptation.html" target="_top" title="1.1 Android 中喜闻乐见的屏幕适配">1.1 Android 中喜闻乐见的屏幕适配</a></li>
+<li><a data-id="17036" href="./android-advance-custom-view.html" target="_top" title="1.2 自定义 View">1.2 自定义 View</a></li>
+<li>
+	1.3 自定义 ViewGroup	</li>
+<li><a data-id="17090" href="./android-advance-authority-management.html" target="_top" title="1.4 Android6.0权限管理-开源框架源码分析">1.4 Android6.0权限管理-开源框架源码分析</a></li>
+<li><a data-id="18227" href="./android-advance-plug-in-development.html" target="_top" title="2.0 Android 插件式开发">2.0 Android 插件式开发</a></li>
+<li><a data-id="18230" href="./android-advance-picasso1.html" target="_top" title="2.1 带你全方位学习Picasso（一）">2.1 带你全方位学习Picasso（一）</a></li>
+<li><a data-id="18234" href="./android-advance-picasso2.html" target="_top" title="2.2 带你全方位学习Picasso（二）">2.2 带你全方位学习Picasso（二）</a></li>
+</ul></div> </div>
+</div>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+</div><script src="../../lang-switcher.js"></script>
+</body>
+</html>

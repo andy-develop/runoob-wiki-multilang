@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>頂点ベース線形平均内挿フィッティングアルゴリズム | 初心者向けチュートリアル</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="./based-linear-average-interpolation-fitting-algorithm.html" rel="canonical"/>
+<meta content="顶点式线性平均内插拟合算法" name="keywords"/>
+<meta content="最近用Matlab做了各种不同模型的三维数据的仿真实验 ，不少需要对三维数据进行拟合，matlab 自带一个拟合工具箱（cftool），确实强大，使用工具箱做数据拟合省不少事，对数据集足够的原始模型而言，cftool能很准确的拟合出我们想要的结果。当然我们不讲Matlab ，本篇通篇跟Matlab毫无关系，~~话讲多了，下面开始。   一、数据原型  首先导入一张完整的数据表格，我们可以看到这是一个y=9 x=15 ，大小是9x15的矩.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div><!-- 导航栏 -->
+<!--  内容  -->
+<div class="container main">
+<div class="row">
+<div class="col middle-column big-middle-column">
+<div class="article">
+<div class="article-heading">
+<h2>頂点ベース線形平均内挿フィッティングアルゴリズム</h2> <h3><em>分類</em> <a href="../w3cnote_genre/code.html" title="编程技术">プログラミング技術</a> </h3>
+</div>
+<div class="article-body note-body">
+<div class="article-intro">
+<!-- ad start-->
+<!-- ad end-->
+<p>最近、Matlabを使って様々な異なるモデルの3次元データのシミュレーション実験を行いました。多くは3次元データのフィッティングが必要です。Matlabにはフィッティングツールボックス（cftool）が付属しており、確かに強力で、ツールボックスを使ったデータフィッティングは手間が省けます。データセットが十分な元のモデルに対しては、cftoolは私たちが望む結果を非常に正確にフィッティングできます。もちろん、Matlabの話はしません。この記事は全体を通してMatlabとは全く関係ありません。~~話が多くなりましたが、以下始めます。</p>
+<hr/>
+<h2>一、データ原型</h2><p>まず完全なデータテーブルをインポートします。これは y=9、x=15 で、サイズが9x15の行列です。行列の各要素は数値zに対応しています。2番目の図は、1番目の図のデータから対応する位置のデータを選び出したものです。サイズは3x5の有効行列です。</p><p>こうして、元のデータから欠損度が約90%にも達するデータを仮想的に作り出しました。後の補間フィッティングは、この欠損データに対して対応する計算を行います。</p><p>
+<img decoding="async" src="../wp-content/uploads/2016/12/1482823024-5154-11a1bf1db017511301a4c89b5d-b.jpg"/>
+</p>
+<p><img decoding="async" src="../wp-content/uploads/2016/12/1482823024-1092-e1259c3f93f86e9ee309c60ff1-b.jpg"/></p>
+<hr/><h2>二、補間フィッティング</h2><h3>1、概念の導入</h3>
+<p>2つの数（129 192）が与えられたとき、この2つの数の間に線形に1つの値を挿入することを考えます。挿入方法は実に様々です。例えば、2次元平面での線形補間なら B2 =（A1+A2）/2、あるいは3次元空間での線形補間など、以下のように使います。</p><p>
+<img decoding="async" src="../wp-content/uploads/2016/12/1482823024-4560-99e97c96674f675823289e2742-b.png"/>
+</p><p>
+A： 192 129
+</p><p>
+B ：192 157 129
+</p><p>
+<img decoding="async" src="../wp-content/uploads/2016/12/1482823025-2467-2680003ef9f0cfcefa517d3ae2-b.jpg"/>
+</p><h3>2、一次フィッティング</h3>
+<p>上記の概念の導入を経て、次に欠損データに対して一次補間を行います。以下の式を参照してください。</p>
+<img decoding="async" src="../wp-content/uploads/2016/12/1482823025-4078-81a5f6b21b14b67463cd4dd42a-b.jpg"/><p>黒枠は有効な頂点データです。アルゴリズムで任意の2つの頂点を走査し、そのうち少なくとも1つが有効データ（黒枠）であれば、1つのデータ（青枠のデータ）を挿入します。これは非常に重要です。非常に重要なので三回言います。例えば、行方向で隣接する129と192の2つの頂点には157を内挿し、129と267の隣接する2つの頂点には186を内挿します。結果は下図のようになります。</p><p>
+<img decoding="async" src="../wp-content/uploads/2016/12/1482823025-3687-f3c72fd5cb44910c1d1e8b4f3a-b.jpg"/></p><p>一次内挿はこれで完了でしょうか？ いいえ、上記のデータをもう一度見てください。最初のラウンドの挿入後、新たに隣接する頂点が追加されるため、さらに内挿が必要です。私のデータ行列は大きくないので、2ラウンド目の挿入後、隣接する空白点はもう見つかりません。データ行列が非常に大きい場合、アルゴリズムの実装では、この時点でコードを再帰形式で書き、挿入が完了するまでスタックをポップしません（結果は以下の通り）。</p><p>
+<img decoding="async" src="../wp-content/uploads/2016/12/1482823025-9781-6ede4a8d5b8cdb91eb5a27db43-b.jpg"/>
+</p><h3>&gt;3、二次フィッティング</h3><p>我々の二次フィッティングは、完全に一次フィッティングの結果に基づいて調整されます。私の二次設計では、4つの有効な頂点（黒枠が有効頂点です。重要なことなので一度だけ言います）を使って、緑枠のデータを1つ内挿します。ADが対角、BCが対角です。以下の式を参照してください。</p><p><img decoding="async" src="../wp-content/uploads/2016/12/1482823026-4856-2189f9636b1393fb1b2ead884c-b.jpg"/>
+</p><p>注：挿入後は一次フィッティングを実行しません。一次フィッティングは黒枠データを必要としますが、任意の2つの青・緑データは必要ありません。</p><p>
+<img decoding="async" src="../wp-content/uploads/2016/12/1482823026-3310-d3a4d7c5e9a547ab2f80ebe604-b.jpg"/></p><p>見やすくするために、一次フィッティングの内容を取り除きました。一次フィッティングの結果が以下のモデルでない場合、モデル変換が必要です。具体的な方法は自分で考えてみるか、私にコメントを残してください（核心部分は個別に連絡してください）。</p><p>
+<img decoding="async" src="../wp-content/uploads/2016/12/1482823026-9876-ca5ff9a7755532d62cc3c1ba0f-b.jpg"/>
+</p><h3>4、三次フィッティング</h3><p>三次補間は二次補間と基本的に同じです。唯一異なる点は、任意の4つの頂点（黒枠かどうかにかかわらず）に対して、上記の式を参照して挿入することです。すると2番目の図が得られます。</p><p>
+<img decoding="async" src="../wp-content/uploads/2016/12/1482823026-7236-e7ba0fa283e40e979a2e380604-b.jpg"/>
+</p><h3>5、補助点の削除</h3><p>最後にお伝えします。上記で、黒枠のものだけが有効データであり、他の色の枠のものは補助データです。これは幾何学の問題を解くときに引く補助線に似ています。では、これを削除しましょう。削除後の結果は以下の通りです。</p><p>
+<img decoding="async" src="../wp-content/uploads/2016/12/1482823027-7151-4329b08abc5b5e60f1f15e67ca-b.jpg"/></p><h3>6、データ原型との偏差比較</h3><p>
+<img decoding="async" src="../wp-content/uploads/2016/12/1482823026-6896-1ecdcfdcca22fcf036c0dc0009-b.jpg"/></p><p>平均偏差7%、最大偏差22%であり、比較的フィッティング精度は良好です。私が持っているデータはわずか10%で、90%のデータをフィッティングする必要があることを忘れないでください。</p><h3>7、結果出力</h3><p>
+<imgsrc=".. 12="" 1482823026-2994-b48b5cc3cb471599977ac41a63-b.jpg"="" 2016="" uploads="" wp-content=""></imgsrc="..>
+</p><p>
+<img decoding="async" src="../wp-content/uploads/2016/12/1482823027-6406-38bea7512ae1ec924fe3f7f4c8-b.jpg"/>
+</p><h3>8、まとめ</h3><p>95%の時間は方法を考え、5%の時間で方法をコードに書く。この記事を読めば、曲面フィッティングは簡単にマスターできるのではないでしょうか？</p><p>（このアルゴリズムは対称で規則的なモデルに基づいています。不規則なモデルへの適応性はまだ試していません）。立ち去る前に「いいね」をお願いします！</p>
+<blockquote><p>著者：showlo</p><p>リンク：https://zhuanlan.zhihu.com/p/24275757</p><p>出典：知乎</p>
+</blockquote>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link">← <a href="./javascript-overview.html" rel="prev">JavaScript 概要</a> </div>
+<div class="next-design-link"><a href="./htmlcssguide.html" rel="next">Google HTML/CSS 規約</a> →</div>
+</div>
+<style>
+@media screen and (max-width: 768px) {
+	#w3cnote-ad728 {
+		display: none;
+	}
+}
+p.note-author {
+    border-bottom: 1px solid #ddd;
+    font-size: 18px;
+    font-weight: bold;
+    color: #78a15a;
+    padding-bottom: 2px;
+    margin-bottom: 4px;
+}
+</style>
+<script>
+var aid = 17123;
+</script>
+</div>
+</div>
+<div class="listcol last right-column">
+<!--
+	<div class="tab tab-light-blue"> 订阅</div>
+	<div class="sidebar-box">
+		<div class="socialicons">
+			<a href="../feed.html" class="rss">RSS 订阅</a>
+		
+			<form action="..//list.qq.com/cgi-bin/qf_compose_send" method="post">
+			<input type="hidden" value="qf_booked_feedback" name="t">
+			<input type="hidden" value="4b67b6b6c1f5e792559940cab4aebb8f1126fba880bff1a8" name="id">
+			<input class="placeholder" id="feed_email" name="to" value="输入邮箱 订阅笔记" autocomplete="off">
+			<input type="submit" value="订阅" class="btn btn-primary">
+			</form>
+		
+		</div>
+ 
+	</div>
+-->
+<!--
+	<div class="sidebar-box cate-list">
+	<div class="sidebar-box recommend-here list-link">
+			<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">笔记列表</a>
+		</div>
+
+ 
+
+</div>
+-->
+<div class="sidebar-box cate-list" style="display:none;">
+<div class="sidebar-box recommend-here list-link">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">热门文章</a>
+</div>
+<div class="membership">
+<ul class="membership">
+<li><a href="https://mp.weixin.qq.com/s/ZaP6YNgKTCHYy3r2WPBBaw" target="_blank" title="2024 年 04 月 JavaScript 框架排行榜">2024 年 04 月 JavaScript 框架排行榜</a></li>
+<li><a href="https://mp.weixin.qq.com/s/JBR2twC0t6krjjuxqvhsEQ" target="_blank" title="免费、开源、好用的 SQL 客户端合集">免费、开源、好用的 SQL 客户端合集</a></li>
+<li><a href="https://mp.weixin.qq.com/s/TwV3YQjA1glyaW7TiHvhlA" target="_blank" title="优雅的代码规范，提升代码质量">优雅的代码规范，提升代码质量</a></li>
+<li><a href="https://mp.weixin.qq.com/s/CnUJ-2OHPbBKlnVpjDzavA" target="_blank" title="命令行中的趣味世界，牛也能说话，有趣又好玩">命令行中的趣味世界，牛也能说话，有趣又好玩</a></li>
+<li><a href="https://mp.weixin.qq.com/s/7NKl-mD7N8CeSNQlbKDEWA" target="_blank" title="2024 年 05 月编程语言排行榜，Fortran 进入前 10 名，发生了什么？">2024 年 05 月编程语言排行榜，Fortran 进入前 10 名，发生了什么？</a></li>
+<li><a href="https://mp.weixin.qq.com/s/yWlSVDKobtDhThnhirVRpw" target="_blank" title="免费开源的 IDE、数据库管理工具、SSH客户端和FTP客户端">免费开源的 IDE、数据库管理工具、SSH客户端和FTP客户端</a></li>
+</ul>
+</div>
+</div>
+<div class="sidebar-box cate-list">
+<div class="sidebar-box recommend-here list-link">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">教程列表</a>
+</div>
+<div class="cate-items">
+<a href="../ado.html">ADO 教程</a>
+<a href="../ai-agent.html">AI Agent 教程</a>
+<a href="../ai.html">AI 入门教程</a>
+<a href="../ai-math.html">AI 数学基础</a>
+<a href="../ajax.html">Ajax 教程</a>
+<a href="../android.html">Android 教程</a>
+<a href="../angularjs2.html">Angular2 教程</a>
+<a href="../angularjs.html">AngularJS 教程</a>
+<a href="../appml.html">AppML 教程</a>
+<a href="../asp.html">ASP 教程</a>
+<a href="../aspnet.html">ASP.NET 教程</a>
+<a href="../bootstrap.html">Bootstrap 教程</a>
+<a href="../bootstrap4.html">Bootstrap4 教程</a>
+<a href="../bootstrap5.html">Bootstrap5 教程</a>
+<a href="../cprogramming.html">C 教程</a>
+<a href="../c-dsa.html">C 语言数据结构与算法</a>
+<a href="../csharp.html">C# 教程</a>
+<a href="../cplusplus.html">C++ 教程</a>
+<a href="../chartjs.html">Chart.js 教程</a>
+<a href="../claude-code.html">Claude Code 教程</a>
+<a href="../cmake.html">CMake 教程</a>
+<a href="../codex.html">Codex 教程</a>
+<a href="../cssref.html">CSS 参考手册</a>
+<a href="../css.html">CSS 教程</a>
+<a href="../css3.html">CSS3 教程</a>
+<a href="../cursor.html">Cursor 教程</a>
+<a href="../dart.html">Dart 教程</a>
+<a href="../dash.html">Dash 教程</a>
+<a href="../deepseek-harness.html">DeepSeek Harness</a>
+<a href="../django.html">Django 教程</a>
+<a href="../docker.html">Docker 教程</a>
+<a href="../dtd.html">DTD 教程</a>
+<a href="../echarts.html">ECharts 教程</a>
+<a href="../eclipse.html">Eclipse 教程</a>
+<a href="../electron.html">Electron 教程</a>
+<a href="../fastapi.html">FastAPI 教程</a>
+<a href="../firebug.html">Firebug 教程</a>
+<a href="../flask.html">Flask 教程</a>
+<a href="../flutter.html">Flutter 教程</a>
+<a href="../font-awesome.html">Font Awesome 图标</a>
+<a href="../foundation.html">Foundation 教程</a>
+<a href="../git.html">Git 教程</a>
+<a href="../go.html">Go 语言教程</a>
+<a href="../googleapi.html">Google 地图 API 教程</a>
+<a href="../hermes-agent.html">Hermes Agent</a>
+<a href="../highcharts.html">Highcharts 教程</a>
+<a href="../htmldom.html">HTML DOM 教程</a>
+<a href="../tags.html">HTML 参考手册</a>
+<a href="../charsets.html">HTML 字符集</a>
+<a href="../html.html">HTML 教程</a>
+<a href="../http.html">HTTP 教程</a>
+<a href="../ionic.html">ionic 教程</a>
+<a href="../ios.html">iOS 教程</a>
+<a href="../java.html">Java 教程</a>
+<a href="../jsref.html">JavaScript 参考手册</a>
+<a href="../js.html">Javascript 教程</a>
+<a href="../jeasyui.html">jQuery EasyUI 教程</a>
+<a href="../jquerymobile.html">jQuery Mobile 教程</a>
+<a href="../jqueryui.html">jQuery UI 教程</a>
+<a href="../jquery.html">jQuery 教程</a>
+<a href="../json.html">JSON 教程</a>
+<a href="../jsp.html">JSP 教程</a>
+<a href="../julia.html">Julia 教程</a>
+<a href="../jupyter-notebook.html">Jupyter Notebook 教程</a>
+<a href="../kotlin.html">Kotlin 教程</a>
+<a href="../langchain.html">LangChain 教程</a>
+<a href="../latex.html">LaTeX 教程</a>
+<a href="../linux.html">Linux 教程</a>
+<a href="../lua.html">Lua 教程</a>
+<a href="../markdown.html">Markdown 教程</a>
+<a href="../matplotlib.html">Matplotlib 教程</a>
+<a href="../maven.html">Maven 教程</a>
+<a href="../memcached.html">Memcached 教程</a>
+<a href="../mongodb.html">MongoDB 教程</a>
+<a href="../mysql.html">MySQL 教程</a>
+<a href="../nextjs.html">Next.js 教程</a>
+<a href="../nlp.html">NLP 教程</a>
+<a href="../nodejs.html">Node.js 教程</a>
+<a href="../numpy.html">NumPy 教程</a>
+<a href="../obsidian.html">Obsidian 教程</a>
+<a href="../ollama.html">Ollama 教程</a>
+<a href="../opencode.html">OpenCode 教程</a>
+<a href="../opencv.html">OpenCV 教程</a>
+<a href="../pandas.html">Pandas 教程</a>
+<a href="../perl.html">Perl 教程</a>
+<a href="../php.html">PHP 教程</a>
+<a href="../pi-agent.html">Pi Agent</a>
+<a href="../pillow.html">Pillow 教程</a>
+<a href="../playwright.html">Playwright 教程</a>
+<a href="../postgresql.html">PostgreSQL 教程</a>
+<a href="../powershell.html">PowerShell</a>
+<a href="../pycharm.html">Pycharm 教程</a>
+<a href="../python3.html">Python 3 教程</a>
+<a href="../python.html">Python 基础教程</a>
+<a href="../python-design-pattern.html">Python 设计模式</a>
+<a href="../python-qt.html">Python 量化交易</a>
+<a href="../pytorch.html">PyTorch 教程</a>
+<a href="../r.html">R 教程</a>
+<a href="../rdf.html">RDF 教程</a>
+<a href="../react.html">React 教程</a>
+<a href="../redis.html">Redis 教程</a>
+<a href="../restfulapi.html">RESTful API</a>
+<a href="../rss.html">RSS 教程</a>
+<a href="../ruby.html">Ruby 教程</a>
+<a href="../rust.html">Rust 教程</a>
+<a href="../sass.html">Sass 教程</a>
+<a href="../scala.html">Scala 教程</a>
+<a href="../scipy.html">SciPy 教程</a>
+<a href="../selenium.html">Selenium 教程</a>
+<a href="../servlet.html">Servlet 教程</a>
+<a href="../skills.html">Skills 教程</a>
+<a href="../sklearn.html">Sklearn 教程</a>
+<a href="../soap.html">SOAP 教程</a>
+<a href="../sql.html">SQL 教程</a>
+<a href="../sqlite.html">SQLite 教程</a>
+<a href="../svg.html">SVG 教程</a>
+<a href="../svn.html">SVN 教程</a>
+<a href="../swagger.html">Swagger 教程</a>
+<a href="../swift.html">Swift 教程</a>
+<a href="../tailwindcss.html">Tailwind CSS 教程</a>
+<a href="../tcpip.html">TCP/IP 教程</a>
+<a href="../tensorflow.html">TensorFlow 教程</a>
+<a href="../typescript.html">TypeScript 教程</a>
+<a href="../uniapp.html">uni-app 教程</a>
+<a href="../vbscript.html">VBScript 教程</a>
+<a href="../vibe-coding.html">Vibe Coding 教程</a>
+<a href="../vscode.html">VSCode 教程</a>
+<a href="../vue2.html">Vue.js 教程</a>
+<a href="../vue3.html">Vue3 教程</a>
+<a href="../w3c.html">W3C 教程</a>
+<a href="../webservices.html">Web Service 教程</a>
+<a href="../wsdl.html">WSDL 教程</a>
+<a href="../xlink.html">XLink 教程</a>
+<a href="../dom.html">XML DOM 教程</a>
+<a href="../schema.html">XML Schema 教程</a>
+<a href="../xml.html">XML 教程</a>
+<a href="../xpath.html">XPath 教程</a>
+<a href="../xquery.html">XQuery 教程</a>
+<a href="../xslfo.html">XSLFO 教程</a>
+<a href="../xsl.html">XSLT 教程</a>
+<a href="../zig.html">Zig 教程</a>
+<a href="../data-structures.html">数据结构</a>
+<a href="../ml.html">机器学习</a>
+<a href="../regexp.html">正则表达式</a>
+<a href="../assembly.html">汇编语言</a>
+<a href="../quiz.html">测验</a>
+<a href="../browsers.html">浏览器</a>
+<a href="../quality.html">网站品质</a>
+<a href="../web.html">网站建设指南</a>
+<a href="../hosting.html">网站服务器教程</a>
+<a href="../np.html">网络协议</a>
+<a href="../computer-organization.html">计算机组成原理</a>
+<a href="../design-pattern.html">设计模式</a>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

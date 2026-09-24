@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>3.1.2  ES6 Reflect and Proxy | Rookie Tutorial</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="./es6-reflect-proxy.html" rel="canonical"/>
+<meta content="3.1.2  ES6 Reflect 与 Proxy" name="keywords"/>
+<meta content="概述 Proxy 与 Reflect 是 ES6 为了操作对象引入的 API 。 Proxy 可以对目标对象的读取、函数调用等操作进行拦截，然后进行操作处理。它不直接操作对象，而是像代理模式，通过对象的代理对象进行操作，在进行这些操作时，可以添加一些需要的额外操作。 Reflect 可以用于获取目标对象的行为，它与 Object 类似，但是更易读，为操作对象提供了一种更优雅的方式。它的方法与 Proxy 是对应的。   基本用法 Pro.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div><!-- 导航栏 -->
+<!--  内容  -->
+<div class="container main">
+<div class="row">
+<!--  Android 基础入门教程 start  -->
+<div class="col left-column" style="display:none;">
+<div class="tab">ECMAScript 6 教程</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+</div>
+</div>
+</div>
+<!--  Android 基础入门教程 end  -->
+<div class="col middle-column big-middle-column">
+<div class="article">
+<div class="article-heading">
+<h2>3.1.2  ES6 Reflect and Proxy</h2> <h3><em>Category</em> <a href="../w3cnote_genre/es6.html" title="ES6 教程">ES6 Tutorial</a> </h3>
+</div>
+<div class="article-body note-body">
+<div class="article-intro">
+<!-- ad start-->
+<!-- ad end-->
+<h2>Overview</h2>
+<p>Proxy and Reflect are APIs introduced by ES6 for operating on objects.</p>
+<p>Proxy can intercept operations on the target object, such as reading and function calls, and then perform operation processing. It does not directly operate on the object, but like the proxy pattern, it operates through a proxy object of the object, and during these operations, additional required operations can be added.</p>
+<p>Reflect can be used to obtain the behavior of the target object. It is similar to Object, but more readable, providing a more elegant way to operate on objects. Its methods correspond to Proxy.</p>
+<hr/>
+<h2>Basic Usage</h2>
+<h3>Proxy</h3>
+<p>A Proxy object consists of two parts: target and handler. When creating an instance object through the Proxy constructor, these two parameters need to be provided. target is the target object, and handler is an object that declares the specified behavior for proxying target.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">target</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">name</span><span class="hl-code">: </span><span class="hl-quotes">'</span><span class="hl-string">Tom</span><span class="hl-quotes">'</span><span class="hl-code">,
+    </span><span class="hl-identifier">age</span><span class="hl-code">: </span><span class="hl-number">24</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">handler</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">get</span><span class="hl-code">: </span><span class="hl-reserved">function</span><span class="hl-brackets">(</span><span class="hl-identifier">target</span><span class="hl-code">, </span><span class="hl-identifier">key</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">console</span><span class="hl-code">.</span><span class="hl-identifier">log</span><span class="hl-brackets">(</span><span class="hl-quotes">'</span><span class="hl-string">getting </span><span class="hl-quotes">'</span><span class="hl-code">+</span><span class="hl-identifier">key</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-identifier">target</span><span class="hl-brackets">[</span><span class="hl-identifier">key</span><span class="hl-brackets">]</span><span class="hl-code">; </span><span class="hl-comment">//</span><span class="hl-comment">Not target.key</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">,
+    </span><span class="hl-identifier">set</span><span class="hl-code">: </span><span class="hl-reserved">function</span><span class="hl-brackets">(</span><span class="hl-identifier">target</span><span class="hl-code">, </span><span class="hl-identifier">key</span><span class="hl-code">, </span><span class="hl-identifier">value</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">console</span><span class="hl-code">.</span><span class="hl-identifier">log</span><span class="hl-brackets">(</span><span class="hl-quotes">'</span><span class="hl-string">setting </span><span class="hl-quotes">'</span><span class="hl-code">+</span><span class="hl-identifier">key</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-identifier">target</span><span class="hl-brackets">[</span><span class="hl-identifier">key</span><span class="hl-brackets">]</span><span class="hl-code"> = </span><span class="hl-identifier">value</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">proxy</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Proxy</span><span class="hl-brackets">(</span><span class="hl-identifier">target</span><span class="hl-code">, </span><span class="hl-identifier">handler</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-identifier">proxy</span><span class="hl-code">.</span><span class="hl-identifier">name</span><span class="hl-code"> </span><span class="hl-comment">//</span><span class="hl-comment">Actually executes handler.get</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">proxy</span><span class="hl-code">.</span><span class="hl-identifier">age</span><span class="hl-code"> = </span><span class="hl-number">25</span><span class="hl-code"> </span><span class="hl-comment">//</span><span class="hl-comment">Actually executes handler.set</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment"> getting name</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment"> setting age</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment"> 25</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">target can be an empty object</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">targetEpt</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">proxyEpt</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Proxy</span><span class="hl-brackets">(</span><span class="hl-identifier">targetEpt</span><span class="hl-code">, </span><span class="hl-identifier">handler</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">Call the get method. At this time, the target object is empty and has no name property.</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">proxyEpt</span><span class="hl-code">.</span><span class="hl-identifier">name</span><span class="hl-code"> </span><span class="hl-comment">//</span><span class="hl-comment"> getting name</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">Call the set method to add the name property to the target object.</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">proxyEpt</span><span class="hl-code">.</span><span class="hl-identifier">name</span><span class="hl-code"> = </span><span class="hl-quotes">'</span><span class="hl-string">Tom</span><span class="hl-quotes">'</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment"> setting name</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment"> "Tom"</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">Call get again. At this time, the name property already exists.</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">proxyEpt</span><span class="hl-code">.</span><span class="hl-identifier">name</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment"> getting name</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment"> "Tom"</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">When creating a new instance through the constructor, it actually performs a shallow copy of the target object, so the target object and the proxy object will mutually</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">affect</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">targetEpt</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment"> {name: "Tom"}</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">The handler object can also be empty, which is equivalent to not setting interception operations and directly accessing the target object.</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">targetEmpty</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">proxyEmpty</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Proxy</span><span class="hl-brackets">(</span><span class="hl-identifier">targetEmpty</span><span class="hl-code">,</span><span class="hl-brackets">{</span><span class="hl-brackets">}</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-identifier">proxyEmpty</span><span class="hl-code">.</span><span class="hl-identifier">name</span><span class="hl-code"> = </span><span class="hl-quotes">"</span><span class="hl-string">Tom</span><span class="hl-quotes">"</span><span class="hl-code">
+</span><span class="hl-identifier">targetEmpty</span><span class="hl-code"> </span><span class="hl-comment">//</span><span class="hl-comment"> {name: "Tom"}</span><span class="hl-comment"></span></div>
+</div>
+</div><h3>Instance Methods</h3><pre>
+get(target, propKey, receiver)</pre>
+<p>Used for the read operation of propKey on the target object.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">exam</span><span class="hl-code"> =</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">name</span><span class="hl-code">: </span><span class="hl-quotes">"</span><span class="hl-string">Tom</span><span class="hl-quotes">"</span><span class="hl-code">,
+    </span><span class="hl-identifier">age</span><span class="hl-code">: </span><span class="hl-number">24</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">proxy</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Proxy</span><span class="hl-brackets">(</span><span class="hl-identifier">exam</span><span class="hl-code">, </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">get</span><span class="hl-brackets">(</span><span class="hl-identifier">target</span><span class="hl-code">, </span><span class="hl-identifier">propKey</span><span class="hl-code">, </span><span class="hl-identifier">receiver</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">console</span><span class="hl-code">.</span><span class="hl-identifier">log</span><span class="hl-brackets">(</span><span class="hl-quotes">'</span><span class="hl-string">Getting </span><span class="hl-quotes">'</span><span class="hl-code"> + </span><span class="hl-identifier">propKey</span><span class="hl-brackets">)</span><span class="hl-code">;
+    </span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-identifier">target</span><span class="hl-brackets">[</span><span class="hl-identifier">propKey</span><span class="hl-brackets">]</span><span class="hl-code">;
+  </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-identifier">proxy</span><span class="hl-code">.</span><span class="hl-identifier">name</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment"> Getting name</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment"> "Tom"</span><span class="hl-comment"></span></div>
+</div>
+</div>
+<p>The get() method can be inherited.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">proxy</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Proxy</span><span class="hl-brackets">(</span><span class="hl-brackets">{</span><span class="hl-brackets">}</span><span class="hl-code">, </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">get</span><span class="hl-brackets">(</span><span class="hl-identifier">target</span><span class="hl-code">, </span><span class="hl-identifier">propKey</span><span class="hl-code">, </span><span class="hl-identifier">receiver</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">Implement read protection for private properties</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-reserved">if</span><span class="hl-brackets">(</span><span class="hl-identifier">propKey</span><span class="hl-brackets">[</span><span class="hl-number">0</span><span class="hl-brackets">]</span><span class="hl-code"> === </span><span class="hl-quotes">'</span><span class="hl-string">_</span><span class="hl-quotes">'</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">throw</span><span class="hl-code"> </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Erro</span><span class="hl-brackets">(</span><span class="hl-code">`</span><span class="hl-identifier">Invalid</span><span class="hl-code"> </span><span class="hl-identifier">attempt</span><span class="hl-code"> </span><span class="hl-identifier">to</span><span class="hl-code"> </span><span class="hl-identifier">get</span><span class="hl-code"> </span><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-quotes">"</span><span class="hl-string">${propKey}</span><span class="hl-quotes">"</span><span class="hl-code">`</span><span class="hl-brackets">)</span><span class="hl-code">;
+      </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">console</span><span class="hl-code">.</span><span class="hl-identifier">log</span><span class="hl-brackets">(</span><span class="hl-quotes">'</span><span class="hl-string">Getting </span><span class="hl-quotes">'</span><span class="hl-code"> + </span><span class="hl-identifier">propKey</span><span class="hl-brackets">)</span><span class="hl-code">;
+      </span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-identifier">target</span><span class="hl-brackets">[</span><span class="hl-identifier">propKey</span><span class="hl-brackets">]</span><span class="hl-code">;
+  </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-brackets">)</span><span class="hl-code">;
+ 
+</span><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">obj</span><span class="hl-code"> = </span><span class="hl-identifier">Object</span><span class="hl-code">.</span><span class="hl-identifier">create</span><span class="hl-brackets">(</span><span class="hl-identifier">proxy</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-identifier">obj</span><span class="hl-code">.</span><span class="hl-identifier">name</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment"> Getting name</span><span class="hl-comment"></span></div>
+</div>
+</div>
+<pre>set(target, propKey, value, receiver)</pre>
+<p>Used to intercept the assignment operation of propKey on the target object. If a property of the target object itself is non-writable and non-configurable, then the set method will have no effect.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">validator</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">set</span><span class="hl-code">: </span><span class="hl-reserved">function</span><span class="hl-brackets">(</span><span class="hl-identifier">obj</span><span class="hl-code">, </span><span class="hl-identifier">prop</span><span class="hl-code">, </span><span class="hl-identifier">value</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">if</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-identifier">prop</span><span class="hl-code"> === </span><span class="hl-quotes">'</span><span class="hl-string">age</span><span class="hl-quotes">'</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">if</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-code">!</span><span class="hl-builtin">Number</span><span class="hl-code">.</span><span class="hl-identifier">isInteger</span><span class="hl-brackets">(</span><span class="hl-identifier">value</span><span class="hl-brackets">)</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">throw</span><span class="hl-code"> </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">TypeError</span><span class="hl-brackets">(</span><span class="hl-quotes">'</span><span class="hl-string">The age is not an integer</span><span class="hl-quotes">'</span><span class="hl-brackets">)</span><span class="hl-code">;
+            </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-reserved">if</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-identifier">value</span><span class="hl-code"> &gt; </span><span class="hl-number">200</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">throw</span><span class="hl-code"> </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">RangeError</span><span class="hl-brackets">(</span><span class="hl-quotes">'</span><span class="hl-string">The age seems invalid</span><span class="hl-quotes">'</span><span class="hl-brackets">)</span><span class="hl-code">;
+            </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">For the age property and other properties that meet the conditions, save them directly.</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">obj</span><span class="hl-brackets">[</span><span class="hl-identifier">prop</span><span class="hl-brackets">]</span><span class="hl-code"> = </span><span class="hl-identifier">value</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">;
+</span><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">proxy</span><span class="hl-code">= </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Proxy</span><span class="hl-brackets">(</span><span class="hl-brackets">{</span><span class="hl-brackets">}</span><span class="hl-code">, </span><span class="hl-identifier">validator</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-identifier">proxy</span><span class="hl-code">.</span><span class="hl-identifier">age</span><span class="hl-code"> = </span><span class="hl-number">100</span><span class="hl-code">;
+</span><span class="hl-identifier">proxy</span><span class="hl-code">.</span><span class="hl-identifier">age</span><span class="hl-code"> </span><span class="hl-comment">//</span><span class="hl-comment"> 100</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">proxy</span><span class="hl-code">.</span><span class="hl-identifier">age</span><span class="hl-code"> = </span><span class="hl-quotes">'</span><span class="hl-string">oppps</span><span class="hl-quotes">'</span><span class="hl-code"> </span><span class="hl-comment">//</span><span class="hl-comment">Error reported</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">proxy</span><span class="hl-code">.</span><span class="hl-identifier">age</span><span class="hl-code"> = </span><span class="hl-number">300</span><span class="hl-code"> </span><span class="hl-comment">//</span><span class="hl-comment">Error reported</span><span class="hl-comment"></span></div>
+</div>
+</div>
+<p>The fourth parameter receiver represents the object where the original operation behavior is located, generally the Proxy instance itself.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">const</span><span class="hl-code"> </span><span class="hl-identifier">handler</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">set</span><span class="hl-code">: </span><span class="hl-reserved">function</span><span class="hl-brackets">(</span><span class="hl-identifier">obj</span><span class="hl-code">, </span><span class="hl-identifier">prop</span><span class="hl-code">, </span><span class="hl-identifier">value</span><span class="hl-code">, </span><span class="hl-identifier">receiver</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">obj</span><span class="hl-brackets">[</span><span class="hl-identifier">prop</span><span class="hl-brackets">]</span><span class="hl-code"> = </span><span class="hl-identifier">receiver</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">;
+</span><span class="hl-reserved">const</span><span class="hl-code"> </span><span class="hl-identifier">proxy</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Proxy</span><span class="hl-brackets">(</span><span class="hl-brackets">{</span><span class="hl-brackets">}</span><span class="hl-code">, </span><span class="hl-identifier">handler</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-identifier">proxy</span><span class="hl-code">.</span><span class="hl-identifier">name</span><span class="hl-code">= </span><span class="hl-quotes">'</span><span class="hl-string">Tom</span><span class="hl-quotes">'</span><span class="hl-code">;
+</span><span class="hl-identifier">proxy</span><span class="hl-code">.</span><span class="hl-identifier">name</span><span class="hl-code">=== </span><span class="hl-identifier">proxy</span><span class="hl-code"> </span><span class="hl-comment">//</span><span class="hl-comment"> true</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-reserved">const</span><span class="hl-code"> </span><span class="hl-identifier">exam</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">Object</span><span class="hl-code">.</span><span class="hl-identifier">setPrototypeOf</span><span class="hl-brackets">(</span><span class="hl-identifier">exam</span><span class="hl-code">, </span><span class="hl-identifier">proxy</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-identifier">exam</span><span class="hl-code">.</span><span class="hl-identifier">name</span><span class="hl-code"> = </span><span class="hl-quotes">"</span><span class="hl-string">Tom</span><span class="hl-quotes">"</span><span class="hl-code">
+</span><span class="hl-identifier">exam</span><span class="hl-code">.</span><span class="hl-identifier">name</span><span class="hl-code"> === </span><span class="hl-identifier">exam</span><span class="hl-code"> </span><span class="hl-comment">//</span><span class="hl-comment"> true</span><span class="hl-comment"></span></div>
+</div>
+</div>
+<p>Note: in strict mode, if the set proxy does not return true, an error will be reported.</p>
+<h3>apply(target, ctx, args)</h3>
+<p>Used to intercept function calls, call, and reply operations. target represents the target object, ctx represents the target object context, and args represents the argument array of the target object.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">function</span><span class="hl-code"> </span><span class="hl-identifier">sub</span><span class="hl-brackets">(</span><span class="hl-identifier">a</span><span class="hl-code">, </span><span class="hl-identifier">b</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-identifier">a</span><span class="hl-code"> - </span><span class="hl-identifier">b</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">handler</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">apply</span><span class="hl-code">: </span><span class="hl-reserved">function</span><span class="hl-brackets">(</span><span class="hl-identifier">target</span><span class="hl-code">, </span><span class="hl-identifier">ctx</span><span class="hl-code">, </span><span class="hl-identifier">args</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">console</span><span class="hl-code">.</span><span class="hl-identifier">log</span><span class="hl-brackets">(</span><span class="hl-quotes">'</span><span class="hl-string">handle apply</span><span class="hl-quotes">'</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-identifier">Reflect</span><span class="hl-code">.</span><span class="hl-identifier">apply</span><span class="hl-brackets">(</span><span class="hl-code">...</span><span class="hl-identifier">arguments</span><span class="hl-brackets">)</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">proxy</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Proxy</span><span class="hl-brackets">(</span><span class="hl-identifier">sub</span><span class="hl-code">, </span><span class="hl-identifier">handler</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-identifier">proxy</span><span class="hl-brackets">(</span><span class="hl-number">2</span><span class="hl-code">, </span><span class="hl-number">1</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment"> handle apply</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment"> 1</span><span class="hl-comment"></span></div>
+</div>
+</div>
+<pre>has(target, propKey)</pre>
+<p>Used to intercept the HasProperty operation, that is, when determining whether the target object has the propKey property, it will be intercepted by this method. This method does not determine whether a property is an object's own property or an inherited property.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">handler</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">has</span><span class="hl-code">: </span><span class="hl-reserved">function</span><span class="hl-brackets">(</span><span class="hl-identifier">target</span><span class="hl-code">, </span><span class="hl-identifier">propKey</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">console</span><span class="hl-code">.</span><span class="hl-identifier">log</span><span class="hl-brackets">(</span><span class="hl-quotes">"</span><span class="hl-string">handle has</span><span class="hl-quotes">"</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-identifier">propKey</span><span class="hl-code"> </span><span class="hl-reserved">in</span><span class="hl-code"> </span><span class="hl-identifier">target</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">exam</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-identifier">name</span><span class="hl-code">: </span><span class="hl-quotes">"</span><span class="hl-string">Tom</span><span class="hl-quotes">"</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">proxy</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Proxy</span><span class="hl-brackets">(</span><span class="hl-identifier">exam</span><span class="hl-code">, </span><span class="hl-identifier">handler</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-quotes">'</span><span class="hl-string">name</span><span class="hl-quotes">'</span><span class="hl-code"> </span><span class="hl-reserved">in</span><span class="hl-code"> </span><span class="hl-identifier">proxy</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment"> handle has</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment"> true</span><span class="hl-comment"></span></div>
+</div>
+</div>
+<p>Note: This method does not intercept for...in loops.</p>
+<pre>construct(target, args)</pre>
+<p>Used to intercept the new command. The return value must be an object.</p>
+<div class="example"><div class="example_code"><div class="hl-main"><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">handler</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">construct</span><span class="hl-code">: </span><span class="hl-reserved">function</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-identifier">target</span><span class="hl-code">, </span><span class="hl-identifier">args</span><span class="hl-code">, </span><span class="hl-identifier">newTarget</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">console</span><span class="hl-code">.</span><span class="hl-identifier">log</span><span class="hl-brackets">(</span><span class="hl-quotes">'</span><span class="hl-string">handle construct</span><span class="hl-quotes">'</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-identifier">Reflect</span><span class="hl-code">.</span><span class="hl-identifier">construct</span><span class="hl-brackets">(</span><span class="hl-identifier">target</span><span class="hl-code">, </span><span class="hl-identifier">args</span><span class="hl-code">, </span><span class="hl-identifier">newTarget</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-reserved">class</span><span class="hl-code"> </span><span class="hl-identifier">Exam</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">constructor</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-identifier">name</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">this</span><span class="hl-code">.</span><span class="hl-identifier">name</span><span class="hl-code"> = </span><span class="hl-identifier">name</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">ExamProxy</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Proxy</span><span class="hl-brackets">(</span><span class="hl-identifier">Exam</span><span class="hl-code">, </span><span class="hl-identifier">handler</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">proxyObj</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">ExamProxy</span><span class="hl-brackets">(</span><span class="hl-quotes">'</span><span class="hl-string">Tom</span><span class="hl-quotes">'</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-identifier">console</span><span class="hl-code">.</span><span class="hl-identifier">log</span><span class="hl-brackets">(</span><span class="hl-identifier">proxyObj</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment"> handle construct</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment"> exam {name: "Tom"}</span><span class="hl-comment"></span></div></div></div>
+<pre>deleteProperty(target, propKey)</pre>
+<p>Used to intercept the delete operation. If this method throws an error or returns false, the propKey property cannot be deleted by the delete command.</p>
+<pre>defineProperty(target, propKey, propDesc)</pre>
+<p>Used to intercept Object.definePro. If the target object is non-extensible, adding a property that does not exist on the target object will report an error; if a property is non-writable or non-configurable, these properties cannot be changed.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">handler</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">defineProperty</span><span class="hl-code">: </span><span class="hl-reserved">function</span><span class="hl-brackets">(</span><span class="hl-identifier">target</span><span class="hl-code">, </span><span class="hl-identifier">propKey</span><span class="hl-code">, </span><span class="hl-identifier">propDesc</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">console</span><span class="hl-code">.</span><span class="hl-identifier">log</span><span class="hl-brackets">(</span><span class="hl-quotes">"</span><span class="hl-string">handle defineProperty</span><span class="hl-quotes">"</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-reserved">true</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">target</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">proxy</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Proxy</span><span class="hl-brackets">(</span><span class="hl-identifier">target</span><span class="hl-code">, </span><span class="hl-identifier">handler</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-identifier">proxy</span><span class="hl-code">.</span><span class="hl-identifier">name</span><span class="hl-code"> = </span><span class="hl-quotes">"</span><span class="hl-string">Tom</span><span class="hl-quotes">"</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment"> handle defineProperty</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">target</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment"> {name: "Tom"}</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">When defineProperty returns false, the property addition operation is invalid.</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">handler1</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">defineProperty</span><span class="hl-code">: </span><span class="hl-reserved">function</span><span class="hl-brackets">(</span><span class="hl-identifier">target</span><span class="hl-code">, </span><span class="hl-identifier">propKey</span><span class="hl-code">, </span><span class="hl-identifier">propDesc</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">console</span><span class="hl-code">.</span><span class="hl-identifier">log</span><span class="hl-brackets">(</span><span class="hl-quotes">"</span><span class="hl-string">handle defineProperty</span><span class="hl-quotes">"</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-reserved">false</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">target1</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">proxy1</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Proxy</span><span class="hl-brackets">(</span><span class="hl-identifier">target1</span><span class="hl-code">, </span><span class="hl-identifier">handler1</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-identifier">proxy1</span><span class="hl-code">.</span><span class="hl-identifier">name</span><span class="hl-code"> = </span><span class="hl-quotes">"</span><span class="hl-string">Jerry</span><span class="hl-quotes">"</span><span class="hl-code">
+</span><span class="hl-identifier">target1</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment"> {}</span><span class="hl-comment"></span></div>
+</div>
+</div>
+<p><strong>erty operation</strong></p>
+<pre>getOwnPropertyDescriptor(target, propKey)</pre>
+<p>Used to intercept Object.getOwnPropertyD(). The return value is a property descriptor object or undefined.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">handler</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">getOwnPropertyDescriptor</span><span class="hl-code">: </span><span class="hl-reserved">function</span><span class="hl-brackets">(</span><span class="hl-identifier">target</span><span class="hl-code">, </span><span class="hl-identifier">propKey</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-identifier">Object</span><span class="hl-code">.</span><span class="hl-identifier">getOwnPropertyDescriptor</span><span class="hl-brackets">(</span><span class="hl-identifier">target</span><span class="hl-code">, </span><span class="hl-identifier">propKey</span><span class="hl-brackets">)</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">target</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-identifier">name</span><span class="hl-code">: </span><span class="hl-quotes">"</span><span class="hl-string">Tom</span><span class="hl-quotes">"</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">proxy</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Proxy</span><span class="hl-brackets">(</span><span class="hl-identifier">target</span><span class="hl-code">, </span><span class="hl-identifier">handler</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-identifier">Object</span><span class="hl-code">.</span><span class="hl-identifier">getOwnPropertyDescriptor</span><span class="hl-brackets">(</span><span class="hl-identifier">proxy</span><span class="hl-code">, </span><span class="hl-quotes">'</span><span class="hl-string">name</span><span class="hl-quotes">'</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment"> {value: "Tom", writable: true, enumerable: true, configurable: </span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment"> true}</span><span class="hl-comment"></span></div>
+</div>
+</div>
+<p><strong>ptor property</strong></p>
+<pre>getPrototypeOf(target)</pre>
+<p>Mainly used to intercept operations that get the object prototype. Includes the following operations:</p>
+<pre>- Object.prototype._proto_
+- Object.prototype.isPrototypeOf()
+- Object.getPrototypeOf()
+- Reflect.getPrototypeOf()
+- instanceof</pre>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">exam</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">proxy</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Proxy</span><span class="hl-brackets">(</span><span class="hl-brackets">{</span><span class="hl-brackets">}</span><span class="hl-code">,</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">getPrototypeOf</span><span class="hl-code">: </span><span class="hl-reserved">function</span><span class="hl-brackets">(</span><span class="hl-identifier">target</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-identifier">exam</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-identifier">Object</span><span class="hl-code">.</span><span class="hl-identifier">getPrototypeOf</span><span class="hl-brackets">(</span><span class="hl-identifier">proxy</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-comment">//</span><span class="hl-comment"> {}</span><span class="hl-comment"></span></div>
+</div>
+</div>
+<p>Note: the return value must be an object or null, otherwise an error will be reported. In addition, if the target object is non-extensible, the getPrototypeOf method must return the prototype object of the target object.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">proxy</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Proxy</span><span class="hl-brackets">(</span><span class="hl-brackets">{</span><span class="hl-brackets">}</span><span class="hl-code">,</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">getPrototypeOf</span><span class="hl-code">: </span><span class="hl-reserved">function</span><span class="hl-brackets">(</span><span class="hl-identifier">target</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-reserved">true</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-identifier">Object</span><span class="hl-code">.</span><span class="hl-identifier">getPrototypeOf</span><span class="hl-brackets">(</span><span class="hl-identifier">proxy</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment"> TypeError: 'getPrototypeOf' on proxy: trap returned neither object // nor null</span><span class="hl-comment"></span></div>
+</div>
+</div>
+<pre>isExtensible(target)</pre>
+<p>Used to intercept the Object.isExtensible operation.</p>
+<p>This method can only return a boolean value; otherwise, the return value will be automatically converted to a boolean.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">proxy</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Proxy</span><span class="hl-brackets">(</span><span class="hl-brackets">{</span><span class="hl-brackets">}</span><span class="hl-code">,</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">isExtensible</span><span class="hl-code">:</span><span class="hl-reserved">function</span><span class="hl-brackets">(</span><span class="hl-identifier">target</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-reserved">true</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-identifier">Object</span><span class="hl-code">.</span><span class="hl-identifier">isExtensible</span><span class="hl-brackets">(</span><span class="hl-identifier">proxy</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-comment">//</span><span class="hl-comment"> true</span><span class="hl-comment"></span></div>
+</div>
+</div>
+<p>Note: its return value must be consistent with the isExtensible property of the target object, otherwise an error will be thrown.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">proxy</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Proxy</span><span class="hl-brackets">(</span><span class="hl-brackets">{</span><span class="hl-brackets">}</span><span class="hl-code">,</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">isExtensible</span><span class="hl-code">:</span><span class="hl-reserved">function</span><span class="hl-brackets">(</span><span class="hl-identifier">target</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-reserved">false</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-identifier">Object</span><span class="hl-code">.</span><span class="hl-identifier">isExtensible</span><span class="hl-brackets">(</span><span class="hl-identifier">proxy</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment"> TypeError: 'isExtensible' on proxy: trap result does not reflect </span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment"> extensibility of proxy target (which is 'true')</span><span class="hl-comment"></span></div>
+</div>
+</div>
+<pre>ownKeys(target)</pre>
+<p>Used to intercept the read operation of an object's own properties. Mainly includes the following operations:</p>
+<pre>- Object.getOwnPropertyNames()
+- Object.getOwnPropertySymbols()
+- Object.keys()
+- or...in</pre>
+<p>The array members returned by the method can only be strings or Symbol values, otherwise an error will be reported.</p>
+<p>If the target object contains non-configurable properties, these properties must be returned in the result, otherwise an error will be reported.</p>
+<p>If the target object is non-extensible, it must return all and only all properties contained in the target object; it cannot include non-existent properties, otherwise an error will also be reported.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">proxy</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Proxy</span><span class="hl-brackets">(</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">name</span><span class="hl-code">: </span><span class="hl-quotes">"</span><span class="hl-string">Tom</span><span class="hl-quotes">"</span><span class="hl-code">,
+  </span><span class="hl-identifier">age</span><span class="hl-code">: </span><span class="hl-number">24</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">, </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">ownKeys</span><span class="hl-brackets">(</span><span class="hl-identifier">target</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-brackets">[</span><span class="hl-quotes">'</span><span class="hl-string">name</span><span class="hl-quotes">'</span><span class="hl-brackets">]</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-identifier">Object</span><span class="hl-code">.</span><span class="hl-identifier">keys</span><span class="hl-brackets">(</span><span class="hl-identifier">proxy</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">[ 'name' ]f In the returned result, three types of properties will be filtered:</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">- Properties not present on the target object</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">- Properties whose names are Symbol values</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">- Non-enumerable properties</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">target</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">name</span><span class="hl-code">: </span><span class="hl-quotes">"</span><span class="hl-string">Tom</span><span class="hl-quotes">"</span><span class="hl-code">,
+  </span><span class="hl-brackets">[</span><span class="hl-identifier">Symbol</span><span class="hl-code">.</span><span class="hl-reserved">for</span><span class="hl-brackets">(</span><span class="hl-quotes">'</span><span class="hl-string">age</span><span class="hl-quotes">'</span><span class="hl-brackets">)</span><span class="hl-brackets">]</span><span class="hl-code">: </span><span class="hl-number">24</span><span class="hl-code">,
+</span><span class="hl-brackets">}</span><span class="hl-code">;
+</span><span class="hl-comment">//</span><span class="hl-comment">Add a non-enumerable property 'gender'</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">Object</span><span class="hl-code">.</span><span class="hl-identifier">defineProperty</span><span class="hl-brackets">(</span><span class="hl-identifier">target</span><span class="hl-code">, </span><span class="hl-quotes">'</span><span class="hl-string">gender</span><span class="hl-quotes">'</span><span class="hl-code">, </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">enumerable</span><span class="hl-code">: </span><span class="hl-reserved">false</span><span class="hl-code">,
+  </span><span class="hl-identifier">configurable</span><span class="hl-code">: </span><span class="hl-reserved">true</span><span class="hl-code">,
+  </span><span class="hl-identifier">writable</span><span class="hl-code">: </span><span class="hl-reserved">true</span><span class="hl-code">,
+  </span><span class="hl-identifier">value</span><span class="hl-code">: </span><span class="hl-quotes">'</span><span class="hl-string">male</span><span class="hl-quotes">'</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">handler</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">ownKeys</span><span class="hl-brackets">(</span><span class="hl-identifier">target</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-brackets">[</span><span class="hl-quotes">'</span><span class="hl-string">name</span><span class="hl-quotes">'</span><span class="hl-code">, </span><span class="hl-quotes">'</span><span class="hl-string">parent</span><span class="hl-quotes">'</span><span class="hl-code">, </span><span class="hl-identifier">Symbol</span><span class="hl-code">.</span><span class="hl-reserved">for</span><span class="hl-brackets">(</span><span class="hl-quotes">'</span><span class="hl-string">age</span><span class="hl-quotes">'</span><span class="hl-brackets">)</span><span class="hl-code">, </span><span class="hl-quotes">'</span><span class="hl-string">gender</span><span class="hl-quotes">'</span><span class="hl-brackets">]</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">;
+</span><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">proxy</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Proxy</span><span class="hl-brackets">(</span><span class="hl-identifier">target</span><span class="hl-code">, </span><span class="hl-identifier">handler</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-identifier">Object</span><span class="hl-code">.</span><span class="hl-identifier">keys</span><span class="hl-brackets">(</span><span class="hl-identifier">proxy</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment"> ['name']</span><span class="hl-comment"></span></div>
+</div>
+</div>
+<pre>preventExtensions(target)</pre>
+<p>Intercept the Object.preventExtensions operation.</p>
+<p>This method must return a boolean value, otherwise it will be automatically converted to a boolean.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-comment">//</span><span class="hl-comment">Only when the target object is non-extensible (i.e., Object.isExtensible(proxy) is false),</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">can proxy.preventExtensions return true; otherwise, an error will be reported</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-reserved">var</span><span class="hl-code"> </span><span class="hl-identifier">proxy</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Proxy</span><span class="hl-brackets">(</span><span class="hl-brackets">{</span><span class="hl-brackets">}</span><span class="hl-code">, </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">preventExtensions</span><span class="hl-code">: </span><span class="hl-reserved">function</span><span class="hl-brackets">(</span><span class="hl-identifier">target</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-reserved">true</span><span class="hl-code">;
+  </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-comment">//</span><span class="hl-comment">Because proxy.preventExtensions returns true, it also returns true here, so an error will be reported</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">Object</span><span class="hl-code">.</span><span class="hl-identifier">preventExtensions</span><span class="hl-brackets">(</span><span class="hl-identifier">proxy</span><span class="hl-brackets">)</span><span class="hl-code"> 被</span><span class="hl-comment">//</span><span class="hl-comment"> TypeError: 'preventExtensions' on proxy: trap returned truish but // the proxy target is extensible</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">Solution</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-reserved">var</span><span class="hl-code"> </span><span class="hl-identifier">proxy</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Proxy</span><span class="hl-brackets">(</span><span class="hl-brackets">{</span><span class="hl-brackets">}</span><span class="hl-code">, </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">preventExtensions</span><span class="hl-code">: </span><span class="hl-reserved">function</span><span class="hl-brackets">(</span><span class="hl-identifier">target</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">Call Object.preventExtensions before returning</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">Object</span><span class="hl-code">.</span><span class="hl-identifier">preventExtensions</span><span class="hl-brackets">(</span><span class="hl-identifier">target</span><span class="hl-brackets">)</span><span class="hl-code">;
+    </span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-reserved">true</span><span class="hl-code">;
+  </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-identifier">Object</span><span class="hl-code">.</span><span class="hl-identifier">preventExtensions</span><span class="hl-brackets">(</span><span class="hl-identifier">proxy</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment"> Proxy {}</span><span class="hl-comment"></span></div>
+</div>
+</div>
+<pre>setPrototypeOf</pre>
+<p>Mainly used to intercept the Object.setPrototypeOf method.</p>
+<p>The return value must be a boolean, otherwise it will be automatically converted to a boolean.</p>
+<p>If the target object is non-extensible, the setPrototypeOf method must not change the prototype of the target object.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">proto</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">proxy</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Proxy</span><span class="hl-brackets">(</span><span class="hl-reserved">function</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-brackets">}</span><span class="hl-code">, </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">setPrototypeOf</span><span class="hl-code">: </span><span class="hl-reserved">function</span><span class="hl-brackets">(</span><span class="hl-identifier">target</span><span class="hl-code">, </span><span class="hl-identifier">proto</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">console</span><span class="hl-code">.</span><span class="hl-identifier">log</span><span class="hl-brackets">(</span><span class="hl-quotes">"</span><span class="hl-string">setPrototypeOf</span><span class="hl-quotes">"</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-reserved">true</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-identifier">Object</span><span class="hl-code">.</span><span class="hl-identifier">setPrototypeOf</span><span class="hl-brackets">(</span><span class="hl-identifier">proxy</span><span class="hl-code">, </span><span class="hl-identifier">proto</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-comment">//</span><span class="hl-comment"> setPrototypeOf</span><span class="hl-comment"></span></div>
+</div>
+</div>
+<pre>Proxy.revocable()</pre>
+<p>Used to return a revocable Proxy instance.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-identifier">proxy</span><span class="hl-code">, </span><span class="hl-identifier">revoke</span><span class="hl-brackets">}</span><span class="hl-code"> = </span><span class="hl-identifier">Proxy</span><span class="hl-code">.</span><span class="hl-identifier">revocable</span><span class="hl-brackets">(</span><span class="hl-brackets">{</span><span class="hl-brackets">}</span><span class="hl-code">, </span><span class="hl-brackets">{</span><span class="hl-brackets">}</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-identifier">proxy</span><span class="hl-code">.</span><span class="hl-identifier">name</span><span class="hl-code"> = </span><span class="hl-quotes">"</span><span class="hl-string">Tom</span><span class="hl-quotes">"</span><span class="hl-code">;
+</span><span class="hl-identifier">revoke</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-identifier">proxy</span><span class="hl-code">.</span><span class="hl-identifier">name</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment"> TypeError: Cannot perform 'get' on a proxy that has been revoked</span><span class="hl-comment"></span></div>
+</div>
+</div>
+<h3>
+Reflect</h3><p>In ES6, some methods of Object that clearly belong to the language internals were moved to the Reflect object (currently some methods exist on both the Object and Reflect objects), and future new methods will be deployed only on the Reflect object.</p>
+<p>The Reflect object has modified the return results of some methods to make them more reasonable.</p>
+<p>The Reflect object uses functions to implement Object's imperative operations.</p>
+<p><strong>Static Methods</strong></p>
+<pre>Reflect.get(target, name, receiver)</pre>
+<p>Find and return the name property of the target object.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">exam</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">name</span><span class="hl-code">: </span><span class="hl-quotes">"</span><span class="hl-string">Tom</span><span class="hl-quotes">"</span><span class="hl-code">,
+    </span><span class="hl-identifier">age</span><span class="hl-code">: </span><span class="hl-number">24</span><span class="hl-code">,
+    </span><span class="hl-identifier">get</span><span class="hl-code"> </span><span class="hl-identifier">info</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-reserved">this</span><span class="hl-code">.</span><span class="hl-identifier">name</span><span class="hl-code"> + </span><span class="hl-reserved">this</span><span class="hl-code">.</span><span class="hl-identifier">age</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">Reflect</span><span class="hl-code">.</span><span class="hl-identifier">get</span><span class="hl-brackets">(</span><span class="hl-identifier">exam</span><span class="hl-code">, </span><span class="hl-quotes">'</span><span class="hl-string">name</span><span class="hl-quotes">'</span><span class="hl-brackets">)</span><span class="hl-code">; </span><span class="hl-comment">//</span><span class="hl-comment"> "Tom"</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">When the target object has a getter method for the name property, the this of the getter method will be bound to // receiver</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">receiver</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">name</span><span class="hl-code">: </span><span class="hl-quotes">"</span><span class="hl-string">Jerry</span><span class="hl-quotes">"</span><span class="hl-code">,
+    </span><span class="hl-identifier">age</span><span class="hl-code">: </span><span class="hl-number">20</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">Reflect</span><span class="hl-code">.</span><span class="hl-identifier">get</span><span class="hl-brackets">(</span><span class="hl-identifier">exam</span><span class="hl-code">, </span><span class="hl-quotes">'</span><span class="hl-string">info</span><span class="hl-quotes">'</span><span class="hl-code">, </span><span class="hl-identifier">receiver</span><span class="hl-brackets">)</span><span class="hl-code">; </span><span class="hl-comment">//</span><span class="hl-comment"> Jerry20</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">When name is a property that does not exist on the target object, returns undefined</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">Reflect</span><span class="hl-code">.</span><span class="hl-identifier">get</span><span class="hl-brackets">(</span><span class="hl-identifier">exam</span><span class="hl-code">, </span><span class="hl-quotes">'</span><span class="hl-string">birth</span><span class="hl-quotes">'</span><span class="hl-brackets">)</span><span class="hl-code">; </span><span class="hl-comment">//</span><span class="hl-comment"> undefined</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">When target is not an object, an error will be reported</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">Reflect</span><span class="hl-code">.</span><span class="hl-identifier">get</span><span class="hl-brackets">(</span><span class="hl-number">1</span><span class="hl-code">, </span><span class="hl-quotes">'</span><span class="hl-string">name</span><span class="hl-quotes">'</span><span class="hl-brackets">)</span><span class="hl-code">; </span><span class="hl-comment">//</span><span class="hl-comment"> TypeError</span><span class="hl-comment"></span></div>
+</div>
+</div>
+<pre>Reflect.set(target, name, value, receiver)</pre>
+<p>Set the name property of target to value. The return value is boolean; true indicates success, false indicates failure. When target is a non-existent object, an error will be reported.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">exam</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">name</span><span class="hl-code">: </span><span class="hl-quotes">"</span><span class="hl-string">Tom</span><span class="hl-quotes">"</span><span class="hl-code">,
+    </span><span class="hl-identifier">age</span><span class="hl-code">: </span><span class="hl-number">24</span><span class="hl-code">,
+    </span><span class="hl-identifier">set</span><span class="hl-code"> </span><span class="hl-identifier">info</span><span class="hl-brackets">(</span><span class="hl-identifier">value</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-reserved">this</span><span class="hl-code">.</span><span class="hl-identifier">age</span><span class="hl-code"> = </span><span class="hl-identifier">value</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">exam</span><span class="hl-code">.</span><span class="hl-identifier">age</span><span class="hl-code">; </span><span class="hl-comment">//</span><span class="hl-comment"> 24</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">Reflect</span><span class="hl-code">.</span><span class="hl-identifier">set</span><span class="hl-brackets">(</span><span class="hl-identifier">exam</span><span class="hl-code">, </span><span class="hl-quotes">'</span><span class="hl-string">age</span><span class="hl-quotes">'</span><span class="hl-code">, </span><span class="hl-number">25</span><span class="hl-brackets">)</span><span class="hl-code">; </span><span class="hl-comment">//</span><span class="hl-comment"> true</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">exam</span><span class="hl-code">.</span><span class="hl-identifier">age</span><span class="hl-code">; </span><span class="hl-comment">//</span><span class="hl-comment"> 25</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">When value is empty, the name property will be removed.</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">Reflect</span><span class="hl-code">.</span><span class="hl-identifier">set</span><span class="hl-brackets">(</span><span class="hl-identifier">exam</span><span class="hl-code">, </span><span class="hl-quotes">'</span><span class="hl-string">age</span><span class="hl-quotes">'</span><span class="hl-code">, </span><span class="hl-brackets">)</span><span class="hl-code">; </span><span class="hl-comment">//</span><span class="hl-comment"> true</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">exam</span><span class="hl-code">.</span><span class="hl-identifier">age</span><span class="hl-code">; </span><span class="hl-comment">//</span><span class="hl-comment"> undefined</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">When the target object has a setter method for the name property, the this in the setter method will be bound to // receiver, so what is actually modified is the property of receiver,</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">receiver</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">age</span><span class="hl-code">: </span><span class="hl-number">18</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">Reflect</span><span class="hl-code">.</span><span class="hl-identifier">set</span><span class="hl-brackets">(</span><span class="hl-identifier">exam</span><span class="hl-code">, </span><span class="hl-quotes">'</span><span class="hl-string">info</span><span class="hl-quotes">'</span><span class="hl-code">, </span><span class="hl-number">1</span><span class="hl-code">, </span><span class="hl-identifier">receiver</span><span class="hl-brackets">)</span><span class="hl-code">; </span><span class="hl-comment">//</span><span class="hl-comment"> true</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">receiver</span><span class="hl-code">.</span><span class="hl-identifier">age</span><span class="hl-code">; </span><span class="hl-comment">//</span><span class="hl-comment"> 1</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">receiver1</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">name</span><span class="hl-code">: </span><span class="hl-quotes">'</span><span class="hl-string">oppps</span><span class="hl-quotes">'</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">Reflect</span><span class="hl-code">.</span><span class="hl-identifier">set</span><span class="hl-brackets">(</span><span class="hl-identifier">exam</span><span class="hl-code">, </span><span class="hl-quotes">'</span><span class="hl-string">info</span><span class="hl-quotes">'</span><span class="hl-code">, </span><span class="hl-number">1</span><span class="hl-code">, </span><span class="hl-identifier">receiver1</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-identifier">receiver1</span><span class="hl-code">.</span><span class="hl-identifier">age</span><span class="hl-code">; </span><span class="hl-comment">//</span><span class="hl-comment"> 1</span><span class="hl-comment"></span></div>
+</div>
+</div>
+<pre>Reflect.has(obj, name)</pre>
+<p>It is the functional form of the name in obj operator, used to check whether the name property exists in the obj object. The return value is boolean. If obj is not an object, a TypeError will be reported.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">exam</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">name</span><span class="hl-code">: </span><span class="hl-quotes">"</span><span class="hl-string">Tom</span><span class="hl-quotes">"</span><span class="hl-code">,
+    </span><span class="hl-identifier">age</span><span class="hl-code">: </span><span class="hl-number">24</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">Reflect</span><span class="hl-code">.</span><span class="hl-identifier">has</span><span class="hl-brackets">(</span><span class="hl-identifier">exam</span><span class="hl-code">, </span><span class="hl-quotes">'</span><span class="hl-string">name</span><span class="hl-quotes">'</span><span class="hl-brackets">)</span><span class="hl-code">; </span><span class="hl-comment">//</span><span class="hl-comment"> true</span><span class="hl-comment"></span></div>
+</div>
+</div>
+<pre>Reflect.deleteProperty(obj, property)</pre>
+<p>It is the functional form of delete obj[property], used to delete the property property of the obj object. The return value is boolean. If obj is not an object, a TypeError will be reported.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">exam</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">name</span><span class="hl-code">: </span><span class="hl-quotes">"</span><span class="hl-string">Tom</span><span class="hl-quotes">"</span><span class="hl-code">,
+    </span><span class="hl-identifier">age</span><span class="hl-code">: </span><span class="hl-number">24</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">Reflect</span><span class="hl-code">.</span><span class="hl-identifier">deleteProperty</span><span class="hl-brackets">(</span><span class="hl-identifier">exam</span><span class="hl-code"> , </span><span class="hl-quotes">'</span><span class="hl-string">name</span><span class="hl-quotes">'</span><span class="hl-brackets">)</span><span class="hl-code">; </span><span class="hl-comment">//</span><span class="hl-comment"> true</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">exam</span><span class="hl-code"> </span><span class="hl-comment">//</span><span class="hl-comment"> {age: 24} </span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">When property does not exist, it also returns true</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">Reflect</span><span class="hl-code">.</span><span class="hl-identifier">deleteProperty</span><span class="hl-brackets">(</span><span class="hl-identifier">exam</span><span class="hl-code"> , </span><span class="hl-quotes">'</span><span class="hl-string">name</span><span class="hl-quotes">'</span><span class="hl-brackets">)</span><span class="hl-code">; </span><span class="hl-comment">//</span><span class="hl-comment"> true</span><span class="hl-comment"></span></div>
+</div>
+</div>
+<pre>Reflect.construct(obj, args)</pre>
+<p>Equivalent to new target(...args).</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">function</span><span class="hl-code"> </span><span class="hl-identifier">exam</span><span class="hl-brackets">(</span><span class="hl-identifier">name</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">this</span><span class="hl-code">.</span><span class="hl-identifier">name</span><span class="hl-code"> = </span><span class="hl-identifier">name</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">Reflect</span><span class="hl-code">.</span><span class="hl-identifier">construct</span><span class="hl-brackets">(</span><span class="hl-identifier">exam</span><span class="hl-code">, </span><span class="hl-brackets">[</span><span class="hl-quotes">'</span><span class="hl-string">Tom</span><span class="hl-quotes">'</span><span class="hl-brackets">]</span><span class="hl-brackets">)</span><span class="hl-code">; </span><span class="hl-comment">//</span><span class="hl-comment"> exam {name: "Tom"}</span><span class="hl-comment"></span></div>
+</div>
+</div>
+<pre>Reflect.getPrototypeOf(obj)</pre>
+<p>Used to read the _proto_ property of obj. When obj is not an object, it does not convert obj to an object like Object does, but instead reports an error.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">class</span><span class="hl-code"> </span><span class="hl-identifier">Exam</span><span class="hl-brackets">{</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">obj</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Exam</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-identifier">Reflect</span><span class="hl-code">.</span><span class="hl-identifier">getPrototypeOf</span><span class="hl-brackets">(</span><span class="hl-identifier">obj</span><span class="hl-brackets">)</span><span class="hl-code"> === </span><span class="hl-identifier">Exam</span><span class="hl-code">.</span><span class="hl-identifier">prototype</span><span class="hl-code"> </span><span class="hl-comment">//</span><span class="hl-comment"> true</span><span class="hl-comment"></span></div>
+</div>
+</div>
+<pre>Reflect.setPrototypeOf(obj, newProto)</pre>
+<p>Used to set the prototype of the target object.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">obj</span><span class="hl-code"> =</span><span class="hl-brackets">{</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">Reflect</span><span class="hl-code">.</span><span class="hl-identifier">setPrototypeOf</span><span class="hl-brackets">(</span><span class="hl-identifier">obj</span><span class="hl-code">, </span><span class="hl-builtin">Array</span><span class="hl-code">.</span><span class="hl-identifier">prototype</span><span class="hl-brackets">)</span><span class="hl-code">; </span><span class="hl-comment">//</span><span class="hl-comment"> true</span><span class="hl-comment"></span></div>
+</div>
+</div>
+<pre>Reflect.apply(func, thisArg, args)</pre>
+<p>Equivalent to Function.prototype.apply.call(func, thisArg, args). func represents the target function; thisArg represents the this object bound to the target function; args represents the argument list passed when the target function is called, which can be an array or an array-like object. If the target function cannot be called, a TypeError is thrown.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-identifier">Reflect</span><span class="hl-code">.</span><span class="hl-identifier">apply</span><span class="hl-brackets">(</span><span class="hl-builtin">Math</span><span class="hl-code">.</span><span class="hl-identifier">max</span><span class="hl-code">, </span><span class="hl-builtin">Math</span><span class="hl-code">, </span><span class="hl-brackets">[</span><span class="hl-number">1</span><span class="hl-code">, </span><span class="hl-number">3</span><span class="hl-code">, </span><span class="hl-number">5</span><span class="hl-code">, </span><span class="hl-number">3</span><span class="hl-code">, </span><span class="hl-number">1</span><span class="hl-brackets">]</span><span class="hl-brackets">)</span><span class="hl-code">; </span><span class="hl-comment">//</span><span class="hl-comment"> 5</span><span class="hl-comment"></span></div>
+</div>
+</div>
+<pre>Reflect.defineProperty(target, propertyKey, attributes)</pre>
+<p>Used to define properties for the target object. If target is not an object, an error is thrown.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">myDate</span><span class="hl-code">= </span><span class="hl-brackets">{</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">Reflect</span><span class="hl-code">.</span><span class="hl-identifier">defineProperty</span><span class="hl-brackets">(</span><span class="hl-identifier">MyDate</span><span class="hl-code">, </span><span class="hl-quotes">'</span><span class="hl-string">now</span><span class="hl-quotes">'</span><span class="hl-code">, </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">value</span><span class="hl-code">: </span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code"> =&gt; </span><span class="hl-builtin">Date</span><span class="hl-code">.</span><span class="hl-identifier">now</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-brackets">)</span><span class="hl-code">; </span><span class="hl-comment">//</span><span class="hl-comment"> true</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-reserved">const</span><span class="hl-code"> </span><span class="hl-identifier">student</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-brackets">}</span><span class="hl-code">;
+</span><span class="hl-identifier">Reflect</span><span class="hl-code">.</span><span class="hl-identifier">defineProperty</span><span class="hl-brackets">(</span><span class="hl-identifier">student</span><span class="hl-code">, </span><span class="hl-quotes">"</span><span class="hl-string">name</span><span class="hl-quotes">"</span><span class="hl-code">, </span><span class="hl-brackets">{</span><span class="hl-identifier">value</span><span class="hl-code">: </span><span class="hl-quotes">"</span><span class="hl-string">Mike</span><span class="hl-quotes">"</span><span class="hl-brackets">}</span><span class="hl-brackets">)</span><span class="hl-code">; </span><span class="hl-comment">//</span><span class="hl-comment"> true</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">student</span><span class="hl-code">.</span><span class="hl-identifier">name</span><span class="hl-code">; </span><span class="hl-comment">//</span><span class="hl-comment"> "Mike"</span><span class="hl-comment"></span></div>
+</div>
+</div>
+<pre>Reflect.getOwnPropertyDescriptor(target, propertyKey)</pre>
+<p>Used to obtain the descriptor object of the propertyKey property of the target object. When target is not an object, an error is thrown to indicate an invalid parameter; the non-object is not converted to an object.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">var</span><span class="hl-code"> </span><span class="hl-identifier">exam</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">Reflect</span><span class="hl-code">.</span><span class="hl-identifier">defineProperty</span><span class="hl-brackets">(</span><span class="hl-identifier">exam</span><span class="hl-code">, </span><span class="hl-quotes">'</span><span class="hl-string">name</span><span class="hl-quotes">'</span><span class="hl-code">, </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">value</span><span class="hl-code">: </span><span class="hl-reserved">true</span><span class="hl-code">,
+  </span><span class="hl-identifier">enumerable</span><span class="hl-code">: </span><span class="hl-reserved">false</span><span class="hl-code">,
+</span><span class="hl-brackets">}</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-identifier">Reflect</span><span class="hl-code">.</span><span class="hl-identifier">getOwnPropertyDescriptor</span><span class="hl-brackets">(</span><span class="hl-identifier">exam</span><span class="hl-code">, </span><span class="hl-quotes">'</span><span class="hl-string">name</span><span class="hl-quotes">'</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment"> { configurable: false, enumerable: false, value: true, writable:</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment"> false}</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">If the propertyKey property does not exist on the target object, returns undefined.</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">Reflect</span><span class="hl-code">.</span><span class="hl-identifier">getOwnPropertyDescriptor</span><span class="hl-brackets">(</span><span class="hl-identifier">exam</span><span class="hl-code">, </span><span class="hl-quotes">'</span><span class="hl-string">age</span><span class="hl-quotes">'</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-comment">//</span><span class="hl-comment"> undefined</span><span class="hl-comment"></span></div>
+</div>
+</div>
+<pre>Reflect.isExtensible(target)</pre>
+<p>Used to determine whether the target object is extensible. The return value is a boolean. If the target parameter is not an object, an error is thrown.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">exam</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">Reflect</span><span class="hl-code">.</span><span class="hl-identifier">isExtensible</span><span class="hl-brackets">(</span><span class="hl-identifier">exam</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-comment">//</span><span class="hl-comment"> true</span><span class="hl-comment"></span></div>
+</div>
+</div>
+<pre>Reflect.preventExtensions(target)</pre>
+<p>Used to make the target object non-extensible. If the target parameter is not an object, an error is thrown.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">exam</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">Reflect</span><span class="hl-code">.</span><span class="hl-identifier">preventExtensions</span><span class="hl-brackets">(</span><span class="hl-identifier">exam</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-comment">//</span><span class="hl-comment"> true</span><span class="hl-comment"></span></div>
+</div>
+</div>
+<pre>Reflect.ownKeys(target)</pre>
+<p>Used to return all properties of the target object, equivalent to the combination of Object.getOwnPropertyNames and Object.getOwnPropertySymbols.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">var</span><span class="hl-code"> </span><span class="hl-identifier">exam</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">name</span><span class="hl-code">: </span><span class="hl-number">1</span><span class="hl-code">,
+  </span><span class="hl-brackets">[</span><span class="hl-identifier">Symbol</span><span class="hl-code">.</span><span class="hl-reserved">for</span><span class="hl-brackets">(</span><span class="hl-quotes">'</span><span class="hl-string">age</span><span class="hl-quotes">'</span><span class="hl-brackets">)</span><span class="hl-brackets">]</span><span class="hl-code">: </span><span class="hl-number">4</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">Reflect</span><span class="hl-code">.</span><span class="hl-identifier">ownKeys</span><span class="hl-brackets">(</span><span class="hl-identifier">exam</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-comment">//</span><span class="hl-comment"> ["name", Symbol(age)]</span><span class="hl-comment"></span></div>
+</div>
+</div>
+<hr/><h2>Combined Use</h2><p>The methods of the Reflect object correspond one-to-one with the methods of the Proxy object. Therefore, the methods of the Proxy object can obtain default behavior by calling the methods of the Reflect object, and then perform additional operations.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">exam</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">name</span><span class="hl-code">: </span><span class="hl-quotes">"</span><span class="hl-string">Tom</span><span class="hl-quotes">"</span><span class="hl-code">,
+    </span><span class="hl-identifier">age</span><span class="hl-code">: </span><span class="hl-number">24</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">handler</span><span class="hl-code"> = </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">get</span><span class="hl-code">: </span><span class="hl-reserved">function</span><span class="hl-brackets">(</span><span class="hl-identifier">target</span><span class="hl-code">, </span><span class="hl-identifier">key</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">console</span><span class="hl-code">.</span><span class="hl-identifier">log</span><span class="hl-brackets">(</span><span class="hl-quotes">"</span><span class="hl-string">getting </span><span class="hl-quotes">"</span><span class="hl-code">+</span><span class="hl-identifier">key</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-identifier">Reflect</span><span class="hl-code">.</span><span class="hl-identifier">get</span><span class="hl-brackets">(</span><span class="hl-identifier">target</span><span class="hl-code">,</span><span class="hl-identifier">key</span><span class="hl-brackets">)</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code">,
+    </span><span class="hl-identifier">set</span><span class="hl-code">: </span><span class="hl-reserved">function</span><span class="hl-brackets">(</span><span class="hl-identifier">target</span><span class="hl-code">, </span><span class="hl-identifier">key</span><span class="hl-code">, </span><span class="hl-identifier">value</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">console</span><span class="hl-code">.</span><span class="hl-identifier">log</span><span class="hl-brackets">(</span><span class="hl-quotes">"</span><span class="hl-string">setting </span><span class="hl-quotes">"</span><span class="hl-code">+</span><span class="hl-identifier">key</span><span class="hl-code">+</span><span class="hl-quotes">"</span><span class="hl-string"> to </span><span class="hl-quotes">"</span><span class="hl-code">+</span><span class="hl-identifier">value</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-identifier">Reflect</span><span class="hl-code">.</span><span class="hl-identifier">set</span><span class="hl-brackets">(</span><span class="hl-identifier">target</span><span class="hl-code">, </span><span class="hl-identifier">key</span><span class="hl-code">, </span><span class="hl-identifier">value</span><span class="hl-brackets">)</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">let</span><span class="hl-code"> </span><span class="hl-identifier">proxy</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Proxy</span><span class="hl-brackets">(</span><span class="hl-identifier">exam</span><span class="hl-code">, </span><span class="hl-identifier">handler</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-identifier">proxy</span><span class="hl-code">.</span><span class="hl-identifier">name</span><span class="hl-code"> = </span><span class="hl-quotes">"</span><span class="hl-string">Jerry</span><span class="hl-quotes">"</span><span class="hl-code">
+</span><span class="hl-identifier">proxy</span><span class="hl-code">.</span><span class="hl-identifier">name</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment"> setting name to Jerry</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment"> getting name</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment"> "Jerry"</span><span class="hl-comment"></span></div>
+</div>
+</div><h3>Expanded Use Cases</h3>
+<p><strong>Implementing the Observer pattern.</strong></p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-comment">//</span><span class="hl-comment">Define a Set collection.</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-reserved">const</span><span class="hl-code"> </span><span class="hl-identifier">queuedObservers</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Set</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-comment">//</span><span class="hl-comment">Put all observer functions into the Set collection.</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-reserved">const</span><span class="hl-code"> </span><span class="hl-identifier">observe</span><span class="hl-code"> = </span><span class="hl-identifier">fn</span><span class="hl-code"> =&gt; </span><span class="hl-identifier">queuedObservers</span><span class="hl-code">.</span><span class="hl-identifier">add</span><span class="hl-brackets">(</span><span class="hl-identifier">fn</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-comment">//</span><span class="hl-comment">observable returns a proxy of the original object and intercepts assignment operations.</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-reserved">const</span><span class="hl-code"> </span><span class="hl-identifier">observable</span><span class="hl-code"> = </span><span class="hl-identifier">obj</span><span class="hl-code"> =&gt; </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Proxy</span><span class="hl-brackets">(</span><span class="hl-identifier">obj</span><span class="hl-code">, </span><span class="hl-brackets">{</span><span class="hl-identifier">set</span><span class="hl-brackets">}</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-reserved">function</span><span class="hl-code"> </span><span class="hl-identifier">set</span><span class="hl-brackets">(</span><span class="hl-identifier">target</span><span class="hl-code">, </span><span class="hl-identifier">key</span><span class="hl-code">, </span><span class="hl-identifier">value</span><span class="hl-code">, </span><span class="hl-identifier">receiver</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">Get the assignment operation of the object.</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-reserved">const</span><span class="hl-code"> </span><span class="hl-identifier">result</span><span class="hl-code"> = </span><span class="hl-identifier">Reflect</span><span class="hl-code">.</span><span class="hl-identifier">set</span><span class="hl-brackets">(</span><span class="hl-identifier">target</span><span class="hl-code">, </span><span class="hl-identifier">key</span><span class="hl-code">, </span><span class="hl-identifier">value</span><span class="hl-code">, </span><span class="hl-identifier">receiver</span><span class="hl-brackets">)</span><span class="hl-code">;
+  </span><span class="hl-comment">//</span><span class="hl-comment">Execute all observers.</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">queuedObservers</span><span class="hl-code">.</span><span class="hl-identifier">forEach</span><span class="hl-brackets">(</span><span class="hl-identifier">observer</span><span class="hl-code"> =&gt; </span><span class="hl-identifier">observer</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-brackets">)</span><span class="hl-code">;
+  </span><span class="hl-comment">//</span><span class="hl-comment">Execute the assignment operation.</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-identifier">result</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span></div>
+</div>
+</div> </div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link">← <a href="./es6-map-set.html" rel="prev">3.1.1 ES6 Map and Set</a> </div>
+<div class="next-design-link"><a href="./es6-string.html" rel="next">3.2.1 ES6 Strings</a> →</div>
+</div>
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="title" id="comments">
+<h2 class="">
+<div class="altblock">
+<i aria-hidden="true" class="fa fa-pencil-square-o" style="font-size:28px;margin-top: 8px;"></i>
+</div>
+<span class="mw-headline" id="qa_headline">1 note</span>
+<span class="mw-headline" id="user_add_note" style="float:right;line-height: 62px;padding-right: 14px;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>Write Note</span>
+</h2>
+</div>
+<div id="postcomments">
+<ol class="commentlist">
+<li class="comment even thread-even depth-1" id="comment-64025"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>   wusq</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  wus***an@aliyun.com</p></div><div class="upvotejs" data-commid="64025" id="runoobvote-id-64025"><a class="upvote"></a> <span class="count">51</span></div></div><div class="comt-main" id="div-comment-64025"><pre>fn =&gt; queuedObservers.add(fn)</pre>
+<p>Equals:</p>
+<pre>function(fn){ 
+    return queuedObservers.add(fn) ;
+};</pre>
+<pre>obj =&gt; new Proxy(obj, {set})</pre>
+<p>Equals:</p>
+<pre>
+function(obj){
+    return new Proxy(obj, {set});
+}</pre>
+<pre>observer =&gt; observer()</pre>Equals:<pre>function(observer ){
+    return observer()
+}</pre><div class="comt-meta wrapper"><span class="comt-author"><a href=".." target="_blank">wusq</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>   wusq</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  wus***an@aliyun.com</p></div></span>5 years ago (2021-05-27)</div></div></li><!-- #comment-## -->
+</ol>
+<div class="pagenav">
+</div>
+</div>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style="display:none; padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>Click me to share notes</h3>
+&lt;p style="font-size:14px;"&gt;The note must be an extension of the content of this article!&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;To submit an article, click here&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;How to get a registration invitation code&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; You must &lt;a href=".." class="runoob-pop"&gt;log in&lt;/a&gt; before sharing a note!&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;How to get a registration invitation code&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=".." id="cancel-comment-reply-link">Cancel</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="21076"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>Share Note</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">Nickname</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">Nickname (required)</span></li>
+<li class="form-inline"><label class="hide" for="email">Email</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">Email (required)</span></li>
+<li class="form-inline"><label class="hide" for="url">Reference URL</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">引用地址</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  21076;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 21076, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":21076},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+<style>
+@media screen and (max-width: 768px) {
+	#w3cnote-ad728 {
+		display: none;
+	}
+}
+p.note-author {
+    border-bottom: 1px solid #ddd;
+    font-size: 18px;
+    font-weight: bold;
+    color: #78a15a;
+    padding-bottom: 2px;
+    margin-bottom: 4px;
+}
+</style>
+<script>
+var aid = 21076;
+</script>
+</div>
+</div>
+<div class="listcol last right-column">
+<script type="text/javascript">
+jQuery(document).ready(function ($){
+	var total = $(".membership li").length;
+	var left_list = '';
+	href = window.location.href;
+	
+	$(".membership li").each(function(index, value){
+
+		left_list += $(this).html();
+
+		cur_href = $(this).find("a").attr("href");
+		cur_obj = $(this);
+		
+		if(href.match(cur_href) != null) {
+			if(index==0) {
+				$(".previous-design-link").hide();
+			}
+			if(index==(total-1)) {
+				$(".next-design-link").hide();
+			}
+			prev_href = cur_obj.prev("li").find("a").attr("href");
+			prev_title = cur_obj.prev("li").find("a").attr("title");
+
+			next_href = cur_obj.next("li").find("a").attr("href");
+			next_title = cur_obj.next("li").find("a").attr("title");
+			if(prev_title) {
+				$(".previous-design-link a").attr("href", prev_href);
+				$(".previous-design-link a").attr("title", prev_title);
+				$(".previous-design-link a").text(prev_title);
+			} else {
+				$(".previous-design-link").html("");
+			}
+
+			if(next_title) {
+				$(".next-design-link a").attr("href", next_href);
+				$(".next-design-link a").attr("title", next_title);
+				$(".next-design-link a").text(next_title);
+			} else {
+				$(".next-design-link").html("");
+			}
+		}
+	});
+
+	$("#leftcolumn").html(left_list);
+});
+	</script>
+<div class="sidebar-box cate-list">
+<div class="sidebar-box recommend-here list-link">
+<a href="#">ECMAScript 6 教程</a> </div>
+<ul class="membership">
+<li><a data-id="21067" href="./es6-tutorial.html" target="_top" title="1.1  ES6 教程">1.1  ES6 教程</a></li>
+<li><a data-id="21071" href="./es6-setup.html" target="_top" title="1.2  ES6 环境搭建">1.2  ES6 环境搭建</a></li>
+<li><a data-id="21072" href="./es6-let-const.html" target="_top" title="2.1  ES6  let  与 const">2.1  ES6  let  与 const</a></li>
+<li><a data-id="21073" href="./deconstruction-assignment.html" target="_top" title="2.2  ES6 解构赋值">2.2  ES6 解构赋值</a></li>
+<li><a data-id="21074" href="./es6-symbol.html" target="_top" title="2.3  ES6 Symbol">2.3  ES6 Symbol</a></li>
+<li><a data-id="21075" href="./es6-map-set.html" target="_top" title="3.1.1  ES6 Map 与 Set">3.1.1  ES6 Map 与 Set</a></li>
+<li>
+	3.1.2  ES6 Reflect 与 Proxy	</li>
+<li><a data-id="21077" href="./es6-string.html" target="_top" title="3.2.1  ES6 字符串">3.2.1  ES6 字符串</a></li>
+<li><a data-id="21078" href="./es6-number.html" target="_top" title="3.2.2  ES6 数值">3.2.2  ES6 数值</a></li>
+<li><a data-id="21082" href="./es6-object.html" target="_top" title="3.2.3  ES6 对象">3.2.3  ES6 对象</a></li>
+<li><a data-id="21083" href="./es6-array.html" target="_top" title="3.2.4  ES6 数组">3.2.4  ES6 数组</a></li>
+<li><a data-id="21085" href="./es6-function.html" target="_top" title="4.1  ES6 函数">4.1  ES6 函数</a></li>
+<li><a data-id="21091" href="./es6-class.html" target="_top" title="4.3  ES6 Class 类">4.3  ES6 Class 类</a></li>
+<li><a data-id="21092" href="./es6-module.html" target="_top" title="4.4  ES6 模块">4.4  ES6 模块</a></li>
+<li><a data-id="21093" href="./es6-promise.html" target="_top" title="5.1  ES6 Promise 对象">5.1  ES6 Promise 对象</a></li>
+<li><a data-id="21094" href="./es6-generator.html" target="_top" title="5.2 ES6 Generator 函数">5.2 ES6 Generator 函数</a></li>
+<li><a data-id="21095" href="./es6-async.html" target="_top" title="5.3 ES6 async 函数">5.3 ES6 async 函数</a></li>
+</ul></div> </div>
+</div>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+</div><script src="../../lang-switcher.js"></script>
+</body>
+</html>

@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>7.1 Diseño de divisor Verilog | Tutorial para novatos</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="./verilog-dividend.html" rel="canonical"/>
+<meta content="7.1 Verilog 除法器设计" name="keywords"/>
+<meta content="除法器原理（定点） 和十进制除法类似，计算 27 除以 5 的过程如下所示：   除法运算过程如下：  (1) 取被除数的高几位数据，位宽和除数相同（实例中是 3bit 数据）。 (2)  将被除数高位数据与除数作比较，如果前者不小于后者，则可得到对应位的商为 1，两者做差得到第一步的余数；否则得到对应的商为 0，将前者直接作为余数。 (3) 将上一步中的余数与被除数剩余最高位 1bit 数据拼接成新的数据，然后再和除数做比较。可以得到.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div><!-- 导航栏 -->
+<!--  内容  -->
+<div class="container main">
+<div class="row">
+<!--  Android 基础入门教程 start  -->
+<div class="col left-column" style="display:none;">
+<div class="tab">Verilog 教程</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+</div>
+</div>
+</div>
+<!--  Android 基础入门教程 end  -->
+<div class="col middle-column big-middle-column">
+<div class="article">
+<div class="article-heading">
+<h2>7.1 Diseño de divisor Verilog</h2> <h3><em>Categoría</em> <a href="../w3cnote_genre/verilog.html" title="Verilog 教程">Tutorial de Verilog</a> </h3>
+</div>
+<div class="article-body note-body">
+<div class="article-intro">
+<!-- ad start-->
+<!-- ad end-->
+<h3>Principio del divisor (punto fijo)</h3><p>Similar a la división decimal, el proceso de calcular 27 dividido por 5 es el siguiente:</p>
+<p><img decoding="async" src="../wp-content/uploads/2020/09/KGUCofhbNPJRkGv3.png"/></p>
+<p>El proceso de operación de división es el siguiente:</p>
+<ul><li>(1) Tome los primeros bits de mayor peso del dividendo, con el mismo ancho de bits que el divisor (en el ejemplo son datos de 3 bits).</li><li>(2) Compare los datos de mayor peso del dividendo con el divisor. Si el primero no es menor que el segundo, el bit correspondiente del cociente es 1, y la resta de ambos da el resto del primer paso; de lo contrario, el bit del cociente es 0, y el primero se toma directamente como resto.</li><li>(3) Concatenar el resto del paso anterior con el bit más alto restante del dividendo (1 bit) para formar un nuevo dato, y luego comparar con el divisor. Se obtienen el nuevo cociente y el nuevo resto.</li><li>(4) Repetir el proceso (3) hasta que el bit más bajo del dividendo también participe en el cálculo.</li></ul>
+<p>Cabe señalar que el ancho de bits del cociente debe ser el mismo que el del dividendo, porque el divisor podría ser 1.<strong>Por lo tanto, en el ejemplo de división manual anterior, al hacer la comparación del primer paso, se debe tomar el bit más alto de 27, que es 1 (3'b001), y compararlo con 3'b101.</strong>Según este proceso de cálculo, se diseña un divisor segmentado (pipeline) con ancho de bits configurable, donde el número de ciclos de latencia de la segmentación es igual al ancho de bits del dividendo.</p>
+<h3>Diseño del divisor</h3>
+<p><strong>Diseño de la operación de un solo paso</strong></p><p>En el cálculo de división de un solo paso, el ancho de bits del dividendo de un solo paso (señal dividend) debe ser 1 bit mayor que el ancho de bits del divisor original (señal divisor) para evitar desbordamiento.</p><p>Para facilitar la segmentación, la salida necesita registros para almacenar el divisor original (señales divisor y divisor_kp) y la información del dividendo (señales dividend_ci y dividend_kp).</p><p>El resultado de la operación de un solo paso es obtener el nuevo dato de cociente de 1 bit (señal merchant) y el resto (señal remainder).</p><p>Para obtener el resultado final de la división, el nuevo dato de cociente de 1 bit (señal merchant) también debe acumularse mediante desplazamiento con el resultado del cociente del ciclo anterior (merchant_ci).</p><p>El diseño de la unidad de operación de un solo paso es el siguiente (nombre de archivo: divider_cell.v):</p>
+<div class="example"><h2 class="example">Ejemplo</h2> <div class="example_code">
+<span style="color: #00008B; font-style: italic;">// parameter M means the actual width of divisor</span><br/>
+<span style="color: #A52A2A; font-weight: bold;">module</span>    divider_cell<br/>
+    <span style="color: #5D478B;">#</span><span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">parameter</span> N<span style="color: #5D478B;">=</span><span style="color: #ff0055;">5</span><span style="color: #5D478B;">,</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">parameter</span> M<span style="color: #5D478B;">=</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">)</span><br/>
+    <span style="color: #9F79EE;">(</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">input</span>                     clk<span style="color: #5D478B;">,</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">input</span>                     rstn<span style="color: #5D478B;">,</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">input</span>                     en<span style="color: #5D478B;">,</span><br/>
+<br/>
+      <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #9F79EE;">[</span>M<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>               dividend<span style="color: #5D478B;">,</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #9F79EE;">[</span>M<span style="color: #5D478B;">-</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>             divisor<span style="color: #5D478B;">,</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #9F79EE;">[</span>N<span style="color: #5D478B;">-</span>M<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>             merchant_ci <span style="color: #5D478B;">,</span> <span style="color: #00008B; font-style: italic;">//Cociente de salida de la etapa anterior</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #9F79EE;">[</span>N<span style="color: #5D478B;">-</span>M<span style="color: #5D478B;">-</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>           dividend_ci <span style="color: #5D478B;">,</span> <span style="color: #00008B; font-style: italic;">//Divisor original</span><br/>
+<br/>
+      <span style="color: #A52A2A; font-weight: bold;">output</span> <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #9F79EE;">[</span>N<span style="color: #5D478B;">-</span>M<span style="color: #5D478B;">-</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>      dividend_kp<span style="color: #5D478B;">,</span>  <span style="color: #00008B; font-style: italic;">//Información del dividendo original</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">output</span> <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #9F79EE;">[</span>M<span style="color: #5D478B;">-</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>        divisor_kp<span style="color: #5D478B;">,</span>   <span style="color: #00008B; font-style: italic;">//Información del divisor original</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">output</span> <span style="color: #A52A2A; font-weight: bold;">reg</span>                rdy <span style="color: #5D478B;">,</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">output</span> <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #9F79EE;">[</span>N<span style="color: #5D478B;">-</span>M<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>        merchant <span style="color: #5D478B;">,</span>  <span style="color: #00008B; font-style: italic;">//Cociente de salida de la unidad de operación</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">output</span> <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #9F79EE;">[</span>M<span style="color: #5D478B;">-</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>        remainder   <span style="color: #00008B; font-style: italic;">//Resto de salida de la unidad de operación</span><br/>
+    <span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+<br/>
+    <span style="color: #A52A2A; font-weight: bold;">always</span> <span style="color: #5D478B;">@</span><span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">posedge</span> clk <span style="color: #A52A2A; font-weight: bold;">or</span> <span style="color: #A52A2A; font-weight: bold;">negedge</span> rstn<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span><span style="color: #5D478B;">!</span>rstn<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+            rdy            <span style="color: #5D478B;">&lt;=</span> 'b0 <span style="color: #5D478B;">;</span><br/>
+            merchant       <span style="color: #5D478B;">&lt;=</span> 'b0 <span style="color: #5D478B;">;</span><br/>
+            remainder      <span style="color: #5D478B;">&lt;=</span> 'b0 <span style="color: #5D478B;">;</span><br/>
+            divisor_kp     <span style="color: #5D478B;">&lt;=</span> 'b0 <span style="color: #5D478B;">;</span><br/>
+            dividend_kp    <span style="color: #5D478B;">&lt;=</span> 'b0 <span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">else</span> <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span>en<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+            rdy            <span style="color: #5D478B;">&lt;=</span> <span style="color: #ff0055;">1'b1</span> <span style="color: #5D478B;">;</span><br/>
+            divisor_kp     <span style="color: #5D478B;">&lt;=</span> divisor <span style="color: #5D478B;">;</span>  <span style="color: #00008B; font-style: italic;">//El divisor original se mantiene sin cambios</span><br/>
+            dividend_kp    <span style="color: #5D478B;">&lt;=</span> dividend_ci <span style="color: #5D478B;">;</span>  <span style="color: #00008B; font-style: italic;">//Transmisión del dividendo original</span><br/>
+            <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span>dividend <span style="color: #5D478B;">&gt;=</span> <span style="color: #9F79EE;">{</span><span style="color: #ff0055;">1'b0</span><span style="color: #5D478B;">,</span> divisor<span style="color: #9F79EE;">}</span><span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+                merchant    <span style="color: #5D478B;">&lt;=</span> <span style="color: #9F79EE;">(</span>merchant_ci<span style="color: #5D478B;">&lt;&lt;</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">+</span> <span style="color: #ff0055;">1'b1</span> <span style="color: #5D478B;">;</span> <span style="color: #00008B; font-style: italic;">//El cociente es 1</span><br/>
+                remainder   <span style="color: #5D478B;">&lt;=</span> dividend <span style="color: #5D478B;">-</span> <span style="color: #9F79EE;">{</span><span style="color: #ff0055;">1'b0</span><span style="color: #5D478B;">,</span> divisor<span style="color: #9F79EE;">}</span> <span style="color: #5D478B;">;</span> <span style="color: #00008B; font-style: italic;">//Calcular el resto</span><br/>
+            <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+            <span style="color: #A52A2A; font-weight: bold;">else</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+                merchant    <span style="color: #5D478B;">&lt;=</span> merchant_ci<span style="color: #5D478B;">&lt;&lt;</span><span style="color: #ff0055;">1</span> <span style="color: #5D478B;">;</span>  <span style="color: #00008B; font-style: italic;">//El cociente es 0</span><br/>
+                remainder   <span style="color: #5D478B;">&lt;=</span> dividend <span style="color: #5D478B;">;</span>        <span style="color: #00008B; font-style: italic;">//El resto se mantiene sin cambios</span><br/>
+            <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">end</span> <span style="color: #00008B; font-style: italic;">// if (en)</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">else</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+            rdy            <span style="color: #5D478B;">&lt;=</span> 'b0 <span style="color: #5D478B;">;</span><br/>
+            merchant       <span style="color: #5D478B;">&lt;=</span> 'b0 <span style="color: #5D478B;">;</span><br/>
+            remainder      <span style="color: #5D478B;">&lt;=</span> 'b0 <span style="color: #5D478B;">;</span><br/>
+            divisor_kp     <span style="color: #5D478B;">&lt;=</span> 'b0 <span style="color: #5D478B;">;</span><br/>
+            dividend_kp    <span style="color: #5D478B;">&lt;=</span> 'b0 <span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">end</span> <br/>
+<br/>
+<span style="color: #A52A2A; font-weight: bold;">endmodule</span><br/>
+</div></div>
+<p><strong>Instanciación de etapas de segmentación</strong></p><p>
+<p>Concatenar el resto (señal remainder) del cálculo de un solo paso con el bit correspondiente del dividendo original (señal dividend) de 1 bit, y usar el resultado como nuevo dividendo de un solo paso para la siguiente etapa de la unidad de cálculo de división.</p>
+<p>Entre ellos, los datos del dividendo, el divisor y el cociente también deben transmitirse a la unidad de operación de la siguiente etapa.</p>
+<p>La instanciación del módulo de etapas de segmentación para completar el diseño de la división es la siguiente (nombre de archivo: divider_man.v):</p>
+<div class="example"><h2 class="example">Ejemplo</h2> <div class="example_code">
+<span style="color: #00008B; font-style: italic;">//parameter N means the actual width of dividend</span><br/>
+<span style="color: #00008B; font-style: italic;">//using 29/5=5...4</span><br/>
+<span style="color: #A52A2A; font-weight: bold;">module</span>    divider_man<br/>
+    <span style="color: #5D478B;">#</span><span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">parameter</span> N<span style="color: #5D478B;">=</span><span style="color: #ff0055;">5</span><span style="color: #5D478B;">,</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">parameter</span> M<span style="color: #5D478B;">=</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">,</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">parameter</span> N_ACT <span style="color: #5D478B;">=</span> M<span style="color: #5D478B;">+</span>N<span style="color: #5D478B;">-</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span><br/>
+    <span style="color: #9F79EE;">(</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">input</span>                     clk<span style="color: #5D478B;">,</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">input</span>                     rstn<span style="color: #5D478B;">,</span><br/>
+<br/>
+      <span style="color: #A52A2A; font-weight: bold;">input</span>                     data_rdy <span style="color: #5D478B;">,</span>  <span style="color: #00008B; font-style: italic;">//Habilitación de datos</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #9F79EE;">[</span>N<span style="color: #5D478B;">-</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>             dividend<span style="color: #5D478B;">,</span>   <span style="color: #00008B; font-style: italic;">//Dividendo</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #9F79EE;">[</span>M<span style="color: #5D478B;">-</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>             divisor<span style="color: #5D478B;">,</span>    <span style="color: #00008B; font-style: italic;">//Divisor</span><br/>
+<br/>
+      <span style="color: #A52A2A; font-weight: bold;">output</span>                    res_rdy <span style="color: #5D478B;">,</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">output</span> <span style="color: #9F79EE;">[</span>N_ACT<span style="color: #5D478B;">-</span>M<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>        merchant <span style="color: #5D478B;">,</span>  <span style="color: #00008B; font-style: italic;">//Ancho de bits del cociente: N</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">output</span> <span style="color: #9F79EE;">[</span>M<span style="color: #5D478B;">-</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>            remainder <span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span> <span style="color: #00008B; font-style: italic;">//Resto final</span><br/>
+<br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #9F79EE;">[</span>N_ACT<span style="color: #5D478B;">-</span>M<span style="color: #5D478B;">-</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   dividend_t <span style="color: #9F79EE;">[</span>N_ACT<span style="color: #5D478B;">-</span>M<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #9F79EE;">[</span>M<span style="color: #5D478B;">-</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>         divisor_t <span style="color: #9F79EE;">[</span>N_ACT<span style="color: #5D478B;">-</span>M<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #9F79EE;">[</span>M<span style="color: #5D478B;">-</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>         remainder_t <span style="color: #9F79EE;">[</span>N_ACT<span style="color: #5D478B;">-</span>M<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #9F79EE;">[</span>N_ACT<span style="color: #5D478B;">-</span>M<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>     rdy_t <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #9F79EE;">[</span>N_ACT<span style="color: #5D478B;">-</span>M<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>     merchant_t <span style="color: #9F79EE;">[</span>N_ACT<span style="color: #5D478B;">-</span>M<span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">;</span><br/>
+<br/>
+    <span style="color: #00008B; font-style: italic;">//Inicializar la primera unidad de operación</span><br/>
+    divider_cell      <span style="color: #5D478B;">#</span><span style="color: #9F79EE;">(</span>.N<span style="color: #9F79EE;">(</span>N_ACT<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span> .M<span style="color: #9F79EE;">(</span>M<span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><br/>
+       u_divider_step0<br/>
+    <span style="color: #9F79EE;">(</span> .clk              <span style="color: #9F79EE;">(</span>clk<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .rstn             <span style="color: #9F79EE;">(</span>rstn<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .en               <span style="color: #9F79EE;">(</span>data_rdy<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      <span style="color: #00008B; font-style: italic;">//Usar el bit más alto (1 bit) del dividendo como dividendo de la primera operación de un solo paso, rellenando los bits altos con 0</span><br/>
+      .dividend         <span style="color: #9F79EE;">(</span><span style="color: #9F79EE;">{</span><span style="color: #9F79EE;">{</span><span style="color: #9F79EE;">(</span>M<span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">{</span><span style="color: #ff0055;">1'b0</span><span style="color: #9F79EE;">}</span><span style="color: #9F79EE;">}</span><span style="color: #5D478B;">,</span> dividend<span style="color: #9F79EE;">[</span>N<span style="color: #5D478B;">-</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">}</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span> <br/>
+      .divisor          <span style="color: #9F79EE;">(</span>divisor<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span>                  <br/>
+      .merchant_ci      <span style="color: #9F79EE;">(</span><span style="color: #9F79EE;">{</span><span style="color: #9F79EE;">(</span>N_ACT<span style="color: #5D478B;">-</span>M<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">{</span><span style="color: #ff0055;">1'b0</span><span style="color: #9F79EE;">}</span><span style="color: #9F79EE;">}</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span>   <span style="color: #00008B; font-style: italic;">//El cociente inicial es 0</span><br/>
+      .dividend_ci      <span style="color: #9F79EE;">(</span>dividend<span style="color: #9F79EE;">[</span>N_ACT<span style="color: #5D478B;">-</span>M<span style="color: #5D478B;">-</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span> <span style="color: #00008B; font-style: italic;">//Dividendo original</span><br/>
+      <span style="color: #00008B; font-style: italic;">//output</span><br/>
+      .dividend_kp      <span style="color: #9F79EE;">(</span>dividend_t<span style="color: #9F79EE;">[</span>N_ACT<span style="color: #5D478B;">-</span>M<span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span>   <span style="color: #00008B; font-style: italic;">//Transmisión de la información del dividendo original</span><br/>
+      .divisor_kp       <span style="color: #9F79EE;">(</span>divisor_t<span style="color: #9F79EE;">[</span>N_ACT<span style="color: #5D478B;">-</span>M<span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span>    <span style="color: #00008B; font-style: italic;">//Transmisión de la información del divisor original</span><br/>
+      .rdy              <span style="color: #9F79EE;">(</span>rdy_t<span style="color: #9F79EE;">[</span>N_ACT<span style="color: #5D478B;">-</span>M<span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .merchant         <span style="color: #9F79EE;">(</span>merchant_t<span style="color: #9F79EE;">[</span>N_ACT<span style="color: #5D478B;">-</span>M<span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span>   <span style="color: #00008B; font-style: italic;">//Resultado del cociente de la primera vez</span><br/>
+      .remainder        <span style="color: #9F79EE;">(</span>remainder_t<span style="color: #9F79EE;">[</span>N_ACT<span style="color: #5D478B;">-</span>M<span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span>   <span style="color: #00008B; font-style: italic;">//Resto de la primera vez</span><br/>
+      <span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+<br/>
+    <span style="color: #A52A2A; font-weight: bold;">genvar</span>               i <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">generate</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">for</span><span style="color: #9F79EE;">(</span>i<span style="color: #5D478B;">=</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">;</span> i<span style="color: #5D478B;">&lt;=</span>N_ACT<span style="color: #5D478B;">-</span>M<span style="color: #5D478B;">;</span> i<span style="color: #5D478B;">=</span>i<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><span style="color: #5D478B;">:</span> sqrt_stepx<br/>
+            divider_cell      <span style="color: #5D478B;">#</span><span style="color: #9F79EE;">(</span>.N<span style="color: #9F79EE;">(</span>N_ACT<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span> .M<span style="color: #9F79EE;">(</span>M<span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><br/>
+              u_divider_step<br/>
+              <span style="color: #9F79EE;">(</span>.clk              <span style="color: #9F79EE;">(</span>clk<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .rstn             <span style="color: #9F79EE;">(</span>rstn<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .en               <span style="color: #9F79EE;">(</span>rdy_t<span style="color: #9F79EE;">[</span>N_ACT<span style="color: #5D478B;">-</span>M<span style="color: #5D478B;">-</span>i<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .dividend         <span style="color: #9F79EE;">(</span><span style="color: #9F79EE;">{</span>remainder_t<span style="color: #9F79EE;">[</span>N_ACT<span style="color: #5D478B;">-</span>M<span style="color: #5D478B;">-</span>i<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">,</span> dividend_t<span style="color: #9F79EE;">[</span>N_ACT<span style="color: #5D478B;">-</span>M<span style="color: #5D478B;">-</span>i<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">[</span>N_ACT<span style="color: #5D478B;">-</span>M<span style="color: #5D478B;">-</span>i<span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">}</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span>   <span style="color: #00008B; font-style: italic;">//Concatenación del resto con el dato de 1 bit del dividendo original</span><br/>
+               .divisor          <span style="color: #9F79EE;">(</span>divisor_t<span style="color: #9F79EE;">[</span>N_ACT<span style="color: #5D478B;">-</span>M<span style="color: #5D478B;">-</span>i<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .merchant_ci      <span style="color: #9F79EE;">(</span>merchant_t<span style="color: #9F79EE;">[</span>N_ACT<span style="color: #5D478B;">-</span>M<span style="color: #5D478B;">-</span>i<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span> <br/>
+               .dividend_ci      <span style="color: #9F79EE;">(</span>dividend_t<span style="color: #9F79EE;">[</span>N_ACT<span style="color: #5D478B;">-</span>M<span style="color: #5D478B;">-</span>i<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span> <br/>
+               <span style="color: #00008B; font-style: italic;">//output</span><br/>
+               .divisor_kp       <span style="color: #9F79EE;">(</span>divisor_t<span style="color: #9F79EE;">[</span>N_ACT<span style="color: #5D478B;">-</span>M<span style="color: #5D478B;">-</span>i<span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .dividend_kp      <span style="color: #9F79EE;">(</span>dividend_t<span style="color: #9F79EE;">[</span>N_ACT<span style="color: #5D478B;">-</span>M<span style="color: #5D478B;">-</span>i<span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .rdy              <span style="color: #9F79EE;">(</span>rdy_t<span style="color: #9F79EE;">[</span>N_ACT<span style="color: #5D478B;">-</span>M<span style="color: #5D478B;">-</span>i<span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .merchant         <span style="color: #9F79EE;">(</span>merchant_t<span style="color: #9F79EE;">[</span>N_ACT<span style="color: #5D478B;">-</span>M<span style="color: #5D478B;">-</span>i<span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .remainder        <span style="color: #9F79EE;">(</span>remainder_t<span style="color: #9F79EE;">[</span>N_ACT<span style="color: #5D478B;">-</span>M<span style="color: #5D478B;">-</span>i<span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span><br/>
+              <span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">end</span> <span style="color: #00008B; font-style: italic;">// block: sqrt_stepx</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">endgenerate</span><br/>
+<br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> res_rdy       <span style="color: #5D478B;">=</span> rdy_t<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> merchant      <span style="color: #5D478B;">=</span> merchant_t<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">;</span>  <span style="color: #00008B; font-style: italic;">//El último resultado del cociente se usa como cociente final</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> remainder     <span style="color: #5D478B;">=</span> remainder_t<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">;</span> <span style="color: #00008B; font-style: italic;">//El último resto se usa como resto final</span><br/>
+<br/>
+<span style="color: #A52A2A; font-weight: bold;">endmodule</span><br/>
+</div></div>
+<p><strong>testbench</strong></p><p>Se toma un ancho de bits de 5 para el dividendo y de 3 para el divisor. Se agrega autoverificación en el testbench, descrito de la siguiente manera:</p>
+<div class="example"><h2 class="example">Ejemplo</h2> <div class="example_code">
+<span style="color: #008800;">`timescale</span> <span style="color: #ff0055;">1ns</span><span style="color: #5D478B;">/</span><span style="color: #ff0055;">1ns</span><br/>
+<br/>
+<span style="color: #A52A2A; font-weight: bold;">module</span> test <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">parameter</span>    N <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">5</span> <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">parameter</span>    M <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">3</span> <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span>          clk<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span>          rstn <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span>          data_rdy <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #9F79EE;">[</span>N<span style="color: #5D478B;">-</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>  dividend <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #9F79EE;">[</span>M<span style="color: #5D478B;">-</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>  divisor <span style="color: #5D478B;">;</span><br/>
+<br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span>         res_rdy <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #9F79EE;">[</span>N<span style="color: #5D478B;">-</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> merchant <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #9F79EE;">[</span>M<span style="color: #5D478B;">-</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> remainder <span style="color: #5D478B;">;</span><br/>
+<br/>
+    <span style="color: #00008B; font-style: italic;">//clock</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">always</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+        clk <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">0</span> <span style="color: #5D478B;">;</span> <span style="color: #5D478B;">#</span><span style="color: #ff0055;">5</span> <span style="color: #5D478B;">;</span><br/>
+        clk <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1</span> <span style="color: #5D478B;">;</span> <span style="color: #5D478B;">#</span><span style="color: #ff0055;">5</span> <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+<br/>
+    <span style="color: #00008B; font-style: italic;">//driver</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">initial</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+        rstn      <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1'b0</span> <span style="color: #5D478B;">;</span><br/>
+        <span style="color: #5D478B;">#</span><span style="color: #ff0055;">8</span> <span style="color: #5D478B;">;</span><br/>
+        rstn      <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1'b1</span> <span style="color: #5D478B;">;</span><br/>
+<br/>
+        <span style="color: #5D478B;">#</span><span style="color: #ff0055;">55</span> <span style="color: #5D478B;">;</span><br/>
+        <span style="color: #5D478B;">@</span><span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">negedge</span> clk <span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+        data_rdy  <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1'b1</span> <span style="color: #5D478B;">;</span><br/>
+                dividend  <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">25</span><span style="color: #5D478B;">;</span>      divisor      <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">5</span><span style="color: #5D478B;">;</span><br/>
+        <span style="color: #5D478B;">#</span><span style="color: #ff0055;">10</span> <span style="color: #5D478B;">;</span>   dividend  <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">16</span><span style="color: #5D478B;">;</span>      divisor      <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">3</span><span style="color: #5D478B;">;</span><br/>
+        <span style="color: #5D478B;">#</span><span style="color: #ff0055;">10</span> <span style="color: #5D478B;">;</span>   dividend  <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">10</span><span style="color: #5D478B;">;</span>      divisor      <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">4</span><span style="color: #5D478B;">;</span><br/>
+        <span style="color: #5D478B;">#</span><span style="color: #ff0055;">10</span> <span style="color: #5D478B;">;</span>   dividend  <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">15</span><span style="color: #5D478B;">;</span>      divisor      <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1</span><span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">repeat</span><span style="color: #9F79EE;">(</span><span style="color: #ff0055;">32</span><span style="color: #9F79EE;">)</span>    <span style="color: #5D478B;">#</span><span style="color: #ff0055;">10</span>   dividend   <span style="color: #5D478B;">=</span> dividend <span style="color: #5D478B;">+</span> <span style="color: #ff0055;">1</span> <span style="color: #5D478B;">;</span><br/>
+        divisor      <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">7</span><span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">repeat</span><span style="color: #9F79EE;">(</span><span style="color: #ff0055;">32</span><span style="color: #9F79EE;">)</span>    <span style="color: #5D478B;">#</span><span style="color: #ff0055;">10</span>   dividend   <span style="color: #5D478B;">=</span> dividend <span style="color: #5D478B;">+</span> <span style="color: #ff0055;">1</span> <span style="color: #5D478B;">;</span><br/>
+        divisor      <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">5</span><span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">repeat</span><span style="color: #9F79EE;">(</span><span style="color: #ff0055;">32</span><span style="color: #9F79EE;">)</span>    <span style="color: #5D478B;">#</span><span style="color: #ff0055;">10</span>   dividend   <span style="color: #5D478B;">=</span> dividend <span style="color: #5D478B;">+</span> <span style="color: #ff0055;">1</span> <span style="color: #5D478B;">;</span><br/>
+        divisor      <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">4</span><span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">repeat</span><span style="color: #9F79EE;">(</span><span style="color: #ff0055;">32</span><span style="color: #9F79EE;">)</span>    <span style="color: #5D478B;">#</span><span style="color: #ff0055;">10</span>   dividend   <span style="color: #5D478B;">=</span> dividend <span style="color: #5D478B;">+</span> <span style="color: #ff0055;">1</span> <span style="color: #5D478B;">;</span><br/>
+        divisor      <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">6</span><span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">repeat</span><span style="color: #9F79EE;">(</span><span style="color: #ff0055;">32</span><span style="color: #9F79EE;">)</span>    <span style="color: #5D478B;">#</span><span style="color: #ff0055;">10</span>   dividend   <span style="color: #5D478B;">=</span> dividend <span style="color: #5D478B;">+</span> <span style="color: #ff0055;">1</span> <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+<br/>
+    <span style="color: #00008B; font-style: italic;">//Retrasar la entrada para facilitar la comparación de resultados en el mismo ciclo y completar la autoverificación</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span>  <span style="color: #9F79EE;">[</span>N<span style="color: #5D478B;">-</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   dividend_ref <span style="color: #9F79EE;">[</span>N<span style="color: #5D478B;">-</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span>  <span style="color: #9F79EE;">[</span>M<span style="color: #5D478B;">-</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   divisor_ref <span style="color: #9F79EE;">[</span>N<span style="color: #5D478B;">-</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">always</span> <span style="color: #5D478B;">@</span><span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">posedge</span> clk<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+        dividend_ref<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">&lt;=</span> dividend <span style="color: #5D478B;">;</span><br/>
+        divisor_ref<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>  <span style="color: #5D478B;">&lt;=</span> divisor <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+<br/>
+    <span style="color: #A52A2A; font-weight: bold;">genvar</span>         i <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">generate</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">for</span><span style="color: #9F79EE;">(</span>i<span style="color: #5D478B;">=</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">;</span> i<span style="color: #5D478B;">&lt;=</span>N<span style="color: #5D478B;">-</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">;</span> i<span style="color: #5D478B;">=</span>i<span style="color: #5D478B;">+</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+            <span style="color: #A52A2A; font-weight: bold;">always</span> <span style="color: #5D478B;">@</span><span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">posedge</span> clk<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+                dividend_ref<span style="color: #9F79EE;">[</span>i<span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">&lt;=</span> dividend_ref<span style="color: #9F79EE;">[</span>i<span style="color: #5D478B;">-</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">;</span><br/>
+                divisor_ref<span style="color: #9F79EE;">[</span>i<span style="color: #9F79EE;">]</span>  <span style="color: #5D478B;">&lt;=</span> divisor_ref<span style="color: #9F79EE;">[</span>i<span style="color: #5D478B;">-</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">;</span><br/>
+            <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">endgenerate</span><br/>
+<br/>
+    <span style="color: #00008B; font-style: italic;">//Autoverificación</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span>  error_flag <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">always</span> <span style="color: #5D478B;">@</span><span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">posedge</span> clk<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+    <span style="color: #5D478B;">#</span> <span style="color: #ff0055;">1</span> <span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span>merchant <span style="color: #5D478B;">*</span> divisor_ref<span style="color: #9F79EE;">[</span>N<span style="color: #5D478B;">-</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">+</span> remainder <span style="color: #5D478B;">!=</span> dividend_ref<span style="color: #9F79EE;">[</span>N<span style="color: #5D478B;">-</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">&amp;&amp;</span> res_rdy<span style="color: #9F79EE;">)</span> beginb      <span style="color: #00008B; font-style: italic;">//En el testbench se puede usar directamente el signo de multiplicación sin considerar los ciclos de operación</span><br/>
+            error_flag <span style="color: #5D478B;">&lt;=</span> <span style="color: #ff0055;">1'b1</span> <span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">else</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+            error_flag <span style="color: #5D478B;">&lt;=</span> <span style="color: #ff0055;">1'b0</span> <span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+<br/>
+    <span style="color: #00008B; font-style: italic;">//module instantiation</span><br/>
+    divider_man  <span style="color: #5D478B;">#</span><span style="color: #9F79EE;">(</span>.N<span style="color: #9F79EE;">(</span>N<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span> .M<span style="color: #9F79EE;">(</span>M<span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><br/>
+    u_divider<br/>
+     <span style="color: #9F79EE;">(</span><br/>
+      .clk              <span style="color: #9F79EE;">(</span>clk<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .rstn             <span style="color: #9F79EE;">(</span>rstn<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .data_rdy         <span style="color: #9F79EE;">(</span>data_rdy<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .dividend         <span style="color: #9F79EE;">(</span>dividend<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .divisor          <span style="color: #9F79EE;">(</span>divisor<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .res_rdy          <span style="color: #9F79EE;">(</span>res_rdy<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .merchant         <span style="color: #9F79EE;">(</span>merchant<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .remainder        <span style="color: #9F79EE;">(</span>remainder<span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+<br/>
+   <span style="color: #00008B; font-style: italic;">//simulation finish</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">initial</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">forever</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+         <span style="color: #5D478B;">#</span><span style="color: #ff0055;">100</span><span style="color: #5D478B;">;</span><br/>
+         <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span><span style="color: #9932CC;">$time</span> <span style="color: #5D478B;">&gt;=</span> <span style="color: #ff0055;">10000</span><span style="color: #9F79EE;">)</span>  <span style="color: #9932CC;">$finish</span> <span style="color: #5D478B;">;</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+<br/>
+<span style="color: #A52A2A; font-weight: bold;">endmodule</span> <span style="color: #00008B; font-style: italic;">// test</span><br/>
+</div></div>
+<p><strong>Resultados de simulación</strong></p><p>Como se muestra en la figura, los 2 datos de entrada, después de un retraso de ciclos igual al ancho de bits del dividendo, producen el resultado de división correcto. Además, se puede generar la salida en modo segmentado sin retrasos, lo que cumple con el diseño.</p>
+<p>
+<a href="../wp-content/uploads/2020/09/8O0OW0xbv8vWKEQd.png" rel="noopener noreferrer" target="_blank"><img decoding="async" src="../wp-content/uploads/2020/09/8O0OW0xbv8vWKEQd.png"/></a></p>
+<h3>Descarga del código fuente</h3>
+<p><a class="download" download="" href="../wp-content/uploads/2020/09/7.1divider-pipeline-modify.zip">Download</a></p> </p></div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link">← <a href="./verilog-pipeline-design.html" rel="prev">6.7 Segmentación (pipeline) en Verilog</a> </div>
+<div class="next-design-link"><a href="./verilog-fir.html" rel="next">7.2 Diseño de filtro FIR paralelo en Verilog</a> →</div>
+</div>
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>Haz clic para compartir notas</h3>
+&lt;p style="font-size:14px;"&gt;¡La nota debe ser una ampliación del contenido de este artículo!&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;Para enviar un artículo, haga clic aquí&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;Cómo obtener el código de invitación de registro&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; ¡Debe iniciar sesión antes de compartir notas! &lt;a href=".." class="runoob-pop"&gt;Iniciar sesión&lt;/a&gt;&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;Cómo obtener el código de invitación de registro&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=".." id="cancel-comment-reply-link">Cancelar</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="23021"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>Compartir notas</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">Apodo</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">Apodo (obligatorio)</span></li>
+<li class="form-inline"><label class="hide" for="email">Correo electrónico</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">Correo electrónico (obligatorio)</span></li>
+<li class="form-inline"><label class="hide" for="url">Dirección de referencia</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">Dirección de referencia</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  23021;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 23021, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":23021},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+<style>
+@media screen and (max-width: 768px) {
+	#w3cnote-ad728 {
+		display: none;
+	}
+}
+p.note-author {
+    border-bottom: 1px solid #ddd;
+    font-size: 18px;
+    font-weight: bold;
+    color: #78a15a;
+    padding-bottom: 2px;
+    margin-bottom: 4px;
+}
+</style>
+<script>
+var aid = 23021;
+</script>
+</div>
+</div>
+<div class="listcol last right-column">
+<script type="text/javascript">
+jQuery(document).ready(function ($){
+	var total = $(".membership li").length;
+	var left_list = '';
+	href = window.location.href;
+	
+	$(".membership li").each(function(index, value){
+
+		left_list += $(this).html();
+
+		cur_href = $(this).find("a").attr("href");
+		cur_obj = $(this);
+		
+		if(href.match(cur_href) != null) {
+			if(index==0) {
+				$(".previous-design-link").hide();
+			}
+			if(index==(total-1)) {
+				$(".next-design-link").hide();
+			}
+			prev_href = cur_obj.prev("li").find("a").attr("href");
+			prev_title = cur_obj.prev("li").find("a").attr("title");
+
+			next_href = cur_obj.next("li").find("a").attr("href");
+			next_title = cur_obj.next("li").find("a").attr("title");
+			if(prev_title) {
+				$(".previous-design-link a").attr("href", prev_href);
+				$(".previous-design-link a").attr("title", prev_title);
+				$(".previous-design-link a").text(prev_title);
+			} else {
+				$(".previous-design-link").html("");
+			}
+
+			if(next_title) {
+				$(".next-design-link a").attr("href", next_href);
+				$(".next-design-link a").attr("title", next_title);
+				$(".next-design-link a").text(next_title);
+			} else {
+				$(".next-design-link").html("");
+			}
+		}
+	});
+
+	$("#leftcolumn").html(left_list);
+});
+	</script>
+<div class="sidebar-box cate-list">
+<div class="sidebar-box recommend-here list-link">
+<a href="#">Verilog 教程</a> </div>
+<ul class="membership">
+<li><a data-id="22850" href="./verilog-tutorial.html" target="_top" title="1.1 Verilog 教程">1.1 Verilog 教程</a></li>
+<li><a data-id="22851" href="./verilog-intro.html" target="_top" title="1.2 Verilog 简介">1.2 Verilog 简介</a></li>
+<li><a data-id="22852" href="./verilog-install.html" target="_top" title="1.3 Verilog 环境搭建">1.3 Verilog 环境搭建</a></li>
+<li><a data-id="22866" href="./verilog-design-method.html" target="_top" title="1.4 Verilog 设计方法">1.4 Verilog 设计方法</a></li>
+<li><a data-id="22869" href="./verilog-basic-syntax.html" target="_top" title="2.1 Verilog 基础语法">2.1 Verilog 基础语法</a></li>
+<li><a data-id="22870" href="./verilog-number.html" target="_top" title="2.2 Verilog 数值表示">2.2 Verilog 数值表示</a></li>
+<li><a data-id="22871" href="./verilog-data-type.html" target="_top" title="2.3 Verilog 数据类型">2.3 Verilog 数据类型</a></li>
+<li><a data-id="22872" href="./verilog-expression.html" target="_top" title="2.4 Verilog 表达式">2.4 Verilog 表达式</a></li>
+<li><a data-id="22935" href="./verilog-compile-instruction.html" target="_top" title="2.5 Verilog 编译指令">2.5 Verilog 编译指令</a></li>
+<li><a data-id="22931" href="./verilog-assign.html" target="_top" title="3.1 Verilog 连续赋值">3.1 Verilog 连续赋值</a></li>
+<li><a data-id="22933" href="./verilog-time-delay.html" target="_top" title="3.2 Verilog 时延">3.2 Verilog 时延</a></li>
+<li><a data-id="22936" href="./verilog-process-structure.html" target="_top" title="4.1 Verilog 过程结构">4.1 Verilog 过程结构</a></li>
+<li><a data-id="22939" href="./verilog-process-assign.html" target="_top" title="4.2 Verilog 过程赋值">4.2 Verilog 过程赋值</a></li>
+<li><a data-id="22941" href="./verilog-timing-control.html" target="_top" title="4.3 Verilog 时序控制">4.3 Verilog 时序控制</a></li>
+<li><a data-id="22943" href="./verilog-statements-block.html" target="_top" title="4.4 Verilog 语句块">4.4 Verilog 语句块</a></li>
+<li><a data-id="22948" href="./verilog-condition-statement.html" target="_top" title="4.5 Verilog 条件语句">4.5 Verilog 条件语句</a></li>
+<li><a data-id="22950" href="./verilog-case.html" target="_top" title="4.6 Verilog 多路分支语句">4.6 Verilog 多路分支语句</a></li>
+<li><a data-id="22951" href="./verilog-loop.html" target="_top" title="4.7 Verilog 循环语句">4.7 Verilog 循环语句</a></li>
+<li><a data-id="22954" href="./verilog-deassign.html" target="_top" title="4.8 Verilog 过程连续赋值">4.8 Verilog 过程连续赋值</a></li>
+<li><a data-id="22966" href="./verilog-module-port.html" target="_top" title="5.1 Verilog 模块与端口">5.1 Verilog 模块与端口</a></li>
+<li><a data-id="22969" href="./verilog-generate.html" target="_top" title="5.2 Verilog 模块例化">5.2 Verilog 模块例化</a></li>
+<li><a data-id="22972" href="./verilog-defparam.html" target="_top" title="5.3 Verilog 带参数例化">5.3 Verilog 带参数例化</a></li>
+<li><a data-id="22975" href="./verilog-function.html" target="_top" title="6.1 Verilog 函数">6.1 Verilog 函数</a></li>
+<li><a data-id="22982" href="./verilog-task.html" target="_top" title="6.2 Verilog 任务">6.2 Verilog 任务</a></li>
+<li><a data-id="22990" href="./verilog-fsm.html" target="_top" title="6.3 Verilog 状态机">6.3 Verilog 状态机</a></li>
+<li><a data-id="22999" href="./verilog-competition-hazard.html" target="_top" title="6.4 Verilog 竞争与冒险">6.4 Verilog 竞争与冒险</a></li>
+<li><a data-id="23008" href="./verilog-latch.html" target="_top" title="6.5 Verilog 避免 Latch">6.5 Verilog 避免 Latch</a></li>
+<li><a data-id="23011" href="./verilog-testbench.html" target="_top" title="6.6 Verilog 仿真激励">6.6 Verilog 仿真激励</a></li>
+<li><a data-id="23015" href="./verilog-pipeline-design.html" target="_top" title="6.7 Verilog 流水线">6.7 Verilog 流水线</a></li>
+<li>
+	7.1 Verilog 除法器设计	</li>
+<li><a data-id="23222" href="./verilog-fir.html" target="_top" title="7.2 Verilog 并行 FIR 滤波器设计">7.2 Verilog 并行 FIR 滤波器设计</a></li>
+<li><a data-id="23230" href="./verilog-serial-fir.html" target="_top" title="7.3 Verilog 串行 FIR 滤波器设计">7.3 Verilog 串行 FIR 滤波器设计</a></li>
+<li><a data-id="23236" href="./verilog-cic.html" target="_top" title="7.4 Verilog CIC 滤波器设计">7.4 Verilog CIC 滤波器设计</a></li>
+<li><a data-id="23260" href="./verilog-fft.html" target="_top" title="7.5 Verilog FFT 设计">7.5 Verilog FFT 设计</a></li>
+<li><a data-id="23309" href="./verilog-dds.html" target="_top" title="7.6 Verilog DDS 设计">7.6 Verilog DDS 设计</a></li>
+<li><a data-id="23281" href="./verilog-numerical-conversion.html" target="_top" title="8.1 Verilog 数值转换">8.1 Verilog 数值转换</a></li>
+<li><a href="./verilog2-tutorial.html" target="_top" title="Verilog 教程高级篇">Verilog 教程高级篇</a></li></ul></div> </div>
+</div>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+</div><script src="../../lang-switcher.js"></script>
+</body>
+</html>

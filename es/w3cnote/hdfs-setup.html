@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>4.0 Configuración y uso de HDFS | Tutorial para novatos</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="./hdfs-setup.html" rel="canonical"/>
+<meta content="4.0 HDFS 配置与使用" name="keywords"/>
+<meta content="之前提到过的 Hadoop 三种模式：单机模式、伪集群模式和集群模式。单机模式：Hadoop 仅作为库存在，可以在单计算机上执行 MapReduce 任务，仅用于开发者搭建学习和试验环境。伪集群模式：此模式 Hadoop 将以守护进程的形式在单机运行，一般用于开发者搭建学习和试验环境。集群模式：此模式是 Hadoop 的生产环境模式，也就是说这才是 Hadoop 真正使用的模式，用于提供生产级服务。 HDFS 配置和启动  HDFS 和.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div><!-- 导航栏 -->
+<!--  内容  -->
+<div class="container main">
+<div class="row">
+<div class="col middle-column big-middle-column">
+<div class="article">
+<div class="article-heading">
+<h2>4.0 Configuración y uso de HDFS</h2> <h3><em>Categoría</em> <a href="../w3cnote_genre/hadoop.html" title="Hadoop 教程">Tutorial de Hadoop</a> </h3>
+</div>
+<div class="article-body note-body">
+<div class="article-intro">
+<!-- ad start-->
+<!-- ad end-->
+<p><span>Los tres modos de Hadoop mencionados anteriormente:</span><strong><span>Modo local</span></strong><span>、</span><strong><span>Modo pseudocluster</span></strong><span>和</span><strong><span>Modo clúster</span></strong><span>。</span></p><p><strong><span>Modo local</span></strong><span>: Hadoop solo existe como biblioteca, puede ejecutar tareas de MapReduce en una sola computadora, y se utiliza únicamente para que los desarrolladores creen entornos de aprendizaje y experimentación.</span></p><p><strong><span>Modo pseudocluster</span></strong><span>: En este modo, Hadoop se ejecutará en una sola máquina como proceso demonio, generalmente utilizado para que los desarrolladores construyan entornos de aprendizaje y experimentación.</span></p><p><strong><span>Modo clúster</span></strong><span>: Este modo es el modo de entorno de producción de Hadoop, es decir, es el modo que Hadoop utiliza realmente para proporcionar servicios de nivel de producción.</span></p>
+<h2>Configuración y arranque de HDFS</h2>
+<p><span>HDFS, similar a una base de datos, se inicia como proceso demonio. Para usar HDFS, es necesario que el cliente HDFS se conecte al servidor HDFS a través de la red (socket) para utilizar el sistema de archivos.</span></p><p><span>在</span><a href="./hadoop-setup.html"><span>Entorno de ejecución de Hadoop</span></a><span>En el capítulo anterior, ya hemos configurado el entorno básico de Hadoop, con el contenedor llamado hadoop_single. Si la última vez cerró ese contenedor o apagó la computadora y el contenedor se cerró, por favor inicie y entre en ese contenedor.</span></p><p><span>Después de entrar en el contenedor, confirmemos si Hadoop existe:</span></p>
+<pre>hadoop version</pre>
+<p>Si el resultado muestra el número de versión de Hadoop, significa que Hadoop existe.</p>
+<p>A continuación, procederemos con los pasos formales.</p>
+<h3>Crear un usuario hadoop</h3>
+<p>Cree un nuevo usuario llamado hadoop:</p>
+<pre>adduser hadoop</pre>
+<p>Instale una pequeña herramienta para modificar la contraseña del usuario y la gestión de permisos:</p>
+<pre>yum install -y passwd sudo</pre>
+<p>Establezca la contraseña del usuario hadoop:</p>
+<pre>passwd hadoop</pre>
+<p>A continuación, introduzca la contraseña dos veces. ¡Asegúrese de recordarla!</p>
+<p>Cambie el propietario del directorio de instalación de Hadoop al usuario hadoop:</p>
+<pre>chown -R hadoop /usr/local/hadoop</pre>
+<p>Luego use un editor de texto para modificar el archivo /etc/sudoers, y en</p>
+<pre>root    ALL=(ALL)       ALL</pre>
+<p>después agregue una línea</p>
+<pre>hadoop  ALL=(ALL)       ALL</pre>
+<p>Luego salga del contenedor.</p><p>Cierre y haga commit del contenedor hadoop_single a la imagen hadoop_proto:</p>
+<pre>docker stop hadoop_single
+docker commit hadoop_single hadoop_proto</pre>
+<p>Cree un nuevo contenedor hdfs_single:</p>
+<pre>docker run -d --name=hdfs_single --privileged hadoop_proto /usr/sbin/init</pre>
+<p>Así, el nuevo usuario ha sido creado.</p>
+<h3>Iniciar HDFS</h3>
+<p>Ahora entre en el contenedor recién creado:</p>
+<pre>docker exec -it hdfs_single su hadoop</pre>
+<p>Ahora debería ser el usuario hadoop:</p>
+<pre>whoami</pre>
+<p>Debería mostrar "hadoop"</p>
+<p>Genere la clave SSH:</p>
+<pre>ssh-keygen -t rsa</pre><p>Aquí puede pulsar Enter repetidamente hasta que finalice la generación.</p><p>Luego agregue la clave generada a la lista de confianza:</p>
+<pre>ssh-copy-id hadoop@172.17.0.2</pre>
+<p>Consulte la dirección IP del contenedor:</p>
+<pre>ip addr | grep 172</pre>
+<p><img decoding="async" src="../wp-content/uploads/2021/02/hdfs-setup-1.png"/></p>
+<p>De esto se sabe que la dirección IP del contenedor es 172.17.0.2; su IP puede ser diferente.</p>
+<p>Antes de iniciar HDFS, realizamos algunas configuraciones simples. Todos los archivos de configuración de Hadoop se almacenan en el subdirectorio etc/hadoop del directorio de instalación, por lo que podemos entrar en este directorio:</p>
+<pre>cd $HADOOP_HOME/etc/hadoop</pre><p>Aquí modificamos dos archivos: core-site.xml y hdfs-site.xml</p>
+<p>En core-site.xml, agregamos las propiedades bajo la etiqueta:</p>
+<pre>
+&lt;property&gt;
+    &lt;name&gt;fs.defaultFS&lt;/name&gt;
+    &lt;value&gt;hdfs://&lt;你的IP&gt;:9000&lt;/value&gt;
+&lt;/property&gt;</pre>
+<p>En hdfs-site.xml, agregue las propiedades bajo la etiqueta:</p>
+<pre>&lt;property&gt;
+    &lt;name&gt;dfs.replication&lt;/name&gt;
+    &lt;value&gt;1&lt;/value&gt;
+&lt;/property&gt;</pre>
+<p>Formatee la estructura de archivos:</p>
+<pre>hdfs namenode -format</pre>
+<p>Luego inicie HDFS:</p>
+<pre>start-dfs.sh</pre><p>El arranque se divide en tres pasos: iniciar NameNode, DataNode y Secondary NameNode.</p>
+<p>Podemos ejecutar jps para ver los procesos de Java:</p><p><img decoding="async" src="../wp-content/uploads/2021/02/hdfs-setup-2.png"/></p>
+<p>En este punto, el proceso demonio de HDFS se ha establecido. Como HDFS tiene un panel HTTP, podemos acceder a través del navegador a http://IP_de_tu_contenedor:9870/ para ver el panel de HDFS y la información detallada:</p><p><img decoding="async" src="../wp-content/uploads/2021/02/hdfs-setup-3.png"/></p>
+<p>Si aparece esta página, significa que la configuración e iniciación de HDFS fueron exitosas.</p>
+<p>
+<strong>Nota:</strong>Si está utilizando un sistema Linux sin entorno de escritorio y no tiene navegador, puede omitir este paso. Si está utilizando Windows pero no usa Docker Desktop, este paso será difícil de realizar para usted.</p>
+<h2>Uso de HDFS</h2>
+<h3>HDFS Shell</h3><p>Vuelva al contenedor hdfs_single; los siguientes comandos se utilizarán para operar HDFS:</p>
+<pre># 显示根目录 / 下的文件和子目录，绝对路径
+hadoop fs -ls /
+# 新建文件夹，绝对路径
+hadoop fs -mkdir /hello
+# 上传文件
+hadoop fs -put hello.txt /hello/
+# 下载文件
+hadoop fs -get /hello/hello.txt
+# 输出文件内容
+hadoop fs -cat /hello/hello.txt</pre>
+<p>Los comandos más básicos de HDFS se mencionaron anteriormente; además, hay muchas otras operaciones compatibles con los sistemas de archivos tradicionales.</p>
+<h3>
+HDFS API</h3>
+<p>HDFS ya es compatible con muchas plataformas backend; actualmente, la distribución oficial incluye interfaces de programación para C/C++ y Java. Además, los administradores de paquetes de node.js y Python también permiten importar el cliente HDFS.</p>
+<p>La siguiente es la lista de dependencias del administrador de paquetes:</p>
+<p>Maven：</p>
+<pre>
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.apache.hadoop&lt;/groupId&gt;
+        &lt;artifactId&gt;hadoop-client&lt;/artifactId&gt;
+        &lt;version&gt;3.1.4&lt;/version&gt;
+    &lt;/dependency&gt;
+</pre>
+<p>Gradle：</p>
+<pre>providedCompile group: 'org.apache.hadoop', name: 'hadoop-hdfs-client', version: '3.1.4'</pre>
+<p>NPM：</p>
+<pre>npm i webhdfs </pre>
+<p>pip：</p>
+<pre>pip install hdfs</pre><p>Aquí se proporciona un ejemplo de conexión de Java a HDFS (no olvide modificar la dirección IP):</p>
+<div class="example"><h2 class="example">Ejemplo</h2> <div class="example_code">
+<span style="color: #000000; font-weight: bold;">package</span> <span style="color: #006699;">com.runoob</span><span style="color: #339933;">;</span><br/>
+<span style="color: #000000; font-weight: bold;">import</span> <span style="color: #006699;">java.io.IOException</span><span style="color: #339933;">;</span><br/>
+<span style="color: #000000; font-weight: bold;">import</span> <span style="color: #006699;">org.apache.hadoop.conf.Configuration</span><span style="color: #339933;">;</span><br/>
+<span style="color: #000000; font-weight: bold;">import</span> <span style="color: #006699;">org.apache.hadoop.fs.*</span><span style="color: #339933;">;</span><br/>
+<span style="color: #000000; font-weight: bold;">public</span> <span style="color: #000000; font-weight: bold;">class</span> Application <span style="color: #009900;">{</span><br/>
+    <span style="color: #000000; font-weight: bold;">public</span> <span style="color: #000000; font-weight: bold;">static</span> <span style="color: #000066; font-weight: bold;">void</span> main<span style="color: #009900;">(</span><span style="color: #003399;">String</span><span style="color: #009900;">[</span><span style="color: #009900;">]</span> args<span style="color: #009900;">)</span> <span style="color: #009900;">{</span><br/>
+        <span style="color: #000000; font-weight: bold;">try</span> <span style="color: #009900;">{</span><br/>
+            <span style="color: #666666; font-style: italic;">// Configurar la dirección de conexión</span><br/>
+            Configuration conf <span style="color: #339933;">=</span> <span style="color: #000000; font-weight: bold;">new</span> Configuration<span style="color: #009900;">(</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+            conf.<span style="color: #006633;">set</span><span style="color: #009900;">(</span><span style="color: #0000ff;">"fs.defaultFS"</span>, <span style="color: #0000ff;">"hdfs://172.17.0.2:9000"</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+            FileSystem fs <span style="color: #339933;">=</span> FileSystem.<span style="color: #006633;">get</span><span style="color: #009900;">(</span>conf<span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+            <span style="color: #666666; font-style: italic;">// Abrir el archivo y leer la salida</span><br/>
+            Path hello <span style="color: #339933;">=</span> <span style="color: #000000; font-weight: bold;">new</span> Path<span style="color: #009900;">(</span><span style="color: #0000ff;">"/hello/hello.txt"</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+            FSDataInputStream ins <span style="color: #339933;">=</span> fs.<span style="color: #006633;">open</span><span style="color: #009900;">(</span>hello<span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+            <span style="color: #000066; font-weight: bold;">int</span> ch <span style="color: #339933;">=</span> ins.<span style="color: #006633;">read</span><span style="color: #009900;">(</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+            <span style="color: #000000; font-weight: bold;">while</span> <span style="color: #009900;">(</span>ch <span style="color: #339933;">!=</span> <span style="color: #339933;">-</span><span style="color: #cc66cc;">1</span><span style="color: #009900;">)</span> <span style="color: #009900;">{</span><br/>
+                <span style="color: #003399;">System</span>.<span style="color: #006633;">out</span>.<span style="color: #006633;">print</span><span style="color: #009900;">(</span><span style="color: #009900;">(</span><span style="color: #000066; font-weight: bold;">char</span><span style="color: #009900;">)</span>ch<span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+                ch <span style="color: #339933;">=</span> ins.<span style="color: #006633;">read</span><span style="color: #009900;">(</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+            <span style="color: #009900;">}</span><br/>
+            <span style="color: #003399;">System</span>.<span style="color: #006633;">out</span>.<span style="color: #006633;">println</span><span style="color: #009900;">(</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+        <span style="color: #009900;">}</span> <span style="color: #000000; font-weight: bold;">catch</span> <span style="color: #009900;">(</span><span style="color: #003399;">IOException</span> ioe<span style="color: #009900;">)</span> <span style="color: #009900;">{</span><br/>
+            ioe.<span style="color: #006633;">printStackTrace</span><span style="color: #009900;">(</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+        <span style="color: #009900;">}</span><br/>
+    <span style="color: #009900;">}</span><br/>
+<span style="color: #009900;">}</span><br/>
+</div></div>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link">← <a href="./hadoop-intro.html" rel="prev">3.0 Conceptos de Hadoop</a> </div>
+<div class="next-design-link"><a href="./hdfs-cluster.html" rel="next">5.0 Clúster HDFS</a> →</div>
+</div>
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>Haz clic para compartir notas</h3>
+&lt;p style="font-size:14px;"&gt;¡Las notas deben ser una extensión del contenido de este artículo!&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;Envío de artículos, haz clic aquí&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;Cómo obtener el código de invitación de registro&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; Antes de compartir notas debe &lt;a href=".." class="runoob-pop"&gt;iniciar sesión&lt;/a&gt;!&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;Cómo obtener el código de invitación de registro&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=".." id="cancel-comment-reply-link">Cancelar</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="23485"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>Compartir notas</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">Apodo</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">Apodo (obligatorio)</span></li>
+<li class="form-inline"><label class="hide" for="email">Correo electrónico</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">Correo electrónico (obligatorio)</span></li>
+<li class="form-inline"><label class="hide" for="url">Dirección de referencia</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">Dirección de referencia</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  23485;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 23485, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":23485},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+<style>
+@media screen and (max-width: 768px) {
+	#w3cnote-ad728 {
+		display: none;
+	}
+}
+p.note-author {
+    border-bottom: 1px solid #ddd;
+    font-size: 18px;
+    font-weight: bold;
+    color: #78a15a;
+    padding-bottom: 2px;
+    margin-bottom: 4px;
+}
+</style>
+<script>
+var aid = 23485;
+</script>
+</div>
+</div>
+<div class="listcol last right-column">
+<script type="text/javascript">
+jQuery(document).ready(function ($){
+	var total = $(".membership li").length;
+	var left_list = '';
+	href = window.location.href;
+	
+	$(".membership li").each(function(index, value){
+
+		left_list += $(this).html();
+
+		cur_href = $(this).find("a").attr("href");
+		cur_obj = $(this);
+		
+		if(href.match(cur_href) != null) {
+			if(index==0) {
+				$(".previous-design-link").hide();
+			}
+			if(index==(total-1)) {
+				$(".next-design-link").hide();
+			}
+			prev_href = cur_obj.prev("li").find("a").attr("href");
+			prev_title = cur_obj.prev("li").find("a").attr("title");
+
+			next_href = cur_obj.next("li").find("a").attr("href");
+			next_title = cur_obj.next("li").find("a").attr("title");
+			if(prev_title) {
+				$(".previous-design-link a").attr("href", prev_href);
+				$(".previous-design-link a").attr("title", prev_title);
+				$(".previous-design-link a").text(prev_title);
+			} else {
+				$(".previous-design-link").html("");
+			}
+
+			if(next_title) {
+				$(".next-design-link a").attr("href", next_href);
+				$(".next-design-link a").attr("title", next_title);
+				$(".next-design-link a").text(next_title);
+			} else {
+				$(".next-design-link").html("");
+			}
+		}
+	});
+
+	$("#leftcolumn").html(left_list);
+});
+	</script>
+<div class="sidebar-box cate-list">
+<div class="sidebar-box recommend-here list-link">
+<a href="#">Hadoop 教程</a> </div>
+<ul class="membership">
+<li><a data-id="23475" href="./hadoop-tutorial.html" target="_top" title="1.0 Hadoop 教程">1.0 Hadoop 教程</a></li>
+<li><a data-id="23477" href="./hadoop-setup.html" target="_top" title="2.0 Hadoop 运行环境">2.0 Hadoop 运行环境</a></li>
+<li><a data-id="23483" href="./hadoop-intro.html" target="_top" title="3.0 Hadoop 概念">3.0 Hadoop 概念</a></li>
+<li>
+	4.0 HDFS 配置与使用	</li>
+<li><a data-id="23489" href="./hdfs-cluster.html" target="_top" title="5.0 HDFS 集群">5.0 HDFS 集群</a></li>
+<li><a data-id="23491" href="./mapreduce-usage.html" target="_top" title="6.0 MapReduce 使用">6.0 MapReduce 使用</a></li>
+<li><a data-id="23492" href="./mapreduce-coding.html" target="_top" title="7.0 MapReduce 编程">7.0 MapReduce 编程</a></li>
+</ul></div> </div>
+</div>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+</div><script src="../../lang-switcher.js"></script>
+</body>
+</html>

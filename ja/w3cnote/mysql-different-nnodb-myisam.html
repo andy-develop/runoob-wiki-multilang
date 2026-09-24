@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MySQLストレージエンジンInnoDBとMyisamの六大違い | 菜鸟教程</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="./mysql-different-nnodb-myisam.html" rel="canonical"/>
+<meta content="MySQL存储引擎InnoDB与Myisam的六大区别" name="keywords"/>
+<meta content="摘要: MySQL有多种存储引擎，每种存储引擎有各自的优缺点，可以择优选择使用：MyISAM、InnoDB、MERGE、MEMORY(HEAP)、BDB(BerkeleyDB)、EXAMPLE、FEDERATED、ARCHIVE、CSV、BLACKHOLE。  MySQL 有多种存储引擎，每种存储引擎有各自的优缺点，可以择优选择使用：  MyISAM、InnoDB、MERGE、MEMORY(HEAP)、BDB(BerkeleyDB)、E.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div><!-- 导航栏 -->
+<!--  内容  -->
+<div class="container main">
+<div class="row">
+<div class="col middle-column big-middle-column">
+<div class="article">
+<div class="article-heading">
+<h2>MySQLストレージエンジンInnoDBとMyisamの六大違い</h2> <h3><em>分類</em> <a href="../w3cnote_genre/code.html" title="编程技术">プログラミング技術</a> </h3>
+</div>
+<div class="article-body note-body">
+<div class="article-intro">
+<!-- ad start-->
+<!-- ad end-->
+<blockquote><p>概要: MySQLには複数のストレージエンジンがあり、各ストレージエンジンにはそれぞれ長所と短所があります。優れたものを選んで使用できます：MyISAM、InnoDB、MERGE、MEMORY(HEAP)、BDB(BerkeleyDB)、EXAMPLE、FEDERATED、ARCHIVE、CSV、BLACKHOLE。</p></blockquote>
+<p>MySQL には複数のストレージエンジンがあり、各ストレージエンジンにはそれぞれ長所と短所があります。優れたものを選んで使用できます：</p>
+<pre>MyISAM、InnoDB、MERGE、MEMORY(HEAP)、BDB(BerkeleyDB)、EXAMPLE、FEDERATED、ARCHIVE、CSV、BLACKHOLE。</pre>
+<p>MySQL は、異なるテーブルタイプのプロセッサとしていくつかのストレージエンジンをサポートしています。MySQLストレージエンジンには、トランザクション安全テーブルを処理するエンジンと、非トランザクション安全テーブルを処理するエンジンが含まれます：</p>
+<ul><li><p>MyISAM は非トランザクションテーブルを管理します。高速な保存と検索、および全文検索機能を提供します。MyISAM はすべての MySQL 構成でサポートされており、MySQL のデフォルトで別のエンジンを使用するように構成しない限り、デフォルトのストレージエンジンです。</p>
+</li><li><p>MEMORY ストレージエンジンは「インメモリ」テーブルを提供します。MERGE ストレージエンジンは、同じ MyISAM テーブルの集合を単一のテーブルとして処理することを可能にします。MyISAM と同様に、MEMORY と MERGE ストレージエンジンは非トランザクションテーブルを処理し、これらの2つのエンジンもデフォルトで MySQL に含まれています。</p>
+<p>注釈：MEMORY ストレージエンジンは正式に HEAP エンジンとして定義されています。</p></li><li><p>InnoDB と BDB ストレージエンジンはトランザクション安全テーブルを提供します。BDB はそれをサポートする OS 向けにリリースされた MySQL-Max バイナリ配布版に含まれています。InnoDB もすべての MySQL 5.1 バイナリ配布版にデフォルトで含まれており、好みに応じて MySQL を構成してどちらのエンジンも許可または禁止できます。</p></li><li><p>EXAMPLE ストレージエンジンは「スタブ」エンジンであり、何も行いません。このエンジンでテーブルを作成できますが、データは保存も検索もされません。このエンジンの目的は、MySQL ソースコード内の例として、新しいストレージエンジンの書き方を始める方法を示すことです。同様に、その主な関心は開発者向けです。</p></li><li><p>NDB Cluster は、MySQL Cluster が複数のコンピュータに分割されたテーブルを実装するために使用するストレージエンジンです。これは MySQL-Max 5.1 バイナリ配布版で提供されています。このストレージエンジンは現在、Linux、Solaris、Mac OS X でのみサポートされています。将来の MySQL 配布版では、Windows を含む他のプラットフォームでのこのエンジンのサポートを追加したいと考えています。</p></li><li><p>ARCHIVE ストレージエンジンは、インデックスなしで、非常に小さな領域で大量のデータを保存するために使用されます。</p></li><li><p>CSV ストレージエンジンは、データをカンマ区切り形式でテキストファイルに保存します。</p></li><li><p>BLACKHOLE ストレージエンジンはデータを受け入れますが保存せず、検索は常に空のセットを返します。</p></li><li><p>FEDERATED ストレージエンジンは、データをリモートデータベースに保存します。MySQL 5.1 では、MySQL C Client API を使用して MySQL とのみ連携します。将来の配布版では、他のドライバまたはクライアント接続方法を使用して他のデータソースに接続できるようにしたいと考えています。</p></li></ul>
+<h3>比較的よく使われるのは MyISAM と InnoBD です</h3>
+<table class="reference">
+<tbody>
+<tr>
+<td> <strong>  </strong><br/> <br/>    </td>
+<td>   <strong>MyISAM</strong><br/> <br/>    </td>
+<td>   <strong>InnoDB</strong><br/> <br/>    </td>
+</tr>
+<tr>
+<td>   <strong>構成上の違い：</strong><br/> <br/>    </td>
+<td>各 MyISAM はディスク上に3つのファイルとして保存されます。最初のファイルの名前はテーブル名で始まり、拡張子がファイルタイプを示します。<br/> <br/>.frm ファイルはテーブル定義を保存します。<br/> <br/>データファイルの拡張子は .MYD (MYData) です。<br/> <br/>インデックスファイルの拡張子は .MYI (MYIndex) です。<br/> <br/>    </td>
+<td>ディスクベースのリソースは InnoDB テーブルスペースのデータファイルとそのログファイルです。InnoDB テーブルのサイズはオペレーティングシステムのファイルサイズにのみ制限され、通常は 2GB です。<br/>    </td>
+</tr>
+<tr>
+<td>   <strong>トランザクション処理の面</strong><strong>:</strong><br/> <br/>    </td>
+<td>MyISAM タイプのテーブルはパフォーマンスを重視しており、実行速度は InnoDB タイプよりも高速ですが、トランザクションサポートは提供しません。<br/> <br/>    </td>
+<td>InnoDB はトランザクションサポート、外部キー（foreign key<span></span>）などの高度なデータベース機能を提供します。<br/> <br/>    </td>
+</tr>
+<tr>
+<td>   <strong>SELECT   UPDATE,INSERT</strong><strong>，</strong><strong>Delete</strong><strong>操作</strong><br/>    </td>
+<td>大量の SELECT を実行する場合、MyISAM の方が良い選択です。<br/> <br/>    </td>
+<td>   <strong>1.</strong>データが大量の<strong>INSERT</strong><strong>或</strong><strong>UPDATE</strong>、パフォーマンスの観点から、InnoDB テーブルを使用すべきです。<br/> <br/>   <strong>2.DELETE   FROM table</strong>場合、InnoDB はテーブルを再構築せず、1行ずつ削除します。<br/> <br/>   <strong>3.LOAD   TABLE FROM MASTER</strong>操作は InnoDB には効果がありません。解決策は、最初に InnoDB テーブルを MyISAM テーブルに変更し、データをインポートした後に InnoDB テーブルに戻すことです。ただし、追加の InnoDB 機能（外部キーなど）を使用するテーブルには適用できません。<br/> <br/>    </td>
+</tr>
+<tr>
+<td>   <strong>对</strong><strong>AUTO_INCREMENT</strong><strong>の操作</strong><br/> <br/>   <br/>    </td>
+<td>各テーブルの AUTO_INCREMENT 列の内部処理。<br/> <br/>   <strong>MyISAM</strong><strong>为</strong><strong>INSERT</strong><strong>和</strong><strong>UPDATE</strong><strong>操作によりこの列が自動更新されます。</strong>。これにより AUTO_INCREMENT 列がより高速になります（少なくとも10%）。シーケンスの先頭の値が削除された後は再利用できません。（AUTO_INCREMENT 列が複数列インデックスの最後の列として定義されている場合、シーケンスの先頭から削除された値が再利用されることがあります。）<br/> <br/>AUTO_INCREMENT 値は ALTER TABLE または myisamch を使用してリセットできます。<br/> <br/>AUTO_INCREMENT タイプのフィールドについて、InnoDB ではそのフィールドのみのインデックスを含める必要がありますが、MyISAM テーブルでは他のフィールドと一緒に複合インデックスを構築できます。<br/> <br/>より良くより高速な auto_increment 処理<br/> <br/>    </td>
+<td>テーブルに AUTO_INCREMENT 列を指定すると、データディクショナリ内の InnoDB テーブルハンドルには、自動増加カウンタと呼ばれるカウンタが含まれ、その列に新しい値を割り当てるために使用されます。<br/> <br/>自動増加カウンタは主メモリにのみ保存され、ディスク上には保存されません。<br/> <br/>このカウンタのアルゴリズム実装については、参照してください。<br/> <br/>   <strong>AUTO_INCREMENT</strong><strong>列が</strong><strong>InnoDB</strong><strong>でどのように機能するか</strong><br/> <br/>    </td>
+</tr>
+<tr>
+<td>   <strong>テーブルの具体行数</strong><br/>    </td>
+<td>select count(*) from table、MyISAM は保存されている行数を単純に読み出すだけです。注意点として、count(*) ステートメントに where 条件が含まれる場合、両方のテーブルの操作は同じです。<br/> <br/>    </td>
+<td>InnoDB はテーブルの具体的な行数を保存しません。つまり、select count(*) from table を実行すると、InnoDB はテーブル全体をスキャンして行数を計算する必要があります。<br/> <br/>    </td>
+</tr>
+<tr>
+<td>   <strong>锁</strong><br/>    </td>
+<td>テーブルロック<br/> <br/>    </td>
+<td>行ロック（row level でのロック）を提供し、Oracle タイプと一致する非ロック読み取り（non-locking read in<br/>SELECTs）を提供します。さらに、InnoDB テーブルの行ロックも絶対的なものではありません。SQL ステートメントの実行時に MySQL がスキャン範囲を決定できない場合、InnoDB テーブルもテーブル全体をロックします。例えば update table set num=1 where name like "%aaa%"</td>
+</tr>
+</tbody>
+</table>
+<h3>MySQL ストレージエンジン MyISAM と InnoDB はどう選ぶか？</h3>
+<p>MySQL のストレージエンジンは MyISAM と InnoDB の2つだけではありませんが、よく使われるのはこの2つです。サイト運営者が MySQL のストレージエンジンに注意を払ったことがないかもしれませんが、実はストレージエンジンはデータベース設計における重要なポイントの1つです。では、ブログシステムはどのストレージエンジンを使うべきでしょうか？</p>
+<p>以下で、2つのストレージエンジンの違いをそれぞれ見ていきましょう。</p>
+<ul><li>一、InnoDB はトランザクションをサポートし、MyISAM はサポートしません。これは非常に重要です。トランザクションは高度な処理方法であり、一連の追加・削除・変更操作の中でどれか1つでもエラーが発生した場合でもロールバックして元に戻すことができますが、MyISAM ではそれができません。</li><li>二、MyISAM はクエリと挿入を中心としたアプリケーションに適しており、InnoDB は頻繁な変更と高いセキュリティが関係するアプリケーションに適しています。</li><li>三、InnoDB は外部キーをサポートし、MyISAM はサポートしません。</li><li>四、MySQL は 5.1 より前のバージョンではデフォルトのストレージエンジンが MyISAM で、5.1 以降のバージョンではデフォルトのストレージエンジンが InnoDB です。</li><li>五、InnoDB は FULLTEXT タイプのインデックスをサポートしません。</li><li>六、InnoDB はテーブルの行数を保存しません。例えば select count(*) from table のとき、InnoDB は行数を計算するためにテーブル全体をスキャンする必要がありますが、MyISAM は保存されている行数を単純に読み出すだけです。注意点として、count(*) ステートメントに where 条件が含まれる場合、MyISAM もテーブル全体をスキャンする必要があります。</li><li>七、自動増加フィールドについて、InnoDB ではそのフィールドのみのインデックスを含める必要がありますが、MyISAM テーブルでは他のフィールドと一緒に複合インデックスを構築できます。</li><li>八、テーブル全体を空にするとき、InnoDB は1行ずつ削除するため効率が非常に遅いです。MyISAM はテーブルを再構築します。</li><li>九、InnoDB は行ロックをサポートします（ただし、状況によってはテーブル全体をロックすることもあります。例えば<span class="marked">update table set a=1 where user like '%lee%'</span></li></ul>
+<p>上記の9つの違いと個人ブログの特徴を踏まえ、個人ブログシステムには MyISAM を推奨します。ブログでは主な操作は読み取りと書き込みであり、連鎖操作はほとんどないからです。そのため、MyISAM エンジンを選択すると、ブログのページを開く効率が InnoDB エンジンのブログよりも高くなります。もちろん、これはあくまで個人的な提案であり、ほとんどのブログは実際の状況に応じて慎重に選択する必要があります。</p>
+<p><strong>MyISAM と InnoDB の選択と使用に関するいくつかの点：</strong></p>
+<p>MYISAMとINNODBはMySQLデータベースが提供する2つのストレージエンジンです。両者の優劣はそれぞれ一長一短といえます。INNODBはトランザクション機能や行レベルロックなどのリレーショナルデータベースの高度な機能をサポートしますが、MYISAMはサポートしません。MYISAMは性能が優れており、占有するストレージ容量も少なくなります。したがって、どのストレージエンジンを選択するかは、具体的なアプリケーションによって異なります。</p>
+<p>アプリケーションでどうしてもトランザクションを使用する必要があるなら、間違いなくINNODBエンジンを選択すべきです。ただし、INNODBの行レベルロックには条件があることに注意してください。WHERE条件で主キーを使用していない場合は、やはりテーブル全体がロックされます。例えば、DELETE FROM mytable のような削除文です。</p>
+<p>アプリケーションがクエリ性能を重視するなら、MYISAMを使用すべきです。MYISAMはインデックスとデータが分離されており、インデックスは圧縮されているため、メモリをより有効に活用できます。そのため、クエリ性能はINNODBよりも明らかに優れています。圧縮されたインデックスはディスク容量も節約できます。また、MYISAMは全文検索インデックス機能を備えており、LIKEクエリの効率を大幅に最適化できます。</p>
+<p>MYISAMは小規模なアプリケーションにしか使えないという人もいますが、それは単なる偏見です。データ量が比較的多い場合は、アーキテクチャをアップグレードして解決する必要があります。例えば、テーブル分割やデータベース分割（シャーディング）などであって、単にストレージエンジンに依存するものではありません。</p>
+<p><strong>その他の見解：</strong></p>
+<p>現在は一般的にinnodbが選ばれています。主にmyisamのテーブル全体ロック、読み書きの直列化問題、並行処理時のテーブルロックによる効率低下が理由です。myisamは読み書きが集中するアプリケーションでは一般的に選ばれません。</p>
+<p>MySQLデータベースのデフォルトのストレージエンジンについて：</p>
+<p>MyISAMとInnoDBはMySQLの2つのストレージエンジンです。デフォルトインストールであれば、それはInnoDBのはずです。my.iniファイル内に default-storage-engine=INNODB という記述があります。もちろん、テーブル作成時にストレージエンジンを指定することもできます。show create table xx で対応する情報を確認できます。</p>
+<h3>MySQLにおけるInnoDBとMyISAMの比較</h3>
+<p><strong>MyISAM：</strong></p>
+<p>各MyISAMはディスク上に3つのファイルとして保存されます。最初のファイル名はテーブル名で始まり、拡張子がファイルタイプを示します。.frmファイルはテーブル定義を格納します。データファイルの拡張子は.MYD（MYData）です。</p>
+<p>MyISAMテーブルは圧縮可能で、全文検索をサポートしています。トランザクションはサポートせず、外部キーもサポートしません。トランザクションのロールバックが発生した場合、不完全なロールバックとなり、原子性がありません。update実行時にはテーブルロックが行われ、並行性は比較的低くなります。大量のSELECTを実行する場合は、MyISAMの方が良い選択です。</p>
+<p>MyISAMのインデックスとデータは分離されており、インデックスは圧縮されているため、メモリ使用率がかなり向上します。より多くのインデックスをロードできます。一方InnoDBはインデックスとデータが密接に結びついており、圧縮を使用していないため、InnoDBはMyISAMよりもかなりサイズが大きくなります。</p>
+<p>MyISAMがメモリにキャッシュするのはインデックスであり、データではありません。一方InnoDBがメモリにキャッシュするのはデータです。相対的に、サーバーのメモリが大きいほど、InnoDBの利点がより発揮されます。</p>
+<p><strong>利点：</strong>データのクエリが比較的速く、大量のselectに適しており、全文インデックスが可能です。</p>
+<p><strong>欠点：</strong>トランザクションをサポートせず、外部キーもサポートせず、並行性が低く、大量のupdateには適していません。</p>
+<p><strong>InnoDB：</strong></p>
+<p>このタイプはトランザクションセーフです。BDBタイプと同じ特性を持ち、外部キーもサポートしています。InnoDBテーブルは非常に高速です。BDBよりも豊富な機能を備えているため、トランザクションセーフなストレージエンジンが必要な場合は、これを使用することをお勧めします。update時には行ロックが行われ、並行性は比較的高くなります。データに対して大量のINSERTまたはUPDATEを実行する場合は、パフォーマンスの観点からInnoDBテーブルを使用すべきです。</p>
+<p><strong>利点：</strong>トランザクションをサポート、外部キーをサポート、並行性が高く、大量のupdateに適しています。</p>
+<p><strong>欠点：</strong>データのクエリは比較的速いが、大量のselectには適していません。</p>
+<p>トランザクションをサポートするInnoDBタイプのテーブルでは、速度に影響する主な原因は、AUTOCOMMITのデフォルト設定がオンになっており、プログラムが明示的にBEGINを呼び出してトランザクションを開始していないことです。そのため、1件挿入するたびに自動的にコミットされ、速度が著しく低下します。SQLを実行する前にbeginを呼び出し、複数のSQLを1つのトランザクションにまとめる（autocommitがオンでも可能）ことで、パフォーマンスを大幅に向上させることができます。</p>
+<p><strong>基本的な違いは次のとおりです</strong>：MyISAMタイプはトランザクション処理などの高度な処理をサポートしておらず、InnoDBタイプはサポートしています。</p>
+<p>MyISAMタイプのテーブルは性能を重視しており、実行速度はInnoDBタイプよりも高速ですが、トランザクションサポートは提供しません。一方InnoDBはトランザクションサポートや外部キーなどの高度なデータベース機能を提供します。</p>
+<p><strong>その他の比較：</strong></p>
+<p>MyIASMはIASMテーブルの新しいバージョンであり、以下の拡張があります：</p><ul><li>バイナリレベルの移植性。</li><li>NULLカラムのインデックス。</li><li>可変長行に対してISAMテーブルよりも断片化が少ない。</li><li>大容量ファイルをサポート。</li><li>より優れたインデックス圧縮。</li><li>より良いキー統計分布。</li><li>より良く、より高速なauto_increment処理。</li></ul>
+<p><strong>以下は、詳細および具体的な実装の違いです：</strong></p>
+<ul>
+<li>1. InnoDBはFULLTEXTタイプのインデックスをサポートしません。</li><li>2. InnoDBはテーブルの正確な行数を保存しません。つまり、select count(*) from table を実行すると、InnoDBはテーブル全体をスキャンして行数を計算する必要がありますが、MyISAMは保存されている行数を読み出すだけです。注意すべき点は、count(*)文にwhere条件が含まれる場合、両方のテーブルの操作は同じです。</li><li>3. AUTO_INCREMENTタイプのフィールドについて、InnoDBではそのフィールドのみを含むインデックスが必要ですが、MyISAMテーブルでは他のフィールドと一緒に複合インデックスを作成できます。</li><li>4. DELETE FROM table 実行時、InnoDBはテーブルを再構築せず、1行ずつ削除します。</li><li>5. LOAD TABLE FROM MASTER操作はInnoDBでは機能しません。解決方法は、最初にInnoDBテーブルをMyISAMテーブルに変更し、データをインポートした後にInnoDBテーブルへ戻すことです。ただし、追加のInnoDB機能（外部キーなど）を使用しているテーブルには適用できません。</li></ul>
+<p>また、InnoDBテーブルの行ロックも絶対的なものではありません。SQL文を実行する際にMySQLがスキャン範囲を特定できない場合、InnoDBテーブルでも同様にテーブル全体がロックされます。例えば、update table set num=1 where name like "%aaa%" のような場合です。</p>
+<p>どのテーブルタイプも万能ではありません。業務タイプに合わせて適切なテーブルタイプを選択することで、初めてMySQLのパフォーマンス上の利点を最大限に発揮できます。</p>
+<p><strong>innodbとmyisamの更新比較：</strong></p>
+<p>innodbのデータ構成は、主キーに基づいて構築されたB+ツリーです。主キーが明示的に定義されていない場合、innodbはnot null unique keyを主キーとして選択します。それもない場合、innodbは6バイトの主キーを作成します。主キーインデックスはページを指し、具体的な行位置ではありません。</p>
+<p>増分ではない主キーは挿入速度を非常に遅くします。例えば、携帯電話番号や身分証番号を主キーとして使用する場合です。そのため、AUTO_INCREMENTを上手に活用してください。</p>
+<p>テーブルが大きくても怖くありません。怖いのはcountやオフセットの大きいlimitです。大きなlimitのオフセットを limit max_id, xxxxx のように置き換えることができます。</p>
+<pre>Limit 0 1000 | limit 1001 1000 | limit 2001 1000
+
+Limit 0 1000 | where id&gt;max_id1 limit 1000 | where id&gt;max_id2 limit 1000</pre>
+<p>InnoDBにとって、ある列でテーブルを分割しても、単一サーバー上でパフォーマンスを向上させようとすることは意味がありません。</p>
+<p>挿入速度とクエリ速度は、時に調和できない矛盾です。</p>
+<p>InnoDBはcountに適さないというのは間違いです。MyISAMも同様に遅いのです。ただMyISAMはテーブル全体の行数をキャッシュしているため、テーブル全体のcountは高速です。クエリ条件があり、主キーでのクエリではない場合は、違いはありません。主キーでのcountが遅い理由は、innodbが主キーによって構成されており、主キーでcountする際にデータをロードするためです。</p>
+<p>InnoDBのページ式ストレージにより、InnoDBはテーブル全体のキャッシュとホットバックアップをより容易に行えます。</p>
+<p>テーブルのインデックスが多い場合、InnoDBの更新速度はMyISAMよりも速くなります。なぜなら、InnoDBのセカンダリインデックスはテーブルの主キーに関連付けられており、これは論理的な値です。一方、MyISAMのすべてのインデックスはデータの物理的な位置に関連付けられており、更新時にデータの物理的な位置が変わる可能性があります。もし変われば、すべてのインデックスを更新する必要があります。</p>
+<p>InnoDBはテーブルの正確な行数を保存しません。つまり、select count(*) from table を実行すると、InnoDBはテーブル全体をスキャンして行数を計算する必要がありますが、MyISAMは保存された行数を読み出すだけで済みます。注意すべき点は、count(*)文にwhere条件が含まれる場合、両方のテーブルの操作は同じであることです。</p>
+<blockquote><p>原文アドレス：https://my.oschina.net/junn/blog/183341</p></blockquote>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link">← <a href="./java-different-of-string-stringbuffer-stringbuilder.html" rel="prev">JavaのString、StringBuffer、StringBuilderの違い</a> </div>
+<div class="next-design-link"><a href="./mqtt-intro.html" rel="next">MQTT入門紹介</a> →</div>
+</div>
+<style>
+@media screen and (max-width: 768px) {
+	#w3cnote-ad728 {
+		display: none;
+	}
+}
+p.note-author {
+    border-bottom: 1px solid #ddd;
+    font-size: 18px;
+    font-weight: bold;
+    color: #78a15a;
+    padding-bottom: 2px;
+    margin-bottom: 4px;
+}
+</style>
+<script>
+var aid = 19979;
+</script>
+</div>
+</div>
+<div class="listcol last right-column">
+<!--
+	<div class="tab tab-light-blue"> 订阅</div>
+	<div class="sidebar-box">
+		<div class="socialicons">
+			<a href="../feed.html" class="rss">RSS 订阅</a>
+		
+			<form action="..//list.qq.com/cgi-bin/qf_compose_send" method="post">
+			<input type="hidden" value="qf_booked_feedback" name="t">
+			<input type="hidden" value="4b67b6b6c1f5e792559940cab4aebb8f1126fba880bff1a8" name="id">
+			<input class="placeholder" id="feed_email" name="to" value="输入邮箱 订阅笔记" autocomplete="off">
+			<input type="submit" value="订阅" class="btn btn-primary">
+			</form>
+		
+		</div>
+ 
+	</div>
+-->
+<!--
+	<div class="sidebar-box cate-list">
+	<div class="sidebar-box recommend-here list-link">
+			<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">笔记列表</a>
+		</div>
+
+ 
+
+</div>
+-->
+<div class="sidebar-box cate-list" style="display:none;">
+<div class="sidebar-box recommend-here list-link">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">热门文章</a>
+</div>
+<div class="membership">
+<ul class="membership">
+<li><a href="https://mp.weixin.qq.com/s/ZaP6YNgKTCHYy3r2WPBBaw" target="_blank" title="2024 年 04 月 JavaScript 框架排行榜">2024 年 04 月 JavaScript 框架排行榜</a></li>
+<li><a href="https://mp.weixin.qq.com/s/JBR2twC0t6krjjuxqvhsEQ" target="_blank" title="免费、开源、好用的 SQL 客户端合集">免费、开源、好用的 SQL 客户端合集</a></li>
+<li><a href="https://mp.weixin.qq.com/s/TwV3YQjA1glyaW7TiHvhlA" target="_blank" title="优雅的代码规范，提升代码质量">优雅的代码规范，提升代码质量</a></li>
+<li><a href="https://mp.weixin.qq.com/s/CnUJ-2OHPbBKlnVpjDzavA" target="_blank" title="命令行中的趣味世界，牛也能说话，有趣又好玩">命令行中的趣味世界，牛也能说话，有趣又好玩</a></li>
+<li><a href="https://mp.weixin.qq.com/s/7NKl-mD7N8CeSNQlbKDEWA" target="_blank" title="2024 年 05 月编程语言排行榜，Fortran 进入前 10 名，发生了什么？">2024 年 05 月编程语言排行榜，Fortran 进入前 10 名，发生了什么？</a></li>
+<li><a href="https://mp.weixin.qq.com/s/yWlSVDKobtDhThnhirVRpw" target="_blank" title="免费开源的 IDE、数据库管理工具、SSH客户端和FTP客户端">免费开源的 IDE、数据库管理工具、SSH客户端和FTP客户端</a></li>
+</ul>
+</div>
+</div>
+<div class="sidebar-box cate-list">
+<div class="sidebar-box recommend-here list-link">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">教程列表</a>
+</div>
+<div class="cate-items">
+<a href="../ado.html">ADO 教程</a>
+<a href="../ai-agent.html">AI Agent 教程</a>
+<a href="../ai.html">AI 入门教程</a>
+<a href="../ai-math.html">AI 数学基础</a>
+<a href="../ajax.html">Ajax 教程</a>
+<a href="../android.html">Android 教程</a>
+<a href="../angularjs2.html">Angular2 教程</a>
+<a href="../angularjs.html">AngularJS 教程</a>
+<a href="../appml.html">AppML 教程</a>
+<a href="../asp.html">ASP 教程</a>
+<a href="../aspnet.html">ASP.NET 教程</a>
+<a href="../bootstrap.html">Bootstrap 教程</a>
+<a href="../bootstrap4.html">Bootstrap4 教程</a>
+<a href="../bootstrap5.html">Bootstrap5 教程</a>
+<a href="../cprogramming.html">C 教程</a>
+<a href="../c-dsa.html">C 语言数据结构与算法</a>
+<a href="../csharp.html">C# 教程</a>
+<a href="../cplusplus.html">C++ 教程</a>
+<a href="../chartjs.html">Chart.js 教程</a>
+<a href="../claude-code.html">Claude Code 教程</a>
+<a href="../cmake.html">CMake 教程</a>
+<a href="../codex.html">Codex 教程</a>
+<a href="../cssref.html">CSS 参考手册</a>
+<a href="../css.html">CSS 教程</a>
+<a href="../css3.html">CSS3 教程</a>
+<a href="../cursor.html">Cursor 教程</a>
+<a href="../dart.html">Dart 教程</a>
+<a href="../dash.html">Dash 教程</a>
+<a href="../deepseek-harness.html">DeepSeek Harness</a>
+<a href="../django.html">Django 教程</a>
+<a href="../docker.html">Docker 教程</a>
+<a href="../dtd.html">DTD 教程</a>
+<a href="../echarts.html">ECharts 教程</a>
+<a href="../eclipse.html">Eclipse 教程</a>
+<a href="../electron.html">Electron 教程</a>
+<a href="../fastapi.html">FastAPI 教程</a>
+<a href="../firebug.html">Firebug 教程</a>
+<a href="../flask.html">Flask 教程</a>
+<a href="../flutter.html">Flutter 教程</a>
+<a href="../font-awesome.html">Font Awesome 图标</a>
+<a href="../foundation.html">Foundation 教程</a>
+<a href="../git.html">Git 教程</a>
+<a href="../go.html">Go 语言教程</a>
+<a href="../googleapi.html">Google 地图 API 教程</a>
+<a href="../hermes-agent.html">Hermes Agent</a>
+<a href="../highcharts.html">Highcharts 教程</a>
+<a href="../htmldom.html">HTML DOM 教程</a>
+<a href="../tags.html">HTML 参考手册</a>
+<a href="../charsets.html">HTML 字符集</a>
+<a href="../html.html">HTML 教程</a>
+<a href="../http.html">HTTP 教程</a>
+<a href="../ionic.html">ionic 教程</a>
+<a href="../ios.html">iOS 教程</a>
+<a href="../java.html">Java 教程</a>
+<a href="../jsref.html">JavaScript 参考手册</a>
+<a href="../js.html">Javascript 教程</a>
+<a href="../jeasyui.html">jQuery EasyUI 教程</a>
+<a href="../jquerymobile.html">jQuery Mobile 教程</a>
+<a href="../jqueryui.html">jQuery UI 教程</a>
+<a href="../jquery.html">jQuery 教程</a>
+<a href="../json.html">JSON 教程</a>
+<a href="../jsp.html">JSP 教程</a>
+<a href="../julia.html">Julia 教程</a>
+<a href="../jupyter-notebook.html">Jupyter Notebook 教程</a>
+<a href="../kotlin.html">Kotlin 教程</a>
+<a href="../langchain.html">LangChain 教程</a>
+<a href="../latex.html">LaTeX 教程</a>
+<a href="../linux.html">Linux 教程</a>
+<a href="../lua.html">Lua 教程</a>
+<a href="../markdown.html">Markdown 教程</a>
+<a href="../matplotlib.html">Matplotlib 教程</a>
+<a href="../maven.html">Maven 教程</a>
+<a href="../memcached.html">Memcached 教程</a>
+<a href="../mongodb.html">MongoDB 教程</a>
+<a href="../mysql.html">MySQL 教程</a>
+<a href="../nextjs.html">Next.js 教程</a>
+<a href="../nlp.html">NLP 教程</a>
+<a href="../nodejs.html">Node.js 教程</a>
+<a href="../numpy.html">NumPy 教程</a>
+<a href="../obsidian.html">Obsidian 教程</a>
+<a href="../ollama.html">Ollama 教程</a>
+<a href="../opencode.html">OpenCode 教程</a>
+<a href="../opencv.html">OpenCV 教程</a>
+<a href="../pandas.html">Pandas 教程</a>
+<a href="../perl.html">Perl 教程</a>
+<a href="../php.html">PHP 教程</a>
+<a href="../pi-agent.html">Pi Agent</a>
+<a href="../pillow.html">Pillow 教程</a>
+<a href="../playwright.html">Playwright 教程</a>
+<a href="../postgresql.html">PostgreSQL 教程</a>
+<a href="../powershell.html">PowerShell</a>
+<a href="../pycharm.html">Pycharm 教程</a>
+<a href="../python3.html">Python 3 教程</a>
+<a href="../python.html">Python 基础教程</a>
+<a href="../python-design-pattern.html">Python 设计模式</a>
+<a href="../python-qt.html">Python 量化交易</a>
+<a href="../pytorch.html">PyTorch 教程</a>
+<a href="../r.html">R 教程</a>
+<a href="../rdf.html">RDF 教程</a>
+<a href="../react.html">React 教程</a>
+<a href="../redis.html">Redis 教程</a>
+<a href="../restfulapi.html">RESTful API</a>
+<a href="../rss.html">RSS 教程</a>
+<a href="../ruby.html">Ruby 教程</a>
+<a href="../rust.html">Rust 教程</a>
+<a href="../sass.html">Sass 教程</a>
+<a href="../scala.html">Scala 教程</a>
+<a href="../scipy.html">SciPy 教程</a>
+<a href="../selenium.html">Selenium 教程</a>
+<a href="../servlet.html">Servlet 教程</a>
+<a href="../skills.html">Skills 教程</a>
+<a href="../sklearn.html">Sklearn 教程</a>
+<a href="../soap.html">SOAP 教程</a>
+<a href="../sql.html">SQL 教程</a>
+<a href="../sqlite.html">SQLite 教程</a>
+<a href="../svg.html">SVG 教程</a>
+<a href="../svn.html">SVN 教程</a>
+<a href="../swagger.html">Swagger 教程</a>
+<a href="../swift.html">Swift 教程</a>
+<a href="../tailwindcss.html">Tailwind CSS 教程</a>
+<a href="../tcpip.html">TCP/IP 教程</a>
+<a href="../tensorflow.html">TensorFlow 教程</a>
+<a href="../typescript.html">TypeScript 教程</a>
+<a href="../uniapp.html">uni-app 教程</a>
+<a href="../vbscript.html">VBScript 教程</a>
+<a href="../vibe-coding.html">Vibe Coding 教程</a>
+<a href="../vscode.html">VSCode 教程</a>
+<a href="../vue2.html">Vue.js 教程</a>
+<a href="../vue3.html">Vue3 教程</a>
+<a href="../w3c.html">W3C 教程</a>
+<a href="../webservices.html">Web Service 教程</a>
+<a href="../wsdl.html">WSDL 教程</a>
+<a href="../xlink.html">XLink 教程</a>
+<a href="../dom.html">XML DOM 教程</a>
+<a href="../schema.html">XML Schema 教程</a>
+<a href="../xml.html">XML 教程</a>
+<a href="../xpath.html">XPath 教程</a>
+<a href="../xquery.html">XQuery 教程</a>
+<a href="../xslfo.html">XSLFO 教程</a>
+<a href="../xsl.html">XSLT 教程</a>
+<a href="../zig.html">Zig 教程</a>
+<a href="../data-structures.html">数据结构</a>
+<a href="../ml.html">机器学习</a>
+<a href="../regexp.html">正则表达式</a>
+<a href="../assembly.html">汇编语言</a>
+<a href="../quiz.html">测验</a>
+<a href="../browsers.html">浏览器</a>
+<a href="../quality.html">网站品质</a>
+<a href="../web.html">网站建设指南</a>
+<a href="../hosting.html">网站服务器教程</a>
+<a href="../np.html">网络协议</a>
+<a href="../computer-organization.html">计算机组成原理</a>
+<a href="../design-pattern.html">设计模式</a>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

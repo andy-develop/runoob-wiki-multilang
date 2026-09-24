@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RAG と知識検索 | 菜鸟教程</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<link href="../manifest.webmanifest.html" rel="manifest"/>
+<meta content="#10151c" name="theme-color"/>
+<link href="../pwa/icon-192.png.html" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="application-name"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="../ai-agent/retrieval-augmented-generation.html" rel="canonical"/>
+<meta content="RAG 与知识检索" name="keywords"/>
+<meta content="RAG 与知识检索  RAG（Retrieval-Augmented Generation，检索增强生成）是目前最主流的 LLM 落地架构之一。 RAG 的核心思想是：让 LLM 在回答问题时，先从外部知识库中检索相关内容，再基于检索结果生成回答，而不是仅依赖模型训练时记住的知识。  这解决了 LLM 的两个核心痛点：知识截止日期（模型不知道训练后发生的事）和幻觉问题（模型在不确定时会编造答案）。   RAG 基础原理  一个完整的 R.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div>
+<!-- 导航栏 -->
+<style>
+/* 主题切换按钮 */
+/* ===== 主题变量（核心）===== */
+:root {
+  --theme-bg: #ffffff;
+  --theme-border: #e5e7eb;
+  --theme-icon: #333;
+  --theme-hover: #f3f4f6;
+}
+
+.dark {
+  --theme-bg: #1f2937;
+  --theme-border: #374151;
+  --theme-icon: #e5e7eb;
+  --theme-hover: #374151;
+}
+
+/* ===== 按钮容器 ===== */
+.nav-theme-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== 按钮本体 ===== */
+.nav-theme-toggle button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  border-radius: 6px;
+  border: 1px solid var(--theme-border);
+
+  background: var(--theme-bg);
+  color: var(--theme-icon);
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* ===== 图标大小 ===== */
+.nav-theme-toggle i {
+  font-size: 14px;
+}
+
+/* ===== hover 效果 ===== */
+.nav-theme-toggle button:hover {
+  background: var(--theme-hover);
+  transform: translateY(-1px);
+}
+
+/* ===== 点击反馈 ===== */
+.nav-theme-toggle button:active {
+  transform: scale(0.95);
+}
+
+/* ===== 当前激活态（可选）===== */
+.nav-theme-toggle button.active {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+</style>
+<!-- 导航栏 -->
+<nav aria-label="主导航" class="container navigation">
+<div class="row">
+<div class="col nav">
+<!-- PC 导航 -->
+<ul class="pc-nav" id="runoob-detail-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../js/js-tutorial.html">JavaScript</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a data-id="vue" href="#">Vue</a></li>
+<li><a href="../react/react-tutorial.html">React</a></li>
+<li><a href="../python3/python3-tutorial.html">Python3</a></li>
+<li><a href="../java/java-tutorial.html">Java</a></li>
+<li><a href="../cprogramming/c-tutorial.html">C</a></li>
+<li><a href="../cplusplus/cpp-tutorial.html">C++</a></li>
+<li><a href="../csharp/csharp-tutorial.html">C#</a></li>
+<li><a data-id="aiNav" href="#">AI</a></li>
+<li><a href="../go/go-tutorial.html">Go</a></li>
+<li><a href="../sql/sql-tutorial.html">SQL</a></li>
+<li><a href="../linux/linux-tutorial.html">Linux</a></li>
+<li><a href="../vscode/vscode-tutorial.html">VS Code</a></li>
+<li><a data-id="bootstrap" href="#">Bootstrap</a></li>
+<li><a href="../git/git-tutorial.html">Git</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<!-- 主题切换按钮，固定在最右侧 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+<!-- 移动端导航 -->
+<ul class="mobile-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a href="../js/js-tutorial.html">JS</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<li><a class="search-reveal" href="#">搜索</a></li>
+<!-- 移动端主题切换 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon-mobile" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun-mobile" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<!-- 二级导航 -->
+<!--  内容  -->
+<div class="container main">
+<!-- 中间 -->
+<div class="row">
+<div class="runoob-col-md2">
+<div class="left-column">
+<div class="tab" style="overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
+<i aria-hidden="true" class="fa fa-list"></i>
+<span>AI Agent 教程</span>
+</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+<a data-p="par" href="../ai-agent/ai-agent-tutorial.html" target="_top" title="AI Agent(智能体) 教程">
+			AI Agent(智能体) 教程			</a>
+<a data-p="par" href="../ai-agent/ai-agent-intro.html" target="_top" title="AI Agent 简介">
+			AI Agent 简介			</a>
+<a data-p="par" href="../ai-agent/ai-agent-core.html" target="_top" title="AI Agent  核心组件">
+			AI Agent  核心组件			</a>
+<a href="../ai-agent/ai-terminology.html" target="_top" title="AI Agent 术语">AI Agent 术语</a>
+<a href="../ai-agent/ai-agent-working-principle.html" target="_top" title="AI Agent 工作原理">AI Agent 工作原理</a>
+<a href="../ai-agent/ai-architecture.html" target="_top" title="AI 底层架构">AI 底层架构</a>
+<a href="../ai-agent/ai-agent-llm.html" target="_top" title="大语言模型基础">大语言模型基础</a>
+<a href="../ai-agent/llm-multimodal.html" target="_top" title="大模型多模态">大模型多模态</a>
+<a href="../ai-agent/prompt-engineering.html" target="_top" title="提示词工程">提示词工程</a>
+<a href="../ai-agent/token-intro.html" target="_top" title="Token (词元)">Token (词元)</a>
+<a href="../ai-agent/reasoning-planning.html" target="_top" title="推理与规划">推理与规划</a>
+<a href="../ai-agent/vector-database.html" target="_top" title="向量数据库">向量数据库</a>
+<a href="../ai-agent/retrieval-augmented-generation.html" target="_top" title="RAG 与知识检索">RAG 与知识检索</a>
+<a href="../ai-agent/agent-context-engineering.html" target="_top" title="Agent 上下文工程">Agent 上下文工程</a>
+<a href="../ai-agent/agent-architecture.html" target="_top" title="Agent 架构">Agent 架构</a>
+<br/>
+<h2 class="left"> <span class="left_h2">智能体工具</span></h2> <a data-p="par" href="../ai-agent/first-ai-agent.html" target="_top" title="第一个 AI Agent">
+			第一个 AI Agent			</a>
+<a href="../ai-agent/ai-monkeycode.html" target="_top" title="AI 开发平台"> AI 开发平台</a>
+<a href="../ai-agent/openclaw-clawdbot-tutorial.html" target="_top" title="OpenClaw (Clawdbot) 教程"> OpenClaw (Clawdbot) 教程</a>
+<a href="../ai-agent/openclaw-quickstart.html" target="_top" title="OpenClaw 快速上手"> OpenClaw 快速上手</a>
+<a href="../ai-agent/qoderwork.html" target="_top" title="QoderWork 教程"> QoderWork 教程</a>
+<a href="../ai-agent/qoderwake-usage.html" target="_top" title="QoderWake 教程"> QoderWake 教程</a>
+<a href="../ai-agent/workbuddy-usage.html" target="_top" title="WorkBuddy 入门教程"> WorkBuddy 入门教程</a>
+<a href="../ai-agent/ai-workflow.html" target="_top" title="AI 工作流"> AI 工作流</a>
+<a data-p="par" href="../ai-agent/crewai-agent.html" target="_top" title="CrewAI 构建智能体">
+			CrewAI 构建智能体			</a>
+<a data-p="par" href="../ai-agent/langchain-agent.html" target="_top" title="LangChain 制作智能体">
+			LangChain 制作智能体			</a>
+<a href="../ai-agent/langgraph-quick-start.html" target="_top" title="LangGraph 入门教程">LangGraph 入门教程</a>
+<a href="../ai-agent/deep-agents-usage.html" target="_top" title="Deep Agents 入门教程">Deep Agents 入门教程</a>
+<a href="../ai-agent/graphrag-usage.html" target="_top" title="GraphRAG 入门教程">GraphRAG 入门教程</a>
+<a href="../ai-agent/harness-engineering.html" target="_top" title="Harness Engineering">Harness Engineering</a>
+<a href="../ai-agent/hermes-agent.html" target="_top" title="Hermes Agent">Hermes Agent</a>
+<a href="../ai-agent/loop-engineering.html" target="_top" title="Loop Engineering">Loop Engineering</a>
+<a href="../ai-agent/vibe-coding-start.html" target="_top" title="Vibe Coding 入门教程">Vibe Coding</a>
+<a href="../ai-agent/dify-usage.html" title="Dify 入门教程">Dify 入门教程</a>
+<a href="../ai-agent/n8n-usage.html" title="n8n 入门教程">n8n 入门教程 </a>
+<a href="../ai-agent/pi-coding-agent.html" title="Pi Coding Agent">Pi Coding Agent </a>
+<br/><h2 class="left"> <span class="left_h2">Python 实现智能体</span></h2>
+<a href="../ai-agent/python-ai-agent.html" target="_top" title="Python 实现 AI Agent">Python 实现 AI Agent</a>
+<a href="../ai-agent/ai-agent-function-calling.html" target="_top" title="工具调用">工具调用</a>
+<a href="../ai-agent/ai-agent-memory-system-design.html" target="_top" title="记忆系统">记忆系统</a>
+<a data-p="par" href="../ai-agent/ai-agent-python-setup.html" target="_top" title="Python 智能体环境配置">
+			Python 智能体环境配置			</a>
+<a data-p="par" href="../ai-agent/ai-agent-answer-demo.html" target="_top" title="AI Agent 问答实例">
+			AI Agent 问答实例			</a>
+<a data-p="par" href="../ai-agent/python-reasoning-planning.html" target="_top" title="Python 实现推理与规划">
+			推理与规划			</a>
+<a data-p="par" href="../ai-agent/python-rag.html" target="_top" title="Python 实现 RAG 与知识检索">
+			RAG 与知识检索			</a>
+<a data-p="par" href="../ai-agent/multi-agent-system.html" target="_top" title="多智能体系统（Multi-Agent System）">
+			多智能体系统			</a>
+<a data-p="par" href="../ai-agent/tools-integration.html" target="_top" title="AI Agent 工具与外部集成">
+			工具与外部集成			</a>
+<a data-p="par" href="../ai-agent/multimodal-agent.html" target="_top" title="多模态 Agent">
+			多模态 Agent			</a>
+<a data-p="par" href="../ai-agent/evaluation-safety-alignment.html" target="_top" title="Agent 评估、安全与对齐">
+			评估、安全与对齐			</a>
+<a data-p="par" href="../ai-agent/production-deployment.html" target="_top" title="AI Agent 生产部署与工程化">
+			生产部署与工程化			</a>
+<a data-p="par" href="../ai-agent/vertical-applications.html" target="_top" title="AI Agent 垂直应用场景">
+			垂直应用场景			</a>
+<a data-p="par" href="../ai-agent/hugging-face-transformers.html" target="_top" title="Hugging Face Transformers">
+			Hugging Face Transformers			</a>
+</div>
+</div>
+</div>
+</div> <div class="col middle-column">
+<div class="article">
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../ai-agent/reasoning-planning.html" rel="prev">推論と計画（Reasoning &amp; Planning）</a> </div>
+<div class="next-design-link"><a href="../ai-agent/python-reasoning-planning.html" rel="next">Python による推論と計画の実装</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="article-body">
+<div class="article-intro" id="content">
+<h1>RAG と知識検索</h1>
+<p>RAG（Retrieval-Augmented Generation、検索拡張生成）は、現在最も主流な LLM 実装アーキテクチャの一つです。</p>
+<p>RAG の核となる考え方は：<strong>LLM が質問に答える際、まず外部知識ベースから関連内容を検索し、その検索結果に基づいて回答を生成させるのであって</strong>、モデルがトレーニング時に記憶した知識だけに依存するのではありません。</p>
+<p>これにより、LLM の二つの核心的な課題が解決されます：知識のカットオフ日（モデルはトレーニング後に起きたことを知らない）と幻覚問題（モデルが不確かなときに答えをでっち上げること）です。</p>
+<hr/>
+<h2>RAG 基本原理</h2>
+<p>完全な RAG システムは、2つのパイプラインで構成されます：<strong>オフライン索引パイプライン</strong>（ドキュメントを前処理してベクトルデータベースに格納する）と<strong>オンライン検索パイプライン</strong>（ユーザーの質問を受け取り、検索し、生成する）。</p>
+<p>オフライン段階では、元のドキュメントを小さなチャンクに分割し、Embedding モデルでベクトルに変換して、ベクトルデータベースに格納します。</p><p>オンライン段階では、ユーザーの質問も同様にベクトルに変換し、データベースから最も類似したドキュメントチャンクを見つけ、コンテキストとして連結して LLM に渡し、回答を生成させます。</p>
+<p>次の図は RAG の完全なリクエストフローを示しています：</p>
+<svg role="img" viewbox="0 0 680 330" width="100%" xmlns="http://www.w3.org/2000/svg">
+<title>RAG 基本フローチャート</title>
+<desc>RAG の完全なリクエストフロー：ユーザーの質問は Embedding モデルでクエリベクトルに変換され、ベクトルデータベースで類似ドキュメントチャンクを検索し、質問と検索結果を Prompt として連結し、LLM に入力して最終回答を生成します。</desc>
+<style>
+  .th { font-weight: bold; font-size: 14px; fill: #333; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  .ts { font-size: 12px; fill: #666; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  .c-gray rect { fill: #f8f9fa; stroke: #ced4da; }
+  .c-teal rect { fill: #e6fffa; stroke: #319795; }
+  .c-purple rect { fill: #faf5ff; stroke: #805ad5; }
+  .c-amber rect { fill: #fffaf0; stroke: #dd6b20; }
+  .c-coral rect { fill: #fff5f5; stroke: #e53e3e; }
+</style>
+<defs>
+<marker id="arr" markerheight="6" markerwidth="6" orient="auto-start-reverse" refx="8" refy="5" viewbox="0 0 10 10">
+<path d="M2 1L8 5L2 9" fill="none" stroke="#999" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path>
+</marker>
+</defs>
+<g class="c-gray">
+<rect height="44" rx="8" stroke-width="1.5" width="100" x="40" y="136"></rect>
+<text class="th" dominant-baseline="central" text-anchor="middle" x="90" y="158">ユーザーの質問</text>
+</g>
+<line marker-end="url(#arr)" stroke="#999" stroke-width="1.5" x1="140" x2="158" y1="158" y2="158"></line>
+<g class="c-teal">
+<rect height="68" rx="8" stroke-width="1.5" width="120" x="160" y="124"></rect>
+<text class="th" dominant-baseline="central" text-anchor="middle" x="220" y="150">Embedding</text>
+<text class="ts" dominant-baseline="central" text-anchor="middle" x="220" y="170">クエリベクトルに変換</text>
+</g>
+<line marker-end="url(#arr)" stroke="#999" stroke-width="1.5" x1="280" x2="298" y1="158" y2="158"></line>
+<g class="c-purple">
+<rect height="68" rx="8" stroke-width="1.5" width="130" x="300" y="124"></rect>
+<text class="th" dominant-baseline="central" text-anchor="middle" x="365" y="150">ベクトルデータベース</text>
+<text class="ts" dominant-baseline="central" text-anchor="middle" x="365" y="170">類似度検索 Top-K</text>
+</g>
+<line marker-end="url(#arr)" stroke="#999" stroke-width="1.5" x1="430" x2="448" y1="158" y2="158"></line>
+<g class="c-amber">
+<rect height="68" rx="8" stroke-width="1.5" width="110" x="450" y="124"></rect>
+<text class="th" dominant-baseline="central" text-anchor="middle" x="505" y="150">Prompt の連結</text>
+<text class="ts" dominant-baseline="central" text-anchor="middle" x="505" y="170">質問 + ドキュメントチャンク</text>
+</g>
+<line marker-end="url(#arr)" stroke="#999" stroke-width="1.5" x1="505" x2="505" y1="192" y2="210"></line>
+<g class="c-coral">
+<rect height="68" rx="8" stroke-width="1.5" width="210" x="400" y="212"></rect>
+<text class="th" dominant-baseline="central" text-anchor="middle" x="505" y="238">LLM 生成</text>
+<text class="ts" dominant-baseline="central" text-anchor="middle" x="505" y="258">検索結果に基づいて回答</text>
+</g>
+<rect fill="none" height="90" rx="12" stroke="#999" stroke-dasharray="5 3" stroke-width="1.5" width="300" x="260" y="20"></rect>
+<text class="ts" dominant-baseline="central" x="280" y="38">オフライン索引（一回限りの前処理）</text>
+<g class="c-gray">
+<rect height="44" rx="6" stroke-width="1.5" width="80" x="280" y="48"></rect>
+<text class="th" dominant-baseline="central" text-anchor="middle" x="320" y="64">元のドキュメント</text>
+<text class="ts" dominant-baseline="central" text-anchor="middle" x="320" y="80">分割 / クリーニング</text>
+</g>
+<line marker-end="url(#arr)" stroke="#999" stroke-width="1.5" x1="360" x2="374" y1="70" y2="70"></line>
+<g class="c-teal">
+<rect height="44" rx="6" stroke-width="1.5" width="80" x="376" y="48"></rect>
+<text class="th" dominant-baseline="central" text-anchor="middle" x="416" y="64">Embedding</text>
+<text class="ts" dominant-baseline="central" text-anchor="middle" x="416" y="80">ドキュメントベクトルに変換</text>
+</g>
+<line marker-end="url(#arr)" stroke="#999" stroke-width="1.5" x1="456" x2="470" y1="70" y2="70"></line>
+<g class="c-purple">
+<rect height="44" rx="6" stroke-width="1.5" width="70" x="472" y="48"></rect>
+<text class="th" dominant-baseline="central" text-anchor="middle" x="507" y="64">書き込み</text>
+<text class="ts" dominant-baseline="central" text-anchor="middle" x="507" y="80">ベクトルデータベース</text>
+</g>
+<text class="ts" text-anchor="middle" x="340" y="308">オンライン検索フロー（毎回のリクエストで経由）</text>
+</svg>
+<hr/>
+<h2>データ前処理とドキュメント分割（Chunking）</h2>
+<h3>前段の課題：複雑なドキュメント解析</h3>
+<p>分割を行う前に、RAG はしばしば直面するのは<strong>フォーマット解析</strong>という課題です。特に PDF、Word、スキャン文書内の表、画像、多段組みでは、通常のテキスト抽出では意味が大きく乱れやすくなります。</p><p>現在、業界の主流な解決策は、<strong>ドキュメント解析エンジン</strong>（LlamaParse、Unstructured など）またはマルチモーダル大規模モデルを導入し、複雑な画像やテキストを構造化された Markdown に変換して、後続の高品質な分割の基盤を築くことです。</p>
+<h3>ドキュメント分割戦略</h3>
+<p>ドキュメント分割は RAG の効果の基盤であり、分割の粒度は検索品質に直接影響します。チャンクが大きすぎるとノイズが入り、小さすぎるとコンテキストが失われます。一般的な戦略は以下の通りです：</p>
+<table class="reference">
+<thead>
+<tr>
+<th>分割戦略</th>
+<th>適用シーン</th>
+<th>長所</th>
+<th>短所</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>固定サイズ分割</strong></td>
+<td>一般的なテキスト</td>
+<td>実装が簡単、高速</td>
+<td>意味的に完全な文を途中で切る可能性がある</td>
+</tr>
+<tr>
+<td><strong>再帰的文字分割</strong></td>
+<td>構造化テキスト（Markdown、コード）</td>
+<td>段落や文などの意味的な境界を優先して分割</td>
+<td>実装がやや複雑で、適切な区切り文字リストの設定が必要</td>
+</tr>
+<tr>
+<td><strong>セマンティック分割（Semantic）</strong></td>
+<td>長文ドキュメント、書籍</td>
+<td>Embedding を用いて隣接文の類似度を計算し、意味の転換点を自動的に見つけて分割</td>
+<td>計算コストが高く、前処理速度が遅い</td>
+</tr>
+<tr>
+<td><strong>親子ドキュメント検索<br/>(Small-to-Big)</strong></td>
+<td>あらゆるシーンをカバー</td>
+<td>「小さなチャンク」で高精度なベクトル検索を行い、ヒット後に対応する「大きなチャンク」（親ドキュメント）を LLM に返すことで、検索精度とコンテキストの完全性を両立します。</td>
+<td>データベースの設計・保守コストが2倍になる</td>
+</tr>
+</tbody>
+</table>
+<blockquote><p>実践では、分割時に<strong>オーバーラップ（overlap）</strong>を加えることがよくあります。つまり、隣接するチャンク間でいくつかの文字を共有させ、重要な情報が境界で途切れるのを防ぎます。典型的な設定：チャンクサイズ 512 tokens、オーバーラップ 50〜100 tokens。</p></blockquote>
+<div class="example"><h2 class="example">実例：LangChain を使った再帰的分割</h2><div class="example_code">
+<span style="color: Green;font-weight:bold;">from</span> langchain.<span style="color: #05a;">text_splitter</span> <span style="color: Green;font-weight:bold;">import</span> RecursiveCharacterTextSplitter<br/>
+<br/>
+splitter <span style="color: Gray;">=</span> RecursiveCharacterTextSplitter<span style="color: Olive;">(</span><br/>
+    chunk_size<span style="color: Gray;">=</span><span style="color: Maroon;">512</span><span style="color: Gray;">,</span>        <span style="color: #a50"># 各チャンクの最大トークン数</span><br/>
+    chunk_overlap<span style="color: Gray;">=</span><span style="color: Maroon;">50</span><span style="color: Gray;">,</span>      <span style="color: #a50"># 隣接チャンクのオーバーラップトークン数。境界で情報が失われるのを防ぐ</span><br/>
+    separators<span style="color: Gray;">=</span><span style="color: Olive;">[</span><span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span><span style="color: #000099; font-weight: bold;">\n</span>"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"。"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"."</span><span style="color: Gray;">,</span> <span style="color: #a11;">" "</span><span style="color: Gray;">,</span> <span style="color: #a11;">""</span><span style="color: Olive;">]</span>  <span style="color: #a50"># 段落や文を優先して分割</span><br/>
+<span style="color: Olive;">)</span><br/>
+<br/>
+chunks <span style="color: Gray;">=</span> splitter.<span style="color: #05a;">split_text</span><span style="color: Olive;">(</span>document_text<span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"{len(chunks)} 個のドキュメントチャンクに分割しました"</span><span style="color: Olive;">)</span><br/>
+</div></div>
+<hr/>
+<h2>ベクトル検索</h2>
+<h3>Embedding モデル</h3>
+<p>Embedding モデルは、テキストを稠密ベクトル（通常は 768 次元または 1536 次元の浮動小数点数配列）に変換する役割を持ちます。意味的に近いテキストはベクトル空間内で距離が近くなり、これが類似度検索の数学的基盤です。</p>
+<p>一般的な Embedding モデルの比較：</p>
+<table class="reference">
+<thead>
+<tr>
+<th>モデル</th>
+<th>次元</th>
+<th>対応言語</th>
+<th>特徴</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>text-embedding-3-small</code>（OpenAI）</td>
+<td>1536</td>
+<td>多言語</td>
+<td>コストパフォーマンスが高く、大規模な索引に適している</td>
+</tr>
+<tr>
+<td><code>text-embedding-3-large</code>（OpenAI）</td>
+<td>3072</td>
+<td>多言語</td>
+<td>精度が最も高く、コストが比較的高い</td>
+</tr>
+<tr>
+<td><code>BAAI/bge-m3</code></td>
+<td>1024</td>
+<td>中国語と英語</td>
+<td>オープンソース、中国語の性能が優秀、多言語対応</td>
+</tr>
+<tr>
+<td><code>sentence-transformers/all-MiniLM-L6-v2</code></td>
+<td>384</td>
+<td>英語</td>
+<td>サイズが小さく、高速、ローカルでの超軽量デプロイに適している</td>
+</tr>
+</tbody>
+</table>
+<h3>類似度計算と ANN アルゴリズム</h3>
+<p>検索の核心は距離の測定です。最も一般的に使われるのは<strong>コサイン類似度（Cosine Similarity）</strong>、これは2つのベクトルのなす角のコサイン値を計算し、値域は [-1, 1] で、1 に近いほど類似しています。他にもドット積（Dot Product）やユークリッド距離（L2 Distance）があります。</p>
+<p>100万レベルのベクトルでミリ秒単位の検索を実現するため、データベースは通常<strong>近似最近傍（ANN）アルゴリズム</strong>（例：HNSW<strong>HNSW</strong>、IVF）。HNSW は現在最も主流なアルゴリズムで、多層スキップグラフネットワークを構築することで、わずかな精度を犠牲にして桁違いの検索速度向上を実現します。</p>
+<hr/>
+<h2>Advanced RAG（高度なアーキテクチャ）</h2>
+<p>基本アーキテクチャ（Naive RAG）は、検索の不正確さや冗長な情報が多いことによる「コンテキストの埋没」などの問題に直面することがよくあります。Advanced RAG は、<strong>検索前最適化 → 検索融合 → 検索後最適化</strong>という三段階のアーキテクチャでこれを解決します。</p>
+<h3>1、検索前処理：クエリ最適化</h3>
+<p>ユーザーの元の質問は、表現が十分に正確でないことがよくあります：</p>
+<ul>
+<li><strong>クエリ書き換え（Query Rewriting）</strong>：LLM を使って口語的な質問を規範化された検索語に書き換えます。</li>
+<li><strong>HyDE（Hypothetical Document Embedding）</strong>：LLM にまず「当て推量」で仮の回答を生成させます。生成された回答は通常、元の質問よりも多くの業界用語を含むため、この仮回答のベクトルを使って検索すると、より高品質なドキュメントを再取得できることが多いです。</li>
+</ul>
+<h3>2、ハイブリッド検索（Hybrid Search）</h3>
+<p>将<strong>ベクトル検索</strong>（意味を理解し、エラー耐性が高い）と<strong>キーワード検索</strong>（BM25、マッチング精度が高い）の結果を重み付けで融合します。これは固有名詞、製品型番、コード断片を扱う際に特に重要です。従来のベクトル検索は特定の固有名詞で「失敗」しやすいからです。</p>
+<h3>3、検索後最適化：リランキング（Reranking）</h3>
+<p>これは<strong>粗いランキング → 精密なランキング</strong>という二段階設計です。ベクトル検索は高速ですが、スコアリングが十分に正確ではありません。リランキング（Reranking）では、<strong>Cross-Encoder モデルを導入します。</strong>（例：`bge-reranker`）、「質問」と「ドキュメント」をペアでモデルに入力し、共同推論でスコアリングを行います。計算量が大きいため、Top-20 から Top-5 への精選のみを担当します。</p>
+<div class="example"><h2 class="example">実例：リランキング処理の擬似コード</h2><div class="example_code">
+<span style="color: Green;font-weight:bold;">from</span> sentence_transformers <span style="color: Green;font-weight:bold;">import</span> CrossEncoder<br/>
+<br/>
+reranker <span style="color: Gray;">=</span> CrossEncoder<span style="color: Olive;">(</span><span style="color: #a11;">"BAAI/bge-reranker-v2-m3"</span><span style="color: Olive;">)</span> <br/>
+<br/>
+<span style="color: #a50"># 1. 粗選別：ベクトル検索で超高速に Top-50 をリコール</span><br/>
+candidates <span style="color: Gray;">=</span> vector_store.<span style="color: #05a;">similarity_search</span><span style="color: Olive;">(</span>query<span style="color: Gray;">,</span> k<span style="color: Gray;">=</span><span style="color: Maroon;">50</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 2. 精選：「問題、ドキュメント」のペアを構築して正確にスコアリング</span><br/>
+pairs <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">[</span>query<span style="color: Gray;">,</span> doc.<span style="color: #05a;">page_content</span><span style="color: Olive;">]</span> <span style="color: Green;font-weight:bold;">for</span> doc <span style="color: Green;font-weight:bold;">in</span> candidates<span style="color: Olive;">]</span><br/>
+scores <span style="color: Gray;">=</span> reranker.<span style="color: #05a;">predict</span><span style="color: Olive;">(</span>pairs<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 3. 最終的に LLM に渡す Top-5 をフィルタリング</span><br/>
+ranked_docs <span style="color: Gray;">=</span> <span style="color: Teal;">sorted</span><span style="color: Olive;">(</span><span style="color: Teal;">zip</span><span style="color: Olive;">(</span>scores<span style="color: Gray;">,</span> candidates<span style="color: Olive;">)</span><span style="color: Gray;">,</span> reverse<span style="color: Gray;">=</span><span style="color: Teal;">True</span><span style="color: Olive;">)</span><br/>
+final_docs <span style="color: Gray;">=</span> <span style="color: Olive;">[</span>doc <span style="color: Green;font-weight:bold;">for</span> _<span style="color: Gray;">,</span> doc <span style="color: Green;font-weight:bold;">in</span> ranked_docs<span style="color: Olive;">[</span>:<span style="color: Maroon;">5</span><span style="color: Olive;">]</span><span style="color: Olive;">]</span><br/>
+</div></div>
+<h3>4、Self-RAG と CRAG（修正型 RAG）</h3>
+<p>自己反省メカニズムを追加します。例えば CRAG（Corrective RAG）は、検索結果を取得した後、まず LLM が「審査員」としてスコアリングします。ローカル知識ベースに対象の文書が存在しない、または品質が極めて低い場合、システムは自動的に Web Search（Google API など）をトリガーして補完し、幻覚（ハルシネーション）を大幅に低減します。</p>
+<hr/>
+<h2>GraphRAG：知識グラフ + 検索融合</h2>
+<p>従来の RAG は知識ベースを独立したテキスト断片として扱うため、「現 CEO が創業し、かつ時価総額が千億を超える企業をすべて見つける」のような、<strong>ドキュメント横断・多段階推論（マルチホップ推論）</strong>を必要とする複雑な問題には答えられません。<strong>GraphRAG</strong>知識グラフ（Knowledge Graph）を導入し、エンティティと関係を明示的にモデル化します。</p>
+<svg role="img" viewbox="0 0 680 290" width="100%" xmlns="http://www.w3.org/2000/svg">
+<title>GraphRAG アーキテクチャ概略図</title>
+<desc>GraphRAG はベクトル検索と知識グラフを融合します。ユーザーの質問はベクトル検索とグラフ検索を同時にトリガーし、2 つの経路の結果を融合して LLM に入力し、回答を生成します。</desc>
+<style>
+  .th { font-weight: bold; font-size: 14px; fill: #333; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  .ts { font-size: 12px; fill: #666; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  .c-gray rect { fill: #f8f9fa; stroke: #ced4da; }
+  .c-teal rect { fill: #e6fffa; stroke: #319795; }
+  .c-purple rect { fill: #faf5ff; stroke: #805ad5; }
+  .c-amber rect { fill: #fffaf0; stroke: #dd6b20; }
+  .leader { stroke: #999; stroke-dasharray: 4 2; stroke-width: 1.5; }
+</style>
+<defs>
+<marker id="arr2" markerheight="6" markerwidth="6" orient="auto-start-reverse" refx="8" refy="5" viewbox="0 0 10 10">
+<path d="M2 1L8 5L2 9" fill="none" stroke="#999" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path>
+</marker>
+</defs>
+<g class="c-gray">
+<rect height="44" rx="8" stroke-width="1.5" width="140" x="270" y="20"></rect>
+<text class="th" dominant-baseline="central" text-anchor="middle" x="340" y="42">ユーザーの質問</text>
+</g>
+<line marker-end="url(#arr2)" stroke="#999" stroke-width="1.5" x1="340" x2="220" y1="64" y2="110"></line>
+<line marker-end="url(#arr2)" stroke="#999" stroke-width="1.5" x1="340" x2="460" y1="64" y2="110"></line>
+<g class="c-teal">
+<rect height="56" rx="8" stroke-width="1.5" width="140" x="100" y="112"></rect>
+<text class="th" dominant-baseline="central" text-anchor="middle" x="170" y="134">ベクトル検索</text>
+<text class="ts" dominant-baseline="central" text-anchor="middle" x="170" y="152">関連ドキュメントブロック</text>
+</g>
+<g class="c-purple">
+<rect height="56" rx="8" stroke-width="1.5" width="140" x="440" y="112"></rect>
+<text class="th" dominant-baseline="central" text-anchor="middle" x="510" y="134">グラフ検索</text>
+<text class="ts" dominant-baseline="central" text-anchor="middle" x="510" y="152">エンティティ関係サブグラフ</text>
+</g>
+<line marker-end="url(#arr2)" stroke="#999" stroke-width="1.5" x1="170" x2="270" y1="168" y2="210"></line>
+<line marker-end="url(#arr2)" stroke="#999" stroke-width="1.5" x1="510" x2="410" y1="168" y2="210"></line>
+<g class="c-amber">
+<rect height="56" rx="8" stroke-width="1.5" width="180" x="230" y="212"></rect>
+<text class="th" dominant-baseline="central" text-anchor="middle" x="320" y="234">コンテキスト融合</text>
+<text class="ts" dominant-baseline="central" text-anchor="middle" x="320" y="252">ドキュメントブロック + グラフパス</text>
+</g>
+<text class="ts" x="60" y="200">エンティティ A → 関係 → エンティティ B</text>
+<text class="ts" x="60" y="218">エンティティ B → 関係 → エンティティ C</text>
+<line class="leader" x1="168" x2="198" y1="208" y2="230"></line>
+</svg>
+<h3>GraphRAG の中核ステップ</h3>
+<ol>
+<li><strong>知識構築</strong>：オフライン段階で LLM を使用してドキュメントからトリプル（主語、述語、目的語）を抽出し、Neo4j などのグラフデータベースに書き込みます。</li>
+<li><strong>二経路検索</strong>：質問内のエンティティに対して、従来のベクトル検索を行うだけでなく、グラフ内でグラフトラバーサル（Graph Traversal）をトリガーし、多段階の関係チェーンを抽出します。</li>
+<li><strong>テキストとグラフの融合生成</strong>：ベクトル検索で取得した「断片」とグラフ検索で取得した「パス構造」を Prompt に組み込むことで、LLM がグローバルな視点と具体的な詳細の両方を備えるようにします。</li>
+</ol>
+<blockquote><p>GraphRAG 参考コンテンツ：<a href="../ai-agent/graphrag-usage.html" target="_blank">https://www.runoob.com/ai-agent/graphrag-usage.html</a></p></blockquote>
+<hr/>
+<h2>技術とデータベース選定の推奨</h2>
+<table class="reference">
+<thead>
+<tr>
+<th>データベース/ツールの選定</th>
+<th>タイプ</th>
+<th>推奨される導入シナリオ</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Pinecone / Zilliz Cloud</strong></td>
+<td>フルマネージドクラウドサービス</td>
+<td>すぐに使え、インフラを維持管理する必要がありません。Cohere Rerank + GPT-4o と組み合わせるのが最速で商用化できる方法です。</td>
+</tr>
+<tr>
+<td><strong>Qdrant</strong></td>
+<td>オープンソース + マネージド</td>
+<td>Rust で記述されており、メモリ管理に優れ、性能が極めて高い。エンタープライズ向けのプライベートデプロイに適しています。</td>
+</tr>
+<tr>
+<td><strong>Weaviate / Elasticsearch</strong></td>
+<td>オープンソース + マネージド</td>
+<td>非常に成熟した BM25 + ベクトルハイブリッド検索（Hybrid Search）を内蔵しており、固有名詞が多いシナリオで最優先の選択肢です。</td>
+</tr>
+<tr>
+<td><strong>Milvus</strong></td>
+<td>オープンソース分散型</td>
+<td>10億〜100億レベルの超大規模エンタープライズ検索プラットフォームに適しています。</td>
+</tr>
+<tr>
+<td><strong>Chroma / FAISS</strong></td>
+<td>ローカルライブラリ/組み込み型</td>
+<td>非常に軽量で、独立したサービスのデプロイが不要。ローカル開発や個人知識ベースプロジェクトの検証に非常に適しています。</td>
+</tr>
+</tbody>
+</table>
+<hr/>
+<h2>RAG 評価指標（RAGAS フレームワーク）</h2>
+<p>RAG システムの評価は直感だけに頼ることはできず、主流では<strong>RAGAS</strong>フレームワークを使用し、「検索」と「生成」の 2 つの側面から自動化された定量的テストを行います：</p>
+<ul>
+<li><strong>Context Recall（検索リコール率）</strong>：正解中の情報がどの程度の割合で検索できるか。</li>
+<li><strong>Context Precision（検索適合率）</strong>：検索されたドキュメントのうち、どの程度の割合が実際に関連しているか。</li>
+<li><strong>Faithfulness（忠実度/幻覚指標）</strong>：生成された回答が、検索されたドキュメントによってすべて裏付けられているか。</li>
+<li><strong>Answer Relevance（回答関連性）</strong>：生成された回答がユーザーの質問に本当に答えているか。的外れな回答を避ける。</li>
+</ul> その他の拡張
+</div>
+</div>
+<div class="archive-list" style="display:none;font-size: 14px;line-height: 1.8;margin-top: 20px;padding: 10px;">
+<div class="archive-list-item">
+<div class="post-intro" id="ai-info" style="width: 100%;">AI 思考中...</div>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../ai-agent/reasoning-planning.html" rel="prev">推論と計画（Reasoning &amp; Planning）</a> </div>
+<div class="next-design-link"><a href="../ai-agent/python-reasoning-planning.html" rel="next">Python による推論と計画の実装</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="sidebar-box">
+</div>
+ノート一覧
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>クリックしてノートを共有</h3>
+&lt;p style="font-size:14px;"&gt;ノートは本記事の内容の拡張である必要があります！&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;記事の投稿はこちらをクリック&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; ノートを共有する前に&lt;a href=";.html" class="runoob-pop"&gt;ログイン&lt;/a&gt;が必要です！&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=";.html" id="cancel-comment-reply-link">キャンセル</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="30006"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>ノートを共有</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">ニックネーム</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">ニックネーム (必須)</span></li>
+<li class="form-inline"><label class="hide" for="email">メールアドレス</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">メールアドレス (必須)</span></li>
+<li class="form-inline"><label class="hide" for="url">引用アドレス</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">引用アドレス</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  30006;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 30006, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":30006},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+</div>
+</div>
+<!-- 右边栏 -->
+<div class="fivecol last right-column">
+<style>
+.sidebar-tree .double-li {
+    width:300px;
+}
+.sidebar-tree .double-li li {
+    width: 44%;
+    line-height: 1.5em;
+    border-bottom: 1px solid #ccc;
+    float: left;
+    display: inline;
+}
+</style>
+<div class="sidebar-box re-box re-box-large">
+<div class="sidebar-box recommend-here" style="margin: 0 auto;">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;"> <i aria-hidden="true" class="fa fa-list"></i> 分类导航</a>
+</div>
+<div class="sidebar-box sidebar-cate">
+<div class="sidebar-tree">
+<ul><li style="margin: 0;"><a class="tit" href="#"> Python / 数据科学</a><ul class="double-li"><li><a href="../python3/python3-tutorial.html" title="Python 教程">Python 教程</a></li><li><a href="../python/python-tutorial.html" title="Python2.x 教程">Python2.x 教程</a></li><li><a href="../fastapi/fastapi-tutorial.html" title="FastAPI 教程">FastAPI 教程</a></li><li><a href="../flask/flask-tutorial.html" title="Flask 教程">Flask 教程</a></li><li><a href="../django/django-tutorial.html" title="Django 教程">Django 教程</a></li><li><a href="../numpy/numpy-tutorial.html" title="NumPy 教程">NumPy 教程</a></li><li><a href="../pandas/pandas-tutorial.html" title="Pandas 教程">Pandas 教程</a></li><li><a href="../scipy/scipy-tutorial.html" title="SciPy 教程">SciPy 教程</a></li><li><a href="../matplotlib/matplotlib-tutorial.html" title="Matplotlib 教程">Matplotlib 教程</a></li><li><a href="../dash/dash-tutorial.html" title="Dash 教程">Dash 教程</a></li><li><a href="../jupyter-notebook/jupyter-notebook-tutorial.html" title="Jupyter Notebook 教程">Jupyter Notebook 教程</a></li><li><a href="../pillow/pillow-tutorial.html" title="Pillow 教程">Pillow 教程</a></li><li><a href="../qt/qt-tutorial.html" title="量化交易">量化交易</a></li><li><a href="../r/r-tutorial.html" title="R 教程">R 教程</a></li><li><a href="../julia/julia-tutorial.html" title="Julia 教程">Julia 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> AI / 智能开发</a><ul class="double-li"><li><a href="../ai-agent/ai-agent-tutorial.html" title="AI Agent（智能体）">AI Agent（智能体）</a></li><li><a href="../ai/ai-tutorial.html" title="AI（人工智能）">AI（人工智能）</a></li><li><a href="../codex/codex-tutorial.html" title="Codex 教程">Codex 教程</a></li><li><a href="../vibe-coding/vibe-coding-tutorial.html" title="Vibe Coding 教程">Vibe Coding 教程</a></li><li><a href="../claude-code/claude-code-tutorial.html" title="Claude Code">Claude Code</a></li><li><a href="../opencode/opencode-tutorial.html" title="OpenCode">OpenCode</a></li><li><a href="../skills/skills-tutorial.html" title="Skills（技能）">Skills（技能）</a></li><li><a href="../ollama/ollama-tutorial.html" title="Ollama 教程">Ollama 教程</a></li><li><a href="../hermes-agent/hermes-agent-tutorial.html" title="Hermes Agent">Hermes Agent</a></li><li><a href="../deepseek-harness/deepseek-harness-tutorial.html" title="DeepSeek Harness">DeepSeek Harness</a></li><li><a href="../pi-agent/pi-agent-tutorial.html" title="Pi Agent">Pi Agent</a></li><li><a href="../ai-math/ai-math-tutorial.html" title="AI 数学基础">AI 数学基础</a></li><li><a href="../tensorflow/tensorflow-tutorial.html" title="TensorFlow 教程">TensorFlow 教程</a></li><li><a href="../pytorch/pytorch-tutorial.html" title="PyTorch 教程">PyTorch 教程</a></li><li><a href="../sklearn/sklearn-tutorial.html" title="Scikit-learn 教程">Scikit-learn 教程</a></li><li><a href="../ml/ml-tutorial.html" title="机器 教程">机器 教程</a></li><li><a href="../langchain/langchain-tutorial.html" title="LangChain">LangChain</a></li><li><a href="../nlp/nlp-tutorial.html" title="自然语言处理 NLP">自然语言处理 NLP</a></li><li><a href="../opencv/opencv-tutorial.html" title="OpenCV 教程">OpenCV 教程</a></li><li><a href="../selenium/selenium-tutorial.html" title="Selenium 教程">Selenium 教程</a></li><li><a href="../playwright/playwright-tutorial.html" title="Playwright 教程">Playwright 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 前端开发</a><ul class="double-li"><li><a href="../html/html-tutorial.html" title="HTML 教程">HTML 教程</a></li><li><a href="../html/html5-intro.html" title="HTML5 教程">HTML5 教程</a></li><li><a href="../css/css-tutorial.html" title="CSS 教程">CSS 教程</a></li><li><a href="../css3/css3-tutorial.html" title="CSS3 教程">CSS3 教程</a></li><li><a href="../js/js-tutorial.html" title="JavaScript 教程">JavaScript 教程</a></li><li><a href="../htmldom/htmldom-tutorial.html" title="HTML DOM 教程">HTML DOM 教程</a></li><li><a href="../typescript/ts-tutorial.html" title="TypeScript 教程">TypeScript 教程</a></li><li><a href="../ajax/ajax-tutorial.html" title="AJAX 教程">AJAX 教程</a></li><li><a href="../json/json-tutorial.html" title="JSON 教程">JSON 教程</a></li><li><a href="../tailwindcss/tailwindcss-tutorial.html" title="Tailwind CSS 教程">Tailwind CSS 教程</a></li><li><a href="../bootstrap4/bootstrap4-tutorial.html" title="Bootstrap4 教程">Bootstrap4 教程</a></li><li><a href="../bootstrap5/bootstrap5-tutorial.html" title="Bootstrap5 教程">Bootstrap5 教程</a></li><li><a href="../foundation/foundation-tutorial.html" title="Foundation 教程">Foundation 教程</a></li><li><a href="../vue2/vue-tutorial.html" title="Vue.js 教程">Vue.js 教程</a></li><li><a href="../vue3/vue3-tutorial.html" title="Vue3 教程">Vue3 教程</a></li><li><a href="../react/react-tutorial.html" title="React 教程">React 教程</a></li><li><a href="../nextjs/nextjs-tutorial.html" title="Next.js 教程">Next.js 教程</a></li><li><a href="../angularjs/angularjs-tutorial.html" title="AngularJS 教程">AngularJS 教程</a></li><li><a href="../angularjs2/angularjs2-tutorial.html" title="Angular 教程">Angular 教程</a></li><li><a href="../jquery/jquery-tutorial.html" title="jQuery 教程">jQuery 教程</a></li><li><a href="../jqueryui/jqueryui-tutorial.html" title="jQuery UI 教程">jQuery UI 教程</a></li><li><a href="../jeasyui/jqueryeasyui-tutorial.html" title="jQuery EasyUI 教程">jQuery EasyUI 教程</a></li><li><a href="../echarts/echarts-tutorial.html" title="ECharts 教程">ECharts 教程</a></li><li><a href="../chartjs/chartjs-tutorial.html" title="Chart.js 教程">Chart.js 教程</a></li><li><a href="../highcharts/highcharts-tutorial.html" title="Highcharts 教程">Highcharts 教程</a></li><li><a href="../googleapi/google-maps-basic.html" title="Google 地图 教程">Google 地图 教程</a></li><li><a href="../svg/svg-tutorial.html" title="SVG 教程">SVG 教程</a></li><li><a href="../font-awesome/fontawesome-tutorial.html" title="Font Awesome 教程">Font Awesome 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 后端开发</a><ul class="double-li"><li><a href="../nodejs/nodejs-tutorial.html" title="Node.js 教程">Node.js 教程</a></li><li><a href="../electron/electron-tutorial.html" title="Electron 教程">Electron 教程</a></li><li><a href="../php/php-tutorial.html" title="PHP 教程">PHP 教程</a></li><li><a href="../java/java-tutorial.html" title="Java 教程">Java 教程</a></li><li><a href="../go/go-tutorial.html" title="Go 教程">Go 教程</a></li><li><a href="../rust/rust-tutorial.html" title="Rust 教程">Rust 教程</a></li><li><a href="../csharp/csharp-tutorial.html" title="C# 教程">C# 教程</a></li><li><a href="../servlet/servlet-tutorial.html" title="Servlet 教程">Servlet 教程</a></li><li><a href="../jsp/jsp-tutorial.html" title="JSP 教程">JSP 教程</a></li><li><a href="../asp/asp-tutorial.html" title="ASP 教程">ASP 教程</a></li><li><a href="../appml/appml-tutorial.html" title="AppML 教程">AppML 教程</a></li><li><a href="../vbscript/vbscript-tutorial.html" title="VBScript 教程">VBScript 教程</a></li><li><a href="../swagger/swagger-tutorial.html" title="Swagger 教程">Swagger 教程</a></li><li><a href="../restfulapi/restful-api-tutorial.html" title="RESTful API 教程">RESTful API 教程</a></li><li><a href="../docker/docker-tutorial.html" title="Docker 教程">Docker 教程</a></li><li><a href="../linux/linux-tutorial.html" title="Linux 教程">Linux 教程</a></li><li><a href="../w3cnote/zookeeper-tutorial.html" title="ZooKeeper 教程">ZooKeeper 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 数据库</a><ul class="double-li"><li><a href="../sql/sql-tutorial.html" title="SQL 教程">SQL 教程</a></li><li><a href="../mysql/mysql-tutorial.html" title="MySQL 教程">MySQL 教程</a></li><li><a href="../postgresql/postgresql-tutorial.html" title="PostgreSQL 教程">PostgreSQL 教程</a></li><li><a href="../sqlite/sqlite-tutorial.html" title="SQLite 教程">SQLite 教程</a></li><li><a href="../mongodb/mongodb-tutorial.html" title="MongoDB 教程">MongoDB 教程</a></li><li><a href="../redis/redis-tutorial.html" title="Redis 教程">Redis 教程</a></li><li><a href="../memcached/memcached-tutorial.html" title="Memcached 教程">Memcached 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 移动开发</a><ul class="double-li"><li><a href="../w3cnote/android-tutorial-intro.html" title="Android 教程">Android 教程</a></li><li><a href="../flutter/flutter-tutorial.html" title="Flutter 教程">Flutter 教程</a></li><li><a href="../ionic/ionic-tutorial.html" title="Ionic 教程">Ionic 教程</a></li><li><a href="../jquerymobile/jquerymobile-tutorial.html" title="jQuery Mobile 教程">jQuery Mobile 教程</a></li><li><a href="../swift/swift-tutorial.html" title="Swift 教程">Swift 教程</a></li><li><a href="../kotlin/kotlin-tutorial.html" title="Kotlin 教程">Kotlin 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> DevOps / 工程化</a><ul class="double-li"><li><a href="../git/git-tutorial.html" title="Git 教程">Git 教程</a></li><li><a href="../svn/svn-tutorial.html" title="SVN 教程">SVN 教程</a></li><li><a href="../cmake/cmake-tutorial.html" title="CMake 教程">CMake 教程</a></li><li><a href="../maven/maven-tutorial.html" title="Maven 教程">Maven 教程</a></li><li><a href="../vscode/vscode-tutorial.html" title="VS Code 教程">VS Code 教程</a></li><li><a href="../obsidian/obsidian-tutorial.html" title="Obsidian 教程">Obsidian 教程</a></li><li><a href="../pycharm/pycharm-tutorial.html" title="PyCharm 教程">PyCharm 教程</a></li><li><a href="../eclipse/eclipse-tutorial.html" title="Eclipse 教程">Eclipse 教程</a></li><li><a href="../markdown/md-tutorial.html" title="Markdown 教程">Markdown 教程</a></li><li><a href="../latex/latex-tutorial.html" title="LaTeX 教程">LaTeX 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 编程语言</a><ul class="double-li"><li><a href="../c/c-tutorial.html" title="C 教程">C 教程</a></li><li><a href="../cplusplus/cpp-tutorial.html" title="C++ 教程">C++ 教程</a></li><li><a href="../zig/zig-tutorial.html" title="Zig 教程">Zig 教程</a></li><li><a href="../scala/scala-tutorial.html" title="Scala 教程">Scala 教程</a></li><li><a href="../ruby/ruby-tutorial.html" title="Ruby 教程">Ruby 教程</a></li><li><a href="../perl/perl-tutorial.html" title="Perl 教程">Perl 教程</a></li><li><a href="../lua/lua-tutorial.html" title="Lua 教程">Lua 教程</a></li><li><a href="../dart/dart-tutorial.html" title="Dart 教程">Dart 教程</a></li><li><a href="../assembly/assembly-tutorial.html" title="汇编语言 教程">汇编语言 教程</a></li><li><a href="../w3cnote/verilog-tutorial.html" title="Verilog 教程">Verilog 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 计算机基础</a><ul class="double-li"><li><a href="../computer-organization/computer-organization-tutorial.html" title="计算机组成原理">计算机组成原理</a></li><li><a href="../data-structures/data-structures-tutorial.html" title="数据结构与算法">数据结构与算法</a></li><li><a href="../c-dsa/c-dsa-tutorial.html" title="C 语言数据结构与算法">C 语言数据结构与算法</a></li><li><a href="../design-pattern/design-pattern-tutorial.html" title="设计模式">设计模式</a></li><li><a href="../python-design-pattern/python-design-pattern-tutorial.html" title="Python 设计模式">Python 设计模式</a></li><li><a href="../regexp/regexp-tutorial.html" title="正则表达式">正则表达式</a></li><li><a href="../http/http-tutorial.html" title="HTTP 教程">HTTP 教程</a></li><li><a href="../tcpip/tcpip-tutorial.html" title="TCP/IP 教程">TCP/IP 教程</a></li><li><a href="../np/np-tutorial.html" title="网络协议">网络协议</a></li><li><a href="../w3c/w3c-tutorial.html" title="W3C 教程">W3C 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> XML / Web Service</a><ul class="double-li"><li><a href="../xml/xml-tutorial.html" title="XML 教程">XML 教程</a></li><li><a href="../dtd/dtd-tutorial.html" title="DTD 教程">DTD 教程</a></li><li><a href="../dom/dom-tutorial.html" title="XML DOM 教程">XML DOM 教程</a></li><li><a href="../xsl/xsl-tutorial.html" title="XSLT 教程">XSLT 教程</a></li><li><a href="../xpath/xpath-tutorial.html" title="XPath 教程">XPath 教程</a></li><li><a href="../xquery/xquery-tutorial.html" title="XQuery 教程">XQuery 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XLink 教程">XLink 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XPointer 教程">XPointer 教程</a></li><li><a href="../schema/schema-tutorial.html" title="XML Schema 教程">XML Schema 教程</a></li><li><a href="../xslfo/xslfo-tutorial.html" title="XSL-FO 教程">XSL-FO 教程</a></li><li><a href="../webservices/webservices-tutorial.html" title="Web Service 教程">Web Service 教程</a></li><li><a href="../wsdl/wsdl-tutorial.html" title="WSDL 教程">WSDL 教程</a></li><li><a href="../soap/soap-tutorial.html" title="SOAP 教程">SOAP 教程</a></li><li><a href="../rss/rss-tutorial.html" title="RSS 教程">RSS 教程</a></li><li><a href="../rdf/rdf-tutorial.html" title="RDF 教程">RDF 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> .NET</a><ul class="double-li"><li><a href="../aspnet/aspnet-tutorial.html" title="ASP.NET 教程">ASP.NET 教程</a></li><li><a href="../aspnet/mvc-intro.html" title="MVC 教程">MVC 教程</a></li><li><a href="../aspnet/razor-intro.html" title="Razor 教程">Razor 教程</a></li><li><a href="../aspnet/aspnet-intro.html" title="Web Forms 教程">Web Forms 教程</a></li><li><a href="../aspnet/webpages-intro.html" title="Web Pages 教程">Web Pages 教程</a></li><li><a href="../powershell/powershell-tutorial.html" title="PowerShell 教程">PowerShell 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 网站建设</a><ul class="double-li"><li><a href="../web/web-buildingprimer.html" title="网站建设指南">网站建设指南</a></li><li><a href="../browsers/browser-information.html" title="浏览器信息">浏览器信息</a></li><li><a href="../hosting/hosting-tutorial.html" title="网站主机教程">网站主机教程</a></li><li><a href="../quality/quality-tutorial.html" title="网站品质">网站品质</a></li></ul></li></ul> </div>
+</div>
+</div>
+<br/>
+<div class="sidebar-box re-box re-box-large">
+</div>
+</div></div>
+</div>
+<script>
+var aid = 30006;
+function coll() {
+	$.post( '/wp-content/themes/runoob/option/user/userinfo.php', {aid:aid, action:"collarticle", opt:'add'},function( data ) {
+		if(data.error==0) {
+			$("#content").find("h1:first").find("a").attr("href","javascript:void(0);");
+			$("#content").find("h1:first").find("img").attr("src","http://www.runoob.com/wp-content/themes/runoob/assets/img/coll2.png").css({width:32+"px",height:32+"px"});
+		}
+		alert(data.msg);
+	},'json');
+}
+
+(function () {
+    // 1. 仅 HTML 页面
+    if (!document.contentType || !document.contentType.includes('text/html')) return;
+
+    // 2. 容器判断
+    var container = document.querySelector('.article-intro');
+    if (!container) return;
+
+    var h1 = container.querySelector('h1');
+    if (!h1) return;
+
+    // 3. URL 判断
+    var url = window.location.href.toLowerCase();
+    var version = null;
+
+    if (url.includes('/python3/')) {
+        version = 'Python3.x';
+    } else if (url.includes('/python/')) {
+        version = 'Python2.x';
+    }
+
+    if (!version) return;
+
+    // 4. 防重复
+    if (h1.querySelector('.py-version-badge')) return;
+
+    // 5. 创建标签
+    var badge = document.createElement('span');
+    badge.className = 'py-version-badge';
+    badge.innerText = version;
+
+    // 6. 样式（核心：float 实现右上角）
+    badge.style.float = 'right';
+    badge.style.fontSize = '12px';
+    badge.style.padding = '2px 8px';
+    badge.style.borderRadius = '999px';
+
+   // 自适应亮/暗色 + 渐变背景（增强版）
+	badge.style.color = 'inherit';
+
+	// 渐变背景（低透明度，不影响暗黑模式）
+	if (version.includes('3')) {
+		badge.style.background = 'linear-gradient(90deg, rgba(79,172,254,0.15), rgba(0,242,254,0.15))';
+	} else {
+		badge.style.background = 'linear-gradient(90deg, rgba(161,140,209,0.15), rgba(251,194,235,0.15))';
+	}
+
+	// 边框弱化（更精致）
+	badge.style.border = '1px solid rgba(127,127,127,0.3)';
+
+	// 提升可读性
+	badge.style.opacity = '0.95';
+
+    // 微调位置（更贴近“右上角”）
+    badge.style.marginTop = '4px';
+    badge.style.marginLeft = '10px';
+
+    // 7. 插入到 h1 最前面（让 float 生效更稳定）
+    h1.insertBefore(badge, h1.firstChild);
+
+})();
+</script>
+<!-- 反馈对话框开始 -->
+<script src="../wp-content/themes/runoob/assets/js/runoob-article-dir.min.js"></script>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

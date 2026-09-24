@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Búsqueda - Espejo de Tutorial para Novatos</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f4f3ee; color: #1A1B1C; }
+.search-header { background: #fff; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); position: sticky; top: 0; z-index: 100; }
+.search-container { max-width: 800px; margin: 0 auto; }
+.search-box { display: flex; gap: 10px; }
+.search-box input { flex: 1; padding: 12px 16px; font-size: 16px; border: 1px solid #ddd; border-radius: 6px; outline: none; }
+.search-box input:focus { border-color: #5c9e6e; }
+.search-box button { padding: 12px 24px; font-size: 16px; background: #5c9e6e; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
+.search-box button:hover { background: #4a8a5c; }
+.search-info { max-width: 800px; margin: 16px auto; padding: 0 20px; color: #666; font-size: 14px; }
+.results { max-width: 800px; margin: 0 auto; padding: 0 20px 40px; }
+.result-item { background: #fff; padding: 16px 20px; margin-bottom: 12px; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.result-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+.result-title { font-size: 17px; font-weight: 600; color: #2c5f3d; text-decoration: none; display: block; margin-bottom: 6px; }
+.result-title:hover { text-decoration: underline; }
+.result-url { font-size: 12px; color: #999; margin-bottom: 8px; word-break: break-all; }
+.result-snippet { font-size: 14px; color: #555; line-height: 1.6; }
+.result-snippet mark { background: #fff3cd; padding: 0 2px; border-radius: 2px; }
+.loading { text-align: center; padding: 40px; color: #999; }
+.no-result { text-align: center; padding: 40px; color: #999; }
+.highlight { color: #5c9e6e; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="search-header">
+<div class="search-container">
+<div class="search-box">
+<input autocomplete="off" id="q" placeholder="搜索教程、知识点、代码示例..." type="text"/>
+<button onclick="doSearch()">搜索</button>
+</div>
+</div>
+</div>
+<div class="search-info" id="info"></div>
+<div class="results" id="results">
+<div class="loading">正在加载搜索索引...</div>
+</div>
+<script>
+let searchIndex = null;
+let indexLoaded = false;
+
+// 分词: 英文单词 + 中文2-gram
+function tokenize(text) {
+    const tokens = [];
+    const lower = text.toLowerCase();
+    // 英文单词和数字
+    const enMatches = lower.match(/[a-z][a-z0-9]+|\d+/g);
+    if (enMatches) {
+        for (const w of enMatches) {
+            if (w.length >= 2) tokens.push(w);
+        }
+    }
+    // 中文 2-gram
+    const cnSegments = lower.match(/[\u4e00-\u9fff]+/g);
+    if (cnSegments) {
+        for (const seg of cnSegments) {
+            if (seg.length === 1) {
+                tokens.push(seg);
+            } else {
+                for (let i = 0; i < seg.length - 1; i++) {
+                    tokens.push(seg.substring(i, i + 2));
+                }
+            }
+        }
+    }
+    return tokens;
+}
+
+// RRF 融合排序
+function rrf(rankings, k) {
+    k = k || 60;
+    const scores = {};
+    for (const ranking of rankings) {
+        ranking.forEach((docId, rank) => {
+            scores[docId] = (scores[docId] || 0) + 1 / (k + rank + 1);
+        });
+    }
+    return Object.entries(scores).sort((a, b) => b[1] - a[1]);
+}
+
+// 加载索引
+async function loadIndex() {
+    if (indexLoaded) return;
+    document.getElementById('results').innerHTML = '<div class="loading">正在加载搜索索引...</div>';
+    try {
+        const resp = await fetch('search-index.json');
+        searchIndex = await resp.json();
+        indexLoaded = true;
+        console.log('索引加载完成, 文档数:', searchIndex.docs.length);
+    } catch (e) {
+        document.getElementById('results').innerHTML = '<div class="no-result">搜索索引加载失败: ' + e.message + '</div>';
+    }
+}
+
+// 执行搜索
+function search(query) {
+    if (!searchIndex || !query.trim()) return;
+    
+    const queryTokens = tokenize(query);
+    if (queryTokens.length === 0) {
+        document.getElementById('results').innerHTML = '<div class="no-result">请输入搜索关键词</div>';
+        return;
+    }
+    
+    const titleIdx = searchIndex.title;
+    const bodyIdx = searchIndex.body;
+    const docs = searchIndex.docs;
+    
+    // 排序列表1: 标题匹配 (按匹配的查询词数量排序)
+    const titleScores = {};
+    for (const tok of queryTokens) {
+        if (titleIdx[tok]) {
+            for (const docId of titleIdx[tok]) {
+                titleScores[docId] = (titleScores[docId] || 0) + 1;
+            }
+        }
+    }
+    const titleRanking = Object.entries(titleScores).sort((a,b) => b[1] - a[1]).map(e => parseInt(e[0]));
+    
+    // 排序列表2: 正文匹配 (按词频排序)
+    const bodyScores = {};
+    for (const tok of queryTokens) {
+        if (bodyIdx[tok]) {
+            for (const docId of bodyIdx[tok]) {
+                bodyScores[docId] = (bodyScores[docId] || 0) + 1;
+            }
+        }
+    }
+    const bodyRanking = Object.entries(bodyScores).sort((a,b) => b[1] - a[1]).map(e => parseInt(e[0]));
+    
+    // 排序列表3: 匹配的不同查询词数量(标题+正文合并)
+    const coverageScores = {};
+    for (const tok of queryTokens) {
+        const matched = new Set();
+        if (titleIdx[tok]) titleIdx[tok].forEach(d => matched.add(d));
+        if (bodyIdx[tok]) bodyIdx[tok].forEach(d => matched.add(d));
+        for (const docId of matched) {
+            coverageScores[docId] = (coverageScores[docId] || 0) + 1;
+        }
+    }
+    const coverageRanking = Object.entries(coverageScores).sort((a,b) => b[1] - a[1]).map(e => parseInt(e[0]));
+    
+    // RRF 融合三个排序列表
+    const fused = rrf([titleRanking, bodyRanking, coverageRanking], 60);
+    
+    // 取 Top 50
+    const results = fused.slice(0, 50);
+    
+    // 渲染结果
+    const info = document.getElementById('info');
+    info.innerHTML = `搜索 "<span class="highlight">${escapeHtml(query)}</span>"，找到 <span class="highlight">${results.length}</span> 个结果（分词: ${queryTokens.join(', ')}）`;
+    
+    if (results.length === 0) {
+        document.getElementById('results').innerHTML = '<div class="no-result">没有找到相关内容，试试其他关键词</div>';
+        return;
+    }
+    
+    let html = '';
+    for (const [docId, score] of results) {
+        const doc = docs[docId];
+        if (!doc) continue;
+        // 生成摘要 (从标题和URL)
+        const snippet = generateSnippet(doc, queryTokens);
+        html += `
+        <div class="result-item">
+            <a class="result-title" href="${doc.url}">${escapeHtml(doc.title)}</a>
+            <div class="result-url">${doc.url}</div>
+            <div class="result-snippet">${snippet}</div>
+        </div>`;
+    }
+    document.getElementById('results').innerHTML = html;
+}
+
+// 生成摘要
+function generateSnippet(doc, queryTokens) {
+    let text = doc.title + ' ' + doc.url;
+    // 高亮查询词
+    for (const tok of queryTokens) {
+        if (tok.length >= 2) {
+            const regex = new RegExp(tok.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+            text = text.replace(regex, '<mark>$&</mark>');
+        }
+    }
+    return text.substring(0, 200);
+}
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+// 从URL获取查询参数 (同时支持 q 和 s)
+function getQueryParam(name) {
+    const match = window.location.search.match(new RegExp('[?&]' + name + '=([^&]*)'));
+    return match ? decodeURIComponent(match[1]) : '';
+}
+
+function getSearchQuery() {
+    return getQueryParam('q') || getQueryParam('s') || '';
+}
+
+function getSearchInput() {
+    return document.getElementById('q') || document.getElementById('s') || document.querySelector('input[name="q"]') || document.querySelector('input[name="s"]');
+}
+
+// 搜索入口
+async function doSearch() {
+    const input = getSearchInput();
+    const q = input ? input.value.trim() : '';
+    if (!q) return;
+    // 更新URL
+    const newUrl = window.location.pathname + '?q=' + encodeURIComponent(q);
+    history.pushState({}, '', newUrl);
+    await loadIndex();
+    search(q);
+}
+
+// 回车搜索
+document.addEventListener('DOMContentLoaded', async () => {
+    const q = getSearchQuery();
+    const input = getSearchInput();
+    if (q && input) {
+        input.value = q;
+    }
+    await loadIndex();
+    if (q) {
+        search(q);
+    } else {
+        document.getElementById('results').innerHTML = '<div class="no-result">输入关键词开始搜索</div>';
+    }
+    
+    if (input) {
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') doSearch();
+        });
+    }
+    
+    // 监听浏览器前进后退
+    window.addEventListener('popstate', () => {
+        const q = getSearchQuery();
+        const input = getSearchInput();
+        if (input) input.value = q || '';
+        if (q) search(q);
+    });
+});
+</script>
+<script src="../lang-switcher.js"></script>
+</body>
+</html>

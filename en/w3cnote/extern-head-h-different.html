@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>The difference and connection between extern and header files (*.h) | Rookie Tutorial</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="./extern-head-h-different.html" rel="canonical"/>
+<meta content="extern 与头文件(*.h)的区别和联系" name="keywords"/>
+<meta content="用 #include 可以包含其他头文件中变量、函数的声明，为什么还要 extern 关键字？  如果我想引用一个全局变量或函数a，我只要直接在源文件中包含 #include&amp;lt;xxx.h&amp;gt; (xxx.h包含了a的声明)不就可以了么，为什么还要用 extern 呢？ 这个问题一直也是似是而非的困扰着我许久，经过实践和查找资料，有如下总结：  一、头文件  首先说下头文件，其实头文件对计算机而言没什么作用，她只是.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div><!-- 导航栏 -->
+<!--  内容  -->
+<div class="container main">
+<div class="row">
+<div class="col middle-column big-middle-column">
+<div class="article">
+<div class="article-heading">
+<h2>The difference and connection between extern and header files (*.h)</h2> <h3><em>Category</em> <a href="../w3cnote_genre/index.html" title=""></a> </h3>
+</div>
+<div class="article-body note-body">
+<div class="article-intro">
+<!-- ad start-->
+<!-- ad end-->
+<p>用 <span class="marked">#include</span>Why do we still need the extern keyword when we can include declarations of variables and functions from other header files?</p>
+<p>If I want to reference a global variable or function a, can't I just directly include #include&lt;xxx.h&gt; in the source file (xxx.h contains the declaration of a)? Why do I still need to use extern?</p>
+<p>This question, which seemed right but was actually wrong, troubled me for a long time. After practice and consulting materials, I have the following summary:</p>
+<h3>I. Header files</h3>
+<p>First, let's talk about header files. Actually, header files have no real effect on the computer. They are only expanded at the location during precompilation...<strong>#include</strong>...it is expanded, and there is no other meaning. Actually, header files are mainly for others to read.</p>
+<p>I did an experiment. I changed the extension of the header file to xxx.txt, and then used #include "xxx.txt" where the header file was referenced. Compilation and linking both passed smoothly. From this, it can be seen that header files only serve the purpose of reading code; they have no other function!</p>
+<p>Whether it's C or C++, you put your functions, variables, or structs, classes, etc. into your .c or .cpp files. Then compile them into lib, dll, obj, .o, etc. Then when others use them, the most basic [command] is gcc hisfile.cpp yourfile.o|obj|dll|lib, etc.</p>
+<p>But for us programmers, how do they know what exactly is in your lib, dll...? They need to look at your header file. Your header file is the documentation for users: explanations of functions, parameters, and various interfaces.</p>
+<p>Since it is documentation, what naturally goes in the header file are the 'declarations' of functions, variables, and classes (for functions, also called function prototypes). Remember, it's 'declaration', not 'definition'.</p>
+<p>Now, I assume everyone knows the difference between declaration and definition. Therefore, it's best not to foolishly define anything in a header file. For example, a global variable:</p>
+<pre>/*xx头文件*/
+#ifndef _XX_头文件.H
+#define _XX_头文件.H
+int A;
+#endif</pre>
+<p>Then, unfortunately, the int A here is a definition of a global variable, so if this header file is referenced multiple times, your A will be defined repeatedly, which is obviously syntactically wrong. However, with the conditional compilation of #ifndef, it can ensure that your header file is only referenced once, so maybe there won't be any trouble, but if multiple c files include this header file, errors will still occur, because the effective scope of the macro name is limited to the current c source file. Therefore, no error will occur during compilation of these multiple c files, but an error will be reported during linking, saying that you have defined the same variable in multiple places:</p>
+<pre>Linking...
+incl2.obj : error LNK2005: "int glb" (?glb@@3HA) already defined in incl1.obj
+Debug/incl.exe : fatal error LNK1169: one or more multiply defined symbols found</pre><h3>II. extern</h3>
+<p>This keyword is really quite annoying. When defining a variable, this extern can actually be omitted (all are omitted by default when defining). When declaring a variable, this extern must be added before the variable, so sometimes it makes you confused about whether it is a declaration or a definition. In other words, having extern before a variable is not necessarily a declaration, but having no extern before a variable can only be a definition. Note: a definition allocates memory space for the variable, while a declaration does not need to allocate memory space for the variable.</p>
+<p>Below, I'll discuss it in two categories: variables and functions.</p>
+<p><strong>(1) Variables</strong></p>
+<p>Especially for variables:</p>
+<pre>extern int a; // 声明一个全局变量 a
+int a; // 定义一个全局变量 a
+extern int a =0 ; // 定义一个全局变量 a 并给初值。
+int a =0;    // 定义一个全局变量 a, 并给初值，
+</pre>
+<p>The fourth one is the same as the third one; both define a global variable that can be used externally and provide an initial value.</p>
+<p>Confused, right? They really look alike. But a definition can only appear in one place. That is to say, whether it's int a; or extern int a=0; or int a=0;, they can only appear once, while that extern int a can appear many times.</p>
+<p>When you want to reference a global variable, you must declare it, extern int a; At this time, extern cannot be omitted, because if omitted, it becomes int a;, which is a definition, not a declaration. Note: in extern int a;, the type int can be omitted, i.e., extern a; but other types cannot be omitted.</p>
+<p><strong>(2) Functions</strong></p>
+<p>For functions, it's the same. There are also definitions and declarations. When defining, use extern to indicate that this function can be referenced externally; when declaring, use extern to indicate that this is a declaration. But because function definitions and declarations are different—a function definition requires a function body, while a function declaration has no function body (and ends with a semicolon)—extern can be omitted in both function definition and declaration. After all, other files also know that this function is defined elsewhere, so it's fine without extern. The two are so different that omitting extern won't cause any problems.</p>
+<p>For example:</p>
+<pre>/*某cpp文件*/
+int fun(void)
+{
+      return 0;
+}</pre>
+<p>Good, we have defined a global function:</p>
+<pre>/*另一cpp文件*/
+int fun(void);</pre>
+<p>We made a declaration of it, and then we can use it afterwards. Whether to add extern or not is the same. We can also put the declaration of fun in a header file, and finally it becomes like this:</p>
+<pre>/*fun.h*/
+int fun(void);   //函数声明，所以省略了extern，完整些是extern int fun(void);
+/*对应的fun.cpp文件*/
+int fun(void)
+{
+     return 0;
+}//一个完整的全局函数定义，因为有函数体，extern同样被省略了。</pre>
+<p>Then, a customer—a customer who wants to use your fun—includes this header file, and okay, it's a global declaration. No problem.</p>
+<p>But correspondingly, if this customer wants to use a global variable, then they need extern some variable; otherwise it becomes a definition.</p>
+<blockquote><p><strong>Summary:</strong></p>
+<p>For variables: if you want to use a variable from another source file (e.g., file B) in the current source file (e.g., file A), there are two methods: (1) in file A, you must use extern to declare the variable defined in file B (of course, a global variable); (2) in file A, add the header file corresponding to file B. Of course, this header file contains the variable declaration in file B, that is, in this header file you must use extern to declare the variable; otherwise, the variable will be defined once more.</p>
+<p>For functions: if you want to use a function from another source file (e.g., file B) in the current source file (e.g., file A), there are two methods: (1) in file A, use extern to declare the function defined in file B (actually, extern can also be omitted; it is only necessary for the function prototype of the function defined in file B to appear in file A); (2) in file A, add the header file corresponding to file B. Of course, this header file contains the function prototype in file B. In the header file, functions don't need extern.</p></blockquote>
+<p>Another way to state the above summary:</p>
+<p>(a) For calling a global variable from another file in one file: because global variables are generally defined in the original .c file, we cannot use #include to include source files; we can only include header files. So the common method is to use extern int a to declare an external variable. Another method is: after defining a global variable int global_num in the a.c file, you can write extern int global_num in the corresponding a.h header file, so that other source files can declare it as an external variable by including a.h.</p>
+<p>(b) There are also different examples of variables and functions.<span class="marked">int fun();</span> 和 <span class="marked">extern int fun();</span>They are all declarations (definitions require an implementation body). Using...<span class="marked">extern int  fun()</span>...is just to more clearly indicate that it is a declaration. While...<span class="marked">int a;</span>...is a definition.<span class="marked">extern int a;</span>...is a declaration.</p>
+<p>(3) In addition, the extern modifier can be used for the specification issue of calling C functions in C++ programs.</p>
+<p>For example, to call C library functions in C++, you need to use extern "C" in the C++ program to declare the functions to be referenced. This is used by the linker, telling the linker to link according to the C function specification when linking. The main reason is that C++ and C programs have different naming rules in the object code after compilation.</p>
+<p>When compiling, in order to solve the polymorphism problem, the C++ language combines the name and parameters to generate an intermediate name, while the C language does not. Therefore, it can cause the situation where the corresponding thing cannot be found during linking. At this time, C needs to use extern "C" to specify the linking, which tells the compiler: please keep my name and do not generate an intermediate name for linking for me.</p>
+<h3>III. The connection between extern and header files</h3>
+<p>This connection also solves the two questions raised at the beginning:</p>
+<p>(a) Since #include can include declarations of variables and functions from other header files, why still use the extern keyword?</p>
+<p>(b) If I want to reference a global variable or function a, I just directly include #include in the source file...<xxx.h>...(xxx.h contains the declaration of a) and that's enough? Why still use extern?</xxx.h></p>
+<p>Answer: If one file (say file A) needs to reference a large number of variables or functions defined in another file (say file B), then using a header file is more efficient and the program structure is more standardized. Other files (e.g., files C, D, etc.) that want to reference variables or functions defined in file B only need to use #include to include the header file corresponding to file B (of course, this header file only contains declarations of variables or functions, and must never contain definitions).</p>
+<p>That was a forgotten era—an era when compilers only knew .c (or .cpp) files and did not know what .h was.</p>
+<p>At that time, people wrote many .c (or .cpp) files. Gradually, people found that the variable declarations or function prototypes in many .c (or .cpp) files were the same, but they had to type these contents into every .c (or .cpp) file word by word, repeatedly. But even more terrifying was that when one of the declarations changed, they needed to check all the .c (or .cpp) files and modify the declarations in them. Ah~, it was simply doomsday!</p>
+<p>Finally, someone (or maybe some people) could no longer endure such torment. He (they) extracted the repeated parts, put them in a new file, and then typed statements like #include XXXX in the needed .c (or .cpp) files. In this way, even if a declaration changed, there was no longer any need to search everywhere and modify—the world was still so beautiful!</p>
+<p>Because this new file was often placed at the head of .c (or .cpp) files, it was named 'header file', with the extension .h.</p>
+<p>From then on, the compiler (actually, its preprocessor) knew that besides .c (or .cpp) files, there was also a .h file, as well as a command called #include.</p>
+<blockquote><p>Original text: http://lpy999.blog.163.com/blog/static/117372061201182051413310/</p>
+</blockquote>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link"> </div>
+<div class="next-design-link"></div>
+</div>
+<style>
+@media screen and (max-width: 768px) {
+	#w3cnote-ad728 {
+		display: none;
+	}
+}
+p.note-author {
+    border-bottom: 1px solid #ddd;
+    font-size: 18px;
+    font-weight: bold;
+    color: #78a15a;
+    padding-bottom: 2px;
+    margin-bottom: 4px;
+}
+</style>
+<script>
+var aid = 19980;
+</script>
+</div>
+</div>
+<div class="listcol last right-column">
+<!--
+	<div class="tab tab-light-blue"> 订阅</div>
+	<div class="sidebar-box">
+		<div class="socialicons">
+			<a href="../feed.html" class="rss">RSS 订阅</a>
+		
+			<form action="..//list.qq.com/cgi-bin/qf_compose_send" method="post">
+			<input type="hidden" value="qf_booked_feedback" name="t">
+			<input type="hidden" value="4b67b6b6c1f5e792559940cab4aebb8f1126fba880bff1a8" name="id">
+			<input class="placeholder" id="feed_email" name="to" value="输入邮箱 订阅笔记" autocomplete="off">
+			<input type="submit" value="订阅" class="btn btn-primary">
+			</form>
+		
+		</div>
+ 
+	</div>
+-->
+<!--
+	<div class="sidebar-box cate-list">
+	<div class="sidebar-box recommend-here list-link">
+			<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">笔记列表</a>
+		</div>
+
+ 
+
+</div>
+-->
+<div class="sidebar-box cate-list" style="display:none;">
+<div class="sidebar-box recommend-here list-link">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">热门文章</a>
+</div>
+<div class="membership">
+<ul class="membership">
+<li><a href="https://mp.weixin.qq.com/s/ZaP6YNgKTCHYy3r2WPBBaw" target="_blank" title="2024 年 04 月 JavaScript 框架排行榜">2024 年 04 月 JavaScript 框架排行榜</a></li>
+<li><a href="https://mp.weixin.qq.com/s/JBR2twC0t6krjjuxqvhsEQ" target="_blank" title="免费、开源、好用的 SQL 客户端合集">免费、开源、好用的 SQL 客户端合集</a></li>
+<li><a href="https://mp.weixin.qq.com/s/TwV3YQjA1glyaW7TiHvhlA" target="_blank" title="优雅的代码规范，提升代码质量">优雅的代码规范，提升代码质量</a></li>
+<li><a href="https://mp.weixin.qq.com/s/CnUJ-2OHPbBKlnVpjDzavA" target="_blank" title="命令行中的趣味世界，牛也能说话，有趣又好玩">命令行中的趣味世界，牛也能说话，有趣又好玩</a></li>
+<li><a href="https://mp.weixin.qq.com/s/7NKl-mD7N8CeSNQlbKDEWA" target="_blank" title="2024 年 05 月编程语言排行榜，Fortran 进入前 10 名，发生了什么？">2024 年 05 月编程语言排行榜，Fortran 进入前 10 名，发生了什么？</a></li>
+<li><a href="https://mp.weixin.qq.com/s/yWlSVDKobtDhThnhirVRpw" target="_blank" title="免费开源的 IDE、数据库管理工具、SSH客户端和FTP客户端">免费开源的 IDE、数据库管理工具、SSH客户端和FTP客户端</a></li>
+</ul>
+</div>
+</div>
+<div class="sidebar-box cate-list">
+<div class="sidebar-box recommend-here list-link">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">教程列表</a>
+</div>
+<div class="cate-items">
+<a href="../ado.html">ADO 教程</a>
+<a href="../ai-agent.html">AI Agent 教程</a>
+<a href="../ai.html">AI 入门教程</a>
+<a href="../ai-math.html">AI 数学基础</a>
+<a href="../ajax.html">Ajax 教程</a>
+<a href="../android.html">Android 教程</a>
+<a href="../angularjs2.html">Angular2 教程</a>
+<a href="../angularjs.html">AngularJS 教程</a>
+<a href="../appml.html">AppML 教程</a>
+<a href="../asp.html">ASP 教程</a>
+<a href="../aspnet.html">ASP.NET 教程</a>
+<a href="../bootstrap.html">Bootstrap 教程</a>
+<a href="../bootstrap4.html">Bootstrap4 教程</a>
+<a href="../bootstrap5.html">Bootstrap5 教程</a>
+<a href="../cprogramming.html">C 教程</a>
+<a href="../c-dsa.html">C 语言数据结构与算法</a>
+<a href="../csharp.html">C# 教程</a>
+<a href="../cplusplus.html">C++ 教程</a>
+<a href="../chartjs.html">Chart.js 教程</a>
+<a href="../claude-code.html">Claude Code 教程</a>
+<a href="../cmake.html">CMake 教程</a>
+<a href="../codex.html">Codex 教程</a>
+<a href="../cssref.html">CSS 参考手册</a>
+<a href="../css.html">CSS 教程</a>
+<a href="../css3.html">CSS3 教程</a>
+<a href="../cursor.html">Cursor 教程</a>
+<a href="../dart.html">Dart 教程</a>
+<a href="../dash.html">Dash 教程</a>
+<a href="../deepseek-harness.html">DeepSeek Harness</a>
+<a href="../django.html">Django 教程</a>
+<a href="../docker.html">Docker 教程</a>
+<a href="../dtd.html">DTD 教程</a>
+<a href="../echarts.html">ECharts 教程</a>
+<a href="../eclipse.html">Eclipse 教程</a>
+<a href="../electron.html">Electron 教程</a>
+<a href="../fastapi.html">FastAPI 教程</a>
+<a href="../firebug.html">Firebug 教程</a>
+<a href="../flask.html">Flask 教程</a>
+<a href="../flutter.html">Flutter 教程</a>
+<a href="../font-awesome.html">Font Awesome 图标</a>
+<a href="../foundation.html">Foundation 教程</a>
+<a href="../git.html">Git 教程</a>
+<a href="../go.html">Go 语言教程</a>
+<a href="../googleapi.html">Google 地图 API 教程</a>
+<a href="../hermes-agent.html">Hermes Agent</a>
+<a href="../highcharts.html">Highcharts 教程</a>
+<a href="../htmldom.html">HTML DOM 教程</a>
+<a href="../tags.html">HTML 参考手册</a>
+<a href="../charsets.html">HTML 字符集</a>
+<a href="../html.html">HTML 教程</a>
+<a href="../http.html">HTTP 教程</a>
+<a href="../ionic.html">ionic 教程</a>
+<a href="../ios.html">iOS 教程</a>
+<a href="../java.html">Java 教程</a>
+<a href="../jsref.html">JavaScript 参考手册</a>
+<a href="../js.html">Javascript 教程</a>
+<a href="../jeasyui.html">jQuery EasyUI 教程</a>
+<a href="../jquerymobile.html">jQuery Mobile 教程</a>
+<a href="../jqueryui.html">jQuery UI 教程</a>
+<a href="../jquery.html">jQuery 教程</a>
+<a href="../json.html">JSON 教程</a>
+<a href="../jsp.html">JSP 教程</a>
+<a href="../julia.html">Julia 教程</a>
+<a href="../jupyter-notebook.html">Jupyter Notebook 教程</a>
+<a href="../kotlin.html">Kotlin 教程</a>
+<a href="../langchain.html">LangChain 教程</a>
+<a href="../latex.html">LaTeX 教程</a>
+<a href="../linux.html">Linux 教程</a>
+<a href="../lua.html">Lua 教程</a>
+<a href="../markdown.html">Markdown 教程</a>
+<a href="../matplotlib.html">Matplotlib 教程</a>
+<a href="../maven.html">Maven 教程</a>
+<a href="../memcached.html">Memcached 教程</a>
+<a href="../mongodb.html">MongoDB 教程</a>
+<a href="../mysql.html">MySQL 教程</a>
+<a href="../nextjs.html">Next.js 教程</a>
+<a href="../nlp.html">NLP 教程</a>
+<a href="../nodejs.html">Node.js 教程</a>
+<a href="../numpy.html">NumPy 教程</a>
+<a href="../obsidian.html">Obsidian 教程</a>
+<a href="../ollama.html">Ollama 教程</a>
+<a href="../opencode.html">OpenCode 教程</a>
+<a href="../opencv.html">OpenCV 教程</a>
+<a href="../pandas.html">Pandas 教程</a>
+<a href="../perl.html">Perl 教程</a>
+<a href="../php.html">PHP 教程</a>
+<a href="../pi-agent.html">Pi Agent</a>
+<a href="../pillow.html">Pillow 教程</a>
+<a href="../playwright.html">Playwright 教程</a>
+<a href="../postgresql.html">PostgreSQL 教程</a>
+<a href="../powershell.html">PowerShell</a>
+<a href="../pycharm.html">Pycharm 教程</a>
+<a href="../python3.html">Python 3 教程</a>
+<a href="../python.html">Python 基础教程</a>
+<a href="../python-design-pattern.html">Python 设计模式</a>
+<a href="../python-qt.html">Python 量化交易</a>
+<a href="../pytorch.html">PyTorch 教程</a>
+<a href="../r.html">R 教程</a>
+<a href="../rdf.html">RDF 教程</a>
+<a href="../react.html">React 教程</a>
+<a href="../redis.html">Redis 教程</a>
+<a href="../restfulapi.html">RESTful API</a>
+<a href="../rss.html">RSS 教程</a>
+<a href="../ruby.html">Ruby 教程</a>
+<a href="../rust.html">Rust 教程</a>
+<a href="../sass.html">Sass 教程</a>
+<a href="../scala.html">Scala 教程</a>
+<a href="../scipy.html">SciPy 教程</a>
+<a href="../selenium.html">Selenium 教程</a>
+<a href="../servlet.html">Servlet 教程</a>
+<a href="../skills.html">Skills 教程</a>
+<a href="../sklearn.html">Sklearn 教程</a>
+<a href="../soap.html">SOAP 教程</a>
+<a href="../sql.html">SQL 教程</a>
+<a href="../sqlite.html">SQLite 教程</a>
+<a href="../svg.html">SVG 教程</a>
+<a href="../svn.html">SVN 教程</a>
+<a href="../swagger.html">Swagger 教程</a>
+<a href="../swift.html">Swift 教程</a>
+<a href="../tailwindcss.html">Tailwind CSS 教程</a>
+<a href="../tcpip.html">TCP/IP 教程</a>
+<a href="../tensorflow.html">TensorFlow 教程</a>
+<a href="../typescript.html">TypeScript 教程</a>
+<a href="../uniapp.html">uni-app 教程</a>
+<a href="../vbscript.html">VBScript 教程</a>
+<a href="../vibe-coding.html">Vibe Coding 教程</a>
+<a href="../vscode.html">VSCode 教程</a>
+<a href="../vue2.html">Vue.js 教程</a>
+<a href="../vue3.html">Vue3 教程</a>
+<a href="../w3c.html">W3C 教程</a>
+<a href="../webservices.html">Web Service 教程</a>
+<a href="../wsdl.html">WSDL 教程</a>
+<a href="../xlink.html">XLink 教程</a>
+<a href="../dom.html">XML DOM 教程</a>
+<a href="../schema.html">XML Schema 教程</a>
+<a href="../xml.html">XML 教程</a>
+<a href="../xpath.html">XPath 教程</a>
+<a href="../xquery.html">XQuery 教程</a>
+<a href="../xslfo.html">XSLFO 教程</a>
+<a href="../xsl.html">XSLT 教程</a>
+<a href="../zig.html">Zig 教程</a>
+<a href="../data-structures.html">数据结构</a>
+<a href="../ml.html">机器学习</a>
+<a href="../regexp.html">正则表达式</a>
+<a href="../assembly.html">汇编语言</a>
+<a href="../quiz.html">测验</a>
+<a href="../browsers.html">浏览器</a>
+<a href="../quality.html">网站品质</a>
+<a href="../web.html">网站建设指南</a>
+<a href="../hosting.html">网站服务器教程</a>
+<a href="../np.html">网络协议</a>
+<a href="../computer-organization.html">计算机组成原理</a>
+<a href="../design-pattern.html">设计模式</a>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

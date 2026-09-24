@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Claude Code コンテキスト管理 | 菜鸟教程</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<link href="../manifest.webmanifest.html" rel="manifest"/>
+<meta content="#10151c" name="theme-color"/>
+<link href="../pwa/icon-192.png.html" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="application-name"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="../claude-code/claude-code-context.html" rel="canonical"/>
+<meta content="Claude Code 上下文管理" name="keywords"/>
+<meta content="Claude Code 上下文管理  上下文管理是高效使用 Claude Code 的核心技能。 官方文档明确指出：上下文窗口是 Claude Code 最重要的资源，随着上下文填满，模型性能会逐渐下降（称为上下文衰退，context rot）——这是使用 Claude Code 时需要主动对抗的核心问题。  本章深入讲解如何通过 CLAUDE.md 指令文件、自动记忆系统、上下文窗口优化命令等手段，让 Claude 在长会话和跨会话中.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div>
+<!-- 导航栏 -->
+<style>
+/* 主题切换按钮 */
+/* ===== 主题变量（核心）===== */
+:root {
+  --theme-bg: #ffffff;
+  --theme-border: #e5e7eb;
+  --theme-icon: #333;
+  --theme-hover: #f3f4f6;
+}
+
+.dark {
+  --theme-bg: #1f2937;
+  --theme-border: #374151;
+  --theme-icon: #e5e7eb;
+  --theme-hover: #374151;
+}
+
+/* ===== 按钮容器 ===== */
+.nav-theme-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== 按钮本体 ===== */
+.nav-theme-toggle button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  border-radius: 6px;
+  border: 1px solid var(--theme-border);
+
+  background: var(--theme-bg);
+  color: var(--theme-icon);
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* ===== 图标大小 ===== */
+.nav-theme-toggle i {
+  font-size: 14px;
+}
+
+/* ===== hover 效果 ===== */
+.nav-theme-toggle button:hover {
+  background: var(--theme-hover);
+  transform: translateY(-1px);
+}
+
+/* ===== 点击反馈 ===== */
+.nav-theme-toggle button:active {
+  transform: scale(0.95);
+}
+
+/* ===== 当前激活态（可选）===== */
+.nav-theme-toggle button.active {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+</style>
+<!-- 导航栏 -->
+<nav aria-label="主导航" class="container navigation">
+<div class="row">
+<div class="col nav">
+<!-- PC 导航 -->
+<ul class="pc-nav" id="runoob-detail-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../js/js-tutorial.html">JavaScript</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a data-id="vue" href="#">Vue</a></li>
+<li><a href="../react/react-tutorial.html">React</a></li>
+<li><a href="../python3/python3-tutorial.html">Python3</a></li>
+<li><a href="../java/java-tutorial.html">Java</a></li>
+<li><a href="../cprogramming/c-tutorial.html">C</a></li>
+<li><a href="../cplusplus/cpp-tutorial.html">C++</a></li>
+<li><a href="../csharp/csharp-tutorial.html">C#</a></li>
+<li><a data-id="aiNav" href="#">AI</a></li>
+<li><a href="../go/go-tutorial.html">Go</a></li>
+<li><a href="../sql/sql-tutorial.html">SQL</a></li>
+<li><a href="../linux/linux-tutorial.html">Linux</a></li>
+<li><a href="../vscode/vscode-tutorial.html">VS Code</a></li>
+<li><a data-id="bootstrap" href="#">Bootstrap</a></li>
+<li><a href="../git/git-tutorial.html">Git</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<!-- 主题切换按钮，固定在最右侧 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+<!-- 移动端导航 -->
+<ul class="mobile-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a href="../js/js-tutorial.html">JS</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<li><a class="search-reveal" href="#">搜索</a></li>
+<!-- 移动端主题切换 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon-mobile" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun-mobile" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<!-- 二级导航 -->
+<!--  内容  -->
+<div class="container main">
+<!-- 中间 -->
+<div class="row">
+<div class="runoob-col-md2">
+<div class="left-column">
+<div class="tab" style="overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
+<i aria-hidden="true" class="fa fa-list"></i>
+<span>Claude Code 教程</span>
+</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+<a data-p="par" href="../claude-code/claude-code-tutorial.html" target="_top" title="Claude Code 教程">
+			Claude Code 教程			</a>
+<a data-p="par" href="../claude-code/claude-code-intro.html" target="_top" title="Claude Code 简介">
+			Claude Code 简介			</a>
+<a data-p="par" href="../claude-code/claude-code-install.html" target="_top" title="Claude Code 安装与使用">
+			Claude Code 安装与使用			</a>
+<a href="../claude-code/claude-code-how-it-work.html" target="_top" title="Claude Code 如何工作">Claude Code 如何工作</a> <a data-p="par" href="../claude-code/claude-code-setup.html" target="_top" title="Claude Code API 配置">
+			Claude Code API 配置			</a>
+<a href="../claude-code/claude-code-deepseek.html" target="_top" title="Claude Code DeepSeek">Claude Code DeepSeek</a>
+<a href="../claude-code/coding-plan.html" target="_top" title="Coding Plan">Coding Plan</a> <a data-p="par" href="../claude-code/claude-code-first-demo.html" target="_top" title="Claude Code 第一次使用">
+			Claude Code 第一次使用			</a>
+<a href="../claude-code/vscode-install-claude-code.html" target="_top" title="VS Code Claude Code">VS Code Claude Code</a>
+<a href="../claude-code/claude-code-jetbrains.html" target="_top" title="VS Code Claude Code">JetBrains Claude Code</a>
+<a href="../claude-code/claude-code-init.html" target="_top" title="Claude Code 项目初始化">Claude Code 项目初始化</a>
+<a href="../claude-code/claude-code-project.html" target="_top" title="Claude Code 项目结构">Claude Code 项目结构</a> <a data-p="par" href="../claude-code/claude-code-cli.html" target="_top" title="Claude Code 交互模式">
+			Claude Code 交互模式			</a>
+<a href="../claude-code/claude-code-symbols.html" target="_top" title="Claude Code 操作说明">Claude Code 操作说明</a> <a data-p="par" href="../claude-code/claude-code-basic.html" target="_top" title="Claude Code 基础用法">
+			Claude Code 基础用法			</a>
+<a href="../claude-code/claude-code-claudemd.html" target="_top" title="CLAUDE.md 使用指南">CLAUDE.md 使用指南</a>
+<a href="../claude-code/claude-code-context.html" target="_top" title="Claude Code 上下文管理">Claude Code 上下文管理</a>
+<a href="../claude-code/claude-code-permission.html" target="_top" title="Claude Code 权限配置">Claude Code 权限配置</a> <a data-p="par" href="../claude-code/claude-code-mcp.html" target="_top" title="Claude Code MCP">
+			Claude Code MCP			</a>
+<a data-p="par" href="../claude-code/claude-code-subagent.html" target="_top" title="Claude Code 子代理">
+			Claude Code 子代理			</a>
+<a data-p="par" href="../claude-code/claude-code-plugins.html" target="_top" title="Claude Code 插件">
+			Claude Code 插件			</a>
+<a href="../claude-code/claude-code-memory.html" target="_top" title="Claude Code 记忆系统">Claude Code 记忆系统</a>
+<a href="../claude-code/claude-agent-skills.html" target="_top" title="Agent Skills">Agent Skills</a>
+<a href="../claude-code/claude-code-ui-ux-pro-max-skill.html" target="_top" title="Skills 使用实例">Skills 使用实例</a>
+<a href="../claude-code/skill-creator-usage.html" target="_top" title="skill-creator 使用">skill-creator 使用</a> <a data-p="par" href="../claude-code/claude-code-outputstyles.html" target="_top" title="Claude Code 输出样式">
+			Claude Code 输出样式			</a>
+<a data-p="par" href="../claude-code/claude-code-hooks.html" target="_top" title="Claude Code 钩子">
+			Claude Code 钩子			</a>
+<a data-p="par" href="../claude-code/claude-code-cli-ref.html" target="_top" title="Claude Code CLI 参考手册">
+			Claude Code CLI 参考手册			</a>
+<a data-p="par" href="../claude-code/claude-code-control.html" target="_top" title="Claude Code 控制与模式">
+			Claude Code 控制与模式			</a>
+<a data-p="par" href="../claude-code/claude-code-slash-commands.html" target="_top" title="Claude Code 斜杠 / 命令">
+			Claude Code 斜杠 / 命令			</a>
+<a data-p="par" href="../claude-code/claude-code-checkpointing.html" target="_top" title="Claude Code 检查点">
+			Claude Code 检查点			</a>
+<a data-p="par" href="../claude-code/claude-code-plugin-ref.html" target="_top" title="Claude Code 插件参考手册">
+			Claude Code 插件参考手册			</a>
+<a data-p="par" href="../claude-code/claude-code-practical.html" target="_top" title="Claude Code 实战">
+			Claude Code 实战			</a>
+<a data-p="par" href="../claude-code/claude-code-chrome.html" target="_top" title="Claude Code 控制 Chrome 浏览器">
+			Claude Code Chrome			</a>
+<a data-p="par" href="../claude-code/claude-code-parallel-tasks.html" target="_top" title="Claude Code 并行任务">
+			Claude Code 并行任务			</a>
+<a data-p="par" href="../claude-code/claude-code-env.html" target="_top" title="Claude Code 环境变量">
+			Claude Code 环境变量			</a>
+<a data-p="par" href="../claude-code/claude-code-git-workflow.html" target="_top" title="Claude Code Git 工作流">
+			Claude Code Git 工作流			</a>
+<a data-p="par" href="../claude-code/claude-code-github-actions.html" target="_top" title="Claude Code GitHub Actions">
+			Claude Code GitHub Actions			</a>
+<a data-p="par" href="../claude-code/claude-agent-sdk.html" target="_top" title="Claude Agent SDK 使用说明">
+			Claude Agent SDK			</a>
+<a data-p="par" href="../claude-code/claude-code-devsetup.html" target="_top" title="Claude Code 开发配置">
+			Claude Code 开发配置			</a>
+<a data-p="par" href="../claude-code/claude-code-remotion-best-practices.html" target="_top" title="Claude Code 与 remotion-best-practices 制作视频">
+			Claude Code 制作视频			</a>
+<a data-p="par" href="../claude-code/claude-code-todo.html" target="_top" title="Claude Code 实战">
+			Claude Code 实战			</a>
+</div>
+</div>
+</div>
+</div> <div class="col middle-column">
+<div class="article">
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../claude-code/claude-code-claudemd.html" rel="prev">CLAUDE.md 使用ガイド</a> </div>
+<div class="next-design-link"><a href="../claude-code/claude-code-permission.html" rel="next">Claude Code 権限設定</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="article-body">
+<div class="article-intro" id="content">
+<h1>Claude Code コンテキスト管理</h1>
+<p>コンテキスト管理は、Claude Code を効率的に使用するための核心的なスキルです。</p>
+<p>公式ドキュメントは明確に述べています：<strong>コンテキストウィンドウは Claude Code にとって最も重要なリソースです</strong>コンテキストが満たされるにつれて、モデルの性能は徐々に低下します（コンテキスト衰退、context rot と呼ばれます）——これは Claude Code を使用する際に積極的に対抗すべき核心的な問題です。</p>
+<p>この章では、CLAUDE.md 指示ファイル、自動メモリシステム、コンテキストウィンドウ最適化コマンドなどの手段を通じて、Claude を長いセッションやセッションをまたぐ作業で高い効率に保つ方法を詳しく説明します。</p>
+<hr/>
+<h2>コンテキストウィンドウの基本</h2>
+<h3>1、コンテキストウィンドウに含まれるもの</h3>
+<p>Claude Code のコンテキストウィンドウのサイズは<strong>1,000,000 tokens（100万トークン）</strong>。これには、Claude が現在のセッションで「見る」すべての内容が含まれます：</p>
+<table class="reference">
+<thead>
+<tr>
+<th>コンテンツの出所</th>
+<th>読み込みタイミング</th>
+<th>トークン使用量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>システムプロンプト（Claude Code の行動規範）</td>
+<td>各セッションの開始時</td>
+<td>固定で消費</td>
+</tr>
+<tr>
+<td>CLAUDE.md ファイル</td>
+<td>起動時に完全ロード</td>
+<td>ファイルサイズによる</td>
+</tr>
+<tr>
+<td>自動メモリ（Auto memory）</td>
+<td>起動時に読み込み（先頭200行または25KB）</td>
+<td>上限あり</td>
+</tr>
+<tr>
+<td>会話履歴</td>
+<td>累積的に増加</td>
+<td>セッションが続くにつれて増加</td>
+</tr>
+<tr>
+<td>ツール結果（ファイル読み取り、コマンド出力など）</td>
+<td>ツール呼び出しのたびに追加</td>
+<td>ログ/大ファイルは消費が非常に速い</td>
+</tr>
+<tr>
+<td>MCP ツール名、Skills の説明など</td>
+<td>起動時に読み込み</td>
+<td>中程度</td>
+</tr>
+</tbody>
+</table>
+<h3>2、コンテキスト衰退（Context rot）</h3>
+<p>公式は明確に述べています：コンテキストが満たされるにつれて、<strong>LLM の性能は低下します</strong>注意力がより多くのトークンに分散され、古くて関連のない内容が現在のタスクに干渉し始めるからです。具体的な症状は次のとおりです：</p>
+<ul>
+<li>Claude が一貫性を失い、以前に合意した決定を忘れる</li>
+<li>応答が曖昧で大ざっぱになり、詳細が減る</li>
+<li>同じ質問に対して、すでに回答した内容を繰り返し尋ねる</li>
+<li>同じセッション内で同じ問題を2回以上訂正する</li>
+</ul>
+<p>上記の症状が現れた場合、コンテキストが「汚染」されていることを示しています。この場合は、積極的に使用して<code>/compact</code> 或 <code>/clear</code>処理し、同じセッションで訂正し続けるのではなく。</p>
+<p>使用<code>/context</code>コマンドを使用すると、いつでも現在のコンテキストの詳細な使用量分析を表示できます：</p>
+<pre>/context</pre>
+<p>これはカテゴリごと（システムプロンプト、CLAUDE.md、メモリファイル、会話履歴など）にトークン使用量を一覧表示し、最適化の提案を行います。重要なタスクを開始する前に一度確認することをお勧めします。</p>
+<hr/>
+<h2>CLAUDE.md 指示ファイル</h2>
+<p>CLAUDE.md は、Claude Code において静的指示とプロジェクト規範を記録する中核的なファイルです。各セッションの開始時に、Claude は自動的にそれをコンテキストウィンドウに読み込みます。</p>
+<h3>1、保存場所と適用範囲</h3>
+<p>CLAUDE.md は複数の場所をサポートしており、<strong>より具体的な場所ほど優先度が高くなります</strong>：</p>
+<table class="reference">
+<thead>
+<tr>
+<th>範囲</th>
+<th>ファイルパス</th>
+<th>適用シナリオ</th>
+<th>git にコミットするか</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>組織レベル</strong></td>
+<td>macOS: <code>/Library/Application Support/ClaudeCode/CLAUDE.md</code><br/>Linux/WSL: <code>/etc/claude-code/CLAUDE.md</code></td>
+<td>会社のコーディング標準、コンプライアンス要件</td>
+<td>IT が一元的に管理</td>
+</tr>
+<tr>
+<td><strong>プロジェクトレベル</strong></td>
+<td><code>./CLAUDE.md</code> 或 <code>./.claude/CLAUDE.md</code></td>
+<td>プロジェクトのアーキテクチャ、コーディング規範、ワークフロー</td>
+<td>はい、チームと共有</td>
+</tr>
+<tr>
+<td><strong>ユーザーレベル</strong></td>
+<td><code>~/.claude/CLAUDE.md</code></td>
+<td>個人のコーディング好みで、すべてのプロジェクトに適用</td>
+<td>いいえ、個人専用</td>
+</tr>
+<tr>
+<td><strong>ローカル限定</strong></td>
+<td><code>./CLAUDE.local.md</code>（.gitignore に追加）</td>
+<td>個人のプロジェクト固有設定で、git にコミットしない</td>
+<td>いいえ、.gitignore に追加</td>
+</tr>
+</tbody>
+</table>
+<blockquote><p><code>CLAUDE.local.md</code>個人専用設定の公式推奨方法です。サンドボックス URL、ローカルテストアカウント、個人のデバッグ習慣など共有すべきでない内容は、ここではなく<code>CLAUDE.md</code>中。実行<code>/init</code>時に「個人」オプションを選択すると、そのファイルが自動的に追加されます。<code>.gitignore</code>。</p></blockquote>
+<h3>2、CLAUDE.md の作成</h3>
+<p>次のコマンドを実行すると、Claude がプロジェクトを自動的に分析して初期 CLAUDE.md を生成します：</p>
+<pre>/init</pre>
+<p>すでに CLAUDE.md が存在する場合は、<code>/init</code>改善を提案し、直接上書きしません。生成後、Claude が自動的に発見できない内容（変更禁止ファイル、特別な制約など）を手動で補足してください。</p>
+<p>セッション中に使用することもできます<code>#</code>ショートカットキーで CLAUDE.md にメモをすばやく追加できます：</p>
+<pre># 所有 API 错误响应必须使用 { code, message } 格式</pre>
+<p>押した<code>#</code>後、内容を入力して Enter キーを押すと、Claude はそれを対応するレベルの CLAUDE.md に書き込み、永続的な指示として保存します。</p>
+<h3>3、CLAUDE.md の内容要件</h3>
+<p>公式は各 CLAUDE.md ファイルを<strong>200行以内に収めることを要求しています。</strong>。ファイルが大きいほど、起動時のトークン消費が多くなり、Claude の遵守率は逆に低くなります。以下は内容の提案です：</p>
+<p><strong>書くべき内容：</strong></p>
+<ul>
+<li>ビルド、テスト、デプロイの一般的なコマンド</li>
+<li>コード規範：命名規則、インデント、使用禁止パターン</li>
+<li>重要な制約：「常に pnpm を使用」「migrations/ ディレクトリの変更禁止」</li>
+<li>プロジェクトアーキテクチャの説明：主要ディレクトリの用途</li>
+</ul>
+<p><strong>書くべきでない内容：</strong></p>
+<ul>
+<li>複数ステップの操作手順（Skills ファイルに配置すべき）</li>
+<li>コードベースの一部にのみ関連するルール（使用すべきは<code>.claude/rules/</code>パスによる限定）</li>
+<li>Claude がコードを読むだけで自分で発見できる情報</li>
+</ul>
+<div class="example"><h2 class="example">例</h2><div class="example_code"># CLAUDE.md の例（簡潔で具体的に、各ファイルを200行以内に抑える）<br/>
+<br/>## よく使うコマンド<br/>- パッケージ管理：常に pnpm を使用し、npm や yarn は使用しない<br/>- テスト実行：pnpm test:watch<br/>- ビルド：pnpm build<br/>
+<br/>## コード規範<br/>- TypeScript strict モードで、any は許可しない<br/>- コンポーネントファイルは PascalCase で命名（例：UserProfile.tsx）<br/>- データベースのタイムスタンプは UTC 形式に統一<br/>
+<br/>## 制約事項<br/>- prisma/migrations/ ディレクトリ内の既存ファイルを直接変更しない<br/>- .env.local には実際のキーが含まれるため、ファイル内容の読み取りや出力を禁止<br/>- API インターフェースは src/api/ ディレクトリで一元管理し、他の場所で直接リクエストを送信しない<br/>
+</div></div>
+<h3>4、パスによる限定ルール（.claude/rules/）</h3>
+<p>大規模なプロジェクトでは、<code>.claude/rules/</code>ディレクトリを使用して指示をファイルパスごとに有効な細かいルールに分割し、すべてのルールをルートの CLAUDE.md に詰め込んで起動トークンを消費するのを避けられます：</p>
+<pre>
+.claude/
+└── rules/
+    ├── api.md         # 只对 src/api/**/*.ts 文件生效
+    ├── frontend.md    # 只对 src/components/**/*.tsx 文件生效
+    └── testing.md     # 只对 *.test.ts 文件生效
+</pre>
+<p>パス限定ルールは、Claude が対応するディレクトリ内のファイルを読み取るときにのみ読み込まれ、起動時にコンテキストをすべて占有することはありません。</p>
+<hr/>
+<h2>自動メモリ（Auto memory）</h2>
+<p>自動メモリは、Claude Code v2.1.59 以降に組み込まれたセッションをまたぐ記憶システムです、<strong>デフォルトで有効</strong>、設定は一切不要です。Claude は作業中に発見したビルドコマンド、デバッグ経験、コードスタイルの好みなどの情報を自律的に記録します。</p>
+<h3>1、動作の仕組み</h3>
+<ul>
+<li>Claude は毎回のセッションでメモリを書き込むわけではなく、情報を保持する価値があるか（将来の会話で役立つか）を判断します。</li>
+<li>メモリは git リポジトリのパスごとに分離され、保存先は<code>~/.claude/projects/&lt;项目路径&gt;/memory/</code></li>
+<li>同じリポジトリのすべてのワークツリーで自動メモリを共有します。</li>
+<li>メモリを書き込むと、ターミナルに "Writing memory" と表示され、次回の取得時には "Recalled memory" と表示されます。</li>
+</ul>
+<h3>2、メモリの表示と編集（/memory）</h3>
+<p>コマンドを使用して、<code>/memory</code>各レベルの CLAUDE.md や自動メモリを含む、すべてのメモリ内容を表示・編集できます：</p>
+<pre>/memory</pre>
+<p>エディタで不正確なエントリを削除したり、Auto memory スイッチを使用して自動メモリ機能を無効化したりできます。環境変数で一時的に無効化することもできます：</p>
+<pre>CLAUDE_CODE_DISABLE_AUTO_MEMORY=1 claude</pre>
+<h3>3、Claude に明示的に記憶させる</h3>
+<p>会話中に直接 Claude にメモリへの書き込みを依頼できます：</p>
+<pre>记住：我们的 API 测试需要本地运行一个 Redis 实例</pre>
+<pre>以后请记住：处理错误时，统一返回 { code, message } 结构</pre>
+<p>単なる好みのメモリではなく強制ルールに格上げしたい場合は、「このルールを CLAUDE.md に書いて」と指示すると、Claude はそれを対応する CLAUDE.md ファイルに書き込みます。</p>
+<hr/>
+<h2>コンテキストウィンドウ最適化コマンド</h2>
+<h3>1、自動圧縮（Auto-compaction）</h3>
+<p>Claude Code は<strong>コンテキストが制限値に近づくと自動的に圧縮をトリガーし</strong>（約 75% 使用時）、会話履歴を要約して作業を続行します。ただし公式は自動圧縮を待たずに、<strong>60〜70% の時点で能動的に手動トリガーすることを推奨しています</strong>。重要なタスクの途中で中断されるのを避けられ、さらに能動的な圧縮では指示によって保持する内容を制御できます。</p>
+<h3>2、コンテキストの圧縮（/compact）</h3>
+<p>会話履歴を手動で圧縮し、長いセッションを簡潔な要約にまとめて作業を続行します：</p>
+<pre>/compact</pre>
+<p><code>/compact</code>カスタム指示を渡して、圧縮時に重点的に保持する内容を制御できます：</p>
+<pre>/compact Focus on the API changes</pre>
+<pre>/compact 保留认证流程的架构决策，丢弃调试过程中的无效尝试</pre>
+<blockquote><p>圧縮は不可逆な操作です。圧縮時、Claude はコンテキストが最も満杯で性能が最も弱い状態にあります。指示を与えないと、あなたが重要だと思う内容を失う可能性があります。<strong>重要な決定の直後に能動的に圧縮し、指示で保持すべき重点を明示する</strong>方が、自動圧縮を待つよりもはるかに効果的です。</p></blockquote>
+<h3>3、コンテキストのクリア（/clear）</h3>
+<p>新しいタスクに切り替えるときにすべての会話履歴をクリアします：</p>
+<pre>/clear</pre>
+<p>クリア後も CLAUDE.md と自動メモリは影響を受けず、新しいセッションで引き続き読み込まれます。公式の推奨：<strong>同じセッション内で同じ問題を2回以上修正したなら、いっそ /clear して、学んだ制約を活かしてより的確なプロンプトで最初からやり直すほうがよい</strong>——クリーンなセッションとより良いプロンプトは、汚染されたコンテキストの中で修正を続けるより、ほとんどの場合優れています。</p>
+<h3>4、チェックポイントへのロールバック（/rewind）</h3>
+<p>Claude Code はファイルを変更するたびに自動的にチェックポイントを作成します。ダブルクリックするか、<code>Esc</code>または<code>/rewind</code>を実行すると、ロールバックメニューが開き、復元するチェックポイントを選択できます：</p>
+<pre>/rewind</pre>
+<pre>（或双击 Esc 键）</pre>
+<p>ロールバックメニューでは、以下の操作を選択できます：</p>
+<table class="reference">
+<thead>
+<tr>
+<th>操作</th>
+<th>効果</th>
+<th>適用シーン</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>会話 + コードを復元</strong></td>
+<td>会話履歴とファイル変更をロールバックし、完全に元に戻す</td>
+<td>Claude が脱線し、変更に問題があるため、すべて取り消す</td>
+</tr>
+<tr>
+<td><strong>会話のみ復元</strong></td>
+<td>会話履歴をロールバックし、ファイル変更は保持</td>
+<td>別のアプローチでやり直したいが、コード変更は保持したい</td>
+</tr>
+<tr>
+<td><strong>コードのみ復元</strong></td>
+<td>ファイルをチェックポイントの状態に戻し、会話は保持</td>
+<td>コードを壊してしまったが、会話中の分析には参考価値がある</td>
+</tr>
+<tr>
+<td><strong>ここから要約（Summarize from here）</strong></td>
+<td>そのチェックポイント以降の会話を要約に圧縮し、それ以前の完全な履歴は保持</td>
+<td>後半の冗長な会話だけ整理し、前半の完全なコンテキストは保持したい</td>
+</tr>
+</tbody>
+</table>
+<blockquote><p>チェックポイントはセッションをまたいで永続保存されます——ターミナルを閉じた後でも以前のチェックポイントにロールバックできます。これは git の代替ではありませんが、探索的な実験では手動の git stash より便利です。</p></blockquote>
+<h3>5、コンテキストを汚染せずに素早く質問（/btw）</h3>
+<p>小さな詳細をすぐ確認したいが、この質疑応答を会話履歴に入れたくない（コンテキストを消費する）場合は、<code>/btw</code>：</p>
+<pre>/btw 这个项目的 TypeScript 版本是多少？</pre>
+<p>を使用します。回答はオーバーレイ表示され、質問も回答も会話履歴に入りません。設定値やバージョン番号など、保持する必要のない一度きりの情報の確認に適しています。</p>
+<hr/>
+<h2>セッション管理コマンド</h2>
+<table class="reference">
+<thead>
+<tr>
+<th>コマンド</th>
+<th>機能</th>
+<th>使用シーン</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/context</code></td>
+<td>コンテキスト各部分の詳細なトークン使用量分析を表示</td>
+<td>どの部分がトークンを過剰に消費しているかを調査</td>
+</tr>
+<tr>
+<td><code>/compact [指令]</code></td>
+<td>会話履歴を要約に圧縮し、保持する重点を指定可能</td>
+<td>コンテキスト 60〜70% の時点で能動的に圧縮</td>
+</tr>
+<tr>
+<td><code>/clear</code></td>
+<td>すべての会話履歴をクリアし、CLAUDE.md とメモリは保持</td>
+<td>新しいタスクに切り替え、またはコンテキストが深刻に汚染されている</td>
+</tr>
+<tr>
+<td><code>/rewind</code>（または Esc をダブルクリック）</td>
+<td>チェックポイントメニューを開き、会話/コード/両方の復元、または任意の時点からの要約を選択できます</td>
+<td>Claude が脱線したため、ロールバックして再試行が必要</td>
+</tr>
+<tr>
+<td><code>/memory</code></td>
+<td>CLAUDE.md と自動メモリの内容を表示・編集</td>
+<td>メモリが正確か確認し、古いエントリを削除</td>
+</tr>
+<tr>
+<td><code>/btw</code></td>
+<td>クイック質問。回答は会話履歴に入らない</td>
+<td>小さな詳細を確認する、コンテキストを汚染したくない</td>
+</tr>
+<tr>
+<td><code>/init</code></td>
+<td>プロジェクトを分析し、CLAUDE.md を生成または改善する</td>
+<td>新しいプロジェクトでの初回使用、またはプロジェクトに大きな変更があった場合</td>
+</tr>
+<tr>
+<td><code>#</code>（ショートカットキー）</td>
+<td>永続的な指示を CLAUDE.md にすばやく追加</td>
+<td>ルールや規約をいつでも記録</td>
+</tr>
+<tr>
+<td><code>claude --continue</code></td>
+<td>直近のセッションを続行</td>
+<td>ターミナルを開き直した後に作業を再開</td>
+</tr>
+<tr>
+<td><code>claude --resume</code></td>
+<td>履歴リストからセッションを選択して続行</td>
+<td>数日前の特定のタスクを再開</td>
+</tr>
+</tbody>
+</table>
+<hr/>
+<h2>よくある問題と解決策</h2>
+<p><strong>問題一：Claude が CLAUDE.md のルールを守らない</strong></p>
+<ul>
+<li>CLAUDE.md が大きすぎないか確認する（200 行を超えると遵守率が低下する）</li>
+<li>曖昧な表現を具体的な指示に変更する：「きれいなコードを書く」ではなく「2 スペースのインデントを使用する」</li>
+<li>用 <code>/memory</code>競合する自動メモリのエントリがないか確認する</li>
+<li>の使用を検討し、<code>.claude/rules/</code>ルールをファイルパスごとに分割して、毎回の読み込み量を削減します</li>
+</ul>
+<p><strong>問題二：Claude が矛盾し始め、以前の決定を「忘れる」</strong></p>
+<ul>
+<li>これはコンテキスト劣化の典型的な症状です。同じセッションで修正し続けずに、</li>
+<li>を実行するか、<code>/compact 保留关键决策</code>、または直接<code>/clear</code>の後に要約を持って再開します</li>
+<li>重要な結論は<code>#</code>ショートカットキーで CLAUDE.md に書き込み、次回のセッションでも有効にしましょう</li>
+</ul>
+<p><strong>問題三：/compact 後に重要な情報が失われる</strong></p>
+<ul>
+<li>圧縮時に具体的な指示を渡す：<code>/compact 保留认证流程的架构决策和已确认的 API 格式</code></li>
+<li>圧縮前に最も重要な結論を CLAUDE.md に書き込む</li>
+<li>デバッグに失敗した試行は保持する価値がないため、より積極的に圧縮するか /clear する</li>
+</ul>
+<p><strong>問題四：ターミナルを閉じた後、前回の作業をどう続行するか</strong></p>
+<ul>
+<li>を使用して<code>claude --continue</code>直近のセッションを続行</li>
+<li>を使用して<code>claude --resume</code>履歴リストから特定のセッションを選択</li>
+<li>用 <code>/rename</code>重要なセッションには説明的な名前（例：「oauth-migration」）を付け、後で見つけやすくする</li>
+</ul>
+<p><strong>問題五：大規模なタスクで大量のツール出力が発生する場合、コンテキストが満杯になるのを防ぐには</strong></p>
+<ul>
+<li>サブエージェント（subagent）に委任して実行する：メインの会話には要約のみが届き、中間出力はサブエージェントの独立したコンテキストに残る</li>
+<li>例：<code>使用子代理分析所有日志文件，找出性能瓶颈，只把结论告诉我</code></li>
+</ul> その他の拡張
+</div>
+</div>
+<div class="archive-list" style="display:none;font-size: 14px;line-height: 1.8;margin-top: 20px;padding: 10px;">
+<div class="archive-list-item">
+<div class="post-intro" id="ai-info" style="width: 100%;">AI 思考中...</div>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../claude-code/claude-code-claudemd.html" rel="prev">CLAUDE.md 使用ガイド</a> </div>
+<div class="next-design-link"><a href="../claude-code/claude-code-permission.html" rel="next">Claude Code 権限設定</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="sidebar-box">
+</div>
+ノート一覧
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>クリックしてノートを共有</h3>
+&lt;p style="font-size:14px;"&gt;ノートは本記事の内容の拡張である必要があります！&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;記事の投稿は、こちらをクリック&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; ノートを共有する前に&lt;a href=";.html" class="runoob-pop"&gt;ログイン&lt;/a&gt;が必要です！&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=";.html" id="cancel-comment-reply-link">キャンセル</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="29855"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>ノートを共有</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">ニックネーム</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">ニックネーム（必須）</span></li>
+<li class="form-inline"><label class="hide" for="email">メールアドレス</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">メールアドレス（必須）</span></li>
+<li class="form-inline"><label class="hide" for="url">引用URL</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">引用URL</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  29855;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 29855, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":29855},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+</div>
+</div>
+<!-- 右边栏 -->
+<div class="fivecol last right-column">
+<style>
+.sidebar-tree .double-li {
+    width:300px;
+}
+.sidebar-tree .double-li li {
+    width: 44%;
+    line-height: 1.5em;
+    border-bottom: 1px solid #ccc;
+    float: left;
+    display: inline;
+}
+</style>
+<div class="sidebar-box re-box re-box-large">
+<div class="sidebar-box recommend-here" style="margin: 0 auto;">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;"> <i aria-hidden="true" class="fa fa-list"></i> 分类导航</a>
+</div>
+<div class="sidebar-box sidebar-cate">
+<div class="sidebar-tree">
+<ul><li style="margin: 0;"><a class="tit" href="#"> Python / 数据科学</a><ul class="double-li"><li><a href="../python3/python3-tutorial.html" title="Python 教程">Python 教程</a></li><li><a href="../python/python-tutorial.html" title="Python2.x 教程">Python2.x 教程</a></li><li><a href="../fastapi/fastapi-tutorial.html" title="FastAPI 教程">FastAPI 教程</a></li><li><a href="../flask/flask-tutorial.html" title="Flask 教程">Flask 教程</a></li><li><a href="../django/django-tutorial.html" title="Django 教程">Django 教程</a></li><li><a href="../numpy/numpy-tutorial.html" title="NumPy 教程">NumPy 教程</a></li><li><a href="../pandas/pandas-tutorial.html" title="Pandas 教程">Pandas 教程</a></li><li><a href="../scipy/scipy-tutorial.html" title="SciPy 教程">SciPy 教程</a></li><li><a href="../matplotlib/matplotlib-tutorial.html" title="Matplotlib 教程">Matplotlib 教程</a></li><li><a href="../dash/dash-tutorial.html" title="Dash 教程">Dash 教程</a></li><li><a href="../jupyter-notebook/jupyter-notebook-tutorial.html" title="Jupyter Notebook 教程">Jupyter Notebook 教程</a></li><li><a href="../pillow/pillow-tutorial.html" title="Pillow 教程">Pillow 教程</a></li><li><a href="../qt/qt-tutorial.html" title="量化交易">量化交易</a></li><li><a href="../r/r-tutorial.html" title="R 教程">R 教程</a></li><li><a href="../julia/julia-tutorial.html" title="Julia 教程">Julia 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> AI / 智能开发</a><ul class="double-li"><li><a href="../ai-agent/ai-agent-tutorial.html" title="AI Agent（智能体）">AI Agent（智能体）</a></li><li><a href="../ai/ai-tutorial.html" title="AI（人工智能）">AI（人工智能）</a></li><li><a href="../codex/codex-tutorial.html" title="Codex 教程">Codex 教程</a></li><li><a href="../vibe-coding/vibe-coding-tutorial.html" title="Vibe Coding 教程">Vibe Coding 教程</a></li><li><a href="../claude-code/claude-code-tutorial.html" title="Claude Code">Claude Code</a></li><li><a href="../opencode/opencode-tutorial.html" title="OpenCode">OpenCode</a></li><li><a href="../skills/skills-tutorial.html" title="Skills（技能）">Skills（技能）</a></li><li><a href="../ollama/ollama-tutorial.html" title="Ollama 教程">Ollama 教程</a></li><li><a href="../hermes-agent/hermes-agent-tutorial.html" title="Hermes Agent">Hermes Agent</a></li><li><a href="../deepseek-harness/deepseek-harness-tutorial.html" title="DeepSeek Harness">DeepSeek Harness</a></li><li><a href="../pi-agent/pi-agent-tutorial.html" title="Pi Agent">Pi Agent</a></li><li><a href="../ai-math/ai-math-tutorial.html" title="AI 数学基础">AI 数学基础</a></li><li><a href="../tensorflow/tensorflow-tutorial.html" title="TensorFlow 教程">TensorFlow 教程</a></li><li><a href="../pytorch/pytorch-tutorial.html" title="PyTorch 教程">PyTorch 教程</a></li><li><a href="../sklearn/sklearn-tutorial.html" title="Scikit-learn 教程">Scikit-learn 教程</a></li><li><a href="../ml/ml-tutorial.html" title="机器 教程">机器 教程</a></li><li><a href="../langchain/langchain-tutorial.html" title="LangChain">LangChain</a></li><li><a href="../nlp/nlp-tutorial.html" title="自然语言处理 NLP">自然语言处理 NLP</a></li><li><a href="../opencv/opencv-tutorial.html" title="OpenCV 教程">OpenCV 教程</a></li><li><a href="../selenium/selenium-tutorial.html" title="Selenium 教程">Selenium 教程</a></li><li><a href="../playwright/playwright-tutorial.html" title="Playwright 教程">Playwright 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 前端开发</a><ul class="double-li"><li><a href="../html/html-tutorial.html" title="HTML 教程">HTML 教程</a></li><li><a href="../html/html5-intro.html" title="HTML5 教程">HTML5 教程</a></li><li><a href="../css/css-tutorial.html" title="CSS 教程">CSS 教程</a></li><li><a href="../css3/css3-tutorial.html" title="CSS3 教程">CSS3 教程</a></li><li><a href="../js/js-tutorial.html" title="JavaScript 教程">JavaScript 教程</a></li><li><a href="../htmldom/htmldom-tutorial.html" title="HTML DOM 教程">HTML DOM 教程</a></li><li><a href="../typescript/ts-tutorial.html" title="TypeScript 教程">TypeScript 教程</a></li><li><a href="../ajax/ajax-tutorial.html" title="AJAX 教程">AJAX 教程</a></li><li><a href="../json/json-tutorial.html" title="JSON 教程">JSON 教程</a></li><li><a href="../tailwindcss/tailwindcss-tutorial.html" title="Tailwind CSS 教程">Tailwind CSS 教程</a></li><li><a href="../bootstrap4/bootstrap4-tutorial.html" title="Bootstrap4 教程">Bootstrap4 教程</a></li><li><a href="../bootstrap5/bootstrap5-tutorial.html" title="Bootstrap5 教程">Bootstrap5 教程</a></li><li><a href="../foundation/foundation-tutorial.html" title="Foundation 教程">Foundation 教程</a></li><li><a href="../vue2/vue-tutorial.html" title="Vue.js 教程">Vue.js 教程</a></li><li><a href="../vue3/vue3-tutorial.html" title="Vue3 教程">Vue3 教程</a></li><li><a href="../react/react-tutorial.html" title="React 教程">React 教程</a></li><li><a href="../nextjs/nextjs-tutorial.html" title="Next.js 教程">Next.js 教程</a></li><li><a href="../angularjs/angularjs-tutorial.html" title="AngularJS 教程">AngularJS 教程</a></li><li><a href="../angularjs2/angularjs2-tutorial.html" title="Angular 教程">Angular 教程</a></li><li><a href="../jquery/jquery-tutorial.html" title="jQuery 教程">jQuery 教程</a></li><li><a href="../jqueryui/jqueryui-tutorial.html" title="jQuery UI 教程">jQuery UI 教程</a></li><li><a href="../jeasyui/jqueryeasyui-tutorial.html" title="jQuery EasyUI 教程">jQuery EasyUI 教程</a></li><li><a href="../echarts/echarts-tutorial.html" title="ECharts 教程">ECharts 教程</a></li><li><a href="../chartjs/chartjs-tutorial.html" title="Chart.js 教程">Chart.js 教程</a></li><li><a href="../highcharts/highcharts-tutorial.html" title="Highcharts 教程">Highcharts 教程</a></li><li><a href="../googleapi/google-maps-basic.html" title="Google 地图 教程">Google 地图 教程</a></li><li><a href="../svg/svg-tutorial.html" title="SVG 教程">SVG 教程</a></li><li><a href="../font-awesome/fontawesome-tutorial.html" title="Font Awesome 教程">Font Awesome 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 后端开发</a><ul class="double-li"><li><a href="../nodejs/nodejs-tutorial.html" title="Node.js 教程">Node.js 教程</a></li><li><a href="../electron/electron-tutorial.html" title="Electron 教程">Electron 教程</a></li><li><a href="../php/php-tutorial.html" title="PHP 教程">PHP 教程</a></li><li><a href="../java/java-tutorial.html" title="Java 教程">Java 教程</a></li><li><a href="../go/go-tutorial.html" title="Go 教程">Go 教程</a></li><li><a href="../rust/rust-tutorial.html" title="Rust 教程">Rust 教程</a></li><li><a href="../csharp/csharp-tutorial.html" title="C# 教程">C# 教程</a></li><li><a href="../servlet/servlet-tutorial.html" title="Servlet 教程">Servlet 教程</a></li><li><a href="../jsp/jsp-tutorial.html" title="JSP 教程">JSP 教程</a></li><li><a href="../asp/asp-tutorial.html" title="ASP 教程">ASP 教程</a></li><li><a href="../appml/appml-tutorial.html" title="AppML 教程">AppML 教程</a></li><li><a href="../vbscript/vbscript-tutorial.html" title="VBScript 教程">VBScript 教程</a></li><li><a href="../swagger/swagger-tutorial.html" title="Swagger 教程">Swagger 教程</a></li><li><a href="../restfulapi/restful-api-tutorial.html" title="RESTful API 教程">RESTful API 教程</a></li><li><a href="../docker/docker-tutorial.html" title="Docker 教程">Docker 教程</a></li><li><a href="../linux/linux-tutorial.html" title="Linux 教程">Linux 教程</a></li><li><a href="../w3cnote/zookeeper-tutorial.html" title="ZooKeeper 教程">ZooKeeper 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 数据库</a><ul class="double-li"><li><a href="../sql/sql-tutorial.html" title="SQL 教程">SQL 教程</a></li><li><a href="../mysql/mysql-tutorial.html" title="MySQL 教程">MySQL 教程</a></li><li><a href="../postgresql/postgresql-tutorial.html" title="PostgreSQL 教程">PostgreSQL 教程</a></li><li><a href="../sqlite/sqlite-tutorial.html" title="SQLite 教程">SQLite 教程</a></li><li><a href="../mongodb/mongodb-tutorial.html" title="MongoDB 教程">MongoDB 教程</a></li><li><a href="../redis/redis-tutorial.html" title="Redis 教程">Redis 教程</a></li><li><a href="../memcached/memcached-tutorial.html" title="Memcached 教程">Memcached 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 移动开发</a><ul class="double-li"><li><a href="../w3cnote/android-tutorial-intro.html" title="Android 教程">Android 教程</a></li><li><a href="../flutter/flutter-tutorial.html" title="Flutter 教程">Flutter 教程</a></li><li><a href="../ionic/ionic-tutorial.html" title="Ionic 教程">Ionic 教程</a></li><li><a href="../jquerymobile/jquerymobile-tutorial.html" title="jQuery Mobile 教程">jQuery Mobile 教程</a></li><li><a href="../swift/swift-tutorial.html" title="Swift 教程">Swift 教程</a></li><li><a href="../kotlin/kotlin-tutorial.html" title="Kotlin 教程">Kotlin 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> DevOps / 工程化</a><ul class="double-li"><li><a href="../git/git-tutorial.html" title="Git 教程">Git 教程</a></li><li><a href="../svn/svn-tutorial.html" title="SVN 教程">SVN 教程</a></li><li><a href="../cmake/cmake-tutorial.html" title="CMake 教程">CMake 教程</a></li><li><a href="../maven/maven-tutorial.html" title="Maven 教程">Maven 教程</a></li><li><a href="../vscode/vscode-tutorial.html" title="VS Code 教程">VS Code 教程</a></li><li><a href="../obsidian/obsidian-tutorial.html" title="Obsidian 教程">Obsidian 教程</a></li><li><a href="../pycharm/pycharm-tutorial.html" title="PyCharm 教程">PyCharm 教程</a></li><li><a href="../eclipse/eclipse-tutorial.html" title="Eclipse 教程">Eclipse 教程</a></li><li><a href="../markdown/md-tutorial.html" title="Markdown 教程">Markdown 教程</a></li><li><a href="../latex/latex-tutorial.html" title="LaTeX 教程">LaTeX 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 编程语言</a><ul class="double-li"><li><a href="../c/c-tutorial.html" title="C 教程">C 教程</a></li><li><a href="../cplusplus/cpp-tutorial.html" title="C++ 教程">C++ 教程</a></li><li><a href="../zig/zig-tutorial.html" title="Zig 教程">Zig 教程</a></li><li><a href="../scala/scala-tutorial.html" title="Scala 教程">Scala 教程</a></li><li><a href="../ruby/ruby-tutorial.html" title="Ruby 教程">Ruby 教程</a></li><li><a href="../perl/perl-tutorial.html" title="Perl 教程">Perl 教程</a></li><li><a href="../lua/lua-tutorial.html" title="Lua 教程">Lua 教程</a></li><li><a href="../dart/dart-tutorial.html" title="Dart 教程">Dart 教程</a></li><li><a href="../assembly/assembly-tutorial.html" title="汇编语言 教程">汇编语言 教程</a></li><li><a href="../w3cnote/verilog-tutorial.html" title="Verilog 教程">Verilog 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 计算机基础</a><ul class="double-li"><li><a href="../computer-organization/computer-organization-tutorial.html" title="计算机组成原理">计算机组成原理</a></li><li><a href="../data-structures/data-structures-tutorial.html" title="数据结构与算法">数据结构与算法</a></li><li><a href="../c-dsa/c-dsa-tutorial.html" title="C 语言数据结构与算法">C 语言数据结构与算法</a></li><li><a href="../design-pattern/design-pattern-tutorial.html" title="设计模式">设计模式</a></li><li><a href="../python-design-pattern/python-design-pattern-tutorial.html" title="Python 设计模式">Python 设计模式</a></li><li><a href="../regexp/regexp-tutorial.html" title="正则表达式">正则表达式</a></li><li><a href="../http/http-tutorial.html" title="HTTP 教程">HTTP 教程</a></li><li><a href="../tcpip/tcpip-tutorial.html" title="TCP/IP 教程">TCP/IP 教程</a></li><li><a href="../np/np-tutorial.html" title="网络协议">网络协议</a></li><li><a href="../w3c/w3c-tutorial.html" title="W3C 教程">W3C 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> XML / Web Service</a><ul class="double-li"><li><a href="../xml/xml-tutorial.html" title="XML 教程">XML 教程</a></li><li><a href="../dtd/dtd-tutorial.html" title="DTD 教程">DTD 教程</a></li><li><a href="../dom/dom-tutorial.html" title="XML DOM 教程">XML DOM 教程</a></li><li><a href="../xsl/xsl-tutorial.html" title="XSLT 教程">XSLT 教程</a></li><li><a href="../xpath/xpath-tutorial.html" title="XPath 教程">XPath 教程</a></li><li><a href="../xquery/xquery-tutorial.html" title="XQuery 教程">XQuery 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XLink 教程">XLink 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XPointer 教程">XPointer 教程</a></li><li><a href="../schema/schema-tutorial.html" title="XML Schema 教程">XML Schema 教程</a></li><li><a href="../xslfo/xslfo-tutorial.html" title="XSL-FO 教程">XSL-FO 教程</a></li><li><a href="../webservices/webservices-tutorial.html" title="Web Service 教程">Web Service 教程</a></li><li><a href="../wsdl/wsdl-tutorial.html" title="WSDL 教程">WSDL 教程</a></li><li><a href="../soap/soap-tutorial.html" title="SOAP 教程">SOAP 教程</a></li><li><a href="../rss/rss-tutorial.html" title="RSS 教程">RSS 教程</a></li><li><a href="../rdf/rdf-tutorial.html" title="RDF 教程">RDF 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> .NET</a><ul class="double-li"><li><a href="../aspnet/aspnet-tutorial.html" title="ASP.NET 教程">ASP.NET 教程</a></li><li><a href="../aspnet/mvc-intro.html" title="MVC 教程">MVC 教程</a></li><li><a href="../aspnet/razor-intro.html" title="Razor 教程">Razor 教程</a></li><li><a href="../aspnet/aspnet-intro.html" title="Web Forms 教程">Web Forms 教程</a></li><li><a href="../aspnet/webpages-intro.html" title="Web Pages 教程">Web Pages 教程</a></li><li><a href="../powershell/powershell-tutorial.html" title="PowerShell 教程">PowerShell 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 网站建设</a><ul class="double-li"><li><a href="../web/web-buildingprimer.html" title="网站建设指南">网站建设指南</a></li><li><a href="../browsers/browser-information.html" title="浏览器信息">浏览器信息</a></li><li><a href="../hosting/hosting-tutorial.html" title="网站主机教程">网站主机教程</a></li><li><a href="../quality/quality-tutorial.html" title="网站品质">网站品质</a></li></ul></li></ul> </div>
+</div>
+</div>
+<br/>
+<div class="sidebar-box re-box re-box-large">
+</div>
+</div></div>
+</div>
+<script>
+var aid = 29855;
+function coll() {
+	$.post( '/wp-content/themes/runoob/option/user/userinfo.php', {aid:aid, action:"collarticle", opt:'add'},function( data ) {
+		if(data.error==0) {
+			$("#content").find("h1:first").find("a").attr("href","javascript:void(0);");
+			$("#content").find("h1:first").find("img").attr("src","http://www.runoob.com/wp-content/themes/runoob/assets/img/coll2.png").css({width:32+"px",height:32+"px"});
+		}
+		alert(data.msg);
+	},'json');
+}
+
+(function () {
+    // 1. 仅 HTML 页面
+    if (!document.contentType || !document.contentType.includes('text/html')) return;
+
+    // 2. 容器判断
+    var container = document.querySelector('.article-intro');
+    if (!container) return;
+
+    var h1 = container.querySelector('h1');
+    if (!h1) return;
+
+    // 3. URL 判断
+    var url = window.location.href.toLowerCase();
+    var version = null;
+
+    if (url.includes('/python3/')) {
+        version = 'Python3.x';
+    } else if (url.includes('/python/')) {
+        version = 'Python2.x';
+    }
+
+    if (!version) return;
+
+    // 4. 防重复
+    if (h1.querySelector('.py-version-badge')) return;
+
+    // 5. 创建标签
+    var badge = document.createElement('span');
+    badge.className = 'py-version-badge';
+    badge.innerText = version;
+
+    // 6. 样式（核心：float 实现右上角）
+    badge.style.float = 'right';
+    badge.style.fontSize = '12px';
+    badge.style.padding = '2px 8px';
+    badge.style.borderRadius = '999px';
+
+   // 自适应亮/暗色 + 渐变背景（增强版）
+	badge.style.color = 'inherit';
+
+	// 渐变背景（低透明度，不影响暗黑模式）
+	if (version.includes('3')) {
+		badge.style.background = 'linear-gradient(90deg, rgba(79,172,254,0.15), rgba(0,242,254,0.15))';
+	} else {
+		badge.style.background = 'linear-gradient(90deg, rgba(161,140,209,0.15), rgba(251,194,235,0.15))';
+	}
+
+	// 边框弱化（更精致）
+	badge.style.border = '1px solid rgba(127,127,127,0.3)';
+
+	// 提升可读性
+	badge.style.opacity = '0.95';
+
+    // 微调位置（更贴近“右上角”）
+    badge.style.marginTop = '4px';
+    badge.style.marginLeft = '10px';
+
+    // 7. 插入到 h1 最前面（让 float 生效更稳定）
+    h1.insertBefore(badge, h1.firstChild);
+
+})();
+</script>
+<!-- 反馈对话框开始 -->
+<script src="../wp-content/themes/runoob/assets/js/runoob-article-dir.min.js"></script>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

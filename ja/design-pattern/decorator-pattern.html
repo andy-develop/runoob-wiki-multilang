@@ -1,0 +1,1751 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>デコレーターパターン | 菜鸟教程</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<link href="../manifest.webmanifest.html" rel="manifest"/>
+<meta content="#10151c" name="theme-color"/>
+<link href="../pwa/icon-192.png.html" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="application-name"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="../design-pattern/decorator-pattern.html" rel="canonical"/>
+<meta content="装饰器模式" name="keywords"/>
+<meta content="装饰器模式  装饰器模式（Decorator Pattern）允许向一个现有的对象添加新的功能，同时又不改变其结构。这种类型的设计模式属于结构型模式，它是作为现有的类的一个包装。  装饰器模式通过将对象包装在装饰器类中，以便动态地修改其行为。 这种模式创建了一个装饰类，用来包装原有的类，并在保持类方法签名完整性的前提下，提供了额外的功能。 我们通过下面的实例来演示装饰器模式的用法。其中，我们将把一个形状装饰上不同的颜色，同时又不改变形状.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div>
+<!-- 导航栏 -->
+<style>
+/* 主题切换按钮 */
+/* ===== 主题变量（核心）===== */
+:root {
+  --theme-bg: #ffffff;
+  --theme-border: #e5e7eb;
+  --theme-icon: #333;
+  --theme-hover: #f3f4f6;
+}
+
+.dark {
+  --theme-bg: #1f2937;
+  --theme-border: #374151;
+  --theme-icon: #e5e7eb;
+  --theme-hover: #374151;
+}
+
+/* ===== 按钮容器 ===== */
+.nav-theme-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== 按钮本体 ===== */
+.nav-theme-toggle button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  border-radius: 6px;
+  border: 1px solid var(--theme-border);
+
+  background: var(--theme-bg);
+  color: var(--theme-icon);
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* ===== 图标大小 ===== */
+.nav-theme-toggle i {
+  font-size: 14px;
+}
+
+/* ===== hover 效果 ===== */
+.nav-theme-toggle button:hover {
+  background: var(--theme-hover);
+  transform: translateY(-1px);
+}
+
+/* ===== 点击反馈 ===== */
+.nav-theme-toggle button:active {
+  transform: scale(0.95);
+}
+
+/* ===== 当前激活态（可选）===== */
+.nav-theme-toggle button.active {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+</style>
+<!-- 导航栏 -->
+<nav aria-label="主导航" class="container navigation">
+<div class="row">
+<div class="col nav">
+<!-- PC 导航 -->
+<ul class="pc-nav" id="runoob-detail-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../js/js-tutorial.html">JavaScript</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a data-id="vue" href="#">Vue</a></li>
+<li><a href="../react/react-tutorial.html">React</a></li>
+<li><a href="../python3/python3-tutorial.html">Python3</a></li>
+<li><a href="../java/java-tutorial.html">Java</a></li>
+<li><a href="../cprogramming/c-tutorial.html">C</a></li>
+<li><a href="../cplusplus/cpp-tutorial.html">C++</a></li>
+<li><a href="../csharp/csharp-tutorial.html">C#</a></li>
+<li><a data-id="aiNav" href="#">AI</a></li>
+<li><a href="../go/go-tutorial.html">Go</a></li>
+<li><a href="../sql/sql-tutorial.html">SQL</a></li>
+<li><a href="../linux/linux-tutorial.html">Linux</a></li>
+<li><a href="../vscode/vscode-tutorial.html">VS Code</a></li>
+<li><a data-id="bootstrap" href="#">Bootstrap</a></li>
+<li><a href="../git/git-tutorial.html">Git</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<!-- 主题切换按钮，固定在最右侧 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+<!-- 移动端导航 -->
+<ul class="mobile-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a href="../js/js-tutorial.html">JS</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<li><a class="search-reveal" href="#">搜索</a></li>
+<!-- 移动端主题切换 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon-mobile" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun-mobile" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<!-- 二级导航 -->
+<!--  内容  -->
+<div class="container main">
+<!-- 中间 -->
+<div class="row">
+<div class="runoob-col-md2">
+<div class="left-column">
+<div class="tab" style="overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
+<i aria-hidden="true" class="fa fa-list"></i>
+<span>设计模式</span>
+</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+<a data-p="par" href="../design-pattern/design-pattern-tutorial.html" target="_top" title="设计模式">
+			设计模式			</a>
+<a data-p="par" href="../design-pattern/design-pattern-intro.html" target="_top" title="设计模式简介">
+			设计模式简介			</a>
+<a data-p="par" href="../design-pattern/factory-pattern.html" target="_top" title="工厂模式">
+			工厂模式			</a>
+<a data-p="par" href="../design-pattern/abstract-factory-pattern.html" target="_top" title="抽象工厂模式">
+			抽象工厂模式			</a>
+<a data-p="par" href="../design-pattern/singleton-pattern.html" target="_top" title="单例模式">
+			单例模式			</a>
+<a data-p="par" href="../design-pattern/builder-pattern.html" target="_top" title="建造者模式">
+			建造者模式			</a>
+<a data-p="par" href="../design-pattern/prototype-pattern.html" target="_top" title="原型模式">
+			原型模式			</a>
+<a data-p="par" href="../design-pattern/adapter-pattern.html" target="_top" title="适配器模式">
+			适配器模式			</a>
+<a data-p="par" href="../design-pattern/bridge-pattern.html" target="_top" title="桥接模式">
+			桥接模式			</a>
+<a data-p="par" href="../design-pattern/filter-pattern.html" target="_top" title="过滤器模式">
+			过滤器模式			</a>
+<a data-p="par" href="../design-pattern/composite-pattern.html" target="_top" title="组合模式">
+			组合模式			</a>
+<a data-p="par" href="../design-pattern/decorator-pattern.html" target="_top" title="装饰器模式">
+			装饰器模式			</a>
+<a data-p="par" href="../design-pattern/facade-pattern.html" target="_top" title="外观模式">
+			外观模式			</a>
+<a data-p="par" href="../design-pattern/flyweight-pattern.html" target="_top" title="享元模式">
+			享元模式			</a>
+<a data-p="par" href="../design-pattern/proxy-pattern.html" target="_top" title="代理模式">
+			代理模式			</a>
+<a data-p="par" href="../design-pattern/chain-of-responsibility-pattern.html" target="_top" title="责任链模式">
+			责任链模式			</a>
+<a data-p="par" href="../design-pattern/command-pattern.html" target="_top" title="命令模式">
+			命令模式			</a>
+<a data-p="par" href="../design-pattern/interpreter-pattern.html" target="_top" title="解释器模式">
+			解释器模式			</a>
+<a data-p="par" href="../design-pattern/iterator-pattern.html" target="_top" title="迭代器模式">
+			迭代器模式			</a>
+<a data-p="par" href="../design-pattern/mediator-pattern.html" target="_top" title="中介者模式">
+			中介者模式			</a>
+<a data-p="par" href="../design-pattern/memento-pattern.html" target="_top" title="备忘录模式">
+			备忘录模式			</a>
+<a data-p="par" href="../design-pattern/observer-pattern.html" target="_top" title="观察者模式">
+			观察者模式			</a>
+<a data-p="par" href="../design-pattern/state-pattern.html" target="_top" title="状态模式">
+			状态模式			</a>
+<a data-p="par" href="../design-pattern/null-object-pattern.html" target="_top" title="空对象模式">
+			空对象模式			</a>
+<a data-p="par" href="../design-pattern/strategy-pattern.html" target="_top" title="策略模式">
+			策略模式			</a>
+<a data-p="par" href="../design-pattern/template-pattern.html" target="_top" title="模板模式">
+			模板模式			</a>
+<a data-p="par" href="../design-pattern/visitor-pattern.html" target="_top" title="访问者模式">
+			访问者模式			</a>
+<a data-p="par" href="../design-pattern/mvc-pattern.html" target="_top" title="MVC 模式">
+			MVC 模式			</a>
+<a data-p="par" href="../design-pattern/business-delegate-pattern.html" target="_top" title="业务代表模式">
+			业务代表模式			</a>
+<a data-p="par" href="../design-pattern/composite-entity-pattern.html" target="_top" title="组合实体模式">
+			组合实体模式			</a>
+<a data-p="par" href="../design-pattern/data-access-object-pattern.html" target="_top" title="数据访问对象模式">
+			数据访问对象模式			</a>
+<a data-p="par" href="../design-pattern/front-controller-pattern.html" target="_top" title="前端控制器模式">
+			前端控制器模式			</a>
+<a data-p="par" href="../design-pattern/intercepting-filter-pattern.html" target="_top" title="拦截过滤器模式">
+			拦截过滤器模式			</a>
+<a data-p="par" href="../design-pattern/service-locator-pattern.html" target="_top" title="服务定位器模式">
+			服务定位器模式			</a>
+<a data-p="par" href="../design-pattern/transfer-object-pattern.html" target="_top" title="传输对象模式">
+			传输对象模式			</a>
+<br/><h2 class="left">デザインパターン<span class="left_h2">其他</span></h2> <a data-p="par" href="../design-pattern/design-pattern-resources.html" target="_top" title="设计模式资源">
+			设计模式资源			</a>
+</div>
+</div>
+</div>
+</div> <div class="col middle-column">
+<div class="article">
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../design-pattern/composite-pattern.html" rel="prev">コンポジットパターン</a> </div>
+<div class="next-design-link"><a href="../design-pattern/facade-pattern.html" rel="next">ファサードパターン</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="article-body">
+<div class="article-intro" id="content">
+<h1>デコレーターパターン</h1>
+<p>デコレーターパターン（Decorator Pattern）は、既存のオブジェクトに新しい機能を追加することを可能にし、同時にその構造を変更しません。このタイプのデザインパターンは構造型パターンに属し、既存のクラスのラッパーとして機能します。</p>
+<p>デコレーターパターンは、オブジェクトをデコレータークラスにラップすることで、その振る舞いを動的に変更します。</p>
+<p>このパターンは、元のクラスをラップするデコレータークラスを作成し、クラスのメソッドシグネチャの整合性を保ちながら、追加の機能を提供します。</p>
+<p>以下の例でデコレーターパターンの使い方を説明します。ここでは、形状クラスを変更せずに、形状に異なる色を付けます。</p>
+<h2 class="tutheader">概要</h2>
+<h3>意図</h3><p>オブジェクトの構造を変更せずに、動的に追加の責務を追加します。デコレーターパターンは、継承に代わる柔軟な方法で機能を拡張します。</p>
+<h3>主に解決する問題</h3>
+<ul>
+<li>特にサブクラスの数が急激に増える状況で、継承による静的な特徴づけを避けます。</li>
+<li>実行時にオブジェクトの機能を動的に追加または変更することを可能にします。</li>
+</ul>
+<h3>使用シーン</h3>
+<ul>
+<li>大量のサブクラスを増やさずにクラスの機能を拡張する必要がある場合。</li>
+<li>オブジェクトの機能を動的に追加または取り消す必要がある場合。</li>
+</ul>
+<h3>実装方法</h3>
+<ul>
+<li><strong>コンポーネントインターフェースを定義する</strong>：動的に責務を追加できるオブジェクトの標準を定めるインターフェースを作成します。</li>
+<li><strong>具体的なコンポーネントを作成する</strong>：そのインターフェースを実装する具体的なクラスで、基本機能を提供します。</li>
+<li><strong>抽象デコレーターを作成する</strong>：同じインターフェースを実装し、コンポーネントインターフェースへの参照を保持し、いつでも動的に機能を追加できます。</li>
+<li><strong>具体的なデコレーターを作成する</strong>：抽象デコレーターを拡張し、追加の責務を加えます。</li>
+</ul>
+<h3>キーコード</h3>
+<ul>
+<li><strong>Componentインターフェース</strong>：装飾可能なオブジェクトの標準を定義します。</li>
+<li><strong>ConcreteComponentクラス</strong>：Componentインターフェースを実装する具体的なクラス。</li>
+<li><strong>Decorator抽象クラス</strong>：Componentインターフェースを実装し、Componentインターフェースの参照を含みます。</li>
+<li><strong>ConcreteDecoratorクラス</strong>：Decoratorクラスを拡張し、追加の機能を追加します。</li>
+</ul>
+<h3>適用例</h3>
+<ol>
+<li><strong>孫悟空の72変化</strong>：孫悟空（ConcreteComponent）は変化（Decorator）によって新しい能力を得ます。</li>
+<li><strong>額縁で絵を飾る</strong>：絵（ConcreteComponent）は、ガラス（ConcreteDecorator）と額縁（ConcreteDecorator）を追加することで、展示効果を高めることができます。</li>
+</ol>
+<h3>利点</h3>
+<ul>
+<li><strong>低結合</strong>：デコレータークラスと被装飾クラスは独立して変更でき、互いに影響しません。</li>
+<li><strong>柔軟性</strong>：機能を動的に追加または取り消すことができます。</li>
+<li><strong>継承の代替</strong>：継承以外のオブジェクト機能の拡張方法を提供します。</li>
+</ul>
+<h3>欠点</h3>
+<ul>
+<li><strong>複雑性</strong>：多層の装飾はシステムの複雑性を増大させる可能性があります。</li>
+</ul>
+<h3>使用上のアドバイス</h3>
+<ul>
+<li>機能を動的に拡張する必要がある場合は、デコレーターパターンの使用を検討してください。</li>
+<li>デコレーターと具体的なコンポーネントのインターフェースを一致させ、柔軟性を確保します。</li>
+</ul>
+<h3>注意事項</h3>
+<ul>
+<li>デコレーターパターンは継承の代替になりますが、過剰な装飾によるシステムの複雑化を避けるため、慎重に使用すべきです。</li>
+</ul><h3>構造</h3>
+<p><strong>デコレーターパターンには、以下の主要な役割が含まれます：</strong></p>
+<ul><li>抽象コンポーネント（Component）：元のオブジェクトとデコレーターオブジェクトの共通インターフェースまたは抽象クラスを定義し、具体的なコンポーネントクラスの親クラスまたはインターフェースになります。</li><li>具体的なコンポーネント（Concrete Component）：装飾される元のオブジェクトであり、新しい機能を追加する必要があるオブジェクトを定義します。</li><li>抽象デコレーター（Decorator）：抽象コンポーネントを継承し、抽象コンポーネントオブジェクトを含み、抽象コンポーネントと同じインターフェースを定義します。また、コンポジションによって他のデコレーターオブジェクトを保持できます。</li><li>具体的なデコレーター（Concrete Decorator）：抽象デコレーターのインターフェースを実装し、抽象コンポーネントに新しい機能を追加します。具体的なデコレーターは通常、元のオブジェクトのメソッドを呼び出す前後に自身の操作を実行します。</li></ul>
+<p>デコレーターパターンは、複数のデコレーターオブジェクトをネストしてラップすることで、多層の機能強化を実現できます。各具体的なデコレータークラスは、オブジェクトのインターフェースの一貫性を保ちながら、新しい機能を選択的に追加できます。</p>
+<h2 class="tutheader">実装</h2>
+<p>私たちは作成します<i>Shape</i>インターフェースと、それを実装した<i>Shape</i>インターフェースのエンティティクラス。<i>Shape</i>インターフェースの抽象デコレータークラス<i>ShapeDecorator</i>、そして<i>Shape</i>オブジェクトをそのインスタンス変数として持ちます。</p>
+<p><i>RedShapeDecorator</i>は実装した<i>ShapeDecorator</i>のエンティティクラスです。<p><i>DecoratorPatternDemo</i>クラスは使用します<i>RedShapeDecorator</i>で装飾します<i>Shape</i>オブジェクト。</p>
+<p><img decoding="async" src="../wp-content/uploads/2014/08/20210420-decorator-1-decorator-decorator-decorator.drawio-2.png"/></p>
+&lt;img decoding="async" src="../wp-content/uploads/2014/08/20210420-decorator-1-decorator-decorator.svg" alt="装饰器模式的 UML 图" /&gt;
+<h3>ステップ 1</h3>
+<p>インターフェースを作成します：</p>
+<div class="example">
+<h2 class="example">Shape.java</h2>
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-reserved">interface</span><span class="hl-code"> </span><span class="hl-identifier">Shape</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">draw</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span></div>
+</div></div>
+<h3>ステップ 2</h3>
+<p>インターフェースを実装するエンティティクラスを作成します。</p>
+<div class="example">
+<h2 class="example">Rectangle.java</h2>
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-reserved">class</span><span class="hl-code"> </span><span class="hl-identifier">Rectangle</span><span class="hl-code"> </span><span class="hl-reserved">implements</span><span class="hl-code"> </span><span class="hl-identifier">Shape</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+ 
+   @</span><span class="hl-identifier">Override</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">draw</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">System</span><span class="hl-code">.</span><span class="hl-identifier">out</span><span class="hl-code">.</span><span class="hl-identifier">println</span><span class="hl-brackets">(</span><span class="hl-quotes">"</span><span class="hl-string">Shape: Rectangle</span><span class="hl-quotes">"</span><span class="hl-brackets">)</span><span class="hl-code">;
+   </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span></div>
+</div></div>
+<div class="example">
+<h2 class="example">Circle.java</h2>
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-reserved">class</span><span class="hl-code"> </span><span class="hl-identifier">Circle</span><span class="hl-code"> </span><span class="hl-reserved">implements</span><span class="hl-code"> </span><span class="hl-identifier">Shape</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+ 
+   @</span><span class="hl-identifier">Override</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">draw</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">System</span><span class="hl-code">.</span><span class="hl-identifier">out</span><span class="hl-code">.</span><span class="hl-identifier">println</span><span class="hl-brackets">(</span><span class="hl-quotes">"</span><span class="hl-string">Shape: Circle</span><span class="hl-quotes">"</span><span class="hl-brackets">)</span><span class="hl-code">;
+   </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span></div>
+</div></div>
+<h3>ステップ 3</h3>
+<p>実装したものを作成します<i>Shape</i>インターフェースの抽象デコレータークラス。</p>
+<div class="example">
+<h2 class="example">ShapeDecorator.java</h2>
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-reserved">abstract</span><span class="hl-code"> </span><span class="hl-reserved">class</span><span class="hl-code"> </span><span class="hl-identifier">ShapeDecorator</span><span class="hl-code"> </span><span class="hl-reserved">implements</span><span class="hl-code"> </span><span class="hl-identifier">Shape</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">protected</span><span class="hl-code"> </span><span class="hl-identifier">Shape</span><span class="hl-code"> </span><span class="hl-identifier">decoratedShape</span><span class="hl-code">;
+ 
+   </span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-identifier">ShapeDecorator</span><span class="hl-brackets">(</span><span class="hl-identifier">Shape</span><span class="hl-code"> </span><span class="hl-identifier">decoratedShape</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">this</span><span class="hl-code">.</span><span class="hl-identifier">decoratedShape</span><span class="hl-code"> = </span><span class="hl-identifier">decoratedShape</span><span class="hl-code">;
+   </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">draw</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">decoratedShape</span><span class="hl-code">.</span><span class="hl-identifier">draw</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+   </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span></div>
+</div></div>
+<h3>ステップ 4</h3>
+<p>拡張したものを作成します<i>ShapeDecorator</i>クラスのエンティティデコレータークラス。</p>
+<div class="example">
+<h2 class="example">RedShapeDecorator.java</h2>
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-reserved">class</span><span class="hl-code"> </span><span class="hl-identifier">RedShapeDecorator</span><span class="hl-code"> </span><span class="hl-reserved">extends</span><span class="hl-code"> </span><span class="hl-identifier">ShapeDecorator</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-identifier">RedShapeDecorator</span><span class="hl-brackets">(</span><span class="hl-identifier">Shape</span><span class="hl-code"> </span><span class="hl-identifier">decoratedShape</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">super</span><span class="hl-brackets">(</span><span class="hl-identifier">decoratedShape</span><span class="hl-brackets">)</span><span class="hl-code">;     
+   </span><span class="hl-brackets">}</span><span class="hl-code">
+ 
+   @</span><span class="hl-identifier">Override</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">draw</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">decoratedShape</span><span class="hl-code">.</span><span class="hl-identifier">draw</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;         
+      </span><span class="hl-identifier">setRedBorder</span><span class="hl-brackets">(</span><span class="hl-identifier">decoratedShape</span><span class="hl-brackets">)</span><span class="hl-code">;
+   </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">setRedBorder</span><span class="hl-brackets">(</span><span class="hl-identifier">Shape</span><span class="hl-code"> </span><span class="hl-identifier">decoratedShape</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">System</span><span class="hl-code">.</span><span class="hl-identifier">out</span><span class="hl-code">.</span><span class="hl-identifier">println</span><span class="hl-brackets">(</span><span class="hl-quotes">"</span><span class="hl-string">Border Color: Red</span><span class="hl-quotes">"</span><span class="hl-brackets">)</span><span class="hl-code">;
+   </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span></div>
+</div></div>
+<h3>ステップ 5</h3>
+<p>使用します<i>RedShapeDecorator</i>で装飾します<i>Shape</i>オブジェクト。</p>
+<div class="example">
+<h2 class="example">DecoratorPatternDemo.java</h2>
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-reserved">class</span><span class="hl-code"> </span><span class="hl-identifier">DecoratorPatternDemo</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">static</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">main</span><span class="hl-brackets">(</span><span class="hl-identifier">String</span><span class="hl-brackets">[</span><span class="hl-brackets">]</span><span class="hl-code"> </span><span class="hl-identifier">args</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">Shape</span><span class="hl-code"> </span><span class="hl-identifier">circle</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Circle</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+      </span><span class="hl-identifier">ShapeDecorator</span><span class="hl-code"> </span><span class="hl-identifier">redCircle</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">RedShapeDecorator</span><span class="hl-brackets">(</span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Circle</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-brackets">)</span><span class="hl-code">;
+      </span><span class="hl-identifier">ShapeDecorator</span><span class="hl-code"> </span><span class="hl-identifier">redRectangle</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">RedShapeDecorator</span><span class="hl-brackets">(</span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Rectangle</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-brackets">)</span><span class="hl-code">;
+      </span><span class="hl-comment">//</span><span class="hl-comment">Shape redCircle = new RedShapeDecorator(new Circle());</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">Shape redRectangle = new RedShapeDecorator(new Rectangle());</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">System</span><span class="hl-code">.</span><span class="hl-identifier">out</span><span class="hl-code">.</span><span class="hl-identifier">println</span><span class="hl-brackets">(</span><span class="hl-quotes">"</span><span class="hl-string">Circle with normal border</span><span class="hl-quotes">"</span><span class="hl-brackets">)</span><span class="hl-code">;
+      </span><span class="hl-identifier">circle</span><span class="hl-code">.</span><span class="hl-identifier">draw</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+ 
+      </span><span class="hl-identifier">System</span><span class="hl-code">.</span><span class="hl-identifier">out</span><span class="hl-code">.</span><span class="hl-identifier">println</span><span class="hl-brackets">(</span><span class="hl-quotes">"</span><span class="hl-special">\n</span><span class="hl-string">Circle of red border</span><span class="hl-quotes">"</span><span class="hl-brackets">)</span><span class="hl-code">;
+      </span><span class="hl-identifier">redCircle</span><span class="hl-code">.</span><span class="hl-identifier">draw</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+ 
+      </span><span class="hl-identifier">System</span><span class="hl-code">.</span><span class="hl-identifier">out</span><span class="hl-code">.</span><span class="hl-identifier">println</span><span class="hl-brackets">(</span><span class="hl-quotes">"</span><span class="hl-special">\n</span><span class="hl-string">Rectangle of red border</span><span class="hl-quotes">"</span><span class="hl-brackets">)</span><span class="hl-code">;
+      </span><span class="hl-identifier">redRectangle</span><span class="hl-code">.</span><span class="hl-identifier">draw</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+   </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span></div>
+</div></div>
+<h3>ステップ 6</h3>
+<p>プログラムを実行し、結果を出力します：</p>
+<pre>
+Circle with normal border
+Shape: Circle
+
+Circle of red border
+Shape: Circle
+Border Color: Red
+
+Rectangle of red border
+Shape: Rectangle
+Border Color: Red
+</pre> その他の拡張
+</p></div>
+</div>
+<div class="archive-list" style="display:none;font-size: 14px;line-height: 1.8;margin-top: 20px;padding: 10px;">
+<div class="archive-list-item">
+<div class="post-intro" id="ai-info" style="width: 100%;">AI 思考中...</div>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../design-pattern/composite-pattern.html" rel="prev">コンポジットパターン</a> </div>
+<div class="next-design-link"><a href="../design-pattern/facade-pattern.html" rel="next">ファサードパターン</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="sidebar-box">
+</div>
+ノート一覧
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="title" id="comments">
+<h2 class="">
+<div class="altblock">
+<i aria-hidden="true" class="fa fa-plus-square" style="font-size:28px;margin-top: 8px;"></i>
+</div>
+<span class="mw-headline" id="qa_headline">9  件のノート</span>
+<span class="mw-headline" id="user_add_note" style="float:right;line-height: 62px;padding-right: 14px;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>ノートを書く</span>
+</h2>
+</div>
+<div id="postcomments" style="display:none;">
+<ol class="commentlist">
+<li class="comment even thread-even depth-1" id="comment-18379"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>周霆</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  598***063@qq.com</p></div><div class="upvotejs" data-commid="18379" id="runoobvote-id-18379"><a class="upvote"></a> <span class="count">141</span></div></div><div class="comt-main" id="div-comment-18379"><p>より理解しやすい例：</p>
+<p>デコレーターパターンが既存のクラスに動的に追加機能を付与するのは、LOL、王者栄耀などDota系ゲームのヒーローレベルアップのようなものです。ヒーローがレベルアップするたびに、追加のスキルポイントでスキルを学びます。具体的なヒーローがConcreteComponent、スキルバーがデコレーターDecorator、各スキルがConcreteDecoratorです。</p>
+<pre>//Component 英雄接口 
+public interface Hero {
+    //学习技能
+    void learnSkills();
+}
+//ConcreteComponent 具体英雄盲僧
+public class BlindMonk implements Hero {
+    
+    private String name;
+    
+    public BlindMonk(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public void learnSkills() {
+        System.out.println(name + "学习了以上技能！");
+    }
+}
+//Decorator 技能栏
+public class Skills implements Hero{
+    
+    //持有一个英雄对象接口
+    private Hero hero;
+    
+    public Skills(Hero hero) {
+        this.hero = hero;
+    }
+
+    @Override
+    public void learnSkills() {
+        if(hero != null)
+            hero.learnSkills();
+    }    
+}
+//ConreteDecorator 技能：Q
+public class Skill_Q extends Skills{
+    
+    private String skillName;
+
+    public Skill_Q(Hero hero,String skillName) {
+        super(hero);
+        this.skillName = skillName;
+    }
+
+    @Override
+    public void learnSkills() {
+        System.out.println("学习了技能Q:" +skillName);
+        super.learnSkills();
+    }
+}
+//ConreteDecorator 技能：W
+public class Skill_W extends Skills{
+
+    private String skillName;
+
+    public Skill_W(Hero hero,String skillName) {
+        super(hero);
+        this.skillName = skillName;
+    }
+
+    @Override
+    public void learnSkills() {
+        System.out.println("学习了技能W:" + skillName);
+        super.learnSkills();
+    }
+}
+//ConreteDecorator 技能：E
+public class Skill_E extends Skills{
+    
+    private String skillName;
+    
+    public Skill_E(Hero hero,String skillName) {
+        super(hero);
+        this.skillName = skillName;
+    }
+
+    @Override
+    public void learnSkills() {
+        System.out.println("学习了技能E:"+skillName);
+        super.learnSkills();
+    }
+}
+//ConreteDecorator 技能：R
+public class Skill_R extends Skills{    
+    
+    private String skillName;
+    
+    public Skill_R(Hero hero,String skillName) {
+        super(hero);
+        this.skillName = skillName;
+    }
+    
+    @Override
+    public void learnSkills() {
+        System.out.println("学习了技能R:" +skillName );
+        super.learnSkills();
+    }
+}
+//客户端：召唤师
+public class Player {
+    public static void main(String[] args) {
+        //选择英雄
+        Hero hero = new BlindMonk("李青");
+        
+        Skills skills = new Skills(hero);
+        Skills r = new Skill_R(skills,"猛龙摆尾");
+        Skills e = new Skill_E(r,"天雷破/摧筋断骨");
+        Skills w = new Skill_W(e,"金钟罩/铁布衫");
+        Skills q = new Skill_Q(w,"天音波/回音击");
+        //学习技能
+        q.learnSkills();
+    }
+}</pre>
+<p>出力：</p>
+<pre>学习了技能Q:天音波/回音击
+学习了技能W:金钟罩/铁布衫
+学习了技能E:天雷破/摧筋断骨
+学习了技能R:猛龙摆尾
+李青学习了以上技能！</pre><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">周霆</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>周霆</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  598***063@qq.com</p></div></span>9年前 (2017-10-02)</div></div></li><!-- #comment-## -->
+<li class="comment odd alt thread-odd thread-alt depth-1" id="comment-26360"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>このユーザーのニックネームは規約違反です</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  815***754@qq.com</p></div><div class="upvotejs" data-commid="26360" id="runoobvote-id-26360"><a class="upvote"></a> <span class="count">17</span></div></div><div class="comt-main" id="div-comment-26360"><p>ゲーム内のヒーロースキンの実装もデコレーターパターンに適しているのではないでしょうか。</p>
+<pre>public interface Hero {
+    public void init();
+}
+
+public class victor implements Hero {
+    @Override
+    public void init() {
+        System.out.println("维克托：输出型英雄 武器：步枪");
+    }
+}
+
+public abstract class HeroDecorator implements Hero {
+    private Hero heroDecorator;
+
+    public HeroDecorator(Hero heroDecorator) {
+        this.heroDecorator = heroDecorator;
+    }
+
+    @Override
+    public void init() {
+        heroDecorator.init();
+    }
+}
+
+public class GalacticWarriors extends HeroDecorator {
+    private Hero heroDecorator;
+
+    public GalacticWarriors(Hero heroDecorator) {
+        super(heroDecorator);
+    }
+
+    @Override
+    public void init() {
+        super.init();
+        setSkin();
+    }
+
+    private void setSkin() {
+        System.out.println("皮肤:银河战士套装");
+    }
+}
+
+public class DecoratorPatternDemo {
+    public static void main(String[] args) {
+        Hero victor = new victor();
+        GalacticWarriors galacticWarriors = new GalacticWarriors(victor);
+        galacticWarriors.init();
+    }
+}</pre>
+<div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">このユーザーのニックネームは規約違反です</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>このユーザーのニックネームは規約違反です</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  815***754@qq.com</p></div></span>9年前 (2018-04-16)</div></div></li><!-- #comment-## -->
+<li class="comment even thread-even depth-1" id="comment-36667"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>郭为宇</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  gos***02009986@gmail.com</p></div><div class="upvotejs" data-commid="36667" id="runoobvote-id-36667"><a class="upvote"></a> <span class="count">7</span></div></div><div class="comt-main" id="div-comment-36667"><p>『HeadFirst デザインパターン』のデコレーターパターンのコード。</p>
+<pre>package HeadFirst设计模式.装饰者模式_星巴兹订单系统;
+ 
+/**
+ *区别于Shape，Beverage采用抽象类
+ *通常装饰者模式是采用抽象类，但是在Java中可以使用接口
+ */
+public abstract class Beverage {
+    public String description = "Unknown Beverage";
+ 
+    public String getDescription() {
+        return description;
+    }
+ 
+    public abstract double cost();
+}</pre><pre>
+package HeadFirst设计模式.装饰者模式_星巴兹订单系统.被装饰者;
+
+import HeadFirst设计模式.装饰者模式_星巴兹订单系统.Beverage;
+/**
+ *被装饰类继承Beverage抽象类，最终会通过装饰者动态添加上新的行为
+ */
+public class DarkRoast extends Beverage {
+
+    public DarkRoast() {
+        description = "DarkRoast";
+    }
+
+    @Override    
+    public double cost() {
+        return 0.99;
+    }
+}</pre><pre>
+package HeadFirst设计模式.装饰者模式_星巴兹订单系统.装饰者;
+import HeadFirst设计模式.装饰者模式_星巴兹订单系统.Beverage;
+
+/**
+ *这是继承Beverage的抽象装饰者，接下来所有具体的装饰者都要继承CondimentDecorator
+ */
+public abstract class CondimentDecorator extends Beverage {
+
+    /**     
+     *所有的调料装饰者都必须重新实现该方法，因为调料的该方法应该得到扩充，方法实现不同于原来方法     
+     */    
+    public abstract String getDescription();
+
+}</pre><pre>
+package HeadFirst设计模式.装饰者模式_星巴兹订单系统.装饰者;
+
+import HeadFirst设计模式.装饰者模式_星巴兹订单系统.Beverage;
+
+/**
+ *摩卡，是具体的装饰者
+ *用一个实例变量记录饮料（被装饰者）
+ *装饰者和被装饰者通过组合来增强功能，实现功能的扩展，用组合来替代继承
+ */
+public class Mocha extends CondimentDecorator {
+    Beverage beverage;
+
+    public Mocha(Beverage beverage) {
+        this.beverage = beverage;
+    }
+
+    @Override    
+    public String getDescription() {
+        return beverage.getDescription() + ", Mocha";
+    }
+
+    @Override    
+    public double cost() {
+        return 0.20 + beverage.cost();
+    }
+}</pre>
+<p>テスト：</p>
+<pre>package HeadFirst设计模式.装饰者模式_星巴兹订单系统;
+
+import HeadFirst设计模式.装饰者模式_星巴兹订单系统.被装饰者.DarkRoast;
+import HeadFirst设计模式.装饰者模式_星巴兹订单系统.装饰者.Mocha;
+
+
+public class TestStarbuzzCoffee {
+    public static void main(String[] args) {
+        Beverage beverage1 = new DarkRoast();
+        beverage1 = new Mocha(beverage1);
+        beverage1 = new Mocha(beverage1);
+        System.out.println(beverage1.getDescription()+ " $" + beverage1.cost());
+    }
+}</pre>
+<p>出力：</p>
+<pre>/Library/.../Java/设计模式/bin HeadFirst设计模式.装饰者模式_星巴兹订单系统.TestStarbuzzCoffee
+DarkRoast, Mocha, Mocha $1.39
+
+Process finished with exit code 0</pre><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">郭为宇</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>郭为宇</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  gos***02009986@gmail.com</p></div></span>8年前 (2018-11-06)</div></div></li><!-- #comment-## -->
+<li class="comment odd alt thread-odd thread-alt depth-1" id="comment-39940"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>これは小明ではない</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  xia***ng.chn@foxmail.com</p></div><div class="upvotejs" data-commid="39940" id="runoobvote-id-39940"><a class="upvote"></a> <span class="count">51</span></div></div><div class="comt-main" id="div-comment-39940"><p><strong>もう少し複雑な例</strong></p>
+<p>『絶地求生：刺激戦場』（PUBG Mobile）というゲームでは、誰もが知っています。</p>
+<ul><li>Kar 98Kは5発の弾があります；</li><li>弾倉を装着すると10発になります；</li><li>4倍スコープを装着すると4倍での狙いが可能になります；</li><li>8倍スコープを装着すると4倍での狙いと8倍での狙いが可能になります。</li></ul>
+<p>銃には発砲機能があります：</p>
+<pre>public interface Gun {
+    /** * 开火直至打空子弹 */
+    public void fire();
+}
+
+public class Kar98K implements Gun {
+    @Override
+    public void fire() {
+        System.out.println("砰*5");
+    }
+}</pre>
+<p>弾倉を装飾して銃の発砲機能を変更します：</p>
+<pre>public abstract class AbstractMagazine implements Gun {
+    private Gun gun;
+
+    public AbstractMagazine(Gun gun) {
+        this.gun = gun;
+    }
+
+    @Override
+    public void fire() {
+        gun.fire();
+    }
+}
+
+public class Magazine extends AbstractMagazine {
+    public Magazine(Gun gun) {
+        super(gun);
+    }
+
+    @Override
+    public void fire() {
+        System.out.println("砰*10");
+    }
+}</pre>テスト：<pre>public class Demo {
+    public static void main(String[] args) {
+        System.out.println("[捡起一把98K]");
+        Gun gun = new Kar98K();
+        System.out.println("[开炮！]");
+        gun.fire();
+        System.out.println("[装饰上弹匣]");
+        gun = new Magazine(gun);
+        System.out.println("[开炮！]");
+        gun.fire();
+    }
+}</pre>
+<p>出力：</p>
+<pre>[捡起一把98K]
+[开炮！]
+砰*5
+[装饰上弹匣]
+[开炮！]
+砰*10</pre>
+<p>次に4倍スコープを装着して、4倍で狙う機能を追加します。これは銃には元々ない機能です。</p>
+<p>銃のインターフェース機能を拡張します：</p>
+<pre>public interface Aim4X extends Gun {
+    public void aim4X();
+}
+
+public abstract class AbstractTelescope4X implements Aim4X {
+    private Gun gun;
+
+    public AbstractTelescope4X(Gun gun) {
+        this.gun = gun;
+    }
+
+    @Override
+    public void fire() {
+        gun.fire();
+    }
+}
+
+public class Telescope4X extends AbstractTelescope4X {
+    public Telescope4X(Gun gun) {
+        super(gun);
+    }
+
+    @Override
+    public void aim4X() {
+        System.out.println("已进入4倍瞄准模式");
+    }
+}
+
+/** * 55式4倍镜 */
+public class Telescope4X55 extends AbstractTelescope4X {
+    public Telescope4X55(Gun gun) {
+        super(gun);
+    }
+
+    @Override
+    public void aim4X() {
+        System.out.println("4倍超级瞄准已部署");
+    }
+}</pre>
+<p>テスト：</p>
+<pre>public class Demo {
+    public static void main(String[] args) {
+        System.out.println("[捡起一把98K]");
+        Gun gun = new Kar98K();
+        System.out.println("[装饰上4倍镜]");
+        Aim4X aim4X = new Telescope4X(gun);
+        System.out.println("[4倍瞄准]");
+        aim4X.aim4X();
+        System.out.println("[开炮！]");
+        aim4X.fire();
+        System.out.println("[先装饰上弹匣]");
+        gun = new Magazine(gun);
+        System.out.println("[再装饰上4倍镜]");
+        aim4X = new Telescope4X(gun);
+        System.out.println("[4倍瞄准]");
+        aim4X.aim4X();
+        System.out.println("[开炮！]");
+        aim4X.fire();
+        System.out.println("[人体描边？换上我的55式4倍镜]");
+        aim4X = new Telescope4X55(gun);
+        System.out.println("[4倍瞄准]");
+        aim4X.aim4X();
+        System.out.println("[开炮！]");
+        aim4X.fire();
+    }
+}</pre>
+<p>出力：</p>
+<pre>[捡起一把98K]
+[装饰上4倍镜]
+[4倍瞄准]
+已进入4倍瞄准模式
+[开炮！]
+砰*5
+[先装饰上弹匣]
+[再装饰上4倍镜]
+[4倍瞄准]
+已进入4倍瞄准模式
+[开炮！]
+砰*10
+[人体描边？换上我的55式4倍镜]
+[4倍瞄准]
+4倍超级瞄准已部署
+[开炮！]
+砰*10</pre>
+<p>次に8倍スコープを装着します。4倍で狙う機能も、8倍で狙う機能も持っています。</p>
+<p>インターフェースを拡張します：</p>
+<pre>public interface Aim8X extends Aim4X {
+    public void aim8X();
+}
+
+public abstract class AbstractTelescope8X implements Aim8X {
+    private Gun gun;
+
+    public AbstractTelescope8X(Gun gun) {
+        this.gun = gun;
+    }
+
+    @Override
+    public void fire() {
+        gun.fire();
+    }
+}
+
+public class Telescope8X extends AbstractTelescope8X {
+    public Telescope8X(Gun gun) {
+        super(gun);
+    }
+
+    @Override
+    public void aim8X() {
+        System.out.println("进入8倍瞄准模式");
+    }
+
+    @Override
+    public void aim4X() {
+        System.out.println("进入4倍瞄准模式");
+    }
+}</pre>
+<p>テスト：</p>
+<pre>public class Demo {
+    public static void main(String[] args) {
+        System.out.println("[先装饰上弹匣]");
+        gun = new Magazine(gun);
+        System.out.println("[再装饰上8倍镜]");
+        aim8X = new Telescope8X(gun);
+        System.out.println("[8倍瞄准]");
+        aim8X.aim8X();
+        System.out.println("[敌人很近，换4倍]");
+        aim8X.aim4X();
+        System.out.println("[开炮！]");
+        aim8X.fire();
+    }
+}</pre>
+<p>出力：</p>
+<pre>[先装饰上弹匣]
+[再装饰上8倍镜]
+[8倍瞄准]
+进入8倍瞄准模式
+[敌人很近，换4倍]</pre>4倍狙いモードに入ります
+
+[発砲！]
+
+バン*10<div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">これは小明ではない</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>これは小明ではない</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  xia***ng.chn@foxmail.com</p></div></span>8年前 (2019-02-20)</div></div></li><!-- #comment-## -->
+<li class="comment even thread-even depth-1" id="comment-49188"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>   Lonnie</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  354***093@qq.com</p></div><div class="upvotejs" data-commid="49188" id="runoobvote-id-49188"><a class="upvote"></a> <span class="count">2</span></div></div><div class="comt-main" id="div-comment-49188"><p>Swift 実装:</p>
+<pre>protocol Shape {
+    func draw()
+}
+
+protocol ShapeDecorator: Shape {
+    var decoratedShape: Shape { get }
+}
+
+class Decorator {
+    struct Rectangle: Shape {
+        func draw() {
+            print("Shape: Rectangle")
+        }
+    }
+
+    struct Circle: Shape {
+        func draw() {
+            print("Shape: Circle")
+        }
+    }
+
+    struct RedShapeDecorator: ShapeDecorator {
+        var decoratedShape: Shape
+
+        func draw() {
+            decoratedShape.draw()
+            setRedBorder(decoratedShape)
+        }
+
+        func setRedBorder(_ shape: Shape) {
+            print("Border Color: Red")
+        }
+
+    }
+    func execute() {
+        let circle = Circle()
+        let redCircle = RedShapeDecorator(decoratedShape: Circle())
+        let redRectangle = RedShapeDecorator(decoratedShape: Rectangle())
+        print("Circle with normal border:")
+        circle.draw()
+        print("Circle of red border")
+        redCircle.draw()
+        print("Circle of red rectangle")
+        redRectangle.draw()
+    }
+}</pre><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">Lonnie</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>   Lonnie</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  354***093@qq.com</p></div></span>7年前 (2019-12-11)</div></div></li><!-- #comment-## -->
+<li class="comment odd alt thread-odd thread-alt depth-1" id="comment-51194"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>   Siskin.xu</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  sis***@sohu.com</p></div><div class="upvotejs" data-commid="51194" id="runoobvote-id-51194"><a class="upvote"></a> <span class="count">4</span></div></div><div class="comt-main" id="div-comment-51194"><p>Python 方式：</p>
+<pre># Decorator Pattern with Python Code
+from abc import  abstractmethod,ABCMeta
+
+# 创建Shape接口
+class Shape(metaclass=ABCMeta):
+    @abstractmethod
+    def draw(self):
+        pass
+# 实现Shape的实体类：Rectangle、Circle
+class Rectangle(Shape):
+    def draw(self):
+        print("Shape: Rectangle")
+class Circle(Shape):
+    def draw(self):
+        print("Shape: Circle")
+
+# 创建实现了Shape接口的抽象装饰类ShapeDecorator类
+class ShapeDecorator(Shape):
+    _decoratedShape = None
+    def __init__(self,inDecoratedShape):
+        self._decoratedShape = inDecoratedShape
+    def draw(self):
+        self._decoratedShape.draw()
+
+# 创建扩展了ShapeDecorator类的实体装饰类对象
+class RedShapeDecorator(ShapeDecorator):
+    def __init__(self,inDecoratedShape):
+        ShapeDecorator.__init__(self,inDecoratedShape)
+    def draw(self):
+        self._decoratedShape.draw()
+        self.setRedBorder(self._decoratedShape)
+    def setRedBorder(self,inDecoratedShape):
+        print("Border Color: Red")
+
+# 调用输出
+if __name__ == '__main__':
+    aCircle = Circle()
+    aRedCircle = RedShapeDecorator(Circle())
+    aRedRectangle = RedShapeDecorator(Rectangle())
+
+    print("Circle with normal border")
+    aCircle.draw()
+    print("\nCircle of red border")
+    aRedCircle.draw()
+    print("\nRectangle of red border")
+    aRedRectangle.draw()</pre><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">Siskin.xu</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>   Siskin.xu</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  sis***@sohu.com</p></div></span>7年前 (2020-03-03)</div></div></li><!-- #comment-## -->
+<li class="comment even thread-even depth-1" id="comment-70025"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>   lz</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  luz***1226@126.com</p></div><div class="upvotejs" data-commid="70025" id="runoobvote-id-70025"><a class="upvote"></a> <span class="count">1</span></div></div><div class="comt-main" id="div-comment-70025"><p><strong>C++言語</strong></p>
+<pre>/*
+练习：修饰模式。 
+业务：处理日志字符串，关键词屏蔽(业务上显然这个要优先处理)、日期添加
+*/
+// 字符串父类
+class Text
+{
+public:
+    Text() {};
+    virtual void setText(string t) = 0;
+    virtual string getText() = 0;
+};
+
+// 字符串实现
+class NormalText : public Text
+{
+private:
+    string m_string;
+public:
+    NormalText() {};
+    virtual void setText(string t) {
+        cout &lt;&lt; "NormalText中存储字符串"&lt;&lt; endl;
+        m_string = t;
+    };
+    string getText() {
+        return m_string;
+    };
+};
+
+// 字符串修饰器
+class TextDecorator : public Text
+{
+private:
+    shared_ptr&lt;Text&gt; m_text;
+public:
+    TextDecorator() {};
+    void Decorate(shared_ptr&lt;Text&gt; &amp; text) {
+        m_text = text;
+    }
+    string getText() {
+        return m_text-&gt;getText();
+    };
+    virtual void setText(string t) {
+        m_text-&gt;setText(t);
+    };
+};
+
+// 字符串修饰器具体：关键词屏蔽  
+class TextDecorator_blockword : public TextDecorator
+{
+private:
+    string m_blockword; // 屏蔽词
+public:
+    TextDecorator_blockword(string bw) :m_blockword(bw) {};
+    void setText(string s) {
+        cout &lt;&lt; "屏蔽词语，屏蔽词为 "&lt;&lt; m_blockword &lt;&lt; endl;
+        // 循环找到每个屏蔽词，并替换为*
+        for (std::size_t found = s.find(m_blockword); 
+            found != std::string::npos; 
+            found = s.find(m_blockword)) {
+            s.replace(found, m_blockword.size(), m_blockword.size(), '*'); // 屏蔽词替换成*号
+        }
+        TextDecorator::setText(s);
+    };
+};
+
+// 字符串修饰器具体：时间添加
+class TextDecorator_addtime : public TextDecorator
+{
+public:
+    TextDecorator_addtime() {};
+    void setText(string s) {
+        cout &lt;&lt; "添加时间戳" &lt;&lt; endl;
+        s = (string)"[2022-2-22 22:22:22] " + s;
+        TextDecorator::setText(s);
+    };
+};
+
+// main 中执行
+void decorator_pattern_v2()
+{
+    // 字符串
+    string s("what a stupid son of a bitch. --- JoeBiden January,2022");
+    // 原始字符创类
+    shared_ptr&lt;Text&gt; text((Text*)(new NormalText()));
+    // 创建修饰器  
+    shared_ptr&lt;Text&gt; addtime((Text*)(new TextDecorator_addtime())); // 增加时间戳
+    shared_ptr&lt;Text&gt; blk_bitch((Text*)(new TextDecorator_blockword("bitch"))); // 屏蔽 bitch
+    shared_ptr&lt;Text&gt; blk_jb((Text*)(new TextDecorator_blockword("22"))); // 屏蔽 22
+    // 加载修饰器
+    dynamic_cast&lt;TextDecorator_addtime*&gt;(addtime.get())-&gt;Decorate(text);
+    dynamic_cast&lt;TextDecorator_blockword*&gt;(blk_bitch.get())-&gt;Decorate(addtime);
+    dynamic_cast&lt;TextDecorator_blockword*&gt;(blk_jb.get())-&gt;Decorate(blk_bitch);
+    blk_jb-&gt;setText(s);
+    cout &lt;&lt; "原始字符串：" &lt;&lt; s &lt;&lt; endl;
+    cout &lt;&lt; "处理后字符串：" &lt;&lt; text-&gt;getText() &lt;&lt; endl;
+}</pre><p>コンソール出力：</p>
+<pre>屏蔽词语，屏蔽词为 22
+屏蔽词语，屏蔽词为 bitch
+添加时间戳
+NormalText中存储字符串
+原始字符串：what a stupid son of a bitch. --- JoeBiden January,2022
+处理后字符串：[2022-2-22 22:22:22] what a stupid son of a *****. --- JoeBiden January,20**</pre><p>注意！ デコレータの順序が重要です。間違えると、タイムスタンプ内の22文字の文字列もブロックされます！</p><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">lz</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>   lz</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  luz***1226@126.com</p></div></span>5年前 (2022-02-01)</div></div></li><!-- #comment-## -->
+<li class="comment odd alt thread-odd thread-alt depth-1" id="comment-75226"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>   TooHandsomeException</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  ywt***@163.com</p></div><div class="upvotejs" data-commid="75226" id="runoobvote-id-75226"><a class="upvote"></a> <span class="count">0</span></div></div><div class="comt-main" id="div-comment-75226"><p>古い団地の住民棟にエレベーターを設置する：</p>
+<pre>// BuildingInterface.java
+public interface BuildingInterface {
+    void build();
+}
+// Building.java
+public class Building implements BuildingInterface {
+    @Override
+    public void build() {
+        System.out.println("修建楼房");
+    }
+}
+// BuildingDecorator.java
+public abstract class BuildingDecorator implements BuildingInterface {
+    protected BuildingInterface building;
+
+    public BuildingDecorator(BuildingInterface building) {
+        this.building = building;
+    }
+
+    @Override
+    public void build() {
+        building.build();
+        addDecorate();
+    }
+
+    protected abstract void addDecorate();
+}
+// Elevator.java
+public class Elevator extends BuildingDecorator {
+    public Elevator(BuildingInterface building) {
+        super(building);
+    }
+
+    @Override
+    public void addDecorate() {
+        System.out.println("加装电梯");
+    }
+}
+// Demo.java
+public class Demo {
+    public static void main(String[] args) {
+        Building building = new Building();
+        Elevator elevator = new Elevator();
+        elevator.build();
+    }
+}</pre>
+<p>出力：</p>
+<pre>修建楼房
+加装电梯</pre><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">TooHandsomeException</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>   TooHandsomeException</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  ywt***@163.com</p></div></span>4年前 (2022-09-14)</div></div></li><!-- #comment-## -->
+<li class="comment byuser comment-author-tianqixin even thread-even depth-1" id="comment-79915"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>   RUNOOB</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  429***967@qq.com</p></div><div class="upvotejs" data-commid="79915" id="runoobvote-id-79915"><a class="upvote"></a> <span class="count">0</span></div></div><div class="comt-main" id="div-comment-79915"><p>デコレータパターンは、オブジェクトの構造を変更することなく、実行時に動的に機能を追加・削除することを可能にします。サブクラスによる拡張によって引き起こされるクラス爆発の問題を回避でき、コードをより柔軟で拡張可能にします。また、デコレータパターンはオープン・クローズドの原則にも従っており、既存のコードを変更することなく、新しいデコレータクラスを簡単に追加できます。</p>
+<p>以下は簡単なデコレータパターンの例です。コーヒーショップがあり、顧客のニーズに応じてコーヒーに追加のトッピングを追加できるとします。</p>
+<pre>// 抽象组件 - 咖啡
+interface Coffee {
+    String getDescription();
+    double getCost();
+}
+
+// 具体组件 - 普通咖啡
+class PlainCoffee implements Coffee {
+    public String getDescription() {
+        return "Plain Coffee";
+    }
+
+    public double getCost() {
+        return 2.0;
+    }
+}
+
+// 抽象装饰器 - 咖啡装饰器
+abstract class CoffeeDecorator implements Coffee {
+    protected Coffee decoratedCoffee;
+
+    public CoffeeDecorator(Coffee decoratedCoffee) {
+        this.decoratedCoffee = decoratedCoffee;
+    }
+
+    public String getDescription() {
+        return decoratedCoffee.getDescription();
+    }
+
+    public double getCost() {
+        return decoratedCoffee.getCost();
+    }
+}
+
+// 具体装饰器 - 牛奶装饰器
+class MilkDecorator extends CoffeeDecorator {
+    public MilkDecorator(Coffee decoratedCoffee) {
+        super(decoratedCoffee);
+    }
+
+    public String getDescription() {
+        return super.getDescription() + ", Milk";
+    }
+
+    public double getCost() {
+        return super.getCost() + 0.5;
+    }
+}
+
+// 具体装饰器 - 糖浆装饰器
+class SyrupDecorator extends CoffeeDecorator {
+    public SyrupDecorator(Coffee decoratedCoffee) {
+        super(decoratedCoffee);
+    }
+
+    public String getDescription() {
+        return super.getDescription() + ", Syrup";
+    }
+
+    public double getCost() {
+        return super.getCost() + 0.8;
+    }
+}
+
+// 客户端代码
+public class Main {
+    public static void main(String[] args) {
+        Coffee coffee = new PlainCoffee();
+        System.out.println(coffee.getDescription() + ", Cost: " + coffee.getCost());
+
+        Coffee milkCoffee = new MilkDecorator(coffee);
+        System.out.println(milkCoffee.getDescription() + ", Cost: " + milkCoffee.getCost());
+
+        Coffee syrupCoffee = new SyrupDecorator(coffee);
+        System.out.println(syrupCoffee.getDescription() + ", Cost: " + syrupCoffee.getCost());
+
+        Coffee milkSyrupCoffee = new SyrupDecorator(milkCoffee);
+        System.out.println(milkSyrupCoffee.getDescription() + ", Cost: " + milkSyrupCoffee.getCost());
+    }
+}</pre>
+<p>上記の例では、抽象コンポーネントインターフェース Coffee と具体的なコンポーネントクラス PlainCoffee を定義しました。次に、抽象デコレータクラス CoffeeDecorator と、具体的なデコレータクラス MilkDecorator および SyrupDecorator を定義しました。デコレータオブジェクトをネストし続けることで、コーヒーにさまざまなトッピングを追加できます。</p><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">RUNOOB</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>   RUNOOB</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  429***967@qq.com</p></div></span>3年前 (2023-07-11)</div></div></li><!-- #comment-## -->
+</ol>
+<div class="pagenav">
+</div>
+</div>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style="display:none; padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>クリックしてノートを共有</h3>
+&lt;p style="font-size:14px;"&gt;ノートはこの記事の内容の拡張である必要があります！&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;記事の投稿は、ここをクリック&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; ノートを共有する前に&lt;a href=";.html" class="runoob-pop"&gt;ログイン&lt;/a&gt;！&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=";.html" id="cancel-comment-reply-link">キャンセル</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="8915"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>ノートを共有</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">ニックネーム</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">ニックネーム (必須)</span></li>
+<li class="form-inline"><label class="hide" for="email">メールアドレス</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">メールアドレス (必須)</span></li>
+<li class="form-inline"><label class="hide" for="url">引用アドレス</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">引用アドレス</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  8915;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 8915, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":8915},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+</div>
+</div>
+<!-- 右边栏 -->
+<div class="fivecol last right-column">
+<style>
+.sidebar-tree .double-li {
+    width:300px;
+}
+.sidebar-tree .double-li li {
+    width: 44%;
+    line-height: 1.5em;
+    border-bottom: 1px solid #ccc;
+    float: left;
+    display: inline;
+}
+</style>
+<div class="sidebar-box re-box re-box-large">
+<div class="sidebar-box recommend-here" style="margin: 0 auto;">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;"> <i aria-hidden="true" class="fa fa-list"></i> 分类导航</a>
+</div>
+<div class="sidebar-box sidebar-cate">
+<div class="sidebar-tree">
+<ul><li style="margin: 0;"><a class="tit" href="#"> Python / 数据科学</a><ul class="double-li"><li><a href="../python3/python3-tutorial.html" title="Python 教程">Python 教程</a></li><li><a href="../python/python-tutorial.html" title="Python2.x 教程">Python2.x 教程</a></li><li><a href="../fastapi/fastapi-tutorial.html" title="FastAPI 教程">FastAPI 教程</a></li><li><a href="../flask/flask-tutorial.html" title="Flask 教程">Flask 教程</a></li><li><a href="../django/django-tutorial.html" title="Django 教程">Django 教程</a></li><li><a href="../numpy/numpy-tutorial.html" title="NumPy 教程">NumPy 教程</a></li><li><a href="../pandas/pandas-tutorial.html" title="Pandas 教程">Pandas 教程</a></li><li><a href="../scipy/scipy-tutorial.html" title="SciPy 教程">SciPy 教程</a></li><li><a href="../matplotlib/matplotlib-tutorial.html" title="Matplotlib 教程">Matplotlib 教程</a></li><li><a href="../dash/dash-tutorial.html" title="Dash 教程">Dash 教程</a></li><li><a href="../jupyter-notebook/jupyter-notebook-tutorial.html" title="Jupyter Notebook 教程">Jupyter Notebook 教程</a></li><li><a href="../pillow/pillow-tutorial.html" title="Pillow 教程">Pillow 教程</a></li><li><a href="../qt/qt-tutorial.html" title="量化交易">量化交易</a></li><li><a href="../r/r-tutorial.html" title="R 教程">R 教程</a></li><li><a href="../julia/julia-tutorial.html" title="Julia 教程">Julia 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> AI / 智能开发</a><ul class="double-li"><li><a href="../ai-agent/ai-agent-tutorial.html" title="AI Agent（智能体）">AI Agent（智能体）</a></li><li><a href="../ai/ai-tutorial.html" title="AI（人工智能）">AI（人工智能）</a></li><li><a href="../codex/codex-tutorial.html" title="Codex 教程">Codex 教程</a></li><li><a href="../vibe-coding/vibe-coding-tutorial.html" title="Vibe Coding 教程">Vibe Coding 教程</a></li><li><a href="../claude-code/claude-code-tutorial.html" title="Claude Code">Claude Code</a></li><li><a href="../opencode/opencode-tutorial.html" title="OpenCode">OpenCode</a></li><li><a href="../skills/skills-tutorial.html" title="Skills（技能）">Skills（技能）</a></li><li><a href="../ollama/ollama-tutorial.html" title="Ollama 教程">Ollama 教程</a></li><li><a href="../hermes-agent/hermes-agent-tutorial.html" title="Hermes Agent">Hermes Agent</a></li><li><a href="../deepseek-harness/deepseek-harness-tutorial.html" title="DeepSeek Harness">DeepSeek Harness</a></li><li><a href="../pi-agent/pi-agent-tutorial.html" title="Pi Agent">Pi Agent</a></li><li><a href="../ai-math/ai-math-tutorial.html" title="AI 数学基础">AI 数学基础</a></li><li><a href="../tensorflow/tensorflow-tutorial.html" title="TensorFlow 教程">TensorFlow 教程</a></li><li><a href="../pytorch/pytorch-tutorial.html" title="PyTorch 教程">PyTorch 教程</a></li><li><a href="../sklearn/sklearn-tutorial.html" title="Scikit-learn 教程">Scikit-learn 教程</a></li><li><a href="../ml/ml-tutorial.html" title="机器 教程">机器 教程</a></li><li><a href="../langchain/langchain-tutorial.html" title="LangChain">LangChain</a></li><li><a href="../nlp/nlp-tutorial.html" title="自然语言处理 NLP">自然语言处理 NLP</a></li><li><a href="../opencv/opencv-tutorial.html" title="OpenCV 教程">OpenCV 教程</a></li><li><a href="../selenium/selenium-tutorial.html" title="Selenium 教程">Selenium 教程</a></li><li><a href="../playwright/playwright-tutorial.html" title="Playwright 教程">Playwright 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 前端开发</a><ul class="double-li"><li><a href="../html/html-tutorial.html" title="HTML 教程">HTML 教程</a></li><li><a href="../html/html5-intro.html" title="HTML5 教程">HTML5 教程</a></li><li><a href="../css/css-tutorial.html" title="CSS 教程">CSS 教程</a></li><li><a href="../css3/css3-tutorial.html" title="CSS3 教程">CSS3 教程</a></li><li><a href="../js/js-tutorial.html" title="JavaScript 教程">JavaScript 教程</a></li><li><a href="../htmldom/htmldom-tutorial.html" title="HTML DOM 教程">HTML DOM 教程</a></li><li><a href="../typescript/ts-tutorial.html" title="TypeScript 教程">TypeScript 教程</a></li><li><a href="../ajax/ajax-tutorial.html" title="AJAX 教程">AJAX 教程</a></li><li><a href="../json/json-tutorial.html" title="JSON 教程">JSON 教程</a></li><li><a href="../tailwindcss/tailwindcss-tutorial.html" title="Tailwind CSS 教程">Tailwind CSS 教程</a></li><li><a href="../bootstrap4/bootstrap4-tutorial.html" title="Bootstrap4 教程">Bootstrap4 教程</a></li><li><a href="../bootstrap5/bootstrap5-tutorial.html" title="Bootstrap5 教程">Bootstrap5 教程</a></li><li><a href="../foundation/foundation-tutorial.html" title="Foundation 教程">Foundation 教程</a></li><li><a href="../vue2/vue-tutorial.html" title="Vue.js 教程">Vue.js 教程</a></li><li><a href="../vue3/vue3-tutorial.html" title="Vue3 教程">Vue3 教程</a></li><li><a href="../react/react-tutorial.html" title="React 教程">React 教程</a></li><li><a href="../nextjs/nextjs-tutorial.html" title="Next.js 教程">Next.js 教程</a></li><li><a href="../angularjs/angularjs-tutorial.html" title="AngularJS 教程">AngularJS 教程</a></li><li><a href="../angularjs2/angularjs2-tutorial.html" title="Angular 教程">Angular 教程</a></li><li><a href="../jquery/jquery-tutorial.html" title="jQuery 教程">jQuery 教程</a></li><li><a href="../jqueryui/jqueryui-tutorial.html" title="jQuery UI 教程">jQuery UI 教程</a></li><li><a href="../jeasyui/jqueryeasyui-tutorial.html" title="jQuery EasyUI 教程">jQuery EasyUI 教程</a></li><li><a href="../echarts/echarts-tutorial.html" title="ECharts 教程">ECharts 教程</a></li><li><a href="../chartjs/chartjs-tutorial.html" title="Chart.js 教程">Chart.js 教程</a></li><li><a href="../highcharts/highcharts-tutorial.html" title="Highcharts 教程">Highcharts 教程</a></li><li><a href="../googleapi/google-maps-basic.html" title="Google 地图 教程">Google 地图 教程</a></li><li><a href="../svg/svg-tutorial.html" title="SVG 教程">SVG 教程</a></li><li><a href="../font-awesome/fontawesome-tutorial.html" title="Font Awesome 教程">Font Awesome 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 后端开发</a><ul class="double-li"><li><a href="../nodejs/nodejs-tutorial.html" title="Node.js 教程">Node.js 教程</a></li><li><a href="../electron/electron-tutorial.html" title="Electron 教程">Electron 教程</a></li><li><a href="../php/php-tutorial.html" title="PHP 教程">PHP 教程</a></li><li><a href="../java/java-tutorial.html" title="Java 教程">Java 教程</a></li><li><a href="../go/go-tutorial.html" title="Go 教程">Go 教程</a></li><li><a href="../rust/rust-tutorial.html" title="Rust 教程">Rust 教程</a></li><li><a href="../csharp/csharp-tutorial.html" title="C# 教程">C# 教程</a></li><li><a href="../servlet/servlet-tutorial.html" title="Servlet 教程">Servlet 教程</a></li><li><a href="../jsp/jsp-tutorial.html" title="JSP 教程">JSP 教程</a></li><li><a href="../asp/asp-tutorial.html" title="ASP 教程">ASP 教程</a></li><li><a href="../appml/appml-tutorial.html" title="AppML 教程">AppML 教程</a></li><li><a href="../vbscript/vbscript-tutorial.html" title="VBScript 教程">VBScript 教程</a></li><li><a href="../swagger/swagger-tutorial.html" title="Swagger 教程">Swagger 教程</a></li><li><a href="../restfulapi/restful-api-tutorial.html" title="RESTful API 教程">RESTful API 教程</a></li><li><a href="../docker/docker-tutorial.html" title="Docker 教程">Docker 教程</a></li><li><a href="../linux/linux-tutorial.html" title="Linux 教程">Linux 教程</a></li><li><a href="../w3cnote/zookeeper-tutorial.html" title="ZooKeeper 教程">ZooKeeper 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 数据库</a><ul class="double-li"><li><a href="../sql/sql-tutorial.html" title="SQL 教程">SQL 教程</a></li><li><a href="../mysql/mysql-tutorial.html" title="MySQL 教程">MySQL 教程</a></li><li><a href="../postgresql/postgresql-tutorial.html" title="PostgreSQL 教程">PostgreSQL 教程</a></li><li><a href="../sqlite/sqlite-tutorial.html" title="SQLite 教程">SQLite 教程</a></li><li><a href="../mongodb/mongodb-tutorial.html" title="MongoDB 教程">MongoDB 教程</a></li><li><a href="../redis/redis-tutorial.html" title="Redis 教程">Redis 教程</a></li><li><a href="../memcached/memcached-tutorial.html" title="Memcached 教程">Memcached 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 移动开发</a><ul class="double-li"><li><a href="../w3cnote/android-tutorial-intro.html" title="Android 教程">Android 教程</a></li><li><a href="../flutter/flutter-tutorial.html" title="Flutter 教程">Flutter 教程</a></li><li><a href="../ionic/ionic-tutorial.html" title="Ionic 教程">Ionic 教程</a></li><li><a href="../jquerymobile/jquerymobile-tutorial.html" title="jQuery Mobile 教程">jQuery Mobile 教程</a></li><li><a href="../swift/swift-tutorial.html" title="Swift 教程">Swift 教程</a></li><li><a href="../kotlin/kotlin-tutorial.html" title="Kotlin 教程">Kotlin 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> DevOps / 工程化</a><ul class="double-li"><li><a href="../git/git-tutorial.html" title="Git 教程">Git 教程</a></li><li><a href="../svn/svn-tutorial.html" title="SVN 教程">SVN 教程</a></li><li><a href="../cmake/cmake-tutorial.html" title="CMake 教程">CMake 教程</a></li><li><a href="../maven/maven-tutorial.html" title="Maven 教程">Maven 教程</a></li><li><a href="../vscode/vscode-tutorial.html" title="VS Code 教程">VS Code 教程</a></li><li><a href="../obsidian/obsidian-tutorial.html" title="Obsidian 教程">Obsidian 教程</a></li><li><a href="../pycharm/pycharm-tutorial.html" title="PyCharm 教程">PyCharm 教程</a></li><li><a href="../eclipse/eclipse-tutorial.html" title="Eclipse 教程">Eclipse 教程</a></li><li><a href="../markdown/md-tutorial.html" title="Markdown 教程">Markdown 教程</a></li><li><a href="../latex/latex-tutorial.html" title="LaTeX 教程">LaTeX 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 编程语言</a><ul class="double-li"><li><a href="../c/c-tutorial.html" title="C 教程">C 教程</a></li><li><a href="../cplusplus/cpp-tutorial.html" title="C++ 教程">C++ 教程</a></li><li><a href="../zig/zig-tutorial.html" title="Zig 教程">Zig 教程</a></li><li><a href="../scala/scala-tutorial.html" title="Scala 教程">Scala 教程</a></li><li><a href="../ruby/ruby-tutorial.html" title="Ruby 教程">Ruby 教程</a></li><li><a href="../perl/perl-tutorial.html" title="Perl 教程">Perl 教程</a></li><li><a href="../lua/lua-tutorial.html" title="Lua 教程">Lua 教程</a></li><li><a href="../dart/dart-tutorial.html" title="Dart 教程">Dart 教程</a></li><li><a href="../assembly/assembly-tutorial.html" title="汇编语言 教程">汇编语言 教程</a></li><li><a href="../w3cnote/verilog-tutorial.html" title="Verilog 教程">Verilog 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 计算机基础</a><ul class="double-li"><li><a href="../computer-organization/computer-organization-tutorial.html" title="计算机组成原理">计算机组成原理</a></li><li><a href="../data-structures/data-structures-tutorial.html" title="数据结构与算法">数据结构与算法</a></li><li><a href="../c-dsa/c-dsa-tutorial.html" title="C 语言数据结构与算法">C 语言数据结构与算法</a></li><li><a href="../design-pattern/design-pattern-tutorial.html" title="设计模式">设计模式</a></li><li><a href="../python-design-pattern/python-design-pattern-tutorial.html" title="Python 设计模式">Python 设计模式</a></li><li><a href="../regexp/regexp-tutorial.html" title="正则表达式">正则表达式</a></li><li><a href="../http/http-tutorial.html" title="HTTP 教程">HTTP 教程</a></li><li><a href="../tcpip/tcpip-tutorial.html" title="TCP/IP 教程">TCP/IP 教程</a></li><li><a href="../np/np-tutorial.html" title="网络协议">网络协议</a></li><li><a href="../w3c/w3c-tutorial.html" title="W3C 教程">W3C 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> XML / Web Service</a><ul class="double-li"><li><a href="../xml/xml-tutorial.html" title="XML 教程">XML 教程</a></li><li><a href="../dtd/dtd-tutorial.html" title="DTD 教程">DTD 教程</a></li><li><a href="../dom/dom-tutorial.html" title="XML DOM 教程">XML DOM 教程</a></li><li><a href="../xsl/xsl-tutorial.html" title="XSLT 教程">XSLT 教程</a></li><li><a href="../xpath/xpath-tutorial.html" title="XPath 教程">XPath 教程</a></li><li><a href="../xquery/xquery-tutorial.html" title="XQuery 教程">XQuery 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XLink 教程">XLink 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XPointer 教程">XPointer 教程</a></li><li><a href="../schema/schema-tutorial.html" title="XML Schema 教程">XML Schema 教程</a></li><li><a href="../xslfo/xslfo-tutorial.html" title="XSL-FO 教程">XSL-FO 教程</a></li><li><a href="../webservices/webservices-tutorial.html" title="Web Service 教程">Web Service 教程</a></li><li><a href="../wsdl/wsdl-tutorial.html" title="WSDL 教程">WSDL 教程</a></li><li><a href="../soap/soap-tutorial.html" title="SOAP 教程">SOAP 教程</a></li><li><a href="../rss/rss-tutorial.html" title="RSS 教程">RSS 教程</a></li><li><a href="../rdf/rdf-tutorial.html" title="RDF 教程">RDF 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> .NET</a><ul class="double-li"><li><a href="../aspnet/aspnet-tutorial.html" title="ASP.NET 教程">ASP.NET 教程</a></li><li><a href="../aspnet/mvc-intro.html" title="MVC 教程">MVC 教程</a></li><li><a href="../aspnet/razor-intro.html" title="Razor 教程">Razor 教程</a></li><li><a href="../aspnet/aspnet-intro.html" title="Web Forms 教程">Web Forms 教程</a></li><li><a href="../aspnet/webpages-intro.html" title="Web Pages 教程">Web Pages 教程</a></li><li><a href="../powershell/powershell-tutorial.html" title="PowerShell 教程">PowerShell 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 网站建设</a><ul class="double-li"><li><a href="../web/web-buildingprimer.html" title="网站建设指南">网站建设指南</a></li><li><a href="../browsers/browser-information.html" title="浏览器信息">浏览器信息</a></li><li><a href="../hosting/hosting-tutorial.html" title="网站主机教程">网站主机教程</a></li><li><a href="../quality/quality-tutorial.html" title="网站品质">网站品质</a></li></ul></li></ul> </div>
+</div>
+</div>
+<br/>
+<div class="sidebar-box re-box re-box-large">
+</div>
+</div></div>
+</div>
+<script>
+var aid = 8915;
+function coll() {
+	$.post( '/wp-content/themes/runoob/option/user/userinfo.php', {aid:aid, action:"collarticle", opt:'add'},function( data ) {
+		if(data.error==0) {
+			$("#content").find("h1:first").find("a").attr("href","javascript:void(0);");
+			$("#content").find("h1:first").find("img").attr("src","http://www.runoob.com/wp-content/themes/runoob/assets/img/coll2.png").css({width:32+"px",height:32+"px"});
+		}
+		alert(data.msg);
+	},'json');
+}
+
+(function () {
+    // 1. 仅 HTML 页面
+    if (!document.contentType || !document.contentType.includes('text/html')) return;
+
+    // 2. 容器判断
+    var container = document.querySelector('.article-intro');
+    if (!container) return;
+
+    var h1 = container.querySelector('h1');
+    if (!h1) return;
+
+    // 3. URL 判断
+    var url = window.location.href.toLowerCase();
+    var version = null;
+
+    if (url.includes('/python3/')) {
+        version = 'Python3.x';
+    } else if (url.includes('/python/')) {
+        version = 'Python2.x';
+    }
+
+    if (!version) return;
+
+    // 4. 防重复
+    if (h1.querySelector('.py-version-badge')) return;
+
+    // 5. 创建标签
+    var badge = document.createElement('span');
+    badge.className = 'py-version-badge';
+    badge.innerText = version;
+
+    // 6. 样式（核心：float 实现右上角）
+    badge.style.float = 'right';
+    badge.style.fontSize = '12px';
+    badge.style.padding = '2px 8px';
+    badge.style.borderRadius = '999px';
+
+   // 自适应亮/暗色 + 渐变背景（增强版）
+	badge.style.color = 'inherit';
+
+	// 渐变背景（低透明度，不影响暗黑模式）
+	if (version.includes('3')) {
+		badge.style.background = 'linear-gradient(90deg, rgba(79,172,254,0.15), rgba(0,242,254,0.15))';
+	} else {
+		badge.style.background = 'linear-gradient(90deg, rgba(161,140,209,0.15), rgba(251,194,235,0.15))';
+	}
+
+	// 边框弱化（更精致）
+	badge.style.border = '1px solid rgba(127,127,127,0.3)';
+
+	// 提升可读性
+	badge.style.opacity = '0.95';
+
+    // 微调位置（更贴近“右上角”）
+    badge.style.marginTop = '4px';
+    badge.style.marginLeft = '10px';
+
+    // 7. 插入到 h1 最前面（让 float 生效更稳定）
+    h1.insertBefore(badge, h1.firstChild);
+
+})();
+</script>
+<!-- 反馈对话框开始 -->
+<script src="../wp-content/themes/runoob/assets/js/runoob-article-dir.min.js"></script>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

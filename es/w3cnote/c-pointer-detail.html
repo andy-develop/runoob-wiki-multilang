@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Explicación detallada de punteros en C | Tutorial para novatos</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="./c-pointer-detail.html" rel="canonical"/>
+<meta content="C 指针详解" name="keywords"/>
+<meta content="前言:复杂类型说明 要了解指针, 多多少少会出现一些比较复杂的类型,所以我先介绍一下如何完全理解一个复杂类型,要理解复杂类型其实很简单, 一个类型里会出现很多运算符,他们也像普通的表达式一样, 有优先级, 其优先级和运算优先级一样, 所以我总结了一下其原则: 从变量名处起, 根据运算符优先级结合, 一步一步分析。下面让我们先从简单的类型开始慢慢分析吧:  int p;  --  这是一个普通的整型变量 int *p;   --   首先.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div><!-- 导航栏 -->
+<!--  内容  -->
+<div class="container main">
+<div class="row">
+<div class="col middle-column big-middle-column">
+<div class="article">
+<div class="article-heading">
+<h2>Explicación detallada de punteros en C</h2> <h3><em>Clasificación</em> <a href="../w3cnote_genre/code.html" title="编程技术">Técnicas de programación</a> </h3>
+</div>
+<div class="article-body note-body">
+<div class="article-intro">
+<!-- ad start-->
+<!-- ad end-->
+<h2>Prefacio: Explicación de tipos complejos</h2>
+<p>Para entender los punteros, aparecerán más o menos algunos tipos bastante complejos, así que primero presentaré cómo comprender completamente un tipo complejo. En realidad, entender un tipo complejo es muy sencillo: en un tipo aparecen muchos operadores, y al igual que las expresiones normales, tienen precedencia; su precedencia es la misma que la precedencia de los operadores. Por lo tanto, he resumido el principio: comenzando desde el nombre de la variable, se asocia según la precedencia de los operadores, y se analiza paso a paso.</p><p>A continuación, empecemos analizando poco a poco con los tipos simples:</p>
+<ul><li><i aria-hidden="true" class="fa fa-circle" style="font-size:12px;color:#cfcfcf;padding-right: 4px;"></i>
+<span class="marked">int p;</span>-- Esto es una variable entera normal.</li><li><i aria-hidden="true" class="fa fa-circle" style="font-size:12px;color:#cfcfcf;padding-right: 4px;"></i>
+<span class="marked">int *p;</span>-- Primero, comenzando desde p, se realiza la asociación<span class="marked">*</span>dicha asociación indica que p es un puntero; luego se asocia con int, lo que indica que el tipo del contenido al que apunta el puntero es int. Por lo tanto, p es un puntero que apunta a datos enteros.</li><li><i aria-hidden="true" class="fa fa-circle" style="font-size:12px;color:#cfcfcf;padding-right: 4px;"></i>
+<span class="marked">int p[3]</span>-- Primero, comenzando desde p, se realiza la asociación<span class="marked">[]</span>dicha asociación indica que p es un array; luego se asocia con int, lo que indica que los elementos del array son de tipo entero. Por lo tanto, p es un array compuesto por datos enteros.</li><li><i aria-hidden="true" class="fa fa-circle" style="font-size:12px;color:#cfcfcf;padding-right: 4px;"></i>
+<span class="marked">int *p[3];</span>-- Primero, comenzando desde p, se asocia primero con [], porque su precedencia es mayor que<span class="marked">*</span>la de *, por lo que p es un array; luego se asocia con *, lo que indica que los elementos del array son de tipo puntero; luego se asocia con int, lo que indica que el tipo del contenido al que apunta el puntero es entero. Por lo tanto, p es un array compuesto por punteros que apuntan a datos enteros.</li><li><i aria-hidden="true" class="fa fa-circle" style="font-size:12px;color:#cfcfcf;padding-right: 4px;"></i>
+<span class="marked">int (*p)[3];</span>-- Primero, comenzando desde p, se asocia con *, lo que indica que p es un puntero; luego se asocia con [] (el paso con "()" se puede ignorar, solo es para cambiar la precedencia), lo que indica que el contenido al que apunta el puntero es un array; luego se asocia con int, lo que indica que los elementos del array son de tipo entero. Por lo tanto, p es un puntero que apunta a un array compuesto por datos enteros.</li><li><i aria-hidden="true" class="fa fa-circle" style="font-size:12px;color:#cfcfcf;padding-right: 4px;"></i>
+<span class="marked">int **p;</span>-- Primero, comenzando desde p, se asocia con *, lo que indica que p es un puntero; luego se asocia con * nuevamente, lo que indica que el elemento al que apunta el puntero es un puntero; luego se asocia con int, lo que indica que el elemento al que apunta ese puntero es un dato entero. Dado que los punteros de segundo nivel y de niveles superiores rara vez se usan en tipos complejos, en los tipos más complejos posteriores no consideraremos punteros de múltiples niveles; como máximo consideraremos punteros de un solo nivel.</li><li><i aria-hidden="true" class="fa fa-circle" style="font-size:12px;color:#cfcfcf;padding-right: 4px;"></i>
+<span class="marked">int p(int);</span>-- Partiendo de p, primero se asocia con (), lo que indica que p es una función; luego se analiza dentro de (), lo que indica que la función tiene un parámetro de variable entera; luego se asocia con el int exterior, lo que indica que el valor de retorno de la función es un dato entero.</li><li><i aria-hidden="true" class="fa fa-circle" style="font-size:12px;color:#cfcfcf;padding-right: 4px;"></i>
+<span class="marked">int (*p)(int);</span>-- Comenzando desde p, primero se asocia con el puntero, lo que indica que p es un puntero; luego se asocia con (), lo que indica que el puntero apunta a una función; luego se asocia con el int dentro de (), lo que indica que la función tiene un parámetro de tipo int; luego se asocia con el int más externo, lo que indica que el tipo de retorno de la función es entero. Por lo tanto, p es un puntero que apunta a una función con un parámetro entero y cuyo tipo de retorno es entero.</li><li><i aria-hidden="true" class="fa fa-circle" style="font-size:12px;color:#cfcfcf;padding-right: 4px;"></i>
+<span class="marked">int *(*p(int))[3];</span>-- Se puede omitir por ahora, sin mirar este tipo, es demasiado complejo. Comenzando desde p, primero se asocia con (), lo que indica que p es una función; luego, entrando dentro de (), se asocia con int, lo que indica que la función tiene un parámetro de variable entera; luego se asocia con el * exterior, lo que indica que la función retorna un puntero; luego, en la capa más externa, primero se asocia con [], lo que indica que el puntero retornado apunta a un array; luego se asocia con *, lo que indica que los elementos del array son punteros; luego se asocia con int, lo que indica que el contenido al que apuntan los punteros son datos enteros. Por lo tanto, p es una función que tiene un parámetro de dato entero y retorna un puntero a un array compuesto por variables puntero a enteros.</li></ul>
+<p>Con esto ya es casi todo; nuestra tarea llega hasta aquí. Una vez entendidos estos tipos, los demás tipos serán pan comido para nosotros. Sin embargo, generalmente no usamos tipos demasiado complejos, porque eso reduciría en gran medida la legibilidad del programa. Por favor, úsenlos con precaución; los tipos mencionados arriba ya son suficientes para nosotros.</p>
+<hr/>
+<h2>I. Punteros en detalle</h2><p>Un puntero es una variable especial; el valor numérico almacenado en él se interpreta como una dirección en la memoria. Para entender bien un puntero, es necesario aclarar cuatro aspectos del puntero: el tipo del puntero, el tipo al que apunta el puntero, el valor del puntero (también llamado área de memoria o dirección a la que apunta el puntero), y el área de memoria que ocupa el propio puntero. Vamos a explicarlos por separado.</p>
+<p>Primero declaremos algunos punteros como ejemplo:</p>
+<p>Ejemplo:</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-types">int</span><span class="hl-code"> *</span><span class="hl-identifier">ptr</span><span class="hl-code">;
+</span><span class="hl-types">char</span><span class="hl-code"> *</span><span class="hl-identifier">ptr</span><span class="hl-code">;
+</span><span class="hl-types">int</span><span class="hl-code"> **</span><span class="hl-identifier">ptr</span><span class="hl-code">;
+</span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-code">*</span><span class="hl-identifier">ptr</span><span class="hl-brackets">)</span><span class="hl-brackets">[</span><span class="hl-number">3</span><span class="hl-brackets">]</span><span class="hl-code">;
+</span><span class="hl-types">int</span><span class="hl-code"> *</span><span class="hl-brackets">(</span><span class="hl-code">*</span><span class="hl-identifier">ptr</span><span class="hl-brackets">)</span><span class="hl-brackets">[</span><span class="hl-number">4</span><span class="hl-brackets">]</span><span class="hl-code">;</span></div>
+</div>
+</div>
+<h3>1. El tipo del puntero</h3>
+<p>Desde el punto de vista sintáctico, sólo tienes que quitar el nombre del puntero en la declaración de puntero; la parte restante es el tipo de este puntero. Este es el tipo que posee el propio puntero. Veamos los tipos de los punteros en el Ejemplo 1:</p>
+<ul><li>
+1、<span class="marked">int *ptr;</span>: el tipo del puntero es<strong>int*</strong></li><li>
+2、<span class="marked">char *ptr;</span>: el tipo del puntero es<strong>char*</strong></li><li>
+3、<span class="marked">int **ptr;</span>: el tipo del puntero es<strong>int**</strong></li><li>
+4、<span class="marked">int (*ptr)[3];</span>: el tipo del puntero es<strong>int(*)[3]</strong></li><li>
+5、<span class="marked">int *(*ptr)[4]; </span>: el tipo del puntero es<strong>int*(*)[4]</strong></li></ul>
+<p>¿Qué tal? ¿No es muy sencillo el método para averiguar el tipo de un puntero?</p>
+<h3>2. El tipo al que apunta el puntero</h3>
+<p>Cuando accedes a través del puntero al área de memoria a la que apunta el puntero, el tipo al que apunta el puntero determina cómo tratará el compilador el contenido de esa área de memoria.</p>
+<p>Desde el punto de vista sintáctico, sólo tienes que eliminar el nombre del puntero y el declarador de puntero * a la izquierda del nombre en la declaración de puntero; lo que quede es el tipo al que apunta el puntero. Por ejemplo:</p>
+<ul><li>
+1、<span class="marked">int*ptr;</span>: el tipo al que apunta el puntero es<strong>int</strong></li><li>
+2、<span class="marked">char*ptr;</span>: el tipo al que apunta el puntero es<strong>char</strong></li><li>
+3、<span class="marked">int**ptr;</span>: el tipo al que apunta el puntero es<strong>int*</strong></li><li>
+4、<span class="marked">int(*ptr)[3];</span>: el tipo al que apunta el puntero es<strong>int()[3]</strong></li><li>
+5、<span class="marked">int*(*ptr)[4]; </span>: el tipo al que apunta el puntero es<strong>int*()[4]</strong></li></ul>
+<p>En las operaciones aritméticas de punteros, el tipo al que apunta el puntero juega un papel muy importante.</p>
+<p>El tipo del puntero (es decir, el tipo del propio puntero) y el tipo al que apunta el puntero son dos conceptos. A medida que te familiarizas más con C, descubrirás que dividir el concepto de "tipo" relacionado con los punteros en dos conceptos, "el tipo del puntero" y "el tipo al que apunta el puntero", es uno de los puntos clave para dominar los punteros. He leído muchos libros y he encontrado que en algunos libros mal escritos mezclan estos dos conceptos de los punteros, por lo que la lectura resulta contradictoria y cuanto más se lee, más confuso se vuelve.</p>
+<h3>3. El valor del puntero----o también llamado área de memoria o dirección a la que apunta el puntero</h3>
+<p>El valor del puntero es el valor numérico almacenado en el propio puntero. Este valor será tratado por el compilador como una dirección, no como un valor numérico ordinario. En un programa de 32 bits, los valores de todos los tipos de punteros son enteros de 32 bits, porque en un programa de 32 bits todas las direcciones de memoria tienen 32 bits de longitud. El área de memoria a la que apunta el puntero es un área de memoria que comienza en la dirección de memoria representada por el valor del puntero y tiene una longitud de sizeof(tipo al que apunta el puntero). En adelante, cuando decimos que el valor de un puntero es XX, equivale a decir que el puntero apunta a un área de memoria cuya dirección inicial es XX; cuando decimos que un puntero apunta a un cierto bloque de memoria, equivale a decir que el valor de ese puntero es la dirección inicial de ese bloque de memoria. El área de memoria a la que apunta el puntero y el tipo al que apunta el puntero son dos conceptos completamente diferentes. En el Ejemplo 1, el tipo al que apunta el puntero ya existe, pero como el puntero no ha sido inicializado, el área de memoria a la que apunta no existe, o no tiene significado.</p>
+<p><strong>En el futuro, cada vez que encuentres un puntero, debes preguntarte: ¿cuál es el tipo de este puntero? ¿Cuál es el tipo al que apunta el puntero? ¿Hacia dónde apunta este puntero? (Presta especial atención)</strong></p>
+<h3>4. El área de memoria que ocupa el propio puntero</h3>
+<p>¿Cuánta memoria ocupa el propio puntero? Sólo tienes que usar la función sizeof(tipo del puntero) para medirlo. En una plataforma de 32 bits, el puntero en sí ocupa 4 bytes. El concepto de la memoria que ocupa el propio puntero es muy útil para determinar si una expresión de puntero (se explicará más adelante) es un lvalue.</p>
+<hr/><h2>II. Operaciones aritméticas con punteros</h2>
+<p>Un puntero puede sumarse o restarse con un entero. El significado de esta operación con punteros no es el mismo que el de las operaciones ordinarias de suma y resta numéricas; se realiza en unidades de elemento. Por ejemplo:</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-types">char</span><span class="hl-code"> </span><span class="hl-identifier">a</span><span class="hl-brackets">[</span><span class="hl-number">20</span><span class="hl-brackets">]</span><span class="hl-code">;
+</span><span class="hl-types">int</span><span class="hl-code"> *</span><span class="hl-identifier">ptr</span><span class="hl-code">=</span><span class="hl-brackets">(</span><span class="hl-types">int</span><span class="hl-code"> *</span><span class="hl-brackets">)</span><span class="hl-identifier">a</span><span class="hl-code">; </span><span class="hl-comment">// La conversión forzada de tipo no cambia el tipo de a</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">ptr</span><span class="hl-code">++;</span></div>
+</div>
+</div>
+<p>En el ejemplo anterior, el tipo del puntero ptr es int*, el tipo al que apunta es int, y se inicializa para apuntar a la variable entera a. En la tercera sentencia que sigue, el puntero ptr se incrementa en 1; el compilador lo maneja así: suma sizeof(int) al valor del puntero ptr; en un programa de 32 bits, se suma 4, porque en un programa de 32 bits, int ocupa 4 bytes. Dado que las direcciones se miden en bytes, la dirección a la que apunta ptr aumenta 4 bytes desde la dirección de la variable original a hacia la dirección más alta. Como la longitud del tipo char es un byte, originalmente ptr apuntaba a los cuatro bytes que comienzan en el elemento número 0 del array a; ahora apunta a los cuatro bytes que comienzan en el elemento número 4 del array a. Podemos usar un puntero y un bucle para recorrer un array; veamos el ejemplo:</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">array</span><span class="hl-brackets">[</span><span class="hl-number">20</span><span class="hl-brackets">]</span><span class="hl-code">=</span><span class="hl-brackets">{</span><span class="hl-number">0</span><span class="hl-brackets">}</span><span class="hl-code">;
+</span><span class="hl-types">int</span><span class="hl-code"> *</span><span class="hl-identifier">ptr</span><span class="hl-code">=</span><span class="hl-identifier">array</span><span class="hl-code">;
+</span><span class="hl-reserved">for</span><span class="hl-brackets">(</span><span class="hl-identifier">i</span><span class="hl-code">=</span><span class="hl-number">0</span><span class="hl-code">;</span><span class="hl-identifier">i</span><span class="hl-code">&lt;</span><span class="hl-number">20</span><span class="hl-code">;</span><span class="hl-identifier">i</span><span class="hl-code">++</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-brackets">(</span><span class="hl-code">*</span><span class="hl-identifier">ptr</span><span class="hl-brackets">)</span><span class="hl-code">++;
+    </span><span class="hl-identifier">ptr</span><span class="hl-code">++；
+</span><span class="hl-brackets">}</span></div>
+</div>
+</div><p>Este ejemplo suma 1 al valor de cada elemento del array de enteros. Como en cada bucle el puntero ptr se incrementa en 1 elemento, cada bucle puede acceder al siguiente elemento del array.</p>
+<p>Veamos otro ejemplo:</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-types">char</span><span class="hl-code"> </span><span class="hl-identifier">a</span><span class="hl-brackets">[</span><span class="hl-number">20</span><span class="hl-brackets">]</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string">You_are_a_girl</span><span class="hl-quotes">"</span><span class="hl-code">;
+</span><span class="hl-types">int</span><span class="hl-code"> *</span><span class="hl-identifier">ptr</span><span class="hl-code">=</span><span class="hl-brackets">(</span><span class="hl-types">int</span><span class="hl-code"> *</span><span class="hl-brackets">)</span><span class="hl-identifier">a</span><span class="hl-code">;
+</span><span class="hl-identifier">ptr</span><span class="hl-code">+=</span><span class="hl-number">5</span><span class="hl-code">;</span></div>
+</div>
+</div>
+<p>En este ejemplo, a ptr se le suma 5. El compilador lo procesa así: suma al valor del puntero ptr 5 por sizeof(int); en un programa de 32 bits, suma 5 por 4 = 20. Como la unidad de dirección es el byte, la dirección a la que apunta el ptr actual se ha movido 20 bytes hacia la dirección alta en comparación con la dirección a la que apuntaba ptr antes de sumar 5.</p>
+<p>En este ejemplo, antes de sumar 5, ptr apuntaba a los cuatro bytes que comienzan en la celda 0 del array a; después de sumar 5, ptr ya apunta fuera del rango válido del array a. Aunque esta situación pueda causar problemas en la aplicación, sintácticamente es válida. Esto también refleja la flexibilidad de los punteros. Si en el ejemplo anterior a ptr se le restara 5, el proceso sería similar, solo que el valor de ptr se restaría 5 por sizeof(int), y la nueva dirección a la que apunta ptr se movería 20 bytes hacia la dirección baja con respecto a la dirección a la que apuntaba el ptr original.</p>
+<p>A continuación, permítanme dar otro ejemplo: (un malentendido)</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-prepro">#include</span><span class="hl-quotes">&lt;</span><span class="hl-string">stdio.h</span><span class="hl-quotes">&gt;</span><span class="hl-prepro"></span><span class="hl-code">
+</span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">main</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-types">char</span><span class="hl-code"> </span><span class="hl-identifier">a</span><span class="hl-brackets">[</span><span class="hl-number">20</span><span class="hl-brackets">]</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string"> You_are_a_girl</span><span class="hl-quotes">"</span><span class="hl-code">;
+    </span><span class="hl-types">char</span><span class="hl-code"> *</span><span class="hl-identifier">p</span><span class="hl-code">=</span><span class="hl-identifier">a</span><span class="hl-code">;
+    </span><span class="hl-types">char</span><span class="hl-code"> **</span><span class="hl-identifier">ptr</span><span class="hl-code">=&amp;</span><span class="hl-identifier">p</span><span class="hl-code">;
+    </span><span class="hl-comment">//printf("p=%d\n",p);</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//printf("ptr=%d\n",ptr);</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//printf("*ptr=%d\n",*ptr);</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">printf</span><span class="hl-brackets">(</span><span class="hl-quotes">"</span><span class="hl-string">**ptr=%c</span><span class="hl-special">\</span><span class="hl-string">n</span><span class="hl-quotes">"</span><span class="hl-code">,**</span><span class="hl-identifier">ptr</span><span class="hl-brackets">)</span><span class="hl-code">;
+    </span><span class="hl-identifier">ptr</span><span class="hl-code">++;
+    </span><span class="hl-comment">//printf("ptr=%d\n",ptr);</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//printf("*ptr=%d\n",*ptr);</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">printf</span><span class="hl-brackets">(</span><span class="hl-quotes">"</span><span class="hl-string">**ptr=%c</span><span class="hl-special">\</span><span class="hl-string">n</span><span class="hl-quotes">"</span><span class="hl-code">,**</span><span class="hl-identifier">ptr</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span></div>
+</div>
+</div>
+<p><strong>Malentendido uno: la salida es Y y o</strong></p>Malinterpretación: ptr es un puntero doble a char. Cuando se ejecuta ptr++, el puntero se incrementa en un sizeof(char), por lo que la salida es la anterior. Esto puede ser el resultado de una minoría.<p><strong>Malentendido dos:</strong>La salida es Y y a. Malinterpretación: ptr apunta a un tipo char*. Cuando se ejecuta ptr++, el puntero se incrementa en un sizeof(char*) (algunos podrían pensar que este valor es 1, y entonces obtendrían la respuesta del malentendido uno; este valor debería ser 4, consulte el contenido anterior), es decir, &amp;p+4; entonces, al realizar una operación de indirección, ¿no apuntaría al quinto elemento del array? ¿No sería la salida el quinto elemento del array? La respuesta es negativa.</p>
+<p><strong>Solución correcta:</strong>El tipo de ptr es char **, el tipo al que apunta es un tipo char*, la dirección a la que apunta es la dirección de p (&amp;p). Cuando se ejecuta ptr++, el puntero se incrementa en un sizeof(char*), es decir, &amp;p+4; entonces, ¿a dónde apunta *(&amp;p+4)? Pregúntale a Dios, tal vez él te diga dónde. Por lo tanto, la salida final será un valor aleatorio, o quizás una operación ilegal.</p>
+<p><strong>. Pero si se considera array como un puntero, apunta a la celda 0 del array, su tipo es int* y el tipo al que apunta es el tipo de las celdas del array, es decir, int. Por lo tanto, no es de extrañar que *array sea igual a 0. Del mismo modo, array+3 es un puntero que apunta a la celda 3 del array, por lo que</strong></p>
+<p>Cuando un puntero ptrold se suma (o resta) un entero n, el resultado es un nuevo puntero ptrnew. El tipo de ptrnew es el mismo que el de ptrold, y el tipo al que apunta ptrnew también es el mismo que el tipo al que apunta ptrold. El valor de ptrnew será el valor de ptrold aumentado (o disminuido) en n por sizeof(tipo al que apunta ptrold) bytes. Es decir, la región de memoria a la que apunta ptrnew se habrá movido n por sizeof(tipo al que apunta ptrold) bytes hacia la dirección alta (o baja) en comparación con la región de memoria a la que apunta ptrold. Suma y resta entre punteros: dos punteros no pueden realizar una operación de suma; esto es una operación ilegal, porque después de la suma, el resultado apunta a un lugar desconocido y no tiene ningún significado. Dos punteros pueden realizar una operación de resta, pero deben ser del mismo tipo; generalmente se usa en arrays, no diré más.</p>
+<hr/><h2>III. Los operadores &amp; y *</h2>
+<p>Aquí<strong>&amp;</strong>es el operador de dirección,<strong>*</strong>es el operador de indirección.</p>
+<p><span class="marked">&amp;a</span>El resultado de la operación de &amp; es un puntero. El tipo del puntero es el tipo de a más un *. El tipo al que apunta el puntero es el tipo de a. En cuanto a la dirección a la que apunta el puntero, es la dirección de a.</p>
+<p><span class="marked">*p</span>El resultado de la operación de * es variado. En resumen, el resultado de *p es aquello a lo que apunta p. Esta cosa tiene estas características: su tipo es el tipo al que apunta p, y la dirección que ocupa es la dirección a la que apunta p.</p>
+<p>Ejemplo:</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">a</span><span class="hl-code">=</span><span class="hl-number">12</span><span class="hl-code">; </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">b</span><span class="hl-code">; </span><span class="hl-types">int</span><span class="hl-code"> *</span><span class="hl-identifier">p</span><span class="hl-code">; </span><span class="hl-types">int</span><span class="hl-code"> **</span><span class="hl-identifier">ptr</span><span class="hl-code">;
+</span><span class="hl-identifier">p</span><span class="hl-code">=&amp;</span><span class="hl-identifier">a</span><span class="hl-code">; </span><span class="hl-comment">//El resultado de &amp;a es un puntero, de tipo int*, que apunta al tipo</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//int, y la dirección a la que apunta es la dirección de a.</span><span class="hl-comment"></span><span class="hl-code">
+*</span><span class="hl-identifier">p</span><span class="hl-code">=</span><span class="hl-number">24</span><span class="hl-code">; </span><span class="hl-comment">//El resultado de *p, aquí su tipo es int, y la dirección que ocupa es</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//la dirección a la que apunta p. Evidentemente, *p es la variable a.</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">ptr</span><span class="hl-code">=&amp;</span><span class="hl-identifier">p</span><span class="hl-code">; </span><span class="hl-comment">//El resultado de &amp;p es un puntero; el tipo de ese puntero es el tipo de p más un *,</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//aquí es int **. El tipo al que apunta el puntero es el tipo de p,</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//aquí es int*. La dirección a la que apunta el puntero es la propia dirección del puntero p.</span><span class="hl-comment"></span><span class="hl-code">
+*</span><span class="hl-identifier">ptr</span><span class="hl-code">=&amp;</span><span class="hl-identifier">b</span><span class="hl-code">; </span><span class="hl-comment">//*ptr es un puntero, y el resultado de &amp;b también es un puntero, y estos dos punteros</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//tienen el mismo tipo y apuntan al mismo tipo, por lo que usar &amp;b para asignar a *ptr</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//no presenta ningún problema.</span><span class="hl-comment"></span><span class="hl-code">
+**</span><span class="hl-identifier">ptr</span><span class="hl-code">=</span><span class="hl-number">34</span><span class="hl-code">; </span><span class="hl-comment">//El resultado de *ptr es aquello a lo que apunta ptr; aquí es un puntero,</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//y si se realiza otra operación * sobre ese puntero, el resultado es una variable de tipo int.</span></div>
+</div>
+</div>
+<hr/>
+<h2>IV. Expresiones de puntero</h2>
+<p>Si el resultado de una expresión es un puntero, entonces esa expresión se llama expresión de puntero.</p>
+<p>A continuación se muestran algunos ejemplos de expresiones de puntero:</p>
+<p>Ejemplo:</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">a</span><span class="hl-code">,</span><span class="hl-identifier">b</span><span class="hl-code">;
+</span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">array</span><span class="hl-brackets">[</span><span class="hl-number">10</span><span class="hl-brackets">]</span><span class="hl-code">;
+</span><span class="hl-types">int</span><span class="hl-code"> *</span><span class="hl-identifier">pa</span><span class="hl-code">;
+</span><span class="hl-identifier">pa</span><span class="hl-code">=&amp;</span><span class="hl-identifier">a</span><span class="hl-code">; </span><span class="hl-comment">//&amp;a es una expresión de puntero.</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">Int</span><span class="hl-code"> **</span><span class="hl-identifier">ptr</span><span class="hl-code">=&amp;</span><span class="hl-identifier">pa</span><span class="hl-code">; </span><span class="hl-comment">//&amp;pa también es una expresión de puntero.</span><span class="hl-comment"></span><span class="hl-code">
+*</span><span class="hl-identifier">ptr</span><span class="hl-code">=&amp;</span><span class="hl-identifier">b</span><span class="hl-code">; </span><span class="hl-comment">//*ptr y &amp;b son expresiones de puntero.</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">pa</span><span class="hl-code">=</span><span class="hl-identifier">array</span><span class="hl-code">;
+</span><span class="hl-identifier">pa</span><span class="hl-code">++; </span><span class="hl-comment">//Esta también es una expresión de puntero.</span></div>
+</div>
+</div>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-types">char</span><span class="hl-code"> *</span><span class="hl-identifier">arr</span><span class="hl-brackets">[</span><span class="hl-number">20</span><span class="hl-brackets">]</span><span class="hl-code">;
+</span><span class="hl-types">char</span><span class="hl-code"> **</span><span class="hl-identifier">parr</span><span class="hl-code">=</span><span class="hl-identifier">arr</span><span class="hl-code">; </span><span class="hl-comment">//Si se considera arr como un puntero, arr también es una expresión de puntero</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-types">char</span><span class="hl-code"> *</span><span class="hl-identifier">str</span><span class="hl-code">;
+</span><span class="hl-identifier">str</span><span class="hl-code">=*</span><span class="hl-identifier">parr</span><span class="hl-code">; </span><span class="hl-comment">//*parr es una expresión de puntero</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">str</span><span class="hl-code">=*</span><span class="hl-brackets">(</span><span class="hl-identifier">parr</span><span class="hl-code">+</span><span class="hl-number">1</span><span class="hl-brackets">)</span><span class="hl-code">; </span><span class="hl-comment">//*(parr+1) es una expresión de puntero</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">str</span><span class="hl-code">=*</span><span class="hl-brackets">(</span><span class="hl-identifier">parr</span><span class="hl-code">+</span><span class="hl-number">2</span><span class="hl-brackets">)</span><span class="hl-code">; </span><span class="hl-comment">//*(parr+2) es una expresión de puntero</span></div>
+</div>
+</div>
+<p>Dado que el resultado de una expresión de puntero es un puntero, la expresión de puntero también tiene los cuatro elementos de un puntero: el tipo del puntero, el tipo al que apunta el puntero, la región de memoria a la que apunta el puntero y la memoria que ocupa el propio puntero.</p>
+<p>Bien, cuando el puntero resultante de una expresión de puntero ya tiene claramente la memoria que ocupa el propio puntero, entonces esta expresión de puntero es un lvalue; de lo contrario, no lo es. En el ejemplo siete, &amp;a no es un lvalue, porque todavía no ocupa memoria definida. *ptr es un lvalue, porque el puntero *ptr ya ha ocupado memoria; de hecho, *ptr es el puntero pa. Dado que pa ya tiene su propia posición en la memoria, por supuesto *ptr también tiene su propia posición.</p>
+<hr/>
+<h2>V. Relación entre arrays y punteros</h2>
+<p>El nombre de un array en realidad puede considerarse como un puntero. Vea el siguiente ejemplo:</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">array</span><span class="hl-brackets">[</span><span class="hl-number">10</span><span class="hl-brackets">]</span><span class="hl-code">=</span><span class="hl-brackets">{</span><span class="hl-number">0</span><span class="hl-code">,</span><span class="hl-number">1</span><span class="hl-code">,</span><span class="hl-number">2</span><span class="hl-code">,</span><span class="hl-number">3</span><span class="hl-code">,</span><span class="hl-number">4</span><span class="hl-code">,</span><span class="hl-number">5</span><span class="hl-code">,</span><span class="hl-number">6</span><span class="hl-code">,</span><span class="hl-number">7</span><span class="hl-code">,</span><span class="hl-number">8</span><span class="hl-code">,</span><span class="hl-number">9</span><span class="hl-brackets">}</span><span class="hl-code">,</span><span class="hl-identifier">value</span><span class="hl-code">;
+</span><span class="hl-identifier">value</span><span class="hl-code">=</span><span class="hl-identifier">array</span><span class="hl-brackets">[</span><span class="hl-number">0</span><span class="hl-brackets">]</span><span class="hl-code">; </span><span class="hl-comment">//También se puede escribir: value=*array;</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">value</span><span class="hl-code">=</span><span class="hl-identifier">array</span><span class="hl-brackets">[</span><span class="hl-number">3</span><span class="hl-brackets">]</span><span class="hl-code">; </span><span class="hl-comment">//También se puede escribir: value=*(array+3);</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">value</span><span class="hl-code">=</span><span class="hl-identifier">array</span><span class="hl-brackets">[</span><span class="hl-number">4</span><span class="hl-brackets">]</span><span class="hl-code">; </span><span class="hl-comment">//También se puede escribir: value=*(array+4);</span></div>
+</div>
+</div>
+<p>En el ejemplo anterior, en general, el nombre del array array representa al propio array, con tipo int<span class="marked">*(array+3)</span>es igual a 3. Los demás casos se deducen de manera similar.</p>
+<p>Ejemplo:</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-types">char</span><span class="hl-code"> *</span><span class="hl-identifier">str</span><span class="hl-brackets">[</span><span class="hl-number">3</span><span class="hl-brackets">]</span><span class="hl-code">=</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-quotes">"</span><span class="hl-string">Hello,thisisasample!</span><span class="hl-quotes">"</span><span class="hl-code">,
+    </span><span class="hl-quotes">"</span><span class="hl-string">Hi,goodmorning.</span><span class="hl-quotes">"</span><span class="hl-code">,
+    </span><span class="hl-quotes">"</span><span class="hl-string">Helloworld</span><span class="hl-quotes">"</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">;
+</span><span class="hl-types">char</span><span class="hl-code"> </span><span class="hl-identifier">s</span><span class="hl-brackets">[</span><span class="hl-number">80</span><span class="hl-brackets">]</span><span class="hl-code">；
+</span><span class="hl-identifier">strcpy</span><span class="hl-brackets">(</span><span class="hl-identifier">s</span><span class="hl-code">,</span><span class="hl-identifier">str</span><span class="hl-brackets">[</span><span class="hl-number">0</span><span class="hl-brackets">]</span><span class="hl-brackets">)</span><span class="hl-code">; </span><span class="hl-comment">//También se puede escribir: strcpy(s,*str);</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">strcpy</span><span class="hl-brackets">(</span><span class="hl-identifier">s</span><span class="hl-code">,</span><span class="hl-identifier">str</span><span class="hl-brackets">[</span><span class="hl-number">1</span><span class="hl-brackets">]</span><span class="hl-brackets">)</span><span class="hl-code">; </span><span class="hl-comment">//También se puede escribir: strcpy(s,*(str+1));</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">strcpy</span><span class="hl-brackets">(</span><span class="hl-identifier">s</span><span class="hl-code">,</span><span class="hl-identifier">str</span><span class="hl-brackets">[</span><span class="hl-number">2</span><span class="hl-brackets">]</span><span class="hl-brackets">)</span><span class="hl-code">; </span><span class="hl-comment">//También se puede escribir: strcpy(s,*(str+2));</span></div>
+</div>
+</div>
+<p>En el ejemplo anterior, str es un array de tres celdas; cada celda del array es un puntero, y estos punteros apuntan cada uno a una cadena. Si se considera el nombre del array de punteros str como un puntero, apunta a la celda 0 del array, su tipo es char ** y el tipo al que apunta es char *.</p>
+<p>*str también es un puntero, su tipo es char *, el tipo al que apunta es char, y la dirección a la que apunta es la dirección del primer carácter de la cadena "Hello,thisisasample!", es decir, la dirección de 'H'. Nota: una cadena equivale a un array; se almacena en memoria en forma de array, solo que la cadena es una constante de array, su contenido no se puede modificar, y solo puede ser un rvalue. Si se considera como un puntero, es tanto un puntero constante como una constante de puntero.</p>
+<p>str+1 también es un puntero, apunta a la celda 1 del array, su tipo es char** y el tipo al que apunta es char*.</p>
+<p>*(str+1) también es un puntero, su tipo es char*, el tipo al que apunta es char, y apunta al primer carácter 'H' de "Hi,goodmorning.".</p>
+<p><strong>A continuación se resumen las cuestiones sobre el nombre de un array (cuando lo que se almacena en el array también son arrays):</strong></p>
+<p>Se declara un array<span class="marked">TYPE array[n]</span>, entonces el nombre del array array tiene dos significados:</p>
+<ul><li>
+<p>Primero, representa a todo el array, su tipo es<span class="marked">TYPE[n]</span>；</p></li><li>
+<p>Segundo, es un puntero constante; el tipo de este puntero es<span class="marked">TYPE*</span>, el tipo al que apunta este puntero es<strong>TYPE</strong>, es decir, el tipo de las celdas del array. La región de memoria a la que apunta este puntero es la celda 0 del array. Este puntero ocupa por sí mismo una región de memoria separada; nótese que es diferente de la región de memoria ocupada por la celda 0 del array. El valor de este puntero no se puede modificar, es decir, expresiones como array++ son incorrectas. En diferentes expresiones, el nombre del array array puede desempeñar diferentes roles. En la expresión sizeof(array), el nombre del array array representa al propio array, por lo que en este caso la función sizeof mide el tamaño de todo el array.</p>
+</li></ul>
+<p>En la expresión *array, array desempeña el papel de un puntero, por lo que el resultado de esta expresión es el valor de la celda 0 del array.<span class="marked">sizeof(*array)</span>Lo que se mide es el tamaño de las celdas del array.</p>
+<p>En la expresión array+n (donde n=0,1,2,...), array actúa como un puntero, por lo que el resultado de array+n es un puntero, cuyo tipo es<span class="marked">TYPE *</span>, el tipo al que apunta es TYPE, y apunta al elemento número n del array. Por lo tanto, sizeof(array+n) mide el tamaño del tipo puntero. En un programa de 32 bits el resultado es 4.</p>
+<p>Ejemplo:</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">array</span><span class="hl-brackets">[</span><span class="hl-number">10</span><span class="hl-brackets">]</span><span class="hl-code">;
+</span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-code">*</span><span class="hl-identifier">ptr</span><span class="hl-brackets">)</span><span class="hl-brackets">[</span><span class="hl-number">10</span><span class="hl-brackets">]</span><span class="hl-code">;
+</span><span class="hl-identifier">ptr</span><span class="hl-code">=&amp;</span><span class="hl-identifier">array</span><span class="hl-code">;：</span></div>
+</div>
+</div>
+<p>En el ejemplo anterior, ptr es un puntero, su tipo es<span class="marked">int(*)[10]</span>, el tipo al que apunta es int</p>
+<p>En esta sección se mencionó la función sizeof(). Entonces pregunto: ¿sizeof(nombre_de_puntero) mide en realidad el tamaño del tipo del propio puntero o el tamaño del tipo al que apunta el puntero?</p><p>La respuesta es lo primero. Por ejemplo:</p>
+<pre>int(*ptr)[10];</pre>
+<p>Entonces, en un programa de 32 bits, se tiene:</p>
+<pre>sizeof(int(*)[10])==4
+sizeof(int[10])==40
+sizeof(ptr)==4</pre>
+<p>En realidad, sizeof(objeto) mide siempre el tamaño del tipo del propio objeto, no el tamaño de ningún otro tipo.</p>
+<hr/>
+<h2>VI. Relación entre punteros y tipos de estructura</h2>
+<p>Se puede declarar un puntero a un objeto de tipo estructura. Ejemplo:</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-types">struct</span><span class="hl-code"> </span><span class="hl-identifier">MyStruct</span><span class="hl-code">
+</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">a</span><span class="hl-code">;
+    </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">b</span><span class="hl-code">;
+    </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">c</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span><span class="hl-code">;
+</span><span class="hl-types">struct</span><span class="hl-code"> </span><span class="hl-identifier">MyStruct</span><span class="hl-code"> </span><span class="hl-identifier">ss</span><span class="hl-code">=</span><span class="hl-brackets">{</span><span class="hl-number">20</span><span class="hl-code">,</span><span class="hl-number">30</span><span class="hl-code">,</span><span class="hl-number">40</span><span class="hl-brackets">}</span><span class="hl-code">;
+</span><span class="hl-comment">//Se declara el objeto de estructura ss y se inicializan sus miembros con 20, 30 y 40.</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-types">struct</span><span class="hl-code"> </span><span class="hl-identifier">MyStruct</span><span class="hl-code"> *</span><span class="hl-identifier">ptr</span><span class="hl-code">=&amp;</span><span class="hl-identifier">ss</span><span class="hl-code">;
+</span><span class="hl-comment">//Se declara un puntero al objeto de estructura ss. Su tipo es</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//MyStruct *, y el tipo al que apunta es MyStruct.</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-types">int</span><span class="hl-code"> *</span><span class="hl-identifier">pstr</span><span class="hl-code">=</span><span class="hl-brackets">(</span><span class="hl-types">int</span><span class="hl-code">*</span><span class="hl-brackets">)</span><span class="hl-code">&amp;</span><span class="hl-identifier">ss</span><span class="hl-code">;
+</span><span class="hl-comment">//Se declara un puntero al objeto de estructura ss. Pero pstr y</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//el tipo al que apunta ptr son diferentes.</span></div>
+</div>
+</div>
+<p>¿Cómo se accede a las tres variables miembro de ss mediante el puntero ptr?</p>
+<p>Respuesta:</p>
+<pre>ptr-&gt;a; //指向运算符，或者可以这们(*ptr).a,建议使用前者
+ptr-&gt;b;
+ptr-&gt;c;</pre>
+<p>Y entonces, ¿cómo se accede a las tres variables miembro de ss mediante el puntero pstr?</p>
+<p>Respuesta:</p>
+<pre>*pstr； //访问了ss 的成员a。
+*(pstr+1); //访问了ss 的成员b。
+*(pstr+2) //访问了ss 的成员c。</pre>
+<p>Aunque he depurado el código anterior en mi MSVC++6.0, hay que saber que usar pstr de esta manera para acceder a los miembros de una estructura no es estándar. Para explicar por qué no es estándar, veamos cómo se accede a los distintos elementos de un array mediante un puntero: (sustituyendo la estructura por un array)</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">array</span><span class="hl-brackets">[</span><span class="hl-number">3</span><span class="hl-brackets">]</span><span class="hl-code">=</span><span class="hl-brackets">{</span><span class="hl-number">35</span><span class="hl-code">,</span><span class="hl-number">56</span><span class="hl-code">,</span><span class="hl-number">37</span><span class="hl-brackets">}</span><span class="hl-code">;
+</span><span class="hl-types">int</span><span class="hl-code"> *</span><span class="hl-identifier">pa</span><span class="hl-code">=</span><span class="hl-identifier">array</span><span class="hl-code">;
+</span><span class="hl-comment">//La forma de acceder a los tres elementos del array array mediante el puntero pa es:</span><span class="hl-comment"></span><span class="hl-code">
+*</span><span class="hl-identifier">pa</span><span class="hl-code">; </span><span class="hl-comment">//Se accede al elemento número 0</span><span class="hl-comment"></span><span class="hl-code">
+*</span><span class="hl-brackets">(</span><span class="hl-identifier">pa</span><span class="hl-code">+</span><span class="hl-number">1</span><span class="hl-brackets">)</span><span class="hl-code">; </span><span class="hl-comment">//Se accede al elemento número 1</span><span class="hl-comment"></span><span class="hl-code">
+*</span><span class="hl-brackets">(</span><span class="hl-identifier">pa</span><span class="hl-code">+</span><span class="hl-number">2</span><span class="hl-brackets">)</span><span class="hl-code">; </span><span class="hl-comment">//Se accede al elemento número 2</span></div>
+</div>
+</div>
+<p>En cuanto al formato, se parece al formato del método no estándar de acceder a los miembros de una estructura mediante un puntero.</p>
+<p>Todos los compiladores de C/C++, al disponer los elementos de un array, colocan siempre los distintos elementos del array en un área de almacenamiento contigua, sin huecos entre elemento y elemento. Pero al almacenar los miembros de un objeto de estructura, en algún entorno de compilación puede ser necesario alineación a palabra, a doble palabra o cualquier otra alineación, y es necesario añadir varios “bytes de relleno” entre dos miembros adyacentes, lo que hace que entre los miembros pueda haber varios bytes de hueco.</p>
+<p>Por lo tanto, en el ejemplo 12, incluso si *pstr accede a la primera variable miembro a de la estructura ss, no se puede garantizar que *(pstr+1) vaya a acceder necesariamente al miembro de estructura b. Porque entre los miembros a y b puede haber varios bytes de relleno, y quizás *(pstr+1) acceda justamente a esos bytes de relleno. Esto también demuestra la flexibilidad de los punteros. Si tu propósito es precisamente ver si hay bytes de relleno entre los miembros de una estructura, bueno, ese es un buen método.</p>
+<p>Sin embargo, el método correcto para que un puntero acceda a los miembros de una estructura debería ser como el método que usa el puntero ptr en el ejemplo 12.</p>
+<hr/><h2>VII. Relación entre punteros y funciones</h2>
+<p>Se puede declarar un puntero como un puntero a una función.</p>
+<pre>int fun1(char *,int);
+int (*pfun1)(char *,int);
+pfun1=fun1;
+int a=(*pfun1)("abcdefg",7); //通过函数指针调用函数。</pre>
+<p>Se puede usar un puntero como parámetro formal de una función. En la sentencia de llamada a la función, se puede usar una expresión de puntero como argumento real.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">fun</span><span class="hl-brackets">(</span><span class="hl-types">char</span><span class="hl-code"> *</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-identifier">inta</span><span class="hl-code">;
+</span><span class="hl-types">char</span><span class="hl-code"> </span><span class="hl-identifier">str</span><span class="hl-brackets">[</span><span class="hl-brackets">]</span><span class="hl-code">=</span><span class="hl-quotes">"</span><span class="hl-string">abcdefghijklmn</span><span class="hl-quotes">"</span><span class="hl-code">;
+</span><span class="hl-identifier">a</span><span class="hl-code">=</span><span class="hl-identifier">fun</span><span class="hl-brackets">(</span><span class="hl-identifier">str</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">fun</span><span class="hl-brackets">(</span><span class="hl-types">char</span><span class="hl-code"> *</span><span class="hl-identifier">s</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">num</span><span class="hl-code">=</span><span class="hl-number">0</span><span class="hl-code">;
+    </span><span class="hl-reserved">for</span><span class="hl-brackets">(</span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">i</span><span class="hl-code">=</span><span class="hl-number">0</span><span class="hl-code">;;</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">num</span><span class="hl-code">+=*</span><span class="hl-identifier">s</span><span class="hl-code">;</span><span class="hl-identifier">s</span><span class="hl-code">++;
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-identifier">num</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span></div>
+</div>
+</div>
+<p>En este ejemplo, la función fun calcula la suma de los valores ASCII de cada carácter de una cadena. Como se dijo antes, el nombre de un array también es un puntero. En la llamada a la función, cuando se pasa str como argumento real al parámetro formal s, en realidad se pasa el valor de str a s; la dirección a la que apunta s coincide con la dirección a la que apunta str, pero str y s ocupan cada uno su propio espacio de almacenamiento. Realizar la operación de incremento en 1 sobre s dentro del cuerpo de la función no significa que al mismo tiempo se haya incrementado str en 1.</p><hr/><h2>VIII. Conversión de tipos de puntero</h2><p>Cuando inicializamos un puntero o asignamos un valor a un puntero, el lado izquierdo del signo de asignación es un puntero y el lado derecho es una expresión de puntero. En los ejemplos que hemos visto antes, en la gran mayoría de los casos, el tipo del puntero es el mismo que el tipo de la expresión de puntero, y el tipo al que apunta el puntero es el mismo que el tipo al que apunta la expresión de puntero.</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-types">float</span><span class="hl-code"> </span><span class="hl-identifier">f</span><span class="hl-code">=</span><span class="hl-number">12</span><span class="hl-number">.3</span><span class="hl-code">;
+</span><span class="hl-types">float</span><span class="hl-code"> *</span><span class="hl-identifier">fptr</span><span class="hl-code">=&amp;</span><span class="hl-identifier">f</span><span class="hl-code">;
+</span><span class="hl-types">int</span><span class="hl-code"> *</span><span class="hl-identifier">p</span><span class="hl-code">;</span></div>
+</div>
+</div>
+<p>En el ejemplo anterior, si queremos que el puntero p apunte al número real f, ¿qué deberíamos hacer?</p>
+<p>¿Usamos la siguiente sentencia?</p>
+<pre>p=&amp;f;</pre>
+<p>No. Porque el tipo del puntero p es int *, y el tipo al que apunta es int. El resultado de la expresión &amp;f es un puntero; el tipo del puntero es float *, y el tipo al que apunta es float.</p>
+<p>Los dos no coinciden, por lo que el método de asignación directa no funciona. Al menos en mi MSVC++6.0, la sentencia de asignación para punteros exige que los tipos a ambos lados del signo de asignación sean iguales, y que el tipo al que apuntan también sea igual. No lo he probado en otros compiladores; ustedes pueden probarlo. Para lograr nuestro objetivo, es necesario realizar una “conversión forzada de tipos”:</p>
+<pre>p=(int*)&amp;f;</pre>
+<p>Si tenemos un puntero p y necesitamos cambiar su tipo y el tipo al que apunta a<span class="marked">TYEP *TYPE</span>, entonces el formato sintáctico es:<span class="marked">(TYPE *)p</span></p>
+<p>El resultado de esta conversión forzada de tipos es un nuevo puntero; el tipo de este nuevo puntero es<span class="marked">TYPE *</span>, el tipo al que apunta es<span class="marked">TYPE</span>y la dirección a la que apunta es la dirección a la que apuntaba el puntero original.  
+Sin embargo, todos los atributos del puntero original p no han sido modificados. (Recuérdalo bien).</p>
+<p>Si una función usa punteros como parámetros formales, entonces durante el enlace entre argumentos reales y parámetros formales en la sentencia de llamada a la función, se debe garantizar que los tipos coincidan; de lo contrario, se necesita una conversión forzada:</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">fun</span><span class="hl-brackets">(</span><span class="hl-types">char</span><span class="hl-code">*</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">a</span><span class="hl-code">=</span><span class="hl-number">125</span><span class="hl-code">,</span><span class="hl-identifier">b</span><span class="hl-code">;
+</span><span class="hl-identifier">fun</span><span class="hl-brackets">(</span><span class="hl-brackets">(</span><span class="hl-types">char</span><span class="hl-code">*</span><span class="hl-brackets">)</span><span class="hl-code">&amp;</span><span class="hl-identifier">a</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">fun</span><span class="hl-brackets">(</span><span class="hl-types">char</span><span class="hl-code">*</span><span class="hl-identifier">s</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-types">char</span><span class="hl-code"> </span><span class="hl-identifier">c</span><span class="hl-code">;
+    </span><span class="hl-identifier">c</span><span class="hl-code">=*</span><span class="hl-brackets">(</span><span class="hl-identifier">s</span><span class="hl-code">+</span><span class="hl-number">3</span><span class="hl-brackets">)</span><span class="hl-code">;*</span><span class="hl-brackets">(</span><span class="hl-identifier">s</span><span class="hl-code">+</span><span class="hl-number">3</span><span class="hl-brackets">)</span><span class="hl-code">=*</span><span class="hl-brackets">(</span><span class="hl-identifier">s</span><span class="hl-code">+</span><span class="hl-number">0</span><span class="hl-brackets">)</span><span class="hl-code">;*</span><span class="hl-brackets">(</span><span class="hl-identifier">s</span><span class="hl-code">+</span><span class="hl-number">0</span><span class="hl-brackets">)</span><span class="hl-code">=</span><span class="hl-identifier">c</span><span class="hl-code">;
+    </span><span class="hl-identifier">c</span><span class="hl-code">=*</span><span class="hl-brackets">(</span><span class="hl-identifier">s</span><span class="hl-code">+</span><span class="hl-number">2</span><span class="hl-brackets">)</span><span class="hl-code">;*</span><span class="hl-brackets">(</span><span class="hl-identifier">s</span><span class="hl-code">+</span><span class="hl-number">2</span><span class="hl-brackets">)</span><span class="hl-code">=*</span><span class="hl-brackets">(</span><span class="hl-identifier">s</span><span class="hl-code">+</span><span class="hl-number">1</span><span class="hl-brackets">)</span><span class="hl-code">;*</span><span class="hl-brackets">(</span><span class="hl-identifier">s</span><span class="hl-code">+</span><span class="hl-number">1</span><span class="hl-brackets">)</span><span class="hl-code">=</span><span class="hl-identifier">c</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span></div>
+</div>
+</div>
+<p>Observa que este es un programa de 32 bits, por lo que el tipo int ocupa cuatro bytes y el tipo char ocupa un byte. La función fun sirve para invertir el orden de los cuatro bytes de un entero. ¿Te has dado cuenta? En la sentencia de llamada a la función, el resultado del argumento real &amp;a es un puntero, su tipo es int * y el tipo al que apunta es int. El tipo de este puntero del parámetro formal es char *, y el tipo al que apunta es char. Así, durante el enlace entre argumento real y parámetro formal, debemos realizar una conversión del tipo int * al tipo char *.</p>
+<p><strong>Con este ejemplo, podemos hacerlo así:</strong></p>
+<p>Imagina el proceso de conversión que realiza el compilador: primero construye un puntero temporal char *temp, luego ejecuta temp=(char *)&amp;a, y finalmente pasa el valor de temp a s. Así que el resultado final es: el tipo de s es char *, el tipo al que apunta es char, y la dirección a la que apunta es la dirección inicial de a.</p>
+<p>Ya sabemos que el valor de un puntero es la dirección a la que apunta; en un programa de 32 bits, el valor de un puntero es en realidad un entero de 32 bits.</p>
+<p>Entonces, ¿se puede asignar directamente un entero a un puntero como si fuera el valor del puntero? Por ejemplo, en la siguiente sentencia:</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-types">unsigned</span><span class="hl-code"> </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">a</span><span class="hl-code">;
+</span><span class="hl-identifier">TYPE</span><span class="hl-code"> *</span><span class="hl-identifier">ptr</span><span class="hl-code">; </span><span class="hl-comment">//TYPE es int, char o un tipo de estructura, etc.</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">a</span><span class="hl-code">=</span><span class="hl-number">20345686</span><span class="hl-code">;
+</span><span class="hl-identifier">ptr</span><span class="hl-code">=</span><span class="hl-number">20345686</span><span class="hl-code">; </span><span class="hl-comment">//Nuestro propósito es hacer que el puntero ptr apunte a la dirección 20345686</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">ptr</span><span class="hl-code">=</span><span class="hl-identifier">a</span><span class="hl-code">; </span><span class="hl-comment">//Nuestro propósito es hacer que el puntero ptr apunte a la dirección 20345686</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-comment">//Compilémoslo. Resulta que las dos últimas sentencias están completamente mal. Entonces, ¿no podemos lograr nuestro objetivo? No, todavía hay una manera:</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-types">unsigned</span><span class="hl-code"> </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">a</span><span class="hl-code">;
+</span><span class="hl-identifier">TYPE</span><span class="hl-code"> *</span><span class="hl-identifier">ptr</span><span class="hl-code">; </span><span class="hl-comment">//TYPE es int, char o un tipo de estructura, etc.</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">a</span><span class="hl-code">=</span><span class="hl-identifier">N</span><span class="hl-code"> </span><span class="hl-comment">//N debe representar una dirección válida;</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">ptr</span><span class="hl-code">=</span><span class="hl-brackets">(</span><span class="hl-identifier">TYPE</span><span class="hl-code">*</span><span class="hl-brackets">)</span><span class="hl-identifier">a</span><span class="hl-code">； </span><span class="hl-comment">//Jeje, con esto ya es suficiente.</span></div>
+</div>
+</div>
+<p>Estrictamente hablando, el (TYPE *) de aquí no es igual al (TYPE *) de la conversión de tipos de puntero. Aquí, (TYPE*) significa tratar el valor del entero sin signo a como una dirección. Arriba se enfatizó que el valor de a debe representar una dirección válida; de lo contrario, cuando uses ptr, se producirá un error de operación ilegal. Piensa si se puede hacer lo contrario: extraer la dirección a la que apunta el puntero, es decir, el valor del puntero, como un entero. Totalmente posible. El siguiente ejemplo demuestra cómo extraer el valor de un puntero como un entero y luego asignar ese entero como una dirección a un puntero:</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">a</span><span class="hl-code">=</span><span class="hl-number">123</span><span class="hl-code">,</span><span class="hl-identifier">b</span><span class="hl-code">;
+</span><span class="hl-types">int</span><span class="hl-code"> *</span><span class="hl-identifier">ptr</span><span class="hl-code">=&amp;</span><span class="hl-identifier">a</span><span class="hl-code">;
+</span><span class="hl-types">char</span><span class="hl-code"> *</span><span class="hl-identifier">str</span><span class="hl-code">;
+</span><span class="hl-identifier">b</span><span class="hl-code">=</span><span class="hl-brackets">(</span><span class="hl-types">int</span><span class="hl-brackets">)</span><span class="hl-identifier">ptr</span><span class="hl-code">; </span><span class="hl-comment">//Se extrae el valor del puntero ptr como un entero.</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">str</span><span class="hl-code">=</span><span class="hl-brackets">(</span><span class="hl-types">char</span><span class="hl-code">*</span><span class="hl-brackets">)</span><span class="hl-identifier">b</span><span class="hl-code">; </span><span class="hl-comment">//Se asigna el valor de este entero como una dirección al puntero str.</span></div>
+</div>
+</div><p>Ahora ya sabemos que se puede extraer el valor de un puntero como un entero, y también se puede asignar un valor entero a un puntero como si fuera una dirección.</p>
+<hr/>
+<h2>IX. Problemas de seguridad de los punteros</h2><p>Observa el siguiente ejemplo:</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-types">char</span><span class="hl-code"> </span><span class="hl-identifier">s</span><span class="hl-code">='</span><span class="hl-identifier">a</span><span class="hl-code">';
+</span><span class="hl-types">int</span><span class="hl-code"> *</span><span class="hl-identifier">ptr</span><span class="hl-code">;
+</span><span class="hl-identifier">ptr</span><span class="hl-code">=</span><span class="hl-brackets">(</span><span class="hl-types">int</span><span class="hl-code"> *</span><span class="hl-brackets">)</span><span class="hl-code">&amp;</span><span class="hl-identifier">s</span><span class="hl-code">;
+*</span><span class="hl-identifier">ptr</span><span class="hl-code">=</span><span class="hl-number">1298</span><span class="hl-code">；</span></div>
+</div>
+</div>
+<p>El puntero ptr es un puntero de tipo int *, y el tipo al que apunta es int. La dirección a la que apunta es la dirección inicial de s. En un programa de 32 bits, s ocupa un byte y el tipo int ocupa cuatro bytes. La última sentencia no solo cambia el byte que ocupa s, sino que también cambia los tres bytes adyacentes a s en el sentido de las direcciones más altas. ¿Para qué sirven estos tres bytes? Solo lo sabe el compilador, y es poco probable que la persona que escribe el programa lo sepa. Quizás en estos tres bytes se almacenan datos muy importantes, quizás son exactamente una instrucción del programa, y debido a tu uso descuidado del puntero, ¡el valor de estos tres bytes ha sido cambiado! Esto puede causar un error catastrófico.</p>
+<p>Veamos otro ejemplo:</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-types">char</span><span class="hl-code"> </span><span class="hl-identifier">a</span><span class="hl-code">;
+</span><span class="hl-types">int</span><span class="hl-code"> *</span><span class="hl-identifier">ptr</span><span class="hl-code">=&amp;</span><span class="hl-identifier">a</span><span class="hl-code">;
+</span><span class="hl-identifier">ptr</span><span class="hl-code">++;
+*</span><span class="hl-identifier">ptr</span><span class="hl-code">=</span><span class="hl-number">115</span><span class="hl-code">;</span></div>
+</div>
+</div>
+<p>Este ejemplo puede compilarse perfectamente y puede ejecutarse. Pero, ¿lo ves? Después de la operación de incremento en 1 sobre el puntero ptr en la tercera sentencia, ptr apunta a un área de almacenamiento adyacente a la variable entera a en el sentido de las direcciones más altas. ¿Qué hay en esta área de almacenamiento? No lo sabemos. Podría ser un dato muy importante, incluso podría ser una instrucción.</p>
+<p>¡Y la cuarta sentencia incluso escribe un dato en esta área de almacenamiento! Esto es un error grave. Por lo tanto, al usar punteros, el programador debe tener muy claro: a dónde apunta exactamente mi puntero. Al usar punteros para acceder a arrays, también hay que tener cuidado de no sobrepasar los límites inferior y superior del array; de lo contrario, se producirán errores similares.</p>
+<p>En la conversión forzada de tipos de punteros:<span class="marked">ptr1=(TYPE *)ptr2</span>En ella, si sizeof(tipo de ptr2) es mayor que sizeof(tipo de ptr1), entonces es seguro usar el puntero ptr1 para acceder al área de almacenamiento a la que apunta ptr2. Si sizeof(tipo de ptr2) es menor que sizeof(tipo de ptr1), entonces no es seguro usar el puntero ptr1 para acceder al área de almacenamiento a la que apunta ptr2. En cuanto al porqué, el lector debería entenderlo pensando junto con el ejemplo 18.</p>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link">← <a href="./php-delete-an-element-from-an-array.html" rel="prev">Eliminar elementos de un array en PHP</a> </div>
+<div class="next-design-link"><a href="./the-different-of-jre-and-jdk.html" rel="next">La diferencia entre JRE y JDK</a> →</div>
+</div>
+<style>
+@media screen and (max-width: 768px) {
+	#w3cnote-ad728 {
+		display: none;
+	}
+}
+p.note-author {
+    border-bottom: 1px solid #ddd;
+    font-size: 18px;
+    font-weight: bold;
+    color: #78a15a;
+    padding-bottom: 2px;
+    margin-bottom: 4px;
+}
+</style>
+<script>
+var aid = 19834;
+</script>
+</div>
+</div>
+<div class="listcol last right-column">
+<!--
+	<div class="tab tab-light-blue"> 订阅</div>
+	<div class="sidebar-box">
+		<div class="socialicons">
+			<a href="../feed.html" class="rss">RSS 订阅</a>
+		
+			<form action="..//list.qq.com/cgi-bin/qf_compose_send" method="post">
+			<input type="hidden" value="qf_booked_feedback" name="t">
+			<input type="hidden" value="4b67b6b6c1f5e792559940cab4aebb8f1126fba880bff1a8" name="id">
+			<input class="placeholder" id="feed_email" name="to" value="输入邮箱 订阅笔记" autocomplete="off">
+			<input type="submit" value="订阅" class="btn btn-primary">
+			</form>
+		
+		</div>
+ 
+	</div>
+-->
+<!--
+	<div class="sidebar-box cate-list">
+	<div class="sidebar-box recommend-here list-link">
+			<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">笔记列表</a>
+		</div>
+
+ 
+
+</div>
+-->
+<div class="sidebar-box cate-list" style="display:none;">
+<div class="sidebar-box recommend-here list-link">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">热门文章</a>
+</div>
+<div class="membership">
+<ul class="membership">
+<li><a href="https://mp.weixin.qq.com/s/ZaP6YNgKTCHYy3r2WPBBaw" target="_blank" title="2024 年 04 月 JavaScript 框架排行榜">2024 年 04 月 JavaScript 框架排行榜</a></li>
+<li><a href="https://mp.weixin.qq.com/s/JBR2twC0t6krjjuxqvhsEQ" target="_blank" title="免费、开源、好用的 SQL 客户端合集">免费、开源、好用的 SQL 客户端合集</a></li>
+<li><a href="https://mp.weixin.qq.com/s/TwV3YQjA1glyaW7TiHvhlA" target="_blank" title="优雅的代码规范，提升代码质量">优雅的代码规范，提升代码质量</a></li>
+<li><a href="https://mp.weixin.qq.com/s/CnUJ-2OHPbBKlnVpjDzavA" target="_blank" title="命令行中的趣味世界，牛也能说话，有趣又好玩">命令行中的趣味世界，牛也能说话，有趣又好玩</a></li>
+<li><a href="https://mp.weixin.qq.com/s/7NKl-mD7N8CeSNQlbKDEWA" target="_blank" title="2024 年 05 月编程语言排行榜，Fortran 进入前 10 名，发生了什么？">2024 年 05 月编程语言排行榜，Fortran 进入前 10 名，发生了什么？</a></li>
+<li><a href="https://mp.weixin.qq.com/s/yWlSVDKobtDhThnhirVRpw" target="_blank" title="免费开源的 IDE、数据库管理工具、SSH客户端和FTP客户端">免费开源的 IDE、数据库管理工具、SSH客户端和FTP客户端</a></li>
+</ul>
+</div>
+</div>
+<div class="sidebar-box cate-list">
+<div class="sidebar-box recommend-here list-link">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">教程列表</a>
+</div>
+<div class="cate-items">
+<a href="../ado.html">ADO 教程</a>
+<a href="../ai-agent.html">AI Agent 教程</a>
+<a href="../ai.html">AI 入门教程</a>
+<a href="../ai-math.html">AI 数学基础</a>
+<a href="../ajax.html">Ajax 教程</a>
+<a href="../android.html">Android 教程</a>
+<a href="../angularjs2.html">Angular2 教程</a>
+<a href="../angularjs.html">AngularJS 教程</a>
+<a href="../appml.html">AppML 教程</a>
+<a href="../asp.html">ASP 教程</a>
+<a href="../aspnet.html">ASP.NET 教程</a>
+<a href="../bootstrap.html">Bootstrap 教程</a>
+<a href="../bootstrap4.html">Bootstrap4 教程</a>
+<a href="../bootstrap5.html">Bootstrap5 教程</a>
+<a href="../cprogramming.html">C 教程</a>
+<a href="../c-dsa.html">C 语言数据结构与算法</a>
+<a href="../csharp.html">C# 教程</a>
+<a href="../cplusplus.html">C++ 教程</a>
+<a href="../chartjs.html">Chart.js 教程</a>
+<a href="../claude-code.html">Claude Code 教程</a>
+<a href="../cmake.html">CMake 教程</a>
+<a href="../codex.html">Codex 教程</a>
+<a href="../cssref.html">CSS 参考手册</a>
+<a href="../css.html">CSS 教程</a>
+<a href="../css3.html">CSS3 教程</a>
+<a href="../cursor.html">Cursor 教程</a>
+<a href="../dart.html">Dart 教程</a>
+<a href="../dash.html">Dash 教程</a>
+<a href="../deepseek-harness.html">DeepSeek Harness</a>
+<a href="../django.html">Django 教程</a>
+<a href="../docker.html">Docker 教程</a>
+<a href="../dtd.html">DTD 教程</a>
+<a href="../echarts.html">ECharts 教程</a>
+<a href="../eclipse.html">Eclipse 教程</a>
+<a href="../electron.html">Electron 教程</a>
+<a href="../fastapi.html">FastAPI 教程</a>
+<a href="../firebug.html">Firebug 教程</a>
+<a href="../flask.html">Flask 教程</a>
+<a href="../flutter.html">Flutter 教程</a>
+<a href="../font-awesome.html">Font Awesome 图标</a>
+<a href="../foundation.html">Foundation 教程</a>
+<a href="../git.html">Git 教程</a>
+<a href="../go.html">Go 语言教程</a>
+<a href="../googleapi.html">Google 地图 API 教程</a>
+<a href="../hermes-agent.html">Hermes Agent</a>
+<a href="../highcharts.html">Highcharts 教程</a>
+<a href="../htmldom.html">HTML DOM 教程</a>
+<a href="../tags.html">HTML 参考手册</a>
+<a href="../charsets.html">HTML 字符集</a>
+<a href="../html.html">HTML 教程</a>
+<a href="../http.html">HTTP 教程</a>
+<a href="../ionic.html">ionic 教程</a>
+<a href="../ios.html">iOS 教程</a>
+<a href="../java.html">Java 教程</a>
+<a href="../jsref.html">JavaScript 参考手册</a>
+<a href="../js.html">Javascript 教程</a>
+<a href="../jeasyui.html">jQuery EasyUI 教程</a>
+<a href="../jquerymobile.html">jQuery Mobile 教程</a>
+<a href="../jqueryui.html">jQuery UI 教程</a>
+<a href="../jquery.html">jQuery 教程</a>
+<a href="../json.html">JSON 教程</a>
+<a href="../jsp.html">JSP 教程</a>
+<a href="../julia.html">Julia 教程</a>
+<a href="../jupyter-notebook.html">Jupyter Notebook 教程</a>
+<a href="../kotlin.html">Kotlin 教程</a>
+<a href="../langchain.html">LangChain 教程</a>
+<a href="../latex.html">LaTeX 教程</a>
+<a href="../linux.html">Linux 教程</a>
+<a href="../lua.html">Lua 教程</a>
+<a href="../markdown.html">Markdown 教程</a>
+<a href="../matplotlib.html">Matplotlib 教程</a>
+<a href="../maven.html">Maven 教程</a>
+<a href="../memcached.html">Memcached 教程</a>
+<a href="../mongodb.html">MongoDB 教程</a>
+<a href="../mysql.html">MySQL 教程</a>
+<a href="../nextjs.html">Next.js 教程</a>
+<a href="../nlp.html">NLP 教程</a>
+<a href="../nodejs.html">Node.js 教程</a>
+<a href="../numpy.html">NumPy 教程</a>
+<a href="../obsidian.html">Obsidian 教程</a>
+<a href="../ollama.html">Ollama 教程</a>
+<a href="../opencode.html">OpenCode 教程</a>
+<a href="../opencv.html">OpenCV 教程</a>
+<a href="../pandas.html">Pandas 教程</a>
+<a href="../perl.html">Perl 教程</a>
+<a href="../php.html">PHP 教程</a>
+<a href="../pi-agent.html">Pi Agent</a>
+<a href="../pillow.html">Pillow 教程</a>
+<a href="../playwright.html">Playwright 教程</a>
+<a href="../postgresql.html">PostgreSQL 教程</a>
+<a href="../powershell.html">PowerShell</a>
+<a href="../pycharm.html">Pycharm 教程</a>
+<a href="../python3.html">Python 3 教程</a>
+<a href="../python.html">Python 基础教程</a>
+<a href="../python-design-pattern.html">Python 设计模式</a>
+<a href="../python-qt.html">Python 量化交易</a>
+<a href="../pytorch.html">PyTorch 教程</a>
+<a href="../r.html">R 教程</a>
+<a href="../rdf.html">RDF 教程</a>
+<a href="../react.html">React 教程</a>
+<a href="../redis.html">Redis 教程</a>
+<a href="../restfulapi.html">RESTful API</a>
+<a href="../rss.html">RSS 教程</a>
+<a href="../ruby.html">Ruby 教程</a>
+<a href="../rust.html">Rust 教程</a>
+<a href="../sass.html">Sass 教程</a>
+<a href="../scala.html">Scala 教程</a>
+<a href="../scipy.html">SciPy 教程</a>
+<a href="../selenium.html">Selenium 教程</a>
+<a href="../servlet.html">Servlet 教程</a>
+<a href="../skills.html">Skills 教程</a>
+<a href="../sklearn.html">Sklearn 教程</a>
+<a href="../soap.html">SOAP 教程</a>
+<a href="../sql.html">SQL 教程</a>
+<a href="../sqlite.html">SQLite 教程</a>
+<a href="../svg.html">SVG 教程</a>
+<a href="../svn.html">SVN 教程</a>
+<a href="../swagger.html">Swagger 教程</a>
+<a href="../swift.html">Swift 教程</a>
+<a href="../tailwindcss.html">Tailwind CSS 教程</a>
+<a href="../tcpip.html">TCP/IP 教程</a>
+<a href="../tensorflow.html">TensorFlow 教程</a>
+<a href="../typescript.html">TypeScript 教程</a>
+<a href="../uniapp.html">uni-app 教程</a>
+<a href="../vbscript.html">VBScript 教程</a>
+<a href="../vibe-coding.html">Vibe Coding 教程</a>
+<a href="../vscode.html">VSCode 教程</a>
+<a href="../vue2.html">Vue.js 教程</a>
+<a href="../vue3.html">Vue3 教程</a>
+<a href="../w3c.html">W3C 教程</a>
+<a href="../webservices.html">Web Service 教程</a>
+<a href="../wsdl.html">WSDL 教程</a>
+<a href="../xlink.html">XLink 教程</a>
+<a href="../dom.html">XML DOM 教程</a>
+<a href="../schema.html">XML Schema 教程</a>
+<a href="../xml.html">XML 教程</a>
+<a href="../xpath.html">XPath 教程</a>
+<a href="../xquery.html">XQuery 教程</a>
+<a href="../xslfo.html">XSLFO 教程</a>
+<a href="../xsl.html">XSLT 教程</a>
+<a href="../zig.html">Zig 教程</a>
+<a href="../data-structures.html">数据结构</a>
+<a href="../ml.html">机器学习</a>
+<a href="../regexp.html">正则表达式</a>
+<a href="../assembly.html">汇编语言</a>
+<a href="../quiz.html">测验</a>
+<a href="../browsers.html">浏览器</a>
+<a href="../quality.html">网站品质</a>
+<a href="../web.html">网站建设指南</a>
+<a href="../hosting.html">网站服务器教程</a>
+<a href="../np.html">网络协议</a>
+<a href="../computer-organization.html">计算机组成原理</a>
+<a href="../design-pattern.html">设计模式</a>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

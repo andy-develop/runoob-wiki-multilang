@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>6.3 Verilog Diseño de bajo consumo a nivel RTL (Parte 1) | Tutorial para novatos</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="./verilog2-rtl-low-power-design-1.html" rel="canonical"/>
+<meta content="6.3 Verilog  RTL 级低功耗设计（上）" name="keywords"/>
+<meta content="下表显示了在数字设计的各个层次上可减少功耗的百分比。RTL 级之后，功耗的减少量已经非常有限。 设计层次改善程度系统级50% ~ 90%RTL 级20% ~ 50%门级10% ~ 15%晶体管级5% ~ 10%版图级&amp;lt; 5% 作为一个编写 Verilog 的伪码农，系统级减少功耗的工作也可参与一些，但重点应该放在 RTL 级来减少功耗。 下面就分 2 节来介绍从 RTL 级来减少功耗的常用方法。  并行与流水 对于一个功能.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div><!-- 导航栏 -->
+<!--  内容  -->
+<div class="container main">
+<div class="row">
+<!--  Android 基础入门教程 start  -->
+<div class="col left-column" style="display:none;">
+<div class="tab">Verilog 高级教程</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+</div>
+</div>
+</div>
+<!--  Android 基础入门教程 end  -->
+<div class="col middle-column big-middle-column">
+<div class="article">
+<div class="article-heading">
+<h2>6.3 Verilog Diseño de bajo consumo a nivel RTL (Parte 1)</h2> <h3><em>Categoría</em> <a href="../w3cnote_genre/verilog2.html" title="Verilog 教程高级篇">Tutorial de Verilog (nivel avanzado)</a> </h3>
+</div>
+<div class="article-body note-body">
+<div class="article-intro">
+<!-- ad start-->
+<!-- ad end-->
+<p>La siguiente tabla muestra el porcentaje de reducción de consumo de energía que se puede lograr en cada nivel del diseño digital. Después del nivel RTL, la cantidad de reducción de consumo ya es muy limitada.</p>
+<table class="reference"><thead><tr><th style="text-align:left;"><span>Nivel de diseño</span></th><th style="text-align:left;"><span>Grado de mejora</span></th></tr></thead><tbody><tr><td style="text-align:left;"><span>Nivel de sistema</span></td><td style="text-align:left;"><span>50% ~ 90%</span></td></tr><tr><td style="text-align:left;"><span>Nivel RTL</span></td><td style="text-align:left;"><span>20% ~ 50%</span></td></tr><tr><td style="text-align:left;"><span>Nivel de compuertas</span></td><td style="text-align:left;"><span>10% ~ 15%</span></td></tr><tr><td style="text-align:left;"><span>Nivel de transistores</span></td><td style="text-align:left;"><span>5% ~ 10%</span></td></tr><tr><td style="text-align:left;"><span>Nivel de layout</span></td><td style="text-align:left;"><span>&lt; 5%</span></td></tr></tbody></table>
+<p>Como un simple programador que escribe Verilog, también se puede participar en el trabajo de reducción de consumo a nivel de sistema, pero el enfoque principal debe estar en la reducción de consumo a nivel RTL.</p><p>A continuación, se dividirá en 2 secciones para presentar los métodos comunes para reducir el consumo de energía a nivel RTL.</p>
+<hr/>
+<h2>Paralelismo y pipeline</h2>
+<p>Para un módulo funcional, se puede implementar mediante paralelismo o mediante pipeline. Ambos métodos intercambian recursos por velocidad. El uso flexible de estos dos métodos en ciertas situaciones puede reducir el consumo de energía.</p>
+<p><strong>Procesamiento paralelo</strong></p><p>El procesamiento paralelo puede ejecutar múltiples sentencias al mismo tiempo, lo que aumenta la eficiencia de ejecución. Por lo tanto, bajo la condición de cumplir con los requisitos de trabajo, el uso del procesamiento paralelo puede reducir la frecuencia de trabajo del sistema y disminuir el consumo de energía.</p>
+<p>Por ejemplo, la descripción del código para implementar una operación de multiplicación y suma de 4 datos usando 1 multiplicador y 2 multiplicadores (en paralelo) es la siguiente:</p>
+<div class="example"><h2 class="example">Ejemplo</h2> <div class="example_code">
+<span style="color: #00008B; font-style: italic;">//===========================================</span><br/>
+<span style="color: #00008B; font-style: italic;">//1 multiplier, high speed</span><br/>
+<span style="color: #A52A2A; font-weight: bold;">module</span>  mul1_hs<br/>
+    <span style="color: #9F79EE;">(</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">input</span>           clk <span style="color: #5D478B;">,</span>           <span style="color: #00008B; font-style: italic;">//200MHz</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">input</span>           rstn <span style="color: #5D478B;">,</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">input</span>           en  <span style="color: #5D478B;">,</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>     mul1 <span style="color: #5D478B;">,</span>          <span style="color: #00008B; font-style: italic;">//data in</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>     mul2 <span style="color: #5D478B;">,</span>          <span style="color: #00008B; font-style: italic;">//data in</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">output</span>          dout_en <span style="color: #5D478B;">,</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">output</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">8</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>    dout<br/>
+     <span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+<br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span>                  flag <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span>                  en_r <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">always</span> <span style="color: #5D478B;">@</span><span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">posedge</span> clk <span style="color: #A52A2A; font-weight: bold;">or</span> <span style="color: #A52A2A; font-weight: bold;">negedge</span> rstn<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span><span style="color: #5D478B;">!</span>rstn<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+            flag   <span style="color: #5D478B;">&lt;=</span> <span style="color: #ff0055;">1'b0</span> <span style="color: #5D478B;">;</span><br/>
+            en_r   <span style="color: #5D478B;">&lt;=</span> <span style="color: #ff0055;">1'b0</span> <span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">else</span> <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span>en<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+            flag   <span style="color: #5D478B;">&lt;=</span> <span style="color: #5D478B;">~</span>flag <span style="color: #5D478B;">;</span><br/>
+            en_r   <span style="color: #5D478B;">&lt;=</span> <span style="color: #ff0055;">1'b1</span> <span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">else</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+            flag   <span style="color: #5D478B;">&lt;=</span> <span style="color: #ff0055;">1'b0</span> <span style="color: #5D478B;">;</span><br/>
+            en_r   <span style="color: #5D478B;">&lt;=</span> <span style="color: #ff0055;">1'b0</span> <span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+<br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>           result <span style="color: #5D478B;">=</span> mul1 <span style="color: #5D478B;">*</span> mul2 <span style="color: #5D478B;">;</span><br/>
+<br/>
+    <span style="color: #00008B; font-style: italic;">// data output en</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>            res1_r<span style="color: #5D478B;">,</span> res2_r <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">always</span> <span style="color: #5D478B;">@</span><span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">posedge</span> clk <span style="color: #A52A2A; font-weight: bold;">or</span> <span style="color: #A52A2A; font-weight: bold;">negedge</span> rstn<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span><span style="color: #5D478B;">!</span>rstn<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+            res1_r         <span style="color: #5D478B;">&lt;=</span> 'b0 <span style="color: #5D478B;">;</span><br/>
+            res2_r         <span style="color: #5D478B;">&lt;=</span> 'b0 <span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">else</span> <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span>en <span style="color: #5D478B;">&amp;</span> <span style="color: #5D478B;">!</span>flag<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+            res1_r         <span style="color: #5D478B;">&lt;=</span> result <span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">else</span> <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span>en <span style="color: #5D478B;">&amp;</span> flag<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+            res2_r         <span style="color: #5D478B;">&lt;=</span> result <span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+<br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> dout_en <span style="color: #5D478B;">=</span> en_r <span style="color: #5D478B;">&amp;</span> <span style="color: #5D478B;">!</span>flag <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> dout <span style="color: #5D478B;">=</span> res1_r <span style="color: #5D478B;">+</span> res2_r <span style="color: #5D478B;">;</span><br/>
+<br/>
+<span style="color: #A52A2A; font-weight: bold;">endmodule</span><br/>
+<br/>
+<span style="color: #00008B; font-style: italic;">//===========================================</span><br/>
+<span style="color: #00008B; font-style: italic;">// 2 multiplier2, low speed</span><br/>
+<span style="color: #A52A2A; font-weight: bold;">module</span>  mul2_ls<br/>
+    <span style="color: #9F79EE;">(</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">input</span>           clk <span style="color: #5D478B;">,</span>           <span style="color: #00008B; font-style: italic;">//100MHz</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">input</span>           rstn <span style="color: #5D478B;">,</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">input</span>           en  <span style="color: #5D478B;">,</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>     mul1 <span style="color: #5D478B;">,</span>          <span style="color: #00008B; font-style: italic;">//data in</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>     mul2 <span style="color: #5D478B;">,</span>          <span style="color: #00008B; font-style: italic;">//data in</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>     mul3 <span style="color: #5D478B;">,</span>          <span style="color: #00008B; font-style: italic;">//data in</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>     mul4 <span style="color: #5D478B;">,</span>          <span style="color: #00008B; font-style: italic;">//data in</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">output</span>          dout_en<span style="color: #5D478B;">,</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">output</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">8</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>    dout<br/>
+     <span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+<br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>           result1 <span style="color: #5D478B;">=</span> mul1 <span style="color: #5D478B;">*</span> mul2 <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>           result2 <span style="color: #5D478B;">=</span> mul3 <span style="color: #5D478B;">*</span> mul4 <span style="color: #5D478B;">;</span><br/>
+<br/>
+    <span style="color: #00008B; font-style: italic;">//en delay</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span>                  en_r <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">always</span> <span style="color: #5D478B;">@</span><span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">posedge</span> clk <span style="color: #A52A2A; font-weight: bold;">or</span> <span style="color: #A52A2A; font-weight: bold;">negedge</span> rstn<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span><span style="color: #5D478B;">!</span>rstn<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+            en_r           <span style="color: #5D478B;">&lt;=</span> <span style="color: #ff0055;">1'b0</span> <span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">else</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+          en_r           <span style="color: #5D478B;">&lt;=</span> en <span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+<br/>
+    <span style="color: #00008B; font-style: italic;">// data output en</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>            res1_r<span style="color: #5D478B;">,</span> res2_r <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">always</span> <span style="color: #5D478B;">@</span><span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">posedge</span> clk <span style="color: #A52A2A; font-weight: bold;">or</span> <span style="color: #A52A2A; font-weight: bold;">negedge</span> rstn<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span><span style="color: #5D478B;">!</span>rstn<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+            res1_r         <span style="color: #5D478B;">&lt;=</span> 'b0 <span style="color: #5D478B;">;</span><br/>
+            res2_r         <span style="color: #5D478B;">&lt;=</span> 'b0 <span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">else</span> <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span>en<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+            res1_r         <span style="color: #5D478B;">&lt;=</span> result1 <span style="color: #5D478B;">;</span><br/>
+            res2_r         <span style="color: #5D478B;">&lt;=</span> result2 <span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> dout          <span style="color: #5D478B;">=</span> res1_r <span style="color: #5D478B;">+</span> res2_r <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">assign</span> dout_en       <span style="color: #5D478B;">=</span> en_r <span style="color: #5D478B;">;</span><br/>
+<br/>
+<span style="color: #A52A2A; font-weight: bold;">endmodule</span><br/>
+</div></div>
+<p>La descripción del testbench es la siguiente.</p>
+<div class="example"><h2 class="example">Ejemplo</h2> <div class="example_code">
+<span style="color: #008800;">`timescale</span> <span style="color: #ff0055;">1ns</span><span style="color: #5D478B;">/</span><span style="color: #ff0055;">1ps</span><br/>
+<span style="color: #A52A2A; font-weight: bold;">module</span> test <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span>          rstn <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #00008B; font-style: italic;">//mul1_hs</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span>          hs_clk<span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span>          hs_en <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>    hs_mul1 <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>    hs_mul2 <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span>         hs_dout_en <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">8</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   hs_dout <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #00008B; font-style: italic;">//mul1_ls</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span>          ls_clk <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">0</span><span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span>          ls_en <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>    ls_mul1 <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>    ls_mul2 <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>    ls_mul3 <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>    ls_mul4 <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span>         ls_dout_en <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">8</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   ls_dout <span style="color: #5D478B;">;</span><br/>
+<br/>
+    <span style="color: #00008B; font-style: italic;">//clock generating</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">real</span>         CYCLE_200MHz <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">5</span> <span style="color: #5D478B;">;</span> <span style="color: #00008B; font-style: italic;">//</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">always</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+        hs_clk <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">0</span> <span style="color: #5D478B;">;</span> <span style="color: #5D478B;">#</span><span style="color: #9F79EE;">(</span>CYCLE_200MHz<span style="color: #5D478B;">/</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+        hs_clk <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1</span> <span style="color: #5D478B;">;</span> <span style="color: #5D478B;">#</span><span style="color: #9F79EE;">(</span>CYCLE_200MHz<span style="color: #5D478B;">/</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">always</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+        <span style="color: #5D478B;">@</span><span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">posedge</span> hs_clk<span style="color: #9F79EE;">)</span> ls_clk <span style="color: #5D478B;">=</span> <span style="color: #5D478B;">~</span>ls_clk <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+<br/>
+    <span style="color: #00008B; font-style: italic;">//reset generating</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">initial</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+        rstn      <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1'b0</span> <span style="color: #5D478B;">;</span><br/>
+        <span style="color: #5D478B;">#</span><span style="color: #ff0055;">8</span> rstn      <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1'b1</span> <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+<br/>
+    <span style="color: #00008B; font-style: italic;">//motivation</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">initial</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+        hs_mul1   <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">0</span> <span style="color: #5D478B;">;</span><br/>
+        hs_mul2   <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">16</span> <span style="color: #5D478B;">;</span><br/>
+        hs_en     <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">0</span> <span style="color: #5D478B;">;</span><br/>
+        <span style="color: #5D478B;">#</span><span style="color: #ff0055;">103</span> <span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">repeat</span><span style="color: #9F79EE;">(</span><span style="color: #ff0055;">12</span><span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+            <span style="color: #5D478B;">@</span><span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">negedge</span> hs_clk<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+            hs_en          <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1</span> <span style="color: #5D478B;">;</span><br/>
+            hs_mul1        <span style="color: #5D478B;">=</span> hs_mul1 <span style="color: #5D478B;">+</span> <span style="color: #ff0055;">1</span><span style="color: #5D478B;">;</span><br/>
+            hs_mul2        <span style="color: #5D478B;">=</span> hs_mul2 <span style="color: #5D478B;">-</span> <span style="color: #ff0055;">1</span><span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+        hs_en <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">0</span> <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+<br/>
+    <span style="color: #A52A2A; font-weight: bold;">initial</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+        ls_mul1   <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1</span> <span style="color: #5D478B;">;</span><br/>
+        ls_mul2   <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">15</span> <span style="color: #5D478B;">;</span><br/>
+        ls_mul3   <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">2</span> <span style="color: #5D478B;">;</span><br/>
+        ls_mul4   <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">14</span> <span style="color: #5D478B;">;</span><br/>
+        ls_en     <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">0</span> <span style="color: #5D478B;">;</span><br/>
+        <span style="color: #5D478B;">#</span><span style="color: #ff0055;">103</span> <span style="color: #5D478B;">;</span><br/>
+        <span style="color: #5D478B;">@</span><span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">negedge</span> ls_clk<span style="color: #9F79EE;">)</span> ls_en <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1</span><span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">repeat</span><span style="color: #9F79EE;">(</span><span style="color: #ff0055;">5</span><span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+            <span style="color: #5D478B;">@</span><span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">negedge</span> ls_clk<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+           ls_mul1        <span style="color: #5D478B;">=</span> ls_mul1 <span style="color: #5D478B;">+</span> <span style="color: #ff0055;">2</span><span style="color: #5D478B;">;</span><br/>
+           ls_mul2        <span style="color: #5D478B;">=</span> ls_mul2 <span style="color: #5D478B;">-</span> <span style="color: #ff0055;">2</span><span style="color: #5D478B;">;</span><br/>
+           ls_mul3        <span style="color: #5D478B;">=</span> ls_mul3 <span style="color: #5D478B;">+</span> <span style="color: #ff0055;">2</span><span style="color: #5D478B;">;</span><br/>
+           ls_mul4        <span style="color: #5D478B;">=</span> ls_mul4 <span style="color: #5D478B;">-</span> <span style="color: #ff0055;">2</span><span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+        ls_en <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">0</span> <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+<br/>
+    <span style="color: #00008B; font-style: italic;">//module instantiation</span><br/>
+    mul1_hs    u_mul1_hs<br/>
+    <span style="color: #9F79EE;">(</span><br/>
+      .clk              <span style="color: #9F79EE;">(</span>hs_clk<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .rstn             <span style="color: #9F79EE;">(</span>rstn<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .en               <span style="color: #9F79EE;">(</span>hs_en<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .mul1             <span style="color: #9F79EE;">(</span>hs_mul1<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .mul2             <span style="color: #9F79EE;">(</span>hs_mul2<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .dout             <span style="color: #9F79EE;">(</span>hs_dout<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .dout_en          <span style="color: #9F79EE;">(</span>hs_dout_en<span style="color: #9F79EE;">)</span><br/>
+    <span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+<br/>
+    mul2_ls    u_mul2_ls<br/>
+    <span style="color: #9F79EE;">(</span><br/>
+      .clk              <span style="color: #9F79EE;">(</span>ls_clk<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .rstn             <span style="color: #9F79EE;">(</span>rstn<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .en               <span style="color: #9F79EE;">(</span>ls_en<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .mul1             <span style="color: #9F79EE;">(</span>ls_mul1<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .mul2             <span style="color: #9F79EE;">(</span>ls_mul2<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .mul3             <span style="color: #9F79EE;">(</span>ls_mul3<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .mul4             <span style="color: #9F79EE;">(</span>ls_mul4<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .dout             <span style="color: #9F79EE;">(</span>ls_dout<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+      .dout_en          <span style="color: #9F79EE;">(</span>ls_dout_en<span style="color: #9F79EE;">)</span><br/>
+    <span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+<br/>
+    <span style="color: #00008B; font-style: italic;">//simulation finish</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">always</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+        <span style="color: #5D478B;">#</span><span style="color: #ff0055;">100</span><span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span><span style="color: #9932CC;">$time</span> <span style="color: #5D478B;">&gt;=</span> <span style="color: #ff0055;">1000</span><span style="color: #9F79EE;">)</span>  <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+            <span style="color: #5D478B;">#</span><span style="color: #ff0055;">1</span> <span style="color: #5D478B;">;</span><br/>
+            <span style="color: #9932CC;">$finish</span> <span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+    <br/>
+<span style="color: #A52A2A; font-weight: bold;">endmodule</span> <br/>
+</div></div>
+<p>El resultado de la simulación es el siguiente.</p><p>Como se puede ver en la figura, los resultados de salida de los dos métodos de implementación son consistentes, pero el método de procesamiento paralelo reduce la frecuencia de trabajo a la mitad, el consumo de energía disminuirá y el área de diseño también aumentará.</p>
+<p><img decoding="async" src="../wp-content/uploads/2021/05/v-rtl-1.png"/></p>
+<h3>Procesamiento en pipeline</h3>
+<p>在 <a href="./verilog-tutorial.html" rel="noopener" target="_blank">«Tutorial de Verilog»</a>Como se mencionó en el «Tutorial de Verilog», un diseño de pipeline de N etapas trabajando continuamente mejora la eficiencia aproximadamente N veces. Al igual que con el diseño paralelo, al usar el diseño de pipeline, también se puede reducir adecuadamente la frecuencia de trabajo para disminuir el consumo de energía.</p>
+<p>Desde otro punto de vista, el diseño de pipeline puede dividir una ruta combinacional larga en N etapas de pipeline. La longitud de la ruta se reduce a 1/N de la longitud original. En este momento, si la frecuencia del reloj no cambia, en un período solo es necesario cargar y descargar la capacitancia C/N, en lugar de la capacitancia C original. Por lo tanto, bajo el mismo requisito de frecuencia, se puede usar un voltaje de alimentación más bajo para impulsar el sistema, lo que reduce el consumo de energía.</p>
+<p>Supongamos que en un diseño, la ruta crítica es un multiplicador de 32 bits X 32 bits. La capacitancia total de este multiplicador es C y el voltaje de trabajo es V.</p><p>Sin pipeline, para alcanzar esta frecuencia de trabajo, el voltaje de trabajo debería ser V.</p>
+<p>Al usar un pipeline de dos etapas, esta ruta se divide en dos partes. Para cada parte, la capacitancia total se convierte en C/2. Si se desea alcanzar la frecuencia de trabajo original, el voltaje de trabajo se puede reducir a βV (β&lt;1). El consumo de energía de todo el sistema se reduce a β^2 del original.</p>
+<p>Para el método de diseño específico del pipeline, consulte<a href="./verilog-tutorial.html" rel="noopener" target="_blank">«Tutorial de Verilog»</a>en el capítulo<a href="./verilog-pipeline-design.html" rel="noopener" target="_blank">«6.7 Verilog pipeline»</a>sección.</p><hr/>
+<h2>Compartición de recursos y codificación de estados</h2>
+<p><strong>Compartición de recursos</strong></p><p>Cuando en un diseño algunas lógicas de cálculo idénticas se utilizan en varios lugares, se puede usar el método de compartición de recursos para evitar la repetición de múltiples lógicas de cálculo y reducir el consumo de recursos.</p>
+<p>Por ejemplo, para una lógica de comparación, la descripción del código sin compartición de recursos es la siguiente:</p>
+<div class="example"><h2 class="example">Ejemplo</h2> <div class="example_code">
+    <span style="color: #A52A2A; font-weight: bold;">always</span> <span style="color: #5D478B;">@</span><span style="color: #9F79EE;">(</span><span style="color: #5D478B;">*</span><span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">case</span> <span style="color: #9F79EE;">(</span>mode<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">:</span><br/>
+            <span style="color: #ff0055;">3'b000</span><span style="color: #5D478B;">:</span>         result  <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1'b1</span> <span style="color: #5D478B;">;</span><br/>
+            <span style="color: #ff0055;">3'b001</span><span style="color: #5D478B;">:</span>         result  <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1'b0</span> <span style="color: #5D478B;">;</span><br/>
+            <span style="color: #ff0055;">3'b010</span><span style="color: #5D478B;">:</span>         result  <span style="color: #5D478B;">=</span> value1 <span style="color: #5D478B;">==</span> value2 <span style="color: #5D478B;">;</span><br/>
+            <span style="color: #ff0055;">3'b011</span><span style="color: #5D478B;">:</span>         result  <span style="color: #5D478B;">=</span> value1 <span style="color: #5D478B;">!=</span> value2 <span style="color: #5D478B;">;</span><br/>
+            <span style="color: #ff0055;">3'b100</span><span style="color: #5D478B;">:</span>         result  <span style="color: #5D478B;">=</span> value1 <span style="color: #5D478B;">&gt;</span> value2 <span style="color: #5D478B;">;</span><br/>
+            <span style="color: #ff0055;">3'b101</span><span style="color: #5D478B;">:</span>         result  <span style="color: #5D478B;">=</span> value1 <span style="color: #5D478B;">&lt;</span> value2 <span style="color: #5D478B;">;</span><br/>
+            <span style="color: #ff0055;">3'b110</span><span style="color: #5D478B;">:</span>         result  <span style="color: #5D478B;">=</span> value1 <span style="color: #5D478B;">&gt;=</span> value2 <span style="color: #5D478B;">;</span><br/>
+            <span style="color: #ff0055;">3'b111</span><span style="color: #5D478B;">:</span>         result  <span style="color: #5D478B;">=</span> value1 <span style="color: #5D478B;">&lt;=</span> value2 <span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">endcase</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">end</span><br/>Optimizando el código anterior, la descripción es la siguiente:<br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> equal_con       <span style="color: #5D478B;">=</span> value1 <span style="color: #5D478B;">==</span> value2 <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> great_con       <span style="color: #5D478B;">=</span> value1 <span style="color: #5D478B;">&gt;</span> value2 <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">always</span> <span style="color: #5D478B;">@</span><span style="color: #9F79EE;">(</span><span style="color: #5D478B;">*</span><span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">case</span> <span style="color: #9F79EE;">(</span>mode<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">:</span><br/>
+            <span style="color: #ff0055;">3'b000</span><span style="color: #5D478B;">:</span>         result  <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1'b1</span> <span style="color: #5D478B;">;</span><br/>
+            <span style="color: #ff0055;">3'b001</span><span style="color: #5D478B;">:</span>         result  <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1'b0</span> <span style="color: #5D478B;">;</span><br/>
+            <span style="color: #ff0055;">3'b010</span><span style="color: #5D478B;">:</span>         result  <span style="color: #5D478B;">=</span> equal_con <span style="color: #5D478B;">;</span><br/>
+            <span style="color: #ff0055;">3'b011</span><span style="color: #5D478B;">:</span>         result  <span style="color: #5D478B;">=</span> equal_con <span style="color: #5D478B;">;</span><br/>
+            <span style="color: #ff0055;">3'b100</span><span style="color: #5D478B;">:</span>         result  <span style="color: #5D478B;">=</span> great_con <span style="color: #5D478B;">;</span><br/>
+            <span style="color: #ff0055;">3'b101</span><span style="color: #5D478B;">:</span>         result  <span style="color: #5D478B;">=</span> <span style="color: #5D478B;">!</span>great_con <span style="color: #5D478B;">&amp;&amp;</span> <span style="color: #5D478B;">!</span>equal_con <span style="color: #5D478B;">;</span><br/>
+            <span style="color: #ff0055;">3'b110</span><span style="color: #5D478B;">:</span>         result  <span style="color: #5D478B;">=</span> great_con <span style="color: #5D478B;">&amp;&amp;</span> equal_con <span style="color: #5D478B;">;</span><br/>
+            <span style="color: #ff0055;">3'b111</span><span style="color: #5D478B;">:</span>         result  <span style="color: #5D478B;">=</span> <span style="color: #5D478B;">!</span>great_con <span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">endcase</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+</div></div><p>Cuando el primer método se implementa mediante síntesis, si el optimizador del compilador no está bien hecho, pueden ser necesarios 6 comparadores. El segundo método de compartición de recursos solo necesita 2 comparadores para completar la misma función lógica, por lo que reducirá el consumo de energía en cierta medida.</p>
+<p><strong>Codificación de estados</strong></p><p>Para algunas señales que cambian con frecuencia, la tasa de conmutación es relativamente alta y el consumo de energía es relativamente grande. Se puede utilizar la codificación de estados para reducir la actividad de conmutación y disminuir el consumo de energía.</p><p>Por ejemplo, cuando un contador de alta velocidad trabaja, si se usa el código Gray en lugar de la codificación binaria, solo 1 bit de datos cambia en cada momento, la tasa de conmutación disminuye y el consumo de energía disminuye en consecuencia.</p><p>Por ejemplo, al diseñar una máquina de estados, si la codificación de estados antes y después de la transición tiene solo una diferencia de 1 bit, también se reduce la tasa de conmutación.</p>
+<h3>Aislamiento de operandos</h3><p>Principio del aislamiento de operandos: si durante un cierto período de tiempo la salida del camino de datos no es útil, al fijar la entrada a un valor constante, la parte del camino de datos no conmuta y el consumo de energía se reduce.</p><p>El diagrama del circuito de un multiplicador se muestra a continuación.</p>
+<p><img decoding="async" src="../wp-content/uploads/2021/05/v-rtl-2.png"/></p><p>Cuando sel0 = 0 o sel1 = 1, el resultado de salida del multiplicador no puede llegar a la entrada del registro a través de los dos Mux. Es decir, el registro no puede almacenar el resultado actual del multiplicador, por lo que esta operación de multiplicación es innecesaria. En estas condiciones, al aplicar el aislamiento de operandos para que el multiplicador no trabaje y permanezca estático, también se puede ahorrar consumo de energía.</p>
+<p>Se realiza una optimización del circuito anterior, como se muestra en la siguiente figura.</p>
+<p><img decoding="async" src="../wp-content/uploads/2021/05/v-rtl-3.png"/></p><p>Después del aislamiento de operandos, cuando sel0 = 0 o sel1 = 1, la entrada del multiplicador es siempre 0, no hay conmutación de señales, el multiplicador no realiza trabajo adicional inútil, por lo que el consumo de energía se reduce.</p><p>En general, la operación de aislamiento de operandos ocurre durante la síntesis del código. Este proceso a menudo se puede configurar manualmente y el compilador puede identificarlo automáticamente. Por supuesto, un buen estilo de código, teniendo en cuenta el diseño RTL desde el principio, contribuye a implementar el aislamiento de operandos y, por lo tanto, a reducir el consumo de energía.</p>
+<p>Cuando el multiplicador no usa aislamiento de operandos, la descripción del código Verilog es la siguiente:</p>
+<div class="example"><h2 class="example">Ejemplo</h2> <div class="example_code">
+<span style="color: #00008B; font-style: italic;">//no isolation</span><br/>
+<span style="color: #A52A2A; font-weight: bold;">module</span>  oper_isolation1<br/>
+    <span style="color: #9F79EE;">(</span><br/>
+     <span style="color: #A52A2A; font-weight: bold;">input</span>                clk <span style="color: #5D478B;">,</span>           <span style="color: #00008B; font-style: italic;">//100MHz</span><br/>
+     <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>          sel <span style="color: #5D478B;">,</span><br/>
+     <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>          din1 <span style="color: #5D478B;">,</span>          <span style="color: #00008B; font-style: italic;">//data in</span><br/>
+     <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>          din2 <span style="color: #5D478B;">,</span>          <span style="color: #00008B; font-style: italic;">//data in</span><br/>
+     <span style="color: #A52A2A; font-weight: bold;">output</span> <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>     dout<br/>
+     <span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+<br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>       res <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">always</span> <span style="color: #5D478B;">@</span><span style="color: #9F79EE;">(</span><span style="color: #5D478B;">*</span><span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+        res       <span style="color: #5D478B;">=</span> din1 <span style="color: #5D478B;">*</span> din2 <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+<br/>
+    <span style="color: #A52A2A; font-weight: bold;">always</span> <span style="color: #5D478B;">@</span><span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">posedge</span> clk<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span>sel <span style="color: #5D478B;">==</span> <span style="color: #ff0055;">2'b01</span><span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+            dout   <span style="color: #5D478B;">&lt;=</span> res <span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+<span style="color: #A52A2A; font-weight: bold;">endmodule</span><br/>
+</div></div>
+<p>Cuando el multiplicador usa aislamiento de operandos, la descripción del código Verilog es la siguiente:</p>
+<div class="example"><h2 class="example">Ejemplo</h2> <div class="example_code">
+<span style="color: #00008B; font-style: italic;">//using isolation</span><br/>
+<span style="color: #A52A2A; font-weight: bold;">module</span>  oper_isolation2<br/>
+    <span style="color: #9F79EE;">(</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">input</span>                clk <span style="color: #5D478B;">,</span>           <span style="color: #00008B; font-style: italic;">//100MHz</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>          sel <span style="color: #5D478B;">,</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>          din1 <span style="color: #5D478B;">,</span>          <span style="color: #00008B; font-style: italic;">//data in</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>          din2 <span style="color: #5D478B;">,</span>          <span style="color: #00008B; font-style: italic;">//data in</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">output</span> <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>     dout<br/>
+    <span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+<br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>           mul1 <span style="color: #5D478B;">=</span> sel <span style="color: #5D478B;">==</span> <span style="color: #ff0055;">2'b01</span> <span style="color: #5D478B;">?</span> din1 <span style="color: #5D478B;">:</span> <span style="color: #ff0055;">0</span> <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>           mul2 <span style="color: #5D478B;">=</span> sel <span style="color: #5D478B;">==</span> <span style="color: #ff0055;">2'b01</span> <span style="color: #5D478B;">?</span> din2 <span style="color: #5D478B;">:</span> <span style="color: #ff0055;">0</span> <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">7</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>            res <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">always</span> <span style="color: #5D478B;">@</span><span style="color: #9F79EE;">(</span><span style="color: #5D478B;">*</span><span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+        res       <span style="color: #5D478B;">=</span> mul1 <span style="color: #5D478B;">*</span> mul2 <span style="color: #5D478B;">;</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+<br/>
+    <span style="color: #A52A2A; font-weight: bold;">always</span> <span style="color: #5D478B;">@</span><span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">posedge</span> clk<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span>sel <span style="color: #5D478B;">==</span> <span style="color: #ff0055;">2'b01</span><span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+            dout   <span style="color: #5D478B;">&lt;=</span> res <span style="color: #5D478B;">;</span><br/>
+        <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+    <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+<span style="color: #A52A2A; font-weight: bold;">endmodule</span><br/>
+</div></div>
+<h3>Descarga del código fuente de este capítulo</h3><p>
+<a class="download" href="../wp-content/uploads/2021/05/v6.3_low_power_rtl1.zip">Download</a> </p> </div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link">← <a href="./verilog2-lower-power-design.html" rel="prev">6.2 Verilog Diseño de bajo consumo a nivel de sistema</a> </div>
+<div class="next-design-link"><a href="./verilog2-rtl-low-power-design-2.html" rel="next">6.4 Verilog Diseño de bajo consumo a nivel RTL (Parte 2)</a> →</div>
+</div>
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>Haz clic para compartir notas</h3>
+&lt;p style="font-size:14px;"&gt;¡Las notas deben ser una extensión del contenido de este artículo!&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;Envío de artículos, haga clic aquí&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;Obtención del código de invitación de registro&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; Antes de compartir notas, debe &lt;a href=".." class="runoob-pop"&gt;iniciar sesión&lt;/a&gt;.&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;Obtención del código de invitación de registro&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=".." id="cancel-comment-reply-link">Cancelar</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="23792"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>Compartir notas</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">Apodo</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">Apodo (obligatorio)</span></li>
+<li class="form-inline"><label class="hide" for="email">Correo electrónico</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">Correo electrónico (obligatorio)</span></li>
+<li class="form-inline"><label class="hide" for="url">Dirección de referencia</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">引用地址</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  23792;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 23792, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":23792},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+<style>
+@media screen and (max-width: 768px) {
+	#w3cnote-ad728 {
+		display: none;
+	}
+}
+p.note-author {
+    border-bottom: 1px solid #ddd;
+    font-size: 18px;
+    font-weight: bold;
+    color: #78a15a;
+    padding-bottom: 2px;
+    margin-bottom: 4px;
+}
+</style>
+<script>
+var aid = 23792;
+</script>
+</div>
+</div>
+<div class="listcol last right-column">
+<script type="text/javascript">
+jQuery(document).ready(function ($){
+	var total = $(".membership li").length;
+	var left_list = '';
+	href = window.location.href;
+	
+	$(".membership li").each(function(index, value){
+
+		left_list += $(this).html();
+
+		cur_href = $(this).find("a").attr("href");
+		cur_obj = $(this);
+		
+		if(href.match(cur_href) != null) {
+			if(index==0) {
+				$(".previous-design-link").hide();
+			}
+			if(index==(total-1)) {
+				$(".next-design-link").hide();
+			}
+			prev_href = cur_obj.prev("li").find("a").attr("href");
+			prev_title = cur_obj.prev("li").find("a").attr("title");
+
+			next_href = cur_obj.next("li").find("a").attr("href");
+			next_title = cur_obj.next("li").find("a").attr("title");
+			if(prev_title) {
+				$(".previous-design-link a").attr("href", prev_href);
+				$(".previous-design-link a").attr("title", prev_title);
+				$(".previous-design-link a").text(prev_title);
+			} else {
+				$(".previous-design-link").html("");
+			}
+
+			if(next_title) {
+				$(".next-design-link a").attr("href", next_href);
+				$(".next-design-link a").attr("title", next_title);
+				$(".next-design-link a").text(next_title);
+			} else {
+				$(".next-design-link").html("");
+			}
+		}
+	});
+
+	$("#leftcolumn").html(left_list);
+});
+	</script>
+<div class="sidebar-box cate-list">
+<div class="sidebar-box recommend-here list-link">
+<a href="#">Verilog 高级教程</a> </div>
+<ul class="membership">
+<li><a data-id="23639" href="./verilog2-tutorial.html" target="_top" title="0.1 数字逻辑设计">0.1 数字逻辑设计</a></li>
+<li><a data-id="23641" href="./verilog2-codestyle.html" target="_top" title="0.2 Verilog 编码风格">0.2 Verilog 编码风格</a></li>
+<li><a data-id="23644" href="./verilog2-codeguide.html" target="_top" title="0.3 Verilog 代码规范">0.3 Verilog 代码规范</a></li>
+<li><a data-id="23645" href="./verilog2-gate.html" target="_top" title="1.1 Verilog 门的类型">1.1 Verilog 门的类型</a></li>
+<li><a data-id="23648" href="./verilog2-level-modeling.html" target="_top" title="1.2 Verilog 开关级建模">1.2 Verilog 开关级建模</a></li>
+<li><a data-id="23656" href="./verilog2-gate-delay.html" target="_top" title="1.3 Verilog 门延迟">1.3 Verilog 门延迟</a></li>
+<li><a data-id="23673" href="./verilog2-udp.html" target="_top" title="2.1 Verilog UDP 基础知识">2.1 Verilog UDP 基础知识</a></li>
+<li><a data-id="23674" href="./verilog2-udp-logic.html" target="_top" title="2.2 Verilog 组合逻辑 UDP">2.2 Verilog 组合逻辑 UDP</a></li>
+<li><a data-id="23677" href="./verilog2-udp-timing.html" target="_top" title="2.3 Verilog 时序逻辑 UDP">2.3 Verilog 时序逻辑 UDP</a></li>
+<li><a data-id="23685" href="./verilog2-delay-type.html" target="_top" title="3.1 Verilog 延迟模型">3.1 Verilog 延迟模型</a></li>
+<li><a data-id="23690" href="./verilog2-specify.html" target="_top" title="3.2 Verilog specify 块语句">3.2 Verilog specify 块语句</a></li>
+<li><a data-id="23692" href="./verilog2-setup-hold-time.html" target="_top" title="3.3 Verilog 建立时间和保持时间">3.3 Verilog 建立时间和保持时间</a></li>
+<li><a data-id="23701" href="./verilog2-timing-check.html" target="_top" title="3.4 Verilog 时序检查">3.4 Verilog 时序检查</a></li>
+<li><a data-id="23708" href="./verilog2-sdf.html" target="_top" title="3.5 Verilog 延迟反标注">3.5 Verilog 延迟反标注</a></li>
+<li><a data-id="23714" href="./verilog-sync.html" target="_top" title="4.1 Verilog 同步与异步">4.1 Verilog 同步与异步</a></li>
+<li><a data-id="23725" href="./verilog2-slow2fast.html" target="_top" title="4.2 Verilog 跨时钟域传输：慢到快">4.2 Verilog 跨时钟域传输：慢到快</a></li>
+<li><a data-id="23729" href="./verilog2-fast2slow.html" target="_top" title="4.3 Verilog 跨时钟域传输：快到慢">4.3 Verilog 跨时钟域传输：快到慢</a></li>
+<li><a data-id="23731" href="./verilog2-fifo.html" target="_top" title="4.4 Verilog FIFO 设计">4.4 Verilog FIFO 设计</a></li>
+<li><a data-id="23739" href="./verilog2-reset.html" target="_top" title="5.1 Verilog 复位简介">5.1 Verilog 复位简介</a></li>
+<li><a data-id="23743" href="./verilog2-clock.html" target="_top" title="5.2 Verilog 时钟简介">5.2 Verilog 时钟简介</a></li>
+<li><a data-id="23757" href="./verilog2-clock-division.html" target="_top" title="5.3 Verilog 时钟分频">5.3 Verilog 时钟分频</a></li>
+<li><a data-id="23768" href="./verilog2-clock-switch.html" target="_top" title="5.4 Verilog 时钟切换">5.4 Verilog 时钟切换</a></li>
+<li><a data-id="23779" href="./verilog2-low-power.html" target="_top" title="6.1 Verilog 低功耗简介">6.1 Verilog 低功耗简介</a></li>
+<li><a data-id="23788" href="./verilog2-lower-power-design.html" target="_top" title="6.2 Verilog 系统级低功耗设计">6.2 Verilog 系统级低功耗设计</a></li>
+<li>
+	6.3 Verilog  RTL 级低功耗设计（上）	</li>
+<li><a data-id="23796" href="./verilog2-rtl-low-power-design-2.html" target="_top" title="6.4 Verilog RTL 级低功耗设计（下）">6.4 Verilog RTL 级低功耗设计（下）</a></li>
+<li><a data-id="23806" href="./verilog2-display.html" target="_top" title="7.1 Verilog 显示任务">7.1 Verilog 显示任务</a></li>
+<li><a data-id="23813" href="./verilog2-file.html" target="_top" title="7.2 Verilog 文件操作">7.2 Verilog 文件操作</a></li>
+<li><a data-id="23825" href="./verilog2-random.html" target="_top" title="7.3 Verilog 随机数及概率分布">7.3 Verilog 随机数及概率分布</a></li>
+<li><a data-id="23847" href="./verilog2-real2int.html" target="_top" title="7.4 Verilog 实数整数转换">7.4 Verilog 实数整数转换</a></li>
+<li><a data-id="23851" href="./verilog2-other-task.html" target="_top" title="7.5 Verilog 其他系统任务">7.5 Verilog 其他系统任务</a></li>
+<li><a data-id="23862" href="./verilog2-pli-intro.html" target="_top" title="8.1 Verilog  PLI 简介">8.1 Verilog  PLI 简介</a></li>
+<li><a data-id="23865" href="./verilog2-tf.html" target="_top" title="8.2 Verilog TF 子程序">8.2 Verilog TF 子程序</a></li>
+<li><a data-id="23869" href="./verilog2-tf-sub.html" target="_top" title="8.3 Verilog TF 子程序列表">8.3 Verilog TF 子程序列表</a></li>
+<li><a data-id="23870" href="./verilog2-acc.html" target="_top" title="8.4 Verilog ACC 子程序">8.4 Verilog ACC 子程序</a></li>
+<li><a data-id="23872" href="./verilog2-acc-sub.html" target="_top" title="8.5 Verilog ACC 子程序列表">8.5 Verilog ACC 子程序列表</a></li>
+<li><a data-id="23876" href="./verilog2-logic-sumarry.html" target="_top" title="9.1 Verilog 逻辑综合">9.1 Verilog 逻辑综合</a></li>
+<li><a data-id="23882" href="./verilog2-integrated-design.html" target="_top" title="9.2 Verilog 可综合性设计">9.2 Verilog 可综合性设计</a></li>
+</ul></div> </div>
+</div>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+</div><script src="../../lang-switcher.js"></script>
+</body>
+</html>

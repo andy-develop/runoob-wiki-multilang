@@ -1,0 +1,1529 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>总线 — 计算机内部的「公路系统」 | 菜鸟教程</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<link href="../manifest.webmanifest.html" rel="manifest"/>
+<meta content="#10151c" name="theme-color"/>
+<link href="../pwa/icon-192.png.html" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="application-name"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="../computer-organization/computer-bus-system.html" rel="canonical"/>
+<meta content="总线 — 计算机内部的「公路系统」" name="keywords"/>
+<meta content="总线 -- 计算机内部的「公路系统」 计算机内部各个组件之间需要不停地交换信息。CPU 要从内存取指令、要读写数据，这些信息怎么传输？答案是——总线（Bus）。 总线是连接 CPU、内存、硬盘、显卡等设备的一组公共通信线路，就像城市里的公路系统——有主干道、有支路，每条路都有明确的用途。 本讲将带你理解三种总线的分工，并用 Python 模拟一次完整的内存读操作。   公路系统类比：三种路，三种用途  想象你在一个大城市里送快递。快递员.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div>
+<!-- 导航栏 -->
+<style>
+/* 主题切换按钮 */
+/* ===== 主题变量（核心）===== */
+:root {
+  --theme-bg: #ffffff;
+  --theme-border: #e5e7eb;
+  --theme-icon: #333;
+  --theme-hover: #f3f4f6;
+}
+
+.dark {
+  --theme-bg: #1f2937;
+  --theme-border: #374151;
+  --theme-icon: #e5e7eb;
+  --theme-hover: #374151;
+}
+
+/* ===== 按钮容器 ===== */
+.nav-theme-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== 按钮本体 ===== */
+.nav-theme-toggle button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  border-radius: 6px;
+  border: 1px solid var(--theme-border);
+
+  background: var(--theme-bg);
+  color: var(--theme-icon);
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* ===== 图标大小 ===== */
+.nav-theme-toggle i {
+  font-size: 14px;
+}
+
+/* ===== hover 效果 ===== */
+.nav-theme-toggle button:hover {
+  background: var(--theme-hover);
+  transform: translateY(-1px);
+}
+
+/* ===== 点击反馈 ===== */
+.nav-theme-toggle button:active {
+  transform: scale(0.95);
+}
+
+/* ===== 当前激活态（可选）===== */
+.nav-theme-toggle button.active {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+</style>
+<!-- 导航栏 -->
+<nav aria-label="主导航" class="container navigation">
+<div class="row">
+<div class="col nav">
+<!-- PC 导航 -->
+<ul class="pc-nav" id="runoob-detail-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../js/js-tutorial.html">JavaScript</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a data-id="vue" href="#">Vue</a></li>
+<li><a href="../react/react-tutorial.html">React</a></li>
+<li><a href="../python3/python3-tutorial.html">Python3</a></li>
+<li><a href="../java/java-tutorial.html">Java</a></li>
+<li><a href="../cprogramming/c-tutorial.html">C</a></li>
+<li><a href="../cplusplus/cpp-tutorial.html">C++</a></li>
+<li><a href="../csharp/csharp-tutorial.html">C#</a></li>
+<li><a data-id="aiNav" href="#">AI</a></li>
+<li><a href="../go/go-tutorial.html">Go</a></li>
+<li><a href="../sql/sql-tutorial.html">SQL</a></li>
+<li><a href="../linux/linux-tutorial.html">Linux</a></li>
+<li><a href="../vscode/vscode-tutorial.html">VS Code</a></li>
+<li><a data-id="bootstrap" href="#">Bootstrap</a></li>
+<li><a href="../git/git-tutorial.html">Git</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<!-- 主题切换按钮，固定在最右侧 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+<!-- 移动端导航 -->
+<ul class="mobile-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a href="../js/js-tutorial.html">JS</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<li><a class="search-reveal" href="#">搜索</a></li>
+<!-- 移动端主题切换 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon-mobile" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun-mobile" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<!-- 二级导航 -->
+<!--  内容  -->
+<div class="container main">
+<!-- 中间 -->
+<div class="row">
+<div class="runoob-col-md2">
+<div class="left-column">
+<div class="tab" style="overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
+<i aria-hidden="true" class="fa fa-list"></i>
+<span>计算机组成原理</span>
+</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+<a data-p="par" href="../computer-organization/computer-organization-tutorial.html" target="_top" title="计算机组成原理">
+			计算机组成原理			</a>
+<a data-p="par" href="../computer-organization/why-computer-only-knows-0-and-1.html" target="_top" title="为什么计算机只认识 0 和 1">
+			计算机只认识 0 和 1			</a>
+<a data-p="par" href="../computer-organization/number-system-conversion.html" target="_top" title="进制转换 — 二进制、十进制、十六进制">
+			进制转换			</a>
+<a data-p="par" href="../computer-organization/negative-numbers-complement.html" target="_top" title="负数怎么表示 — 原码、反码、补码">
+			负数怎么表示			</a>
+<a data-p="par" href="../computer-organization/floating-point-ieee754.html" target="_top" title="小数怎么表示 — 浮点数与 IEEE 754">
+			小数怎么表示			</a>
+<a data-p="par" href="../computer-organization/character-encoding.html" target="_top" title="字符怎么表示 — ASCII 与 Unicode">
+			字符怎么表示			</a>
+<a data-p="par" href="../computer-organization/boolean-algebra-logic-gates.html" target="_top" title="布尔代数基础 — AND / OR / NOT / XOR">
+			布尔代数基础			</a>
+<a data-p="par" href="../computer-organization/building-logic-circuits.html" target="_top" title="逻辑门电路搭建">
+			逻辑门电路搭建			</a>
+<a data-p="par" href="../computer-organization/from-gates-to-adder.html" target="_top" title="从逻辑门到加法器">
+			从逻辑门到加法器			</a>
+<a data-p="par" href="../computer-organization/flip-flops-and-registers.html" target="_top" title="触发器与寄存器 — 计算机如何「记住」数据">
+			触发器与寄存器			</a>
+<a data-p="par" href="../computer-organization/computer-architecture-overview.html" target="_top" title="一台计算机的整体骨架">
+			一台计算机的整体骨架			</a>
+<a data-p="par" href="../computer-organization/stored-program-concept.html" target="_top" title="程序和数据为什么能放在同一块内存里">
+			程序和数据			</a>
+<a data-p="par" href="../computer-organization/instruction-cycle.html" target="_top" title="指令周期 — 取指、译码、执行、写回">
+			指令周期			</a>
+<a data-p="par" href="../computer-organization/clock-frequency.html" target="_top" title="时钟频率是什么意思">
+			时钟频率			</a>
+<a data-p="par" href="../computer-organization/cpu-pipeline.html" target="_top" title="流水线 — 如何让 CPU 更快">
+			流水线			</a>
+<a data-p="par" href="../computer-organization/multi-core-processors.html" target="_top" title="多核心是怎么回事">
+			多核心是怎么回事			</a>
+<a data-p="par" href="../computer-organization/memory-hierarchy.html" target="_top" title="存储金字塔 — 为什么要分这么多层">
+			存储金字塔			</a>
+<a data-p="par" href="../computer-organization/cache-hits-and-misses.html" target="_top" title="缓存命中与缓存未命中">
+			缓存命中与缓存未命中			</a>
+<a data-p="par" href="../computer-organization/memory-addressing.html" target="_top" title="内存地址与寻址">
+			内存地址与寻址			</a>
+<a data-p="par" href="../computer-organization/computer-bus-system.html" target="_top" title="总线 — 计算机内部的「公路系统」">
+			总线			</a>
+<a data-p="par" href="../computer-organization/io-polling-interrupt-dma.html" target="_top" title="I/O 的三种方式 — 轮询、中断、DMA">
+			I/O 的三种方式			</a>
+<a data-p="par" href="../computer-organization/instruction-journey-summary.html" target="_top" title="一条指令的完整旅程">
+			一条指令的完整旅程			</a>
+</div>
+</div>
+</div>
+</div> <div class="col middle-column">
+<div class="article">
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../computer-organization/memory-addressing.html" rel="prev">内存地址与寻址</a> </div>
+<div class="next-design-link"><a href="../computer-organization/io-polling-interrupt-dma.html" rel="next">I/O 的三种方式 — 轮询、中断、DMA</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="article-body">
+<div class="article-intro" id="content">
+<h1>总线 -- 计算机内部的「公路系统」</h1>
+<p>计算机内部各个组件之间需要不停地交换信息。CPU 要从内存取指令、要读写数据，这些信息怎么传输？答案是——<span class="marked">总线（Bus）</span>。</p>
+<p>总线是连接 CPU、内存、硬盘、显卡等设备的一组公共通信线路，就像城市里的公路系统——有主干道、有支路，每条路都有明确的用途。</p>
+<p>本讲将带你理解三种总线的分工，并用 Python 模拟一次完整的内存读操作。</p>
+<hr/>
+<h2>公路系统类比：三种路，三种用途</h2>
+<p>想象你在一个大城市里送快递。快递员需要知道三件事：<span class="tag1">送到哪</span>、<span class="tag1">送什么东西</span>、<span class="tag1">收件人要不要签收</span>。</p>
+<p>计算机内部也有完全类似的三种「公路」：</p>
+<table class="reference">
+<tr><th>总线类型</th><th>功能</th><th>传输方向</th><th>生活类比</th></tr>
+<tr><td><span class="marked">地址总线（Address Bus）</span></td><td>传输要访问的内存地址</td><td>CPU → 内存（单向）</td><td>快递单上的「门牌号」——告诉收件方「我要找这个地址」</td></tr>
+<tr><td><span class="marked">数据总线（Data Bus）</span></td><td>传输实际的数据内容</td><td>双向</td><td>快递员手里的「包裹」——东西本身，可以送出也可以接收</td></tr>
+<tr><td><span class="marked">控制总线（Control Bus）</span></td><td>传输读写、中断等控制信号</td><td>CPU ↔ 各部件（双向）</td><td>「签收单」——告诉对方现在是取件还是派件，以及传送是否完成</td></tr>
+</table>
+<blockquote><p>地址总线的宽度决定了 CPU 能访问多大的内存。32 位地址总线可以访问 2^32 = 4GB 内存空间，64 位地址总线理论上可以访问 2^64 字节（约 16EB），这就是为什么 32 位操作系统最多只能用 4GB 内存。</p></blockquote>
+<hr/>
+<h2>一次内存读操作的完整流程</h2>
+<p>假设 CPU 需要从内存地址 100 读取一个数据。整个过程分 4 步，三条总线协同工作：</p>
+<h3>步骤拆解</h3>
+<ol>
+<li><span class="tag1">CPU 放地址</span>：CPU 将地址值 100 放到<span class="marked">地址总线</span>上。内存此时收到了门牌号。</li>
+<li><span class="tag1">CPU 发信号</span>：CPU 在<span class="marked">控制总线</span>上发出「读」信号（READ）。内存知道对方是要取东西。</li>
+<li><span class="tag1">内存放数据</span>：内存收到地址和读信号后，找到地址 100 处存储的数据，把它放到<span class="marked">数据总线</span>上。</li>
+<li><span class="tag1">CPU 收数据</span>：CPU 从数据总线上读取数据，存入内部寄存器。传输完成。</li>
+</ol>
+<h3>时序图</h3>
+<p>下面用 ASCII 时序图展示这条指令执行时的总线状态变化：</p>
+<pre>
+时间  |   地址总线       控制总线        数据总线
+------|------------------------------------------
+T0    |   100           IDLE            XXXX       ← CPU 放上地址
+T1    |   100           READ            XXXX       ← CPU 发出读信号
+T2    |   100           READ            0x2A       ← 内存放上数据
+T3    |   XXXX          IDLE            0x2A       ← CPU 取走数据
+------|------------------------------------------
+结果: CPU 从地址 100 读到了数据 0x2A
+</pre>
+<hr/>
+<h2>代码演示：用 Python 模拟总线交互过程</h2>
+<p>下面这段 Python 代码完整模拟了一次内存读操作中，地址总线、数据总线、控制总线的协作过程。</p>
+<div class="example">
+<h2 class="example">实例</h2>
+<div class="example_code">
+<span style="color: #a11;">"""<br/>总线交互模拟 - 一次完整的内存读操作（runoob 演示）<br/>
+<br/>本程序模拟了 CPU 通过三种总线从内存读取数据的完整过程：<br/>1. 地址总线: CPU 发出要访问的内存地址<br/>2. 控制总线: CPU 发出读/写控制信号<br/>3. 数据总线: 内存返回/接收数据<br/>
+<br/>每次总线状态变化都打印详细的日志，方便观察三总线的协同工作。<br/>
+"""</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">import</span> <span style="color: #05a;">time</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> AddressBus:<br/>
+    <span style="color: #a11;">"""地址总线 - 单向：CPU 将地址发送给内存"""</span><br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">value</span> <span style="color: Gray;">=</span> <span style="color: Teal;">None</span>  <span style="color: #a50"># 当前总线上的地址值</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">width</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">16</span>    <span style="color: #a50"># 16 位地址总线，可寻址 64KB</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> set_address<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> addr<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""CPU 将地址放到地址总线上"""</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">value</span> <span style="color: Gray;">=</span> addr<br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  [地址总线] CPU 放入地址: {addr} (0x{addr:04X})"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> addr<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> clear<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""清除总线"""</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">value</span> <span style="color: Gray;">=</span> <span style="color: Teal;">None</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  [地址总线] 总线清空，进入空闲状态"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> DataBus:<br/>
+    <span style="color: #a11;">"""数据总线 - 双向：CPU 和内存都可以收发数据"""</span><br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">value</span> <span style="color: Gray;">=</span> <span style="color: Teal;">None</span>  <span style="color: #a50"># 当前总线上的数据值</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">width</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">8</span>     <span style="color: #a50"># 8 位数据总线，每次传一个字节</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">direction</span> <span style="color: Gray;">=</span> <span style="color: Teal;">None</span>  <span style="color: #a50"># 'TO_CPU' 或 'TO_MEMORY'</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> send_from_cpu<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> data<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""CPU 发送数据到总线"""</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">value</span> <span style="color: Gray;">=</span> data<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">direction</span> <span style="color: Gray;">=</span> <span style="color: #a11;">'TO_MEMORY'</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  [数据总线] CPU → 总线, 数据: {data} (0x{data:02X})"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> data<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> send_from_memory<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> data<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""内存发送数据到总线"""</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">value</span> <span style="color: Gray;">=</span> data<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">direction</span> <span style="color: Gray;">=</span> <span style="color: #a11;">'TO_CPU'</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  [数据总线] 内存 → 总线, 数据: {data} (0x{data:02X})"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> data<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> read_to_cpu<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""CPU 从数据总线读取数据"""</span><br/>
+        data <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">value</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  [数据总线] CPU 从总线读取数据: {data} (0x{data:02X})"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">clear</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> data<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> read_to_memory<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""内存从数据总线读取数据（写操作时使用）"""</span><br/>
+        data <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">value</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  [数据总线] 内存从总线读取数据: {data} (0x{data:02X})"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">clear</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> data<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> clear<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""清除总线"""</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">value</span> <span style="color: Gray;">=</span> <span style="color: Teal;">None</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">direction</span> <span style="color: Gray;">=</span> <span style="color: Teal;">None</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  [数据总线] 总线清空，进入空闲状态"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> ControlBus:<br/>
+    <span style="color: #a11;">"""控制总线 - 双向: 传输读写信号、中断信号等"""</span><br/>
+    <span style="color: #a50"># 控制信号类型</span><br/>
+    READ <span style="color: Gray;">=</span> <span style="color: #a11;">'MEM_READ'</span>        <span style="color: #a50"># 内存读信号</span><br/>
+    WRITE <span style="color: Gray;">=</span> <span style="color: #a11;">'MEM_WRITE'</span>      <span style="color: #a50"># 内存写信号</span><br/>
+    IDLE <span style="color: Gray;">=</span> <span style="color: #a11;">'IDLE'</span>            <span style="color: #a50"># 空闲</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">signal</span> <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">IDLE</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> set_signal<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> <span style="color: #05a;">signal</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""设置控制信号"""</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">signal</span> <span style="color: Gray;">=</span> <span style="color: #05a;">signal</span><br/>
+        signal_name <span style="color: Gray;">=</span> <span style="color: Olive;">{</span><br/>
+            <span style="color: Teal;">self</span>.<span style="color: #05a;">READ</span>: <span style="color: #a11;">'内存读 (MEM_READ)'</span><span style="color: Gray;">,</span><br/>
+            <span style="color: Teal;">self</span>.<span style="color: #05a;">WRITE</span>: <span style="color: #a11;">'内存写 (MEM_WRITE)'</span><span style="color: Gray;">,</span><br/>
+            <span style="color: Teal;">self</span>.<span style="color: #05a;">IDLE</span>: <span style="color: #a11;">'空闲 (IDLE)'</span><br/>
+        <span style="color: Olive;">}</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  [控制总线] CPU 发出信号: {signal_name.get(signal, signal)}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> clear<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""清除信号"""</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">signal</span> <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">IDLE</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  [控制总线] 信号清空，进入空闲状态"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> SimpleMemory:<br/>
+    <span style="color: #a11;">"""简化的内存模块 - 256 个字节的存储空间"""</span><br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> size<span style="color: Gray;">=</span><span style="color: Maroon;">256</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">size</span> <span style="color: Gray;">=</span> size<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">data</span> <span style="color: Gray;">=</span> <span style="color: Olive;">{</span><span style="color: Olive;">}</span><br/>
+        <span style="color: #a50"># 初始化一些演示数据</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> i <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>size<span style="color: Olive;">)</span>:<br/>
+            <span style="color: Teal;">self</span>.<span style="color: #05a;">data</span><span style="color: Olive;">[</span>i<span style="color: Olive;">]</span> <span style="color: Gray;">=</span> i % <span style="color: Maroon;">256</span>  <span style="color: #a50"># 地址 i 存储值 i % 256</span><br/>
+        <span style="color: #a50"># 在特定地址放一些特殊值作为演示</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">data</span><span style="color: Olive;">[</span><span style="color: Maroon;">100</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">42</span>         <span style="color: #a50"># 地址 100: 存入 42 (0x2A)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">data</span><span style="color: Olive;">[</span><span style="color: Maroon;">200</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">0xAB</span>       <span style="color: #a50"># 地址 200: 存入 0xAB (171)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">data</span><span style="color: Olive;">[</span><span style="color: Maroon;">50</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: Teal;">ord</span><span style="color: Olive;">(</span><span style="color: #a11;">'R'</span><span style="color: Olive;">)</span>    <span style="color: #a50"># 地址 50: 存入字母 'R' 的 ASCII 码</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">data</span><span style="color: Olive;">[</span><span style="color: Maroon;">51</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: Teal;">ord</span><span style="color: Olive;">(</span><span style="color: #a11;">'U'</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">data</span><span style="color: Olive;">[</span><span style="color: Maroon;">52</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: Teal;">ord</span><span style="color: Olive;">(</span><span style="color: #a11;">'N'</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">data</span><span style="color: Olive;">[</span><span style="color: Maroon;">53</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: Teal;">ord</span><span style="color: Olive;">(</span><span style="color: #a11;">'O'</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">data</span><span style="color: Olive;">[</span><span style="color: Maroon;">54</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: Teal;">ord</span><span style="color: Olive;">(</span><span style="color: #a11;">'O'</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">data</span><span style="color: Olive;">[</span><span style="color: Maroon;">55</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: Teal;">ord</span><span style="color: Olive;">(</span><span style="color: #a11;">'B'</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> read<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> addr<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""从指定地址读取数据"""</span><br/>
+        <span style="color: Green;font-weight:bold;">if</span> <span style="color: Maroon;">0</span> <span style="color: Gray;">&lt;=</span> addr <span style="color: Gray;">&lt;</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">size</span>:<br/>
+            <span style="color: Green;font-weight:bold;">return</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">data</span>.<span style="color: #05a;">get</span><span style="color: Olive;">(</span>addr<span style="color: Gray;">,</span> <span style="color: Maroon;">0</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">else</span>:<br/>
+            <span style="color: Green;font-weight:bold;">raise</span> <span style="color: Teal;">ValueError</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"地址 {addr} 超出内存范围 (0-{self.size-1})"</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> write<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> addr<span style="color: Gray;">,</span> data<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""向指定地址写入数据"""</span><br/>
+        <span style="color: Green;font-weight:bold;">if</span> <span style="color: Maroon;">0</span> <span style="color: Gray;">&lt;=</span> addr <span style="color: Gray;">&lt;</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">size</span>:<br/>
+            <span style="color: Teal;">self</span>.<span style="color: #05a;">data</span><span style="color: Olive;">[</span>addr<span style="color: Olive;">]</span> <span style="color: Gray;">=</span> data<br/>
+        <span style="color: Green;font-weight:bold;">else</span>:<br/>
+            <span style="color: Green;font-weight:bold;">raise</span> <span style="color: Teal;">ValueError</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"地址 {addr} 超出内存范围 (0-{self.size-1})"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> CPU:<br/>
+    <span style="color: #a11;">"""简化的 CPU - 通过总线与内存交互"""</span><br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> addr_bus<span style="color: Gray;">,</span> data_bus<span style="color: Gray;">,</span> ctrl_bus<span style="color: Gray;">,</span> memory<span style="color: Olive;">)</span>:<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">addr_bus</span> <span style="color: Gray;">=</span> addr_bus   <span style="color: #a50"># 地址总线</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">data_bus</span> <span style="color: Gray;">=</span> data_bus   <span style="color: #a50"># 数据总线</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">ctrl_bus</span> <span style="color: Gray;">=</span> ctrl_bus   <span style="color: #a50"># 控制总线</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">memory</span> <span style="color: Gray;">=</span> memory       <span style="color: #a50"># 内存</span><br/>
+        <span style="color: #a50"># CPU 内部寄存器</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">mdr</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">0</span>               <span style="color: #a50"># 数据寄存器（Memory Data Register）</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">mar</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">0</span>               <span style="color: #a50"># 地址寄存器（Memory Address Register）</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> memory_read<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> addr<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""<br/>执行一次完整的内存读操作<br/>
+<br/>流程:<br/>T0: MAR ← addr (内部准备)<br/>T1: 地址总线 ← addr, 控制总线 ← READ<br/>T2: 内存读取数据, 数据总线 ← data<br/>T3: MDR ← 数据总线, 各总线清空<br/>
+<br/>返回: 读取到的数据值<br/>
+        """</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>{'='*55}"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"操作开始: CPU 从内存地址 {addr} 读取数据"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"{'='*55}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># T0: CPU 内部准备——把地址装入 MAR</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">mar</span> <span style="color: Gray;">=</span> addr<br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>[T0 - CPU 内部准备]"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  [CPU 内部] MAR (内存地址寄存器) ← {addr}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># T1: CPU 将地址放到地址总线，同时在控制总线上发出读信号</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>[T1 - 发出地址和读信号]"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">addr_bus</span>.<span style="color: #05a;">set_address</span><span style="color: Olive;">(</span>addr<span style="color: Olive;">)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">ctrl_bus</span>.<span style="color: #05a;">set_signal</span><span style="color: Olive;">(</span>ControlBus.<span style="color: #05a;">READ</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># 模拟信号传输延迟</span><br/>
+        <span style="color: #05a;">time</span>.<span style="color: #05a;">sleep</span><span style="color: Olive;">(</span><span style="color: Maroon;">0.001</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># T2: 内存响应——根据地址总线上的地址找到数据，放到数据总线上</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>[T2 - 内存响应]"</span><span style="color: Olive;">)</span><br/>
+        data <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">memory</span>.<span style="color: #05a;">read</span><span style="color: Olive;">(</span>addr<span style="color: Olive;">)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">data_bus</span>.<span style="color: #05a;">send_from_memory</span><span style="color: Olive;">(</span>data<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># 模拟信号传输延迟</span><br/>
+        <span style="color: #05a;">time</span>.<span style="color: #05a;">sleep</span><span style="color: Olive;">(</span><span style="color: Maroon;">0.001</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># T3: CPU 从数据总线读取数据，存入 MDR。各总线清空</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>[T3 - CPU 接收数据]"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">mdr</span> <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">data_bus</span>.<span style="color: #05a;">read_to_cpu</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">ctrl_bus</span>.<span style="color: #05a;">clear</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">addr_bus</span>.<span style="color: #05a;">clear</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># 输出结果</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>{'='*55}"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"操作完成: 从地址 {addr} (0x{addr:04X}) 读取到数据 {self.mdr} (0x{self.mdr:02X})"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"{'='*55}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">return</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">mdr</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> memory_write<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> addr<span style="color: Gray;">,</span> data<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""<br/>执行一次完整的内存写操作<br/>
+<br/>流程:<br/>
+        T0: MAR ← addr, MDR ← data<br/>T1: 地址总线 ← addr, 数据总线 ← data, 控制总线 ← WRITE<br/>T2: 内存从数据总线取数据，写入地址 addr<br/>T3: 各总线清空<br/>
+        """</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>{'='*55}"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"操作开始: CPU 向内存地址 {addr} 写入数据 {data}"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"{'='*55}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># T0: CPU 内部准备</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">mar</span> <span style="color: Gray;">=</span> addr<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">mdr</span> <span style="color: Gray;">=</span> data<br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>[T0 - CPU 内部准备]"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  [CPU 内部] MAR ← {addr}, MDR ← {data}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># T1: CPU 将地址和数据放到总线上，发出写信号</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>[T1 - 发出地址、数据和写信号]"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">addr_bus</span>.<span style="color: #05a;">set_address</span><span style="color: Olive;">(</span>addr<span style="color: Olive;">)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">data_bus</span>.<span style="color: #05a;">send_from_cpu</span><span style="color: Olive;">(</span>data<span style="color: Olive;">)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">ctrl_bus</span>.<span style="color: #05a;">set_signal</span><span style="color: Olive;">(</span>ControlBus.<span style="color: #05a;">WRITE</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #05a;">time</span>.<span style="color: #05a;">sleep</span><span style="color: Olive;">(</span><span style="color: Maroon;">0.001</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># T2: 内存从数据总线取数据并写入</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>[T2 - 内存写入]"</span><span style="color: Olive;">)</span><br/>
+        received <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">data_bus</span>.<span style="color: #05a;">read_to_memory</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">memory</span>.<span style="color: #05a;">write</span><span style="color: Olive;">(</span>addr<span style="color: Gray;">,</span> received<span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  [内存内部] 地址 {addr} (0x{addr:04X}) ← {received} (0x{received:02X})"</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #05a;">time</span>.<span style="color: #05a;">sleep</span><span style="color: Olive;">(</span><span style="color: Maroon;">0.001</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># T3: 各总线清空</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>[T3 - 清空总线]"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">ctrl_bus</span>.<span style="color: #05a;">clear</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">addr_bus</span>.<span style="color: #05a;">clear</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>{'='*55}"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"操作完成: {data} 已写入地址 {addr}"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"{'='*55}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: #a50"># ===== 主程序: 运行演示 =====</span><br/>
+<span style="color: Green;font-weight:bold;">if</span> __name__ <span style="color: Gray;">==</span> <span style="color: #a11;">"__main__"</span>:<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">60</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"    总线交互模拟 —— RUNOOB 计算机组成原理演示"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">60</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 1. 初始化总线</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"【系统初始化】创建地址总线、数据总线、控制总线、内存模块"</span><span style="color: Olive;">)</span><br/>
+    addr_bus <span style="color: Gray;">=</span> AddressBus<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+    data_bus <span style="color: Gray;">=</span> DataBus<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+    ctrl_bus <span style="color: Gray;">=</span> ControlBus<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+    memory <span style="color: Gray;">=</span> SimpleMemory<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 2. 查看内存初始状态</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"【内存初始状态】关键地址处的数据预览："</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">for</span> addr <span style="color: Green;font-weight:bold;">in</span> <span style="color: Olive;">[</span><span style="color: Maroon;">50</span><span style="color: Gray;">,</span> <span style="color: Maroon;">51</span><span style="color: Gray;">,</span> <span style="color: Maroon;">52</span><span style="color: Gray;">,</span> <span style="color: Maroon;">53</span><span style="color: Gray;">,</span> <span style="color: Maroon;">54</span><span style="color: Gray;">,</span> <span style="color: Maroon;">55</span><span style="color: Gray;">,</span> <span style="color: Maroon;">100</span><span style="color: Gray;">,</span> <span style="color: Maroon;">200</span><span style="color: Olive;">]</span>:<br/>
+        ch <span style="color: Gray;">=</span> <span style="color: Teal;">chr</span><span style="color: Olive;">(</span>memory.<span style="color: #05a;">data</span><span style="color: Olive;">[</span>addr<span style="color: Olive;">]</span><span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">if</span> <span style="color: Maroon;">32</span> <span style="color: Gray;">&lt;=</span> memory.<span style="color: #05a;">data</span><span style="color: Olive;">[</span>addr<span style="color: Olive;">]</span> <span style="color: Gray;">&lt;</span> <span style="color: Maroon;">127</span> <span style="color: Green;font-weight:bold;">else</span> <span style="color: #a11;">'?'</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  地址 {addr} (0x{addr:04X}): {memory.data[addr]:3d} (0x{memory.data[addr]:02X}) '{ch}'"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 3. 初始化 CPU</span><br/>
+    cpu <span style="color: Gray;">=</span> CPU<span style="color: Olive;">(</span>addr_bus<span style="color: Gray;">,</span> data_bus<span style="color: Gray;">,</span> ctrl_bus<span style="color: Gray;">,</span> memory<span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 4. 演示：从内存读数据</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>"</span> + <span style="color: #a11;">"▼"</span> * <span style="color: Maroon;">60</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"演示 1: 从内存地址 100 读取数据"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"▼"</span> * <span style="color: Maroon;">60</span><span style="color: Olive;">)</span><br/>
+    val1 <span style="color: Gray;">=</span> cpu.<span style="color: #05a;">memory_read</span><span style="color: Olive;">(</span><span style="color: Maroon;">100</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>"</span> + <span style="color: #a11;">"▼"</span> * <span style="color: Maroon;">60</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"演示 2: 从内存地址 200 读取数据"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"▼"</span> * <span style="color: Maroon;">60</span><span style="color: Olive;">)</span><br/>
+    val2 <span style="color: Gray;">=</span> cpu.<span style="color: #05a;">memory_read</span><span style="color: Olive;">(</span><span style="color: Maroon;">200</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>"</span> + <span style="color: #a11;">"▼"</span> * <span style="color: Maroon;">60</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"演示 3: 从内存地址 50-55 连续读取，拼出字符 (RUNOOB)"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"▼"</span> * <span style="color: Maroon;">60</span><span style="color: Olive;">)</span><br/>
+    chars <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+    <span style="color: Green;font-weight:bold;">for</span> addr <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Maroon;">50</span><span style="color: Gray;">,</span> <span style="color: Maroon;">56</span><span style="color: Olive;">)</span>:<br/>
+        val <span style="color: Gray;">=</span> cpu.<span style="color: #05a;">memory_read</span><span style="color: Olive;">(</span>addr<span style="color: Olive;">)</span><br/>
+        chars.<span style="color: #05a;">append</span><span style="color: Olive;">(</span><span style="color: Teal;">chr</span><span style="color: Olive;">(</span>val<span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>拼出的字符串: {''.join(chars)}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 5. 演示：向内存写数据</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>"</span> + <span style="color: #a11;">"▼"</span> * <span style="color: Maroon;">60</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"演示 4: 向内存地址 10 写入数据 77"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"▼"</span> * <span style="color: Maroon;">60</span><span style="color: Olive;">)</span><br/>
+    cpu.<span style="color: #05a;">memory_write</span><span style="color: Olive;">(</span><span style="color: Maroon;">10</span><span style="color: Gray;">,</span> <span style="color: Maroon;">77</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 6. 验证写入结果</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>"</span> + <span style="color: #a11;">"▼"</span> * <span style="color: Maroon;">60</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"演示 5: 验证写入——从地址 10 读回数据"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"▼"</span> * <span style="color: Maroon;">60</span><span style="color: Olive;">)</span><br/>
+    val3 <span style="color: Gray;">=</span> cpu.<span style="color: #05a;">memory_read</span><span style="color: Olive;">(</span><span style="color: Maroon;">10</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>验证: 写入 77, 读出 {val3}, {'成功' if val3 == 77 else '失败'}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>"</span> + <span style="color: #a11;">"="</span> * <span style="color: Maroon;">60</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"          全部演示完成！"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">60</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<hr/>
+<h2>总线宽度与实际性能</h2>
+<h3>地址总线的宽度决定「能管多大的内存」</h3>
+<p>地址总线每条线传输一个二进制位。N 条地址线可以表示 2^N 个不同的地址。</p>
+<table class="reference">
+<tr><th>地址总线宽度</th><th>可寻址空间</th><th>典型的 CPU</th></tr>
+<tr><td>16 位</td><td>2^16 = 64 KB</td><td>Intel 8086 (1978)</td></tr>
+<tr><td>20 位</td><td>2^20 = 1 MB</td><td>Intel 8088 (IBM PC, 1981)</td></tr>
+<tr><td>24 位</td><td>2^24 = 16 MB</td><td>Intel 80286 (1982)</td></tr>
+<tr><td>32 位</td><td>2^32 = 4 GB</td><td>Intel 80386 (1985)</td></tr>
+<tr><td>64 位</td><td>2^64 = 约 16 EB</td><td>现代 x86-64 处理器</td></tr>
+</table>
+<blockquote><p>注意：现代 64 位 CPU 的实际地址线通常少于 64 根（例如 48 根），因为 2^64 字节远超当前物理内存的实际需求。48 根地址线已经可以寻址 256 TB，足够当前使用。</p></blockquote>
+<h3>数据总线的宽度决定「单次能传多少数据」</h3>
+<p>8 位数据总线每次传 1 字节，64 位数据总线每次传 8 字节。这就是为什么同样的任务，64 位系统往往比 32 位系统更快——单次传输的数据量翻了一倍。</p>
+<h3>控制总线的信号种类</h3>
+<p>控制总线不像地址和数据总线那样整齐划一。它是多种信号线的集合，包括：</p>
+<ul>
+<li><span class="tag1 green">MEM_READ / MEM_WRITE</span>：内存读写使能信号</li>
+<li><span class="tag1 green">IO_READ / IO_WRITE</span>：I/O 端口读写信号</li>
+<li><span class="tag1 green">INTERRUPT</span>：中断请求信号——外部设备通知 CPU 的方式</li>
+<li><span class="tag1 green">CLOCK</span>：时钟信号——驱动整个系统同步工作的「心跳」</li>
+<li><span class="tag1 green">RESET</span>：复位信号——让 CPU 回到初始状态</li>
+</ul>
+<hr/>
+<h2>小结与检验</h2>
+<blockquote><p>一句话总结：<span class="marked">地址总线负责「去哪里」，数据总线负责「运什么」，控制总线负责「做什么」——三条总线各司其职，协同完成每一次数据传输。</span></p></blockquote>
+<h3>自测题</h3>
+<ol>
+<li>CPU 要从内存读一个数据，地址总线上的信息是谁放上去的？数据总线上的信息又是谁放上去的？</li>
+<li>如果一台计算机的地址总线只有 16 根线，它最多能管理多大的内存？</li>
+<li>控制总线和地址总线、数据总线最大的不同是什么？（提示：想想控制总线的「组成」）</li>
+</ol>
+<p><span class="tag1">参考答案</span>：1. 地址由 CPU 放上去，数据由内存放上去。2. 2^16 = 65536 字节 = 64KB。3. 地址和数据总线传输的是整齐的数字信号（地址值/数据值），而控制总线是一组各不相同的离散信号线，每根线有自己独立的功能。</p>
+<style>
+/* ===== 总线动画演示专用样式 - runoob ===== */
+.bus-demo-wrapper {
+  background: #1e1e2e;
+  border-radius: 12px;
+  padding: 28px 22px 22px;
+  margin: 24px 0;
+  font-family: 'SF Mono', 'Courier New', monospace;
+  position: relative;
+  overflow: hidden;
+}
+.bus-demo-title {
+  color: #e0e0e0;
+  text-align: center;
+  font-size: 17px;
+  font-weight: bold;
+  margin-bottom: 6px;
+  letter-spacing: 1px;
+}
+.bus-demo-subtitle {
+  color: #888;
+  text-align: center;
+  font-size: 12px;
+  margin-bottom: 18px;
+}
+/* 图例 */
+.bus-demo-legend {
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+.bus-demo-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #bbb;
+  font-size: 12px;
+}
+.bus-demo-legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+.bus-demo-legend-dot.addr { background: #4da6ff; box-shadow: 0 0 6px rgba(77,166,255,0.5); }
+.bus-demo-legend-dot.data { background: #ff944d; box-shadow: 0 0 6px rgba(255,148,77,0.5); }
+.bus-demo-legend-dot.ctrl { background: #ff5c5c; box-shadow: 0 0 6px rgba(255,92,92,0.5); }
+
+/* 端点标签 */
+.bus-endpoint-labels {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 60px 4px 60px;
+  color: #aaa;
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+
+/* 三条总线车道 */
+.bus-highway {
+  position: relative;
+  height: 52px;
+  margin: 6px 0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  padding: 0 60px;
+}
+.bus-highway-addr {
+  background: linear-gradient(90deg, rgba(77,166,255,0.08), rgba(77,166,255,0.18), rgba(77,166,255,0.08));
+  border: 2px solid rgba(77,166,255,0.35);
+}
+.bus-highway-data {
+  background: linear-gradient(90deg, rgba(255,148,77,0.08), rgba(255,148,77,0.18), rgba(255,148,77,0.08));
+  border: 2px solid rgba(255,148,77,0.35);
+}
+.bus-highway-ctrl {
+  background: linear-gradient(90deg, rgba(255,92,92,0.08), rgba(255,92,92,0.18), rgba(255,92,92,0.08));
+  border: 2px solid rgba(255,92,92,0.35);
+}
+.bus-highway-label {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #999;
+  font-size: 11px;
+  font-weight: bold;
+  z-index: 2;
+  writing-mode: horizontal-tb;
+}
+
+/* 车道上的虚线 */
+.bus-lane-dashes {
+  position: absolute;
+  top: 50%;
+  left: 60px;
+  right: 60px;
+  height: 0;
+  border-top: 2px dashed rgba(255,255,255,0.08);
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* 移动色块 */
+.bus-block {
+  position: absolute;
+  top: 10px;
+  height: 32px;
+  width: 16px;
+  border-radius: 4px;
+  z-index: 3;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.bus-block-addr {
+  background: linear-gradient(135deg, #4da6ff, #1a8cff);
+  box-shadow: 0 0 14px rgba(77,166,255,0.7);
+}
+.bus-block-data {
+  background: linear-gradient(135deg, #ff944d, #ff751a);
+  box-shadow: 0 0 14px rgba(255,148,77,0.7);
+}
+.bus-block-ctrl {
+  background: linear-gradient(135deg, #ff5c5c, #e63946);
+  box-shadow: 0 0 14px rgba(255,92,92,0.7);
+}
+
+/* 色块移动动画 */
+@keyframes busSlideLTR {
+  0%   { left: 62px; opacity: 1; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { left: calc(100% - 78px); opacity: 0; }
+}
+@keyframes busSlideRTL {
+  0%   { left: calc(100% - 78px); opacity: 1; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { left: 62px; opacity: 0; }
+}
+@keyframes ctrlPulse {
+  0%, 100% { opacity: 0.25; background: rgba(255,92,92,0.4); }
+  50%      { opacity: 1;    background: rgba(255,92,92,1); }
+}
+.bus-block.anim-ltr { animation: busSlideLTR 1.8s ease-in-out forwards; }
+.bus-block.anim-rtl { animation: busSlideRTL 1.8s ease-in-out forwards; }
+.bus-block.anim-pulse { animation: ctrlPulse 0.45s ease-in-out 3; opacity: 1; }
+
+/* 信号指示灯（控制总线用） */
+.ctrl-signal-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 3px 14px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  z-index: 4;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+.ctrl-signal-indicator.show {
+  opacity: 1;
+}
+.ctrl-signal-indicator.read {
+  background: rgba(255,92,92,0.2);
+  color: #ff5c5c;
+  border: 1px solid rgba(255,92,92,0.5);
+}
+
+/* 数据标签（浮在色块上方） */
+.bus-data-tag {
+  position: absolute;
+  font-size: 10px;
+  color: #ffd700;
+  white-space: nowrap;
+  z-index: 5;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  font-weight: bold;
+}
+.bus-data-tag.show { opacity: 1; }
+
+/* 按钮 */
+.bus-demo-btn {
+  display: block;
+  margin: 18px auto 0;
+  padding: 10px 36px;
+  background: linear-gradient(135deg, #4da6ff, #1a8cff);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: all 0.3s;
+  font-family: inherit;
+}
+.bus-demo-btn:hover {
+  background: linear-gradient(135deg, #66b3ff, #3399ff);
+  box-shadow: 0 4px 16px rgba(77,166,255,0.4);
+}
+.bus-demo-btn:disabled {
+  background: #444;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* 状态文本 */
+.bus-status-bar {
+  text-align: center;
+  color: #ccc;
+  margin-top: 14px;
+  font-size: 13px;
+  min-height: 36px;
+  line-height: 36px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 6px;
+  padding: 0 16px;
+  transition: color 0.3s;
+}
+.bus-status-bar .step-num {
+  color: #ffd700;
+  font-weight: bold;
+}
+.bus-status-bar .step-desc {
+  color: #ddd;
+}
+
+/* 读操作标签 */
+.bus-read-tag {
+  position: absolute;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  z-index: 5;
+  opacity: 0;
+  pointer-events: none;
+  font-weight: bold;
+}
+.bus-read-tag.show { opacity: 1; }
+.bus-read-tag.addr-tag {
+  background: rgba(77,166,255,0.2);
+  color: #4da6ff;
+  border: 1px solid rgba(77,166,255,0.5);
+  top: -20px;
+}
+.bus-read-tag.data-tag {
+  background: rgba(255,148,77,0.2);
+  color: #ff944d;
+  border: 1px solid rgba(255,148,77,0.5);
+  top: -20px;
+}
+</style>
+<script>
+/**
+ * 总线动画演示脚本 - runoob
+ * 功能: 点击按钮，动画展示一次完整的内存读取操作中三条总线的协同工作
+ * 技术: div + CSS + CSS animation
+ */
+(function() {
+  'use strict';
+
+  /* ---- 创建演示容器 ---- */
+  var wrapper = document.createElement('div');
+  wrapper.className = 'bus-demo-wrapper';
+  wrapper.innerHTML =
+    '<div class="bus-demo-title">总线交互动画演示</div>' +
+    '<div class="bus-demo-subtitle">一次内存读操作中，三条总线如何协同工作</div>' +
+    '<div class="bus-demo-legend">' +
+      '<span class="bus-demo-legend-item"><span class="bus-demo-legend-dot addr"></span> 地址总线</span>' +
+      '<span class="bus-demo-legend-item"><span class="bus-demo-legend-dot data"></span> 数据总线</span>' +
+      '<span class="bus-demo-legend-item"><span class="bus-demo-legend-dot ctrl"></span> 控制总线</span>' +
+    '</div>' +
+    '<div class="bus-endpoint-labels"><span>CPU</span><span>内存</span></div>' +
+    /* 地址总线车道 */
+    '<div class="bus-highway bus-highway-addr" id="highway-addr">' +
+      '<span class="bus-highway-label">地址</span>' +
+      '<div class="bus-lane-dashes"></div>' +
+      '<div class="bus-block bus-block-addr" id="block-addr"></div>' +
+      '<span class="bus-data-tag" id="tag-addr">地址: 100</span>' +
+    '</div>' +
+    /* 数据总线车道 */
+    '<div class="bus-highway bus-highway-data" id="highway-data">' +
+      '<span class="bus-highway-label">数据</span>' +
+      '<div class="bus-lane-dashes"></div>' +
+      '<div class="bus-block bus-block-data" id="block-data"></div>' +
+      '<span class="bus-data-tag" id="tag-data">数据: 0x2A</span>' +
+    '</div>' +
+    /* 控制总线车道 */
+    '<div class="bus-highway bus-highway-ctrl" id="highway-ctrl">' +
+      '<span class="bus-highway-label">控制</span>' +
+      '<div class="bus-lane-dashes"></div>' +
+      '<div class="bus-block bus-block-ctrl" id="block-ctrl"></div>' +
+      '<span class="ctrl-signal-indicator read" id="sig-ctrl">READ</span>' +
+    '</div>' +
+    '<button class="bus-demo-btn" id="bus-demo-btn">开始读取</button>' +
+    '<div class="bus-status-bar" id="bus-status">点击上方按钮，观察一次内存读操作的完整总线交互过程</div>';
+
+  /* 插入到 h1 之后 */
+  /* 插入到文章尾部（小结之前） */
+  var h2s = document.querySelectorAll('h2');
+  var summaryH2 = null;
+  for (var i = 0; i < h2s.length; i++) {
+    if (h2s[i].textContent.indexOf('小结') !== -1) {
+      summaryH2 = h2s[i];
+      break;
+    }
+  }
+  if (summaryH2 && summaryH2.parentNode) {
+    summaryH2.parentNode.insertBefore(wrapper, summaryH2);
+  } else {
+    document.body.appendChild(wrapper);
+  }
+
+  /* ---- DOM 引用 ---- */
+  var btn        = document.getElementById('bus-demo-btn');
+  var statusBar  = document.getElementById('bus-status');
+  var blockAddr  = document.getElementById('block-addr');
+  var blockData  = document.getElementById('block-data');
+  var blockCtrl  = document.getElementById('block-ctrl');
+  var sigCtrl    = document.getElementById('sig-ctrl');
+  var tagAddr    = document.getElementById('tag-addr');
+  var tagData    = document.getElementById('tag-data');
+
+  /* ---- 辅助函数 ---- */
+  function resetAll() {
+    /* 清除所有动画 class */
+    blockAddr.className = 'bus-block bus-block-addr';
+    blockData.className = 'bus-block bus-block-data';
+    blockCtrl.className = 'bus-block bus-block-ctrl';
+    /* 隐藏标签和信号 */
+    sigCtrl.classList.remove('show');
+    tagAddr.classList.remove('show');
+    tagData.classList.remove('show');
+  }
+
+  function setStatus(step, desc) {
+    statusBar.innerHTML = '<span class="step-num">' + step + '</span> <span class="step-desc">' + desc + '</span>';
+  }
+
+  /* 等待动画结束 */
+  function waitForAnimation(el, timeout) {
+    return new Promise(function(resolve) {
+      var handler = function() {
+        el.removeEventListener('animationend', handler);
+        resolve();
+      };
+      el.addEventListener('animationend', handler);
+      /* 兜底超时 */
+      setTimeout(function() {
+        el.removeEventListener('animationend', handler);
+        resolve();
+      }, timeout || 2000);
+    });
+  }
+
+  /* ---- 主动画逻辑 ---- */
+  async function runBusDemo() {
+    btn.disabled = true;
+    resetAll();
+
+    /* --- T0: CPU 内部准备 --- */
+    setStatus('T0', 'CPU 内部准备：将地址 100 装入 MAR（内存地址寄存器）');
+    await new Promise(function(r) { setTimeout(r, 800); });
+
+    /* --- T1: CPU 将地址 100 放到地址总线上（色块从左→右） --- */
+    setStatus('T1', 'CPU 将地址 100 放到地址总线上，地址信息沿地址总线传向内存');
+    blockAddr.classList.add('anim-ltr');
+    /* 同步显示地址标签 */
+    tagAddr.classList.add('show');
+    /* 让标签跟随色块移动 - 通过更新 left 实现 */
+    var addrTagMove = setInterval(function() {
+      var bl = blockAddr.getBoundingClientRect();
+      var wl = wrapper.getBoundingClientRect();
+      tagAddr.style.left = (bl.left - wl.left + 8) + 'px';
+      tagAddr.style.top  = (bl.top  - wl.top  - 18) + 'px';
+    }, 30);
+    await waitForAnimation(blockAddr, 2000);
+    clearInterval(addrTagMove);
+    tagAddr.classList.remove('show');
+
+    /* --- T1 同期: 控制总线发出 READ 信号 --- */
+    setStatus('T1', 'CPU 在控制总线上发出 READ（读）信号，通知内存「我要读取数据」');
+    sigCtrl.classList.add('show');
+    blockCtrl.classList.add('anim-pulse');
+    await waitForAnimation(blockCtrl, 1600);
+    blockCtrl.classList.remove('anim-pulse');
+
+    /* --- T2: 内存响应，将数据放到数据总线上（色块从右→左） --- */
+    setStatus('T2', '内存收到地址和读信号，找到地址 100 处的数据 0x2A，放到数据总线上');
+    blockData.classList.add('anim-rtl');
+    tagData.classList.add('show');
+    var dataTagMove = setInterval(function() {
+      var bl = blockData.getBoundingClientRect();
+      var wl = wrapper.getBoundingClientRect();
+      tagData.style.left = (bl.left - wl.left + 8) + 'px';
+      tagData.style.top  = (bl.top  - wl.top  - 18) + 'px';
+    }, 30);
+    await waitForAnimation(blockData, 2000);
+    clearInterval(dataTagMove);
+    tagData.classList.remove('show');
+
+    /* --- T3: CPU 读取数据，总线清空 --- */
+    setStatus('T3', 'CPU 从数据总线读取数据 0x2A 存入 MDR，总线清空，操作完成');
+    sigCtrl.classList.remove('show');
+    await new Promise(function(r) { setTimeout(r, 1000); });
+
+    /* 完成 */
+    setStatus('完成', '一次内存读操作完成！CPU 从地址 100 成功读取到数据 0x2A（十进制 42）');
+    btn.disabled = false;
+  }
+
+  btn.addEventListener('click', runBusDemo);
+
+})();
+</script>
+其他扩展
+</div>
+</div>
+<div class="archive-list" style="display:none;font-size: 14px;line-height: 1.8;margin-top: 20px;padding: 10px;">
+<div class="archive-list-item">
+<div class="post-intro" id="ai-info" style="width: 100%;">AI 思考中...</div>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../computer-organization/memory-addressing.html" rel="prev">内存地址与寻址</a> </div>
+<div class="next-design-link"><a href="../computer-organization/io-polling-interrupt-dma.html" rel="next">I/O 的三种方式 — 轮询、中断、DMA</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="sidebar-box">
+</div>
+笔记列表
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>点我分享笔记</h3>
+&lt;p style="font-size:14px;"&gt;笔记需要是本篇文章的内容扩展！&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;文章投稿，可点击这里&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;注册邀请码获取方式&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; 分享笔记前必须&lt;a href=";.html" class="runoob-pop"&gt;登录&lt;/a&gt;！&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;注册邀请码获取方式&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=";.html" id="cancel-comment-reply-link">取消</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="31889"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>分享笔记</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">昵称</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">昵称 (必填)</span></li>
+<li class="form-inline"><label class="hide" for="email">邮箱</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">邮箱 (必填)</span></li>
+<li class="form-inline"><label class="hide" for="url">引用地址</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">引用地址</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  31889;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 31889, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":31889},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+</div>
+</div>
+<!-- 右边栏 -->
+<div class="fivecol last right-column">
+<style>
+.sidebar-tree .double-li {
+    width:300px;
+}
+.sidebar-tree .double-li li {
+    width: 44%;
+    line-height: 1.5em;
+    border-bottom: 1px solid #ccc;
+    float: left;
+    display: inline;
+}
+</style>
+<div class="sidebar-box re-box re-box-large">
+<div class="sidebar-box recommend-here" style="margin: 0 auto;">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;"> <i aria-hidden="true" class="fa fa-list"></i> 分类导航</a>
+</div>
+<div class="sidebar-box sidebar-cate">
+<div class="sidebar-tree">
+<ul><li style="margin: 0;"><a class="tit" href="#"> Python / 数据科学</a><ul class="double-li"><li><a href="../python3/python3-tutorial.html" title="Python 教程">Python 教程</a></li><li><a href="../python/python-tutorial.html" title="Python2.x 教程">Python2.x 教程</a></li><li><a href="../fastapi/fastapi-tutorial.html" title="FastAPI 教程">FastAPI 教程</a></li><li><a href="../flask/flask-tutorial.html" title="Flask 教程">Flask 教程</a></li><li><a href="../django/django-tutorial.html" title="Django 教程">Django 教程</a></li><li><a href="../numpy/numpy-tutorial.html" title="NumPy 教程">NumPy 教程</a></li><li><a href="../pandas/pandas-tutorial.html" title="Pandas 教程">Pandas 教程</a></li><li><a href="../scipy/scipy-tutorial.html" title="SciPy 教程">SciPy 教程</a></li><li><a href="../matplotlib/matplotlib-tutorial.html" title="Matplotlib 教程">Matplotlib 教程</a></li><li><a href="../dash/dash-tutorial.html" title="Dash 教程">Dash 教程</a></li><li><a href="../jupyter-notebook/jupyter-notebook-tutorial.html" title="Jupyter Notebook 教程">Jupyter Notebook 教程</a></li><li><a href="../pillow/pillow-tutorial.html" title="Pillow 教程">Pillow 教程</a></li><li><a href="../qt/qt-tutorial.html" title="量化交易">量化交易</a></li><li><a href="../r/r-tutorial.html" title="R 教程">R 教程</a></li><li><a href="../julia/julia-tutorial.html" title="Julia 教程">Julia 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> AI / 智能开发</a><ul class="double-li"><li><a href="../ai-agent/ai-agent-tutorial.html" title="AI Agent（智能体）">AI Agent（智能体）</a></li><li><a href="../ai/ai-tutorial.html" title="AI（人工智能）">AI（人工智能）</a></li><li><a href="../codex/codex-tutorial.html" title="Codex 教程">Codex 教程</a></li><li><a href="../vibe-coding/vibe-coding-tutorial.html" title="Vibe Coding 教程">Vibe Coding 教程</a></li><li><a href="../claude-code/claude-code-tutorial.html" title="Claude Code">Claude Code</a></li><li><a href="../opencode/opencode-tutorial.html" title="OpenCode">OpenCode</a></li><li><a href="../skills/skills-tutorial.html" title="Skills（技能）">Skills（技能）</a></li><li><a href="../ollama/ollama-tutorial.html" title="Ollama 教程">Ollama 教程</a></li><li><a href="../hermes-agent/hermes-agent-tutorial.html" title="Hermes Agent">Hermes Agent</a></li><li><a href="../deepseek-harness/deepseek-harness-tutorial.html" title="DeepSeek Harness">DeepSeek Harness</a></li><li><a href="../pi-agent/pi-agent-tutorial.html" title="Pi Agent">Pi Agent</a></li><li><a href="../ai-math/ai-math-tutorial.html" title="AI 数学基础">AI 数学基础</a></li><li><a href="../tensorflow/tensorflow-tutorial.html" title="TensorFlow 教程">TensorFlow 教程</a></li><li><a href="../pytorch/pytorch-tutorial.html" title="PyTorch 教程">PyTorch 教程</a></li><li><a href="../sklearn/sklearn-tutorial.html" title="Scikit-learn 教程">Scikit-learn 教程</a></li><li><a href="../ml/ml-tutorial.html" title="机器 教程">机器 教程</a></li><li><a href="../langchain/langchain-tutorial.html" title="LangChain">LangChain</a></li><li><a href="../nlp/nlp-tutorial.html" title="自然语言处理 NLP">自然语言处理 NLP</a></li><li><a href="../opencv/opencv-tutorial.html" title="OpenCV 教程">OpenCV 教程</a></li><li><a href="../selenium/selenium-tutorial.html" title="Selenium 教程">Selenium 教程</a></li><li><a href="../playwright/playwright-tutorial.html" title="Playwright 教程">Playwright 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 前端开发</a><ul class="double-li"><li><a href="../html/html-tutorial.html" title="HTML 教程">HTML 教程</a></li><li><a href="../html/html5-intro.html" title="HTML5 教程">HTML5 教程</a></li><li><a href="../css/css-tutorial.html" title="CSS 教程">CSS 教程</a></li><li><a href="../css3/css3-tutorial.html" title="CSS3 教程">CSS3 教程</a></li><li><a href="../js/js-tutorial.html" title="JavaScript 教程">JavaScript 教程</a></li><li><a href="../htmldom/htmldom-tutorial.html" title="HTML DOM 教程">HTML DOM 教程</a></li><li><a href="../typescript/ts-tutorial.html" title="TypeScript 教程">TypeScript 教程</a></li><li><a href="../ajax/ajax-tutorial.html" title="AJAX 教程">AJAX 教程</a></li><li><a href="../json/json-tutorial.html" title="JSON 教程">JSON 教程</a></li><li><a href="../tailwindcss/tailwindcss-tutorial.html" title="Tailwind CSS 教程">Tailwind CSS 教程</a></li><li><a href="../bootstrap4/bootstrap4-tutorial.html" title="Bootstrap4 教程">Bootstrap4 教程</a></li><li><a href="../bootstrap5/bootstrap5-tutorial.html" title="Bootstrap5 教程">Bootstrap5 教程</a></li><li><a href="../foundation/foundation-tutorial.html" title="Foundation 教程">Foundation 教程</a></li><li><a href="../vue2/vue-tutorial.html" title="Vue.js 教程">Vue.js 教程</a></li><li><a href="../vue3/vue3-tutorial.html" title="Vue3 教程">Vue3 教程</a></li><li><a href="../react/react-tutorial.html" title="React 教程">React 教程</a></li><li><a href="../nextjs/nextjs-tutorial.html" title="Next.js 教程">Next.js 教程</a></li><li><a href="../angularjs/angularjs-tutorial.html" title="AngularJS 教程">AngularJS 教程</a></li><li><a href="../angularjs2/angularjs2-tutorial.html" title="Angular 教程">Angular 教程</a></li><li><a href="../jquery/jquery-tutorial.html" title="jQuery 教程">jQuery 教程</a></li><li><a href="../jqueryui/jqueryui-tutorial.html" title="jQuery UI 教程">jQuery UI 教程</a></li><li><a href="../jeasyui/jqueryeasyui-tutorial.html" title="jQuery EasyUI 教程">jQuery EasyUI 教程</a></li><li><a href="../echarts/echarts-tutorial.html" title="ECharts 教程">ECharts 教程</a></li><li><a href="../chartjs/chartjs-tutorial.html" title="Chart.js 教程">Chart.js 教程</a></li><li><a href="../highcharts/highcharts-tutorial.html" title="Highcharts 教程">Highcharts 教程</a></li><li><a href="../googleapi/google-maps-basic.html" title="Google 地图 教程">Google 地图 教程</a></li><li><a href="../svg/svg-tutorial.html" title="SVG 教程">SVG 教程</a></li><li><a href="../font-awesome/fontawesome-tutorial.html" title="Font Awesome 教程">Font Awesome 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 后端开发</a><ul class="double-li"><li><a href="../nodejs/nodejs-tutorial.html" title="Node.js 教程">Node.js 教程</a></li><li><a href="../electron/electron-tutorial.html" title="Electron 教程">Electron 教程</a></li><li><a href="../php/php-tutorial.html" title="PHP 教程">PHP 教程</a></li><li><a href="../java/java-tutorial.html" title="Java 教程">Java 教程</a></li><li><a href="../go/go-tutorial.html" title="Go 教程">Go 教程</a></li><li><a href="../rust/rust-tutorial.html" title="Rust 教程">Rust 教程</a></li><li><a href="../csharp/csharp-tutorial.html" title="C# 教程">C# 教程</a></li><li><a href="../servlet/servlet-tutorial.html" title="Servlet 教程">Servlet 教程</a></li><li><a href="../jsp/jsp-tutorial.html" title="JSP 教程">JSP 教程</a></li><li><a href="../asp/asp-tutorial.html" title="ASP 教程">ASP 教程</a></li><li><a href="../appml/appml-tutorial.html" title="AppML 教程">AppML 教程</a></li><li><a href="../vbscript/vbscript-tutorial.html" title="VBScript 教程">VBScript 教程</a></li><li><a href="../swagger/swagger-tutorial.html" title="Swagger 教程">Swagger 教程</a></li><li><a href="../restfulapi/restful-api-tutorial.html" title="RESTful API 教程">RESTful API 教程</a></li><li><a href="../docker/docker-tutorial.html" title="Docker 教程">Docker 教程</a></li><li><a href="../linux/linux-tutorial.html" title="Linux 教程">Linux 教程</a></li><li><a href="../w3cnote/zookeeper-tutorial.html" title="ZooKeeper 教程">ZooKeeper 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 数据库</a><ul class="double-li"><li><a href="../sql/sql-tutorial.html" title="SQL 教程">SQL 教程</a></li><li><a href="../mysql/mysql-tutorial.html" title="MySQL 教程">MySQL 教程</a></li><li><a href="../postgresql/postgresql-tutorial.html" title="PostgreSQL 教程">PostgreSQL 教程</a></li><li><a href="../sqlite/sqlite-tutorial.html" title="SQLite 教程">SQLite 教程</a></li><li><a href="../mongodb/mongodb-tutorial.html" title="MongoDB 教程">MongoDB 教程</a></li><li><a href="../redis/redis-tutorial.html" title="Redis 教程">Redis 教程</a></li><li><a href="../memcached/memcached-tutorial.html" title="Memcached 教程">Memcached 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 移动开发</a><ul class="double-li"><li><a href="../w3cnote/android-tutorial-intro.html" title="Android 教程">Android 教程</a></li><li><a href="../flutter/flutter-tutorial.html" title="Flutter 教程">Flutter 教程</a></li><li><a href="../ionic/ionic-tutorial.html" title="Ionic 教程">Ionic 教程</a></li><li><a href="../jquerymobile/jquerymobile-tutorial.html" title="jQuery Mobile 教程">jQuery Mobile 教程</a></li><li><a href="../swift/swift-tutorial.html" title="Swift 教程">Swift 教程</a></li><li><a href="../kotlin/kotlin-tutorial.html" title="Kotlin 教程">Kotlin 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> DevOps / 工程化</a><ul class="double-li"><li><a href="../git/git-tutorial.html" title="Git 教程">Git 教程</a></li><li><a href="../svn/svn-tutorial.html" title="SVN 教程">SVN 教程</a></li><li><a href="../cmake/cmake-tutorial.html" title="CMake 教程">CMake 教程</a></li><li><a href="../maven/maven-tutorial.html" title="Maven 教程">Maven 教程</a></li><li><a href="../vscode/vscode-tutorial.html" title="VS Code 教程">VS Code 教程</a></li><li><a href="../obsidian/obsidian-tutorial.html" title="Obsidian 教程">Obsidian 教程</a></li><li><a href="../pycharm/pycharm-tutorial.html" title="PyCharm 教程">PyCharm 教程</a></li><li><a href="../eclipse/eclipse-tutorial.html" title="Eclipse 教程">Eclipse 教程</a></li><li><a href="../markdown/md-tutorial.html" title="Markdown 教程">Markdown 教程</a></li><li><a href="../latex/latex-tutorial.html" title="LaTeX 教程">LaTeX 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 编程语言</a><ul class="double-li"><li><a href="../c/c-tutorial.html" title="C 教程">C 教程</a></li><li><a href="../cplusplus/cpp-tutorial.html" title="C++ 教程">C++ 教程</a></li><li><a href="../zig/zig-tutorial.html" title="Zig 教程">Zig 教程</a></li><li><a href="../scala/scala-tutorial.html" title="Scala 教程">Scala 教程</a></li><li><a href="../ruby/ruby-tutorial.html" title="Ruby 教程">Ruby 教程</a></li><li><a href="../perl/perl-tutorial.html" title="Perl 教程">Perl 教程</a></li><li><a href="../lua/lua-tutorial.html" title="Lua 教程">Lua 教程</a></li><li><a href="../dart/dart-tutorial.html" title="Dart 教程">Dart 教程</a></li><li><a href="../assembly/assembly-tutorial.html" title="汇编语言 教程">汇编语言 教程</a></li><li><a href="../w3cnote/verilog-tutorial.html" title="Verilog 教程">Verilog 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 计算机基础</a><ul class="double-li"><li><a href="../computer-organization/computer-organization-tutorial.html" title="计算机组成原理">计算机组成原理</a></li><li><a href="../data-structures/data-structures-tutorial.html" title="数据结构与算法">数据结构与算法</a></li><li><a href="../c-dsa/c-dsa-tutorial.html" title="C 语言数据结构与算法">C 语言数据结构与算法</a></li><li><a href="../design-pattern/design-pattern-tutorial.html" title="设计模式">设计模式</a></li><li><a href="../python-design-pattern/python-design-pattern-tutorial.html" title="Python 设计模式">Python 设计模式</a></li><li><a href="../regexp/regexp-tutorial.html" title="正则表达式">正则表达式</a></li><li><a href="../http/http-tutorial.html" title="HTTP 教程">HTTP 教程</a></li><li><a href="../tcpip/tcpip-tutorial.html" title="TCP/IP 教程">TCP/IP 教程</a></li><li><a href="../np/np-tutorial.html" title="网络协议">网络协议</a></li><li><a href="../w3c/w3c-tutorial.html" title="W3C 教程">W3C 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> XML / Web Service</a><ul class="double-li"><li><a href="../xml/xml-tutorial.html" title="XML 教程">XML 教程</a></li><li><a href="../dtd/dtd-tutorial.html" title="DTD 教程">DTD 教程</a></li><li><a href="../dom/dom-tutorial.html" title="XML DOM 教程">XML DOM 教程</a></li><li><a href="../xsl/xsl-tutorial.html" title="XSLT 教程">XSLT 教程</a></li><li><a href="../xpath/xpath-tutorial.html" title="XPath 教程">XPath 教程</a></li><li><a href="../xquery/xquery-tutorial.html" title="XQuery 教程">XQuery 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XLink 教程">XLink 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XPointer 教程">XPointer 教程</a></li><li><a href="../schema/schema-tutorial.html" title="XML Schema 教程">XML Schema 教程</a></li><li><a href="../xslfo/xslfo-tutorial.html" title="XSL-FO 教程">XSL-FO 教程</a></li><li><a href="../webservices/webservices-tutorial.html" title="Web Service 教程">Web Service 教程</a></li><li><a href="../wsdl/wsdl-tutorial.html" title="WSDL 教程">WSDL 教程</a></li><li><a href="../soap/soap-tutorial.html" title="SOAP 教程">SOAP 教程</a></li><li><a href="../rss/rss-tutorial.html" title="RSS 教程">RSS 教程</a></li><li><a href="../rdf/rdf-tutorial.html" title="RDF 教程">RDF 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> .NET</a><ul class="double-li"><li><a href="../aspnet/aspnet-tutorial.html" title="ASP.NET 教程">ASP.NET 教程</a></li><li><a href="../aspnet/mvc-intro.html" title="MVC 教程">MVC 教程</a></li><li><a href="../aspnet/razor-intro.html" title="Razor 教程">Razor 教程</a></li><li><a href="../aspnet/aspnet-intro.html" title="Web Forms 教程">Web Forms 教程</a></li><li><a href="../aspnet/webpages-intro.html" title="Web Pages 教程">Web Pages 教程</a></li><li><a href="../powershell/powershell-tutorial.html" title="PowerShell 教程">PowerShell 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 网站建设</a><ul class="double-li"><li><a href="../web/web-buildingprimer.html" title="网站建设指南">网站建设指南</a></li><li><a href="../browsers/browser-information.html" title="浏览器信息">浏览器信息</a></li><li><a href="../hosting/hosting-tutorial.html" title="网站主机教程">网站主机教程</a></li><li><a href="../quality/quality-tutorial.html" title="网站品质">网站品质</a></li></ul></li></ul> </div>
+</div>
+</div>
+<br/>
+<div class="sidebar-box re-box re-box-large">
+</div>
+</div></div>
+</div>
+<script>
+var aid = 31889;
+function coll() {
+	$.post( '/wp-content/themes/runoob/option/user/userinfo.php', {aid:aid, action:"collarticle", opt:'add'},function( data ) {
+		if(data.error==0) {
+			$("#content").find("h1:first").find("a").attr("href","javascript:void(0);");
+			$("#content").find("h1:first").find("img").attr("src","http://www.runoob.com/wp-content/themes/runoob/assets/img/coll2.png").css({width:32+"px",height:32+"px"});
+		}
+		alert(data.msg);
+	},'json');
+}
+
+(function () {
+    // 1. 仅 HTML 页面
+    if (!document.contentType || !document.contentType.includes('text/html')) return;
+
+    // 2. 容器判断
+    var container = document.querySelector('.article-intro');
+    if (!container) return;
+
+    var h1 = container.querySelector('h1');
+    if (!h1) return;
+
+    // 3. URL 判断
+    var url = window.location.href.toLowerCase();
+    var version = null;
+
+    if (url.includes('/python3/')) {
+        version = 'Python3.x';
+    } else if (url.includes('/python/')) {
+        version = 'Python2.x';
+    }
+
+    if (!version) return;
+
+    // 4. 防重复
+    if (h1.querySelector('.py-version-badge')) return;
+
+    // 5. 创建标签
+    var badge = document.createElement('span');
+    badge.className = 'py-version-badge';
+    badge.innerText = version;
+
+    // 6. 样式（核心：float 实现右上角）
+    badge.style.float = 'right';
+    badge.style.fontSize = '12px';
+    badge.style.padding = '2px 8px';
+    badge.style.borderRadius = '999px';
+
+   // 自适应亮/暗色 + 渐变背景（增强版）
+	badge.style.color = 'inherit';
+
+	// 渐变背景（低透明度，不影响暗黑模式）
+	if (version.includes('3')) {
+		badge.style.background = 'linear-gradient(90deg, rgba(79,172,254,0.15), rgba(0,242,254,0.15))';
+	} else {
+		badge.style.background = 'linear-gradient(90deg, rgba(161,140,209,0.15), rgba(251,194,235,0.15))';
+	}
+
+	// 边框弱化（更精致）
+	badge.style.border = '1px solid rgba(127,127,127,0.3)';
+
+	// 提升可读性
+	badge.style.opacity = '0.95';
+
+    // 微调位置（更贴近“右上角”）
+    badge.style.marginTop = '4px';
+    badge.style.marginLeft = '10px';
+
+    // 7. 插入到 h1 最前面（让 float 生效更稳定）
+    h1.insertBefore(badge, h1.firstChild);
+
+})();
+</script>
+<!-- 反馈对话框开始 -->
+<script src="../wp-content/themes/runoob/assets/js/runoob-article-dir.min.js"></script>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

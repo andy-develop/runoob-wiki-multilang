@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Hermes Agent メモリシステム | 初心者チュートリアル</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<link href="../manifest.webmanifest.html" rel="manifest"/>
+<meta content="#10151c" name="theme-color"/>
+<link href="../pwa/icon-192.png.html" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="application-name"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="../hermes-agent/hermes-agent-memory.html" rel="canonical"/>
+<meta content="Hermes Agent 记忆系统" name="keywords"/>
+<meta content="Hermes Agent 记忆系统 Hermes 最核心的差异化能力不是工具调用，而是它真的记得你。 大多数 AI 工具每次对话都从零开始——你今天花一个小时教会它你的项目结构、命名规范、部署流程，明天开新会话，全部重来。 本章将深入解析 Hermes 如何通过三层记忆结构解决这个问题，以及 Agent 如何自主管理记忆、实现跨会话搜索与召回。   三层记忆架构 Hermes 用三层相互独立、功能互补的记忆结构来存储和召回信息。 三层设.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div>
+<!-- 导航栏 -->
+<style>
+/* 主题切换按钮 */
+/* ===== 主题变量（核心）===== */
+:root {
+  --theme-bg: #ffffff;
+  --theme-border: #e5e7eb;
+  --theme-icon: #333;
+  --theme-hover: #f3f4f6;
+}
+
+.dark {
+  --theme-bg: #1f2937;
+  --theme-border: #374151;
+  --theme-icon: #e5e7eb;
+  --theme-hover: #374151;
+}
+
+/* ===== 按钮容器 ===== */
+.nav-theme-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== 按钮本体 ===== */
+.nav-theme-toggle button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  border-radius: 6px;
+  border: 1px solid var(--theme-border);
+
+  background: var(--theme-bg);
+  color: var(--theme-icon);
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* ===== 图标大小 ===== */
+.nav-theme-toggle i {
+  font-size: 14px;
+}
+
+/* ===== hover 效果 ===== */
+.nav-theme-toggle button:hover {
+  background: var(--theme-hover);
+  transform: translateY(-1px);
+}
+
+/* ===== 点击反馈 ===== */
+.nav-theme-toggle button:active {
+  transform: scale(0.95);
+}
+
+/* ===== 当前激活态（可选）===== */
+.nav-theme-toggle button.active {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+</style>
+<!-- 导航栏 -->
+<nav aria-label="主导航" class="container navigation">
+<div class="row">
+<div class="col nav">
+<!-- PC 导航 -->
+<ul class="pc-nav" id="runoob-detail-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../js/js-tutorial.html">JavaScript</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a data-id="vue" href="#">Vue</a></li>
+<li><a href="../react/react-tutorial.html">React</a></li>
+<li><a href="../python3/python3-tutorial.html">Python3</a></li>
+<li><a href="../java/java-tutorial.html">Java</a></li>
+<li><a href="../cprogramming/c-tutorial.html">C</a></li>
+<li><a href="../cplusplus/cpp-tutorial.html">C++</a></li>
+<li><a href="../csharp/csharp-tutorial.html">C#</a></li>
+<li><a data-id="aiNav" href="#">AI</a></li>
+<li><a href="../go/go-tutorial.html">Go</a></li>
+<li><a href="../sql/sql-tutorial.html">SQL</a></li>
+<li><a href="../linux/linux-tutorial.html">Linux</a></li>
+<li><a href="../vscode/vscode-tutorial.html">VS Code</a></li>
+<li><a data-id="bootstrap" href="#">Bootstrap</a></li>
+<li><a href="../git/git-tutorial.html">Git</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<!-- 主题切换按钮，固定在最右侧 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+<!-- 移动端导航 -->
+<ul class="mobile-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a href="../js/js-tutorial.html">JS</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<li><a class="search-reveal" href="#">搜索</a></li>
+<!-- 移动端主题切换 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon-mobile" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun-mobile" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<!-- 二级导航 -->
+<!--  内容  -->
+<div class="container main">
+<!-- 中间 -->
+<div class="row">
+<div class="runoob-col-md2">
+<div class="left-column">
+<div class="tab" style="overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
+<i aria-hidden="true" class="fa fa-list"></i>
+<span>Hermes Agent</span>
+</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+<a data-p="par" href="../hermes-agent/hermes-agent-tutorial.html" target="_top" title="Hermes Agent 教程">
+			Hermes Agent 教程			</a>
+<a data-p="par" href="../hermes-agent/hermes-agent-intro.html" target="_top" title="Hermes Agent 简介">
+			Hermes Agent 简介			</a>
+<a data-p="par" href="../hermes-agent/hermes-agent-install.html" target="_top" title="Hermes Agent 安装">
+			Hermes Agent 安装			</a>
+<a data-p="par" href="../hermes-agent/hermes-agent-setup-file.html" target="_top" title="Hermes Agent 配置文件">
+			Hermes Agent 配置文件			</a>
+<a href="../hermes-agent/hermes-agent-model-setup.html" target="_top" title="Hermes Agent 模型配置">Hermes Agent 模型配置</a> <a data-p="par" href="../hermes-agent/hermes-agent-desktop.html" target="_top" title="Hermes Agent 桌面版">
+			Hermes Agent 桌面版			</a>
+<a data-p="par" href="../hermes-agent/hermes-agent-memory.html" target="_top" title="Hermes Agent 记忆系统">
+			Hermes Agent 记忆系统			</a>
+<a data-p="par" href="../hermes-agent/hermes-agent-skills.html" target="_top" title="Hermes Agent 技能（Skills）">
+			Hermes Agent Skills			</a>
+<a data-p="par" href="../hermes-agent/hermes-agent-tools-mcp.html" target="_top" title="Hermes Agent 工具生态与 MCP 集成">
+			Hermes Agent 工具			</a>
+<a data-p="par" href="../hermes-agent/hermes-agent-gateway.html" target="_top" title="Hermes Agent 平台消息接入">
+			Hermes Agent 平台消息			</a>
+<a data-p="par" href="../hermes-agent/hermes-agent-session-cron.html" target="_top" title="Hermes Agent Session 生命周期与定时任务">
+			Hermes Agent 定时任务			</a>
+<a data-p="par" href="../hermes-agent/hermes-agent-profile.html" target="_top" title="Hermes Agent Profile 系统与发行版">
+			Hermes Agent Profile			</a>
+<a data-p="par" href="../hermes-agent/hermes-agent-dashboard.html" target="_top" title="Hermes Agent 部署模式与 Dashboard">
+			Hermes Agent 部署模式			</a>
+<a data-p="par" href="../hermes-agent/hermes-agent-checkpoint.html" target="_top" title="Hermes Agent 检查点、定时任务与持久目标">
+			Hermes Agent 检查点			</a>
+<a data-p="par" href="../hermes-agent/hermes-agent-delegation.html" target="_top" title="Hermes Agent 子 Agent 委托与批量处理">
+			Hermes Agent  委托			</a>
+<a data-p="par" href="../hermes-agent/hermes-agent-plugins.html" target="_top" title="Hermes Agent 插件开发与生产实践">
+			Hermes Agent 插件			</a>
+<a data-p="par" href="../hermes-agent/hermes-agent-web-dashboard.html" target="_top" title="Hermes Agent 仪表盘（Dashboard）">
+			Hermes Agent 仪表盘			</a>
+<a href="../hermes-agent/hermes-agent-cli.html" target="_top" title="Hermes Agent CLI">Hermes Agent CLI</a>
+<a href="../hermes-agent/hermes-agent-tools.html" target="_top" title="Hermes Agent 工具集">Hermes Agent 工具集</a>
+<a href="../hermes-agent/hermes-agent-mcp.html" target="_top" title="Hermes Agent MCP">Hermes Agent MCP</a>
+</div>
+</div>
+</div>
+</div> <div class="col middle-column">
+<div class="article">
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../hermes-agent/hermes-agent-desktop.html" rel="prev">Hermes Agent デスクトップ版</a> </div>
+<div class="next-design-link"><a href="../hermes-agent/hermes-agent-skills.html" rel="next">Hermes Agent スキル（Skills）</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="article-body">
+<div class="article-intro" id="content">
+<h1>Hermes Agent メモリシステム</h1>
+<p>Hermes の最も中核となる差別化能力はツール呼び出しではなく、それは<span class="tag1">本当にあなたを覚えていることです</span>。</p>
+<p>ほとんどのAIツールは毎回の会話をゼロから始めます——今日1時間かけてあなたのプロジェクト構造、命名規則、デプロイ手順を教えても、明日新しいセッションを開けば、すべてやり直しです。</p>
+<p>この章では、Hermes が3層メモリ構造によってこの問題をどのように解決するか、そして Agent がどのように自律的にメモリを管理し、セッションをまたいだ検索と再呼び出しを実現するかを詳しく解説します。</p>
+<hr/>
+<h2>3層メモリアーキテクチャ</h2>
+<p>Hermes は、相互に独立し機能が補完し合う3層のメモリ構造を使用して、情報を保存および再呼び出しします。</p>
+<p>3層設計の核となる考え方：<span class="tag1">高頻度で重要な情報はコンテキストに常駐させ、低頻度の履歴情報はオンデマンドで再呼び出しし、深層パターンは AI が自動的に推論する</span>——メモリ能力と Token コストのバランスを取ります。</p>
+<pre>
+┌─────────────────────────────────────────────────┐
+│       第一层：持久记忆（Persistent Memory）        │
+│  MEMORY.md（环境事实）+ USER.md（用户画像）          │
+│  → 每次会话启动时自动注入系统提示词，始终可见          │
+├─────────────────────────────────────────────────┤
+│       第二层：情节日志（Session History）            │
+│  SQLite + FTS5 全文检索，存储所有历史对话             │
+│  → Agent 主动搜索时按需加载，不占用固定 Token         │
+├─────────────────────────────────────────────────┤
+│       第三层：用户建模（Honcho，可选）               │
+│  辩证推理引擎，提取跨会话模式、偏好与目标              │
+│  → 比你亲口说出来的更深层地理解你                     │
+└─────────────────────────────────────────────────┘
+</pre>
+<table class="reference">
+<tr><th>メモリ階層</th><th>保存場所</th><th>容量</th><th>読み込み方法</th><th>用途</th></tr>
+<tr><td>永続メモリ</td><td>~/.hermes/memories/ にある Markdown ファイル</td><td>総量約1,300 tokens</td><td>セッション開始時にシステムプロンプトへ自動注入</td><td>重要な事実、常に可視</td></tr>
+<tr><td>エピソードログ</td><td>SQLite データベース + JSONL 文字起こしファイル</td><td>無制限（すべての過去の会話）</td><td>Agent がオンデマンド検索、FTS5 全文検索</td><td>特定の過去の議論を検索</td></tr>
+<tr><td>Honcho ユーザーモデリング</td><td>Honcho サーバーサイド API</td><td>Agent ごとに分離</td><td>毎ターン/毎 N ターンのバックグラウンド推論で注入</td><td>深層の好みと目標を自動推論</td></tr>
+</table>
+<blockquote><p>3層の間は代替関係ではなく、補完関係です。永続メモリは「私は常にこれらを知っておく必要がある」に答え、エピソードログは「先週この問題について話しましたか」に答え、Honcho は「あなたが本当に望んでいることは何か」に答えます。</p></blockquote>
+<hr/>
+<h2>永続メモリファイル</h2>
+<p>永続メモリは Hermes メモリシステムの第一層であり、最も基本的な層です。</p>
+<p>それは、次の場所に保存された2つの<code>~/.hermes/memories/</code>下の Markdown ファイルで構成され、セッション開始時に自動的にシステムプロンプトへ注入されます。</p>
+<h3>2つのコアファイル</h3>
+<p>2つのファイルはそれぞれ役割を担い、互いに重複しません。</p>
+<table class="reference">
+<tr><th>ファイル</th><th>用途</th><th>文字数上限</th><th>約</th></tr>
+<tr><td>MEMORY.md</td><td>Agent の個人ノート——環境の事実、プロジェクト規範、仕事で学んだこと</td><td>2,200 文字</td><td>~800 tokens</td></tr>
+<tr><td>USER.md</td><td>ユーザープロファイル——あなたの好み、コミュニケーションスタイル、仕事の習慣、スキルレベル</td><td>1,375 文字</td><td>~500 tokens</td></tr>
+</table>
+<blockquote><p>文字数上限は意図的に設計されています。メモリ内容が簡潔で焦点が絞られた状態を保証するためです。新しいエントリが上限を超える場合、memory ツールはエラーを返し、古いエントリを黙って破棄するのではなく、Agent に先にスペースを整理してから書き込むように指示します。</p></blockquote>
+<h3>メモリがシステムプロンプトにどのように注入されるか</h3>
+<p>セッション開始時に、2つのファイルの内容が固定された形式でシステムプロンプトへ注入されます。形式は次のとおりです：</p>
+<pre>
+══════════════════════════════════════════════
+MEMORY（Agent 个人笔记）[67% — 1,474/2,200 字符]
+══════════════════════════════════════════════
+用户的项目是位于 ~/code/myapi 的 Rust Web 服务，使用 Axum + SQLx
+§
+本机运行 Ubuntu 22.04，已安装 Docker 和 Podman
+§
+用户偏好简洁回复，不喜欢冗长解释
+</pre>
+<p>ここにいくつかの重要な設計上の詳細があります：</p>
+<p><span class="tag1">フリーズスナップショットモード</span>：システムプロンプト内のメモリ内容はセッション開始時に一度だけ取得され、途中では更新されません。</p>
+<p>これは意図的な設計です。LLM のプレフィックスキャッシュ（Prompt Cache）を有効に保ち、Token コストを削減するためです。</p>
+<p>Agent がセッション中にメモリを変更すると、変更は即座にディスクへ書き込まれますが、待つ必要があります。<span class="tag1">次回のセッション開始時まで</span>コンテキストには現れません。</p>
+<p><span class="tag1">使用量パーセンテージが表示されます</span>：<code>[67% — 1,474/2,200]</code>Agent が常に残り容量を把握でき、上限に近づくと自主的に整理できます。</p>
+<p><span class="tag1">§ をエントリ区切り文字として使用</span>：各メモリエントリは § で区切られ、エントリ自体は複数行のテキストにできます。</p>
+<h3>Agentがメモリをどのように操作するか</h3>
+<p>Agent は組み込みの<code>memory</code>ツールでメモリを管理し、3つの操作をサポートします。</p>
+<table class="reference">
+<tr><th>操作</th><th>説明</th><th>パラメータ</th></tr>
+<tr><td>add</td><td>メモリエントリを1つ追加</td><td>target（memory/user）、content</td></tr>
+<tr><td>replace</td><td>既存エントリを置換（部分文字列マッチングで位置を特定）</td><td>target、old_text、content</td></tr>
+<tr><td>remove</td><td>既存エントリを削除（部分文字列マッチングで位置を特定）</td><td>target、old_text</td></tr>
+</table>
+<p>注意：<span class="tag1">read 操作はありません</span>——メモリ内容はセッション開始時にすでにシステムプロンプトへ注入されているため、Agent はコンテキスト内で直接それを確認でき、追加の読み取りは不要です。</p>
+<p><code>replace</code> 和 <code>remove</code>使用<span class="tag1">部分文字列マッチング</span>エントリを特定します。完全なエントリテキストを提供する必要はありません：</p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: #a50"># シナリオ：現在のメモリに「ユーザーはすべてのエディタでダークテーマを好む」がある</span><br/>
+<span style="color: #a50"># より正確なバージョンに更新する必要がある</span><br/>
+<span style="color: #a50"># 部分文字列マッチングで位置を特定——一意に識別できる断片を提供するだけでよい</span><br/>
+<br/>
+memory<span style="color: Olive;">(</span><br/>
+    action<span style="color: Gray;">=</span><span style="color: #a11;">"replace"</span><span style="color: Gray;">,</span><br/>
+    target<span style="color: Gray;">=</span><span style="color: #a11;">"memory"</span><span style="color: Gray;">,</span><br/>
+    old_text<span style="color: Gray;">=</span><span style="color: #a11;">"ダークテーマ"</span><span style="color: Gray;">,</span>  <span style="color: #a50"># 一意の部分文字列だけで元のエントリを特定できる</span><br/>
+    content<span style="color: Gray;">=</span><span style="color: #a11;">"ユーザーは VS Code でライトテーマ、ターミナルでダークテーマを使用"</span>  <span style="color: #a50"># 置換後の新しい内容</span><br/>
+<span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<p>部分文字列が複数のエントリにマッチした場合、ツールはエラーを返し、より正確なマッチング文字列を要求します。</p>
+<hr/>
+<h2>何を記憶すべきか、何を記憶すべきでないか</h2>
+<p>Agent は自動的に価値のある情報を判断して保存します。通常、明示的に要求する必要はありません。</p>
+<p>ただし、判断基準を理解しておくと、Agent の動作を理解しやすくなり、必要に応じて手動で導くのに役立ちます。</p>
+<h3>memoryに積極的に保存すべきもの（環境と仕事）</h3>
+<p>以下のタイプの情報は Agent が MEMORY.md への書き込みをトリガーします：</p>
+<table class="reference">
+<tr><th>タイプ</th><th>例</th></tr>
+<tr><td>環境の事実</td><td>本機は Debian 12、PostgreSQL 16 を実行、Docker は Podman で代替</td></tr>
+<tr><td>プロジェクト規範</td><td>~/code/api は Go 1.22、sqlc クエリ、chi ルーティングを使用。テストは make test</td></tr>
+<tr><td>ツールの経験</td><td>staging サーバーの SSH ポートは 22 ではなく 2222、キーは ~/.ssh/staging_ed25519 にあります</td></tr>
+<tr><td>修正記録</td><td>sudo で Docker コマンドを実行しないでください。ユーザーは docker ユーザーグループに所属しています</td></tr>
+<tr><td>作業を完了する</td><td>2026-01-15 データベースを MySQL から PostgreSQL に移行完了</td></tr>
+</table>
+<h3>userに積極的に保存すべきもの（あなたについて）</h3>
+<p>以下のタイプの情報は Agent が USER.md に書き込むトリガーとなる：</p>
+<table class="reference">
+<tr><th>タイプ</th><th>例</th></tr>
+<tr><td>身元情報</td><td>氏名、役職、タイムゾーン</td></tr>
+<tr><td>コミュニケーションの好み</td><td>簡潔な返信を好み、明白な手順の説明は不要</td></tr>
+<tr><td>嫌悪事項</td><td>コードに過剰なコメントを入れない</td></tr>
+<tr><td>仕事の習慣</td><td>毎日午後3時まではメッセージを見ない</td></tr>
+<tr><td>スキルレベル</td><td>Rust と Python に精通、Go は学習中</td></tr>
+</table>
+<h3>保存すべきでない内容</h3>
+<p>以下の内容は貴重な記憶スペースを占有する価値がない：</p>
+<table class="reference">
+<tr><th>タイプ</th><th>例</th><th>理由</th></tr>
+<tr><td>あまりにも曖昧</td><td>ユーザーはプロジェクトを持っている</td><td>情報量がなく、再利用できない</td></tr>
+<tr><td>いつでも再検索可能</td><td>Python 3.12 は f-string のネストをサポート</td><td>検索すればよいので、スペースを取る価値がない</td></tr>
+<tr><td>生データ</td><td>大量のログ、コードブロック、データテーブル</td><td>文字数制限を超え、構造化された記憶のほうが有用</td></tr>
+<tr><td>一時的な内容</td><td>今回のデバッグの一時ファイルパス</td><td>次回は使えない</td></tr>
+<tr><td>すでにコンテキストにある内容</td><td>プロジェクトの SOUL.md、AGENTS.md にすでにある情報</td><td>重複した注入はトークンを浪費する</td></tr>
+</table>
+<h3>良いメモリ vs 悪いメモリ</h3>
+<p>同じ情報でも、書き方が良ければ1件で10件分の価値があり、書き方が悪ければまったく価値がない。</p>
+<table class="reference">
+<tr><th>評価</th><th>例</th><th>コメント</th></tr>
+<tr><td><span class="tag1 green">好</span></td><td>ユーザーの macOS 14 Sonoma、Homebrew、Docker Desktop、シェルは oh-my-zsh 付きの zsh、エディタは VS Code + Vim キーバインド</td><td>情報密度が高く、関連する事実がまとまっている</td></tr>
+<tr><td><span class="tag1 green">好</span></td><td>プロジェクト ~/code/api は Go 1.22、DB クエリに sqlc、ルーティングに chi を使用。テスト：make test。CI：GitHub Actions</td><td>具体的で実行可能な規範</td></tr>
+<tr><td><span class="tag1 green">好</span></td><td>staging サーバー（10.0.1.50）の SSH ポートは 22 ではなく 2222、鍵は ~/.ssh/staging_ed25519</td><td>文脈のある教訓で、落とし穴を回避できる</td></tr>
+<tr><td><span class="tag1">差</span></td><td>ユーザーはプロジェクトを持っている</td><td>あまりにも曖昧で、いかなる行動の指針にもならない</td></tr>
+<tr><td><span class="tag1">差</span></td><td>2026年1月5日、ユーザーは ~/code/api にある自分のプロジェクトを確認するよう依頼し、Go 1.22 を使用していることがわかった……</td><td>冗長すぎて、核心情報が叙述に埋もれている</td></tr>
+</table>
+<hr/>
+<h2>メモリ容量管理</h2>
+<p>記憶ファイルには厳格な文字数上限があり、Agent は上限に近づいたら積極的に整理する必要がある。</p>
+<h3>上限に近づくとどうなるか</h3>
+<p>新しいエントリが文字数上限を超える場合、ツールは静かに切り詰めるのではなくエラーを返す：</p>
+<pre>
+{
+  "success": false,
+  "error": "Memory 已用 2,100/2,200 字符。新条目（250 字符）会超出上限。
+            请先整理：用 replace 合并重叠条目，或 remove 过时条目，
+            再重试——在同一轮对话中完成。",
+  "current_entries": [
+    "用户的 macOS 14 Sonoma，Homebrew，Docker Desktop",
+    "项目 ~/code/api 使用 Go 1.22，sqlc 做 DB 查询"
+  ],
+  "usage": "2,100/2,200"
+}</pre>
+<p>このエラーを受け取った後の Agent の正しい対処法：</p>
+<ol>
+<li>現在のすべてのエントリを読み取る（エラー応答にすでに含まれている）</li>
+<li>削除または統合できるエントリを見つける</li>
+<li>用 <code>replace</code>関連する複数のエントリをより簡潔な1件に統合する</li>
+<li>その後、新しいエントリの追加を再試行する</li>
+</ol>
+<blockquote><p>ベストプラクティス：システムプロンプトで記憶使用率が80%を超えたら、エラーを待たずに積極的に整理する。予防は常に修正よりもトークンを節約できる。</p></blockquote>
+<h3>容量の参考</h3>
+<table class="reference">
+<tr><th>ストレージ</th><th>上限</th><th>一般的なエントリ数</th></tr>
+<tr><td>MEMORY.md</td><td>2,200 文字</td><td>8〜15件</td></tr>
+<tr><td>USER.md</td><td>1,375 文字</td><td>5〜10件</td></tr>
+</table>
+<hr/>
+<h2>メモリ書き込み権限の制御</h2>
+<p>デフォルトでは、Agent は自由に記憶を書き込める——以下を含む<span class="tag1">バックグラウンドで自動実行される自己改善レビュー</span>（1ラウンドの会話終了後にバックグラウンドで実行され、記憶とスキルを抽出する）。</p>
+<p>何かを記憶に書き込む前に審査したい場合は、書き込み承認を有効にできる。</p>
+<h3>書き込み承認の有効化</h3>
+<p>設定ファイルで設定するだけ：</p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: blue;"># ファイルパス：~/.hermes/config.yaml</span><br/>
+<span style="color: blue;"># 記憶書き込み承認を有効化——すべての書き込み操作に手動承認が必要</span><span style="color: #007F45;"><br/>
+memory</span>:<span style="color: green;"><br/>
+  write_approval</span><span style="font-weight: bold; color: brown;">: </span>true   <span style="color: blue;"># デフォルト false（自由書き込み）</span><br/>
+</div>
+</div>
+<p>有効化後の動作の変化：</p>
+<table class="reference">
+<tr><th>シナリオ</th><th>動作</th></tr>
+<tr><td>CLI 対話中に Agent が記憶を書き込む場合</td><td>ターミナルでインライン承認を求める</td></tr>
+<tr><td>メッセージプラットフォーム / バックグラウンド自動レビュー</td><td>書き込みは保留され、手動承認を待つ</td></tr>
+</table>
+<h3>承認管理コマンド</h3>
+<p>以下のスラッシュコマンドで保留中の記憶書き込みを管理する：</p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: #666666; font-style: italic;"># 保留中の記憶書き込みを表示（自動トリガーは [auto] と表示）</span><br/>
+<span style="color: #000000; font-weight: bold;">/</span>memory pending<br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># 指定した ID の書き込みを承認、またはすべて承認</span><br/>
+<span style="color: #000000; font-weight: bold;">/</span>memory approve <span style="color: #000000; font-weight: bold;">&lt;</span><span style="color: #c20cb9; font-weight: bold;">id</span><span style="color: #000000; font-weight: bold;">&gt;</span><br/>
+<span style="color: #000000; font-weight: bold;">/</span>memory approve all<br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># 指定した ID の書き込みを拒否、またはすべて拒否</span><br/>
+<span style="color: #000000; font-weight: bold;">/</span>memory reject <span style="color: #000000; font-weight: bold;">&lt;</span><span style="color: #c20cb9; font-weight: bold;">id</span><span style="color: #000000; font-weight: bold;">&gt;</span><br/>
+<span style="color: #000000; font-weight: bold;">/</span>memory reject all<br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># 実行時に承認をオンまたはオフにする（設定は永続保存される）</span><br/>
+<span style="color: #000000; font-weight: bold;">/</span>memory approval on<br/>
+<span style="color: #000000; font-weight: bold;">/</span>memory approval off<br/>
+</div>
+</div>
+<blockquote><p>適用シナリオ：Agent があなたについて誤った仮定を保存した場合、または記憶内容を完全に管理したい場合、write_approval を有効にするのが最も直接的な方法です。</p></blockquote>
+<h3>バックグラウンド自己改善レビューについて</h3>
+<p>各ラウンドの会話終了後、Hermes はバックグラウンドで自己改善レビュー（background review）を1回実行し、この会話を分析して保存に値する記憶やスキルを抽出します。</p>
+<p>デフォルトではチャットに1行の通知が表示されます<code>Memory updated</code>。</p>
+<p>通知の詳細度を調整できます：</p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: blue;"># ファイルパス：~/.hermes/config.yaml</span><br/>
+<span style="color: blue;"># バックグラウンドレビューの通知詳細度を制御</span><span style="color: #007F45;"><br/>
+display</span>:<span style="color: green;"><br/>
+  memory_notifications</span><span style="font-weight: bold; color: brown;">: </span>on      <span style="color: blue;"># off | on（デフォルト）| verbose</span><br/>
+</div>
+</div>
+<table class="reference">
+<tr><th>值</th><th>効果</th></tr>
+<tr><td>off</td><td>通知は表示されないが、レビューは引き続き実行され、書き込みも行われる</td></tr>
+<tr><td>on（デフォルト）</td><td>短い通知、例：Memory updated</td></tr>
+<tr><td>verbose</td><td>変更プレビューを含む、例：Memory + ユーザーは簡潔な返信を好む</td></tr>
+</table>
+<p>メインモデルのコストが高い場合、バックグラウンドレビューをより安価なモデルで実行できます：</p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: blue;"># ファイルパス：~/.hermes/config.yaml</span><br/>
+<span style="color: blue;"># バックグラウンドレビューは独立したモデルを使用し、コストを削減</span><span style="color: #007F45;"><br/>
+auxiliary</span>:<span style="color: #007F45;"><br/>
+  background_review</span>:<span style="color: green;"><br/>
+    provider</span><span style="font-weight: bold; color: brown;">: </span>openrouter<span style="color: green;"><br/>
+    model</span><span style="font-weight: bold; color: brown;">: </span>google/gemini-<span style="">3</span>-flash-preview   <span style="color: blue;"># デフォルト auto = メインモデル</span><br/>
+</div>
+</div>
+<hr/>
+<h2>エピソードログとセッション横断検索</h2>
+<p>第2層の記憶——セッション履歴（Session History）——すべての過去の会話の完全な記録を保存し、全文検索とオンデマンド呼び出しをサポートします。</p>
+<h3>すべての会話は自動保存されます</h3>
+<p>すべてのセッション——CLI、Telegram、Discord、その他どのプラットフォームからのものであっても——自動的に2か所に保存されます：</p>
+<table class="reference">
+<tr><th>保存場所</th><th>形式</th><th>内容</th></tr>
+<tr><td>~/.hermes/state.db</td><td>SQLite データベース + FTS5 全文インデックス</td><td>構造化メタデータ、完全なメッセージ履歴（ツール呼び出しと結果を含む）、トークン使用量、タイムスタンプ</td></tr>
+<tr><td>~/.hermes/sessions/</td><td>JSONL トランスクリプトファイル</td><td>ツール呼び出し記録を含む生の会話トランスクリプト</td></tr>
+</table>
+<h3>session_search ツール</h3>
+<p>Agent 組み込み<code>session_search</code>すべての過去の会話に対して全文検索を実行できるツール。</p>
+<p>検索段階では LLM を介さず、SQLite FTS5 エンジンが直接実行します：</p>
+<p>ワークフロー：</p>
+<ol>
+<li>FTS5 が関連性順にマッチするメッセージを検索</li>
+<li>セッションごとにグループ化し、最も関連性の高いセッションをいくつか取得（デフォルト 3 つ）</li>
+<li>各セッションの会話を読み込み、マッチ位置付近の約 10万文字を切り出す</li>
+<li>軽量サマリーモデルで焦点を絞った要約を生成</li>
+<li>各セッションの要約とコンテキストを Agent に返す</li>
+</ol>
+<p>サポートされている検索構文（FTS5 標準）：</p>
+<table class="reference">
+<tr><th>構文</th><th>例</th><th>説明</th></tr>
+<tr><td>キーワード検索</td><td>docker deployment</td><td>いずれかのキーワードを含むメッセージにマッチ</td></tr>
+<tr><td>フレーズ一致</td><td>"exact phrase"</td><td>フレーズ全体に完全一致</td></tr>
+<tr><td>ブール OR</td><td>docker OR kubernetes</td><td>いずれかのキーワードにマッチ</td></tr>
+<tr><td>ブール NOT</td><td>python NOT java</td><td>特定のキーワードを除外</td></tr>
+<tr><td>プレフィックスワイルドカード</td><td>deploy*</td><td>deploy で始まる単語にマッチ</td></tr>
+</table>
+<blockquote><p>トリガータイミング：Agent は「前回話し合った……」や「以前のあの案……」に言及したときに、あなたに繰り返し説明させるのではなく、自動的に session_search を呼び出します。</p></blockquote>
+<h3>session_search vs 永続メモリ</h3>
+<p>両者は補完関係にあり、置き換え関係ではありません：</p>
+<table class="reference">
+<tr><th>比較軸</th><th>永続記憶（MEMORY.md / USER.md）</th><th>セッション履歴（Session Search）</th></tr>
+<tr><td>容量</td><td>合計約1,300トークン</td><td>無制限（すべての過去の会話）</td></tr>
+<tr><td>速度</td><td>即時（システムプロンプトに含まれている）</td><td>約20ms（FTS5クエリ）</td></tr>
+<tr><td>トークンコスト</td><td>セッションごとに固定消費</td><td>オンデマンド、検索しない限り消費しない</td></tr>
+<tr><td>用途</td><td>重要な事実、常に参照可能</td><td>特定の過去の議論を検索</td></tr>
+<tr><td>管理方法</td><td>Agent が自発的に整理</td><td>全自動、介入不要</td></tr>
+</table>
+<p><span class="tag1">記憶</span>「常に知っておくべきこと」に使用——環境の事実、ユーザーの好み、プロジェクト規約。</p>
+<p><span class="tag1">セッション履歴</span>「先週この問題について話しましたか？」に使用——具体的な過去の議論を検索します。</p>
+<hr/>
+<h2>セッション管理</h2>
+<p>セッション履歴の各セッションには、名前付け、復元、エクスポート、クリーンアップが可能です。</p>
+<h3>命名と復元</h3>
+<p>Hermes は最初のターン後に短いセッションタイトル（3〜7語）を自動生成します。バックグラウンドで非同期に実行されるため、応答速度には影響しません。</p>
+<p>手動で名前を付けることもできます：</p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: #666666; font-style: italic;"># セッション内で手動タイトルを設定</span><br/>
+<span style="color: #000000; font-weight: bold;">/</span>title 認証モジュールを再構築<br/>
+</div>
+</div>
+<p>名前を付けた後は、タイトルを直接使ってセッションを復元できます：</p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: #666666; font-style: italic;"># タイトルでセッションを復元</span><br/>
+hermes <span style="color: #660033;">-c</span> <span style="color: #a10;">"認証モジュールを再構築"</span><br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># 最新のセッションを復元</span><br/>
+hermes <span style="color: #660033;">--continue</span><br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># セッションIDで復元</span><br/>
+hermes <span style="color: #660033;">-r</span> <span style="color: #000000; font-weight: bold;">&lt;</span>session_id<span style="color: #000000; font-weight: bold;">&gt;</span><br/>
+</div>
+</div>
+<p><span class="tag1">自動系譜（Auto-Lineage）</span>：セッションがコンテキスト圧縮を受けると、Hermes は継続セッションを自動的に作成して番号を付けます：</p>
+<pre>
+"我的项目" → "我的项目 #2" → "我的项目 #3"
+</pre>
+<p>タイトルで復元する場合、最新の継続セッションが自動的に選択されます。</p>
+<h3>よく使うセッション管理コマンド</h3>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: #666666; font-style: italic;"># 最近の20セッションを一覧表示</span><br/>
+hermes sessions list<br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># ソースプラットフォームでフィルタリング</span><br/>
+hermes sessions list <span style="color: #660033;">--source</span> telegram<br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># さらに多く表示</span><br/>
+hermes sessions list <span style="color: #660033;">--limit</span> <span style="color: #000000;">50</span><br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># 指定したセッションの名前を変更</span><br/>
+hermes sessions rename <span style="color: #000000; font-weight: bold;">&lt;</span><span style="color: #c20cb9; font-weight: bold;">id</span><span style="color: #000000; font-weight: bold;">&gt;</span> <span style="color: #a10;">"新しいタイトル"</span><br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># すべてのセッションをファイルにエクスポート</span><br/>
+hermes sessions <span style="color: #7a0874; font-weight: bold;">export</span> backup.jsonl<br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># 指定したセッションを削除</span><br/>
+hermes sessions delete <span style="color: #000000; font-weight: bold;">&lt;</span><span style="color: #c20cb9; font-weight: bold;">id</span><span style="color: #000000; font-weight: bold;">&gt;</span><br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># 30日以上前の古いセッションをクリーンアップ</span><br/>
+hermes sessions <span style="color: #c20cb9; font-weight: bold;">prune</span> <span style="color: #660033;">--older-than</span> <span style="color: #000000;">30</span><br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># 統計情報を表示</span><br/>
+hermes sessions stats<br/>
+</div>
+</div>
+<p><code>hermes sessions list</code>の出力例：</p>
+<pre>
+标题                 预览                               最近活跃    ID
+────────────────────────────────────────────────────────────────────
+重构认证模块          帮我重构认证模块的代码                2 小时前   20260305_09...
+我的项目 #3          检查一下测试失败的原因                昨天        20260304_14...
+—                   Python 装饰器怎么用                  3 天前      20260303_10...
+</pre>
+<h3>セッション自動クリーンアップ（オプション）</h3>
+<p>デフォルトではセッション履歴は永久に保持されます（session_search にデータを提供するため）。</p>
+<p>自動クリーンアップが必要な場合は、設定で有効にします：</p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: blue;"># ファイルパス: ~/.hermes/config.yaml</span><br/>
+<span style="color: blue;"># セッション自動クリーンアップを有効化（デフォルトではオフ）</span><span style="color: #007F45;"><br/>
+sessions</span>:<span style="color: green;"><br/>
+  auto_prune</span><span style="font-weight: bold; color: brown;">: </span>true        <span style="color: blue;"># デフォルトは false</span><span style="color: green;"><br/>
+  retention_days</span><span style="font-weight: bold; color: brown;">: </span><span style="">90</span>      <span style="color: blue;"># 最近90日分を保持</span><span style="color: green;"><br/>
+  vacuum_after_prune</span><span style="font-weight: bold; color: brown;">: </span>true<span style="color: green;"><br/>
+  min_interval_hours</span><span style="font-weight: bold; color: brown;">: </span><span style="">24</span><br/>
+</div>
+</div>
+<hr/>
+<h2>Honcho ユーザーモデリング</h2>
+<p>Honcho は Plastic Labs が開発した AI ネイティブな記憶バックエンドで、プラグインとして Hermes に統合されています。</p>
+<p>これは MEMORY.md と USER.md を置き換えるものではなく、その上に<span class="tag1">弁証法的推論レイヤーを追加します</span>——あなたの会話パターンを分析し、明示的に表明していない好み、目標、習慣を自動的に推論します。</p>
+<blockquote><p>MEMORY.md の手動キュレーションとは異なり、Honcho は全自動です。各ターンの後に（頻度は設定可能）バックグラウンドで推論し、あなたへの理解を深めていきます。</p></blockquote>
+<h3>Honcho と組み込みメモリの比較</h3>
+<table class="reference">
+<tr><th>機能</th><th>内蔵記憶</th><th>Honcho</th></tr>
+<tr><td>セッション間の永続化</td><td>ローカルファイル</td><td>サーバーサイド API</td></tr>
+<tr><td>ユーザープロファイル</td><td>手動キュレーション（USER.md）</td><td>自動弁証法的推論</td></tr>
+<tr><td>セッション要約</td><td>—</td><td>セッションレベルのコンテキスト注入</td></tr>
+<tr><td>マルチAgent分離</td><td>—</td><td>Agent ごとに個別モデリング</td></tr>
+<tr><td>セマンティック検索</td><td>FTS5 全文</td><td>推論結果に基づく</td></tr>
+</table>
+<h3>2層のコンテキスト注入</h3>
+<p>各ターンで、Honcho は2層のコンテキストを組み立ててシステムプロンプトに注入します：</p>
+<p><span class="tag1">基本レイヤー（Base Context）</span>：セッション要約 + ユーザー表現 + ユーザー Peer Card + AI 自己表現。contextCadence（Nターンごと）で一度更新されます。これは「このユーザーは誰か」のレイヤーです。</p>
+<p><span class="tag1">弁証法レイヤー（Dialectic Supplement）</span>：Honcho の LLM エンジンによるリアルタイム推論で生成され、「現在最も関連性が高いものは何か」に焦点を当てます。dialecticCadence に従って更新されます。</p>
+<p>弁証法的推論の2つの起動モード：</p>
+<table class="reference">
+<tr><th>モード</th><th>条件</th><th>クエリ方法</th></tr>
+<tr><td>コールドスタート</td><td>履歴データなし</td><td>汎用クエリ——「このユーザーは誰か？その好み、目標、仕事の進め方は何か？」</td></tr>
+<tr><td>ウォームスタート</td><td>履歴データあり</td><td>セッション焦点クエリ——「今回のセッションで話し合われた内容に基づくと、このユーザーに関して最も関連性の高いコンテキストは何か？」</td></tr>
+</table>
+<h3>3つの独立した調整ノブ</h3>
+<table class="reference">
+<tr><th>パラメータ</th><th>制御する内容</th><th>デフォルト値</th></tr>
+<tr><td>contextCadence</td><td>基本レイヤー更新間隔（NターンごとにAPIを1回呼び出し）</td><td>1</td></tr>
+<tr><td>dialecticCadence</td><td>弁証法レイヤー更新間隔（NターンごとにLLMを1回呼び出し）</td><td>2（推奨 1〜5）</td></tr>
+<tr><td>dialecticDepth</td><td>各弁証的推論の深さ（1〜3回のパス）</td><td>1</td></tr>
+</table>
+<p>3つのノブは完全に独立しています——基本レイヤーを高頻度で更新し、弁証的推論を低頻度で実行することも、その逆も可能です：</p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+
+{<br/>
+  "contextCadence": 1,<br/>
+  "dialecticCadence": 5,<br/>
+  "dialecticDepth": 2<br/>
+}<br/>
+</div>
+</div>
+<p>上記の設定は次の意味です：毎ターン基本レイヤーを更新し、5ターンごとに2パス深度の弁証的推論を行います。</p>
+<h3>マルチパス弁証法的推論</h3>
+<p>dialecticDepth が1より大きい場合、各弁証的推論で複数回の LLM 呼び出しが実行されます：</p>
+<table class="reference">
+<tr><th>Pass</th><th>タスク</th><th>説明</th></tr>
+<tr><td>Pass 0</td><td>コールド/ウォームスタート推論</td><td>初期評価の確立</td></tr>
+<tr><td>Pass 1</td><td>自己監査</td><td>初期評価の盲点を特定し、最近のセッション証拠を総合</td></tr>
+<tr><td>Pass 2</td><td>調和</td><td>前2ラウンドの矛盾を確認し、最終的な総合結論を生成</td></tr>
+</table>
+<blockquote><p>深さ3は必ずしも3回の LLM 呼び出しを意味しません——前のラウンドで高品質な出力が得られた場合、次のラウンドは早期終了し、トークンを節約します。</p></blockquote>
+<h3>Honcho クイックスタート</h3>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: #666666; font-style: italic;"># 対話式セットアップで honcho プロバイダーを選択</span><br/>
+hermes memory setup<br/>
+</div>
+</div>
+<p>または手動で設定：</p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: blue;"># ファイルパス: ~/.hermes/config.yaml</span><br/>
+<span style="color: blue;"># Honcho を記憶プロバイダーとして有効化</span><span style="color: #007F45;"><br/>
+memory</span>:<span style="color: green;"><br/>
+  provider</span><span style="font-weight: bold; color: brown;">: </span>honcho<br/>
+</div>
+</div>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: #666666; font-style: italic;"># APIキーを環境変数ファイルに書き込む</span><br/>
+<span style="color: #7a0874; font-weight: bold;">echo</span> <span style="color: #a10;">'HONCHO_API_KEY=your_key'</span> <span style="color: #000000; font-weight: bold;">&gt;&gt;</span> ~<span style="color: #000000; font-weight: bold;">/</span>.hermes<span style="color: #000000; font-weight: bold;">/</span>.env<br/>
+</div>
+</div>
+<p>honcho.dev で APIキーを取得します。</p>
+<h3>Honcho が提供するツール</h3>
+<p>Honcho を有効にすると、Agent は5つの専用ツールを使用できます：</p>
+<table class="reference">
+<tr><th>ツール</th><th>用途</th></tr>
+<tr><td>honcho_profile</td><td>ユーザー Peer Card の読み取りまたは更新</td></tr>
+<tr><td>honcho_search</td><td>推論結果に基づくセマンティック検索（生の断片、LLM による総合なし）</td></tr>
+<tr><td>honcho_context</td><td>完全なセッションコンテキストの取得（要約、ユーザー表現、最近のメッセージ）</td></tr>
+<tr><td>honcho_reasoning</td><td>Honcho LLM 推論の呼び出し（reasoning_level を指定可能）</td></tr>
+<tr><td>honcho_conclude</td><td>推論結論の作成または削除</td></tr>
+</table>
+<h3>Honcho CLI コマンド</h3>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: #666666; font-style: italic;"># Honcho の接続状態、設定、主要な設定を表示</span><br/>
+hermes honcho status<br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># セッションポリシーの表示または設定</span><br/>
+hermes honcho strategy<br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># リコールモードの表示または設定（hybrid/context/tools）</span><br/>
+hermes honcho mode<br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># トークン予算の表示または設定</span><br/>
+hermes honcho tokens<br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># 既知の Honcho セッションマッピングを一覧表示</span><br/>
+hermes honcho sessions<br/>
+</div>
+</div>
+<hr/>
+<h2>メモリシステム設定リファレンス</h2>
+<p>以下は、すべての記憶関連設定の完全なリファレンスです。設定ファイルに直接コピーして使用できます。</p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: blue;"># ============================================</span><br/>
+<span style="color: blue;"># ファイルパス: ~/.hermes/config.yaml</span><br/>
+<span style="color: blue;"># Hermes 記憶システム完全設定リファレンス</span><br/>
+<span style="color: blue;"># ============================================</span><br/>
+<br/>
+<span style="color: blue;"># --- 永続記憶設定 ---</span><span style="color: #007F45;"><br/>
+memory</span>:<span style="color: green;"><br/>
+  memory_enabled</span><span style="font-weight: bold; color: brown;">: </span>true          <span style="color: blue;"># 永続メモリ（MEMORY.md）を有効にするかどうか</span><span style="color: green;"><br/>
+  user_profile_enabled</span><span style="font-weight: bold; color: brown;">: </span>true    <span style="color: blue;"># ユーザープロファイル（USER.md）を有効にするかどうか</span><span style="color: green;"><br/>
+  memory_char_limit</span><span style="font-weight: bold; color: brown;">: </span><span style="">2200</span>       <span style="color: blue;"># MEMORY.md の文字数上限（約800トークン）</span><span style="color: green;"><br/>
+  user_char_limit</span><span style="font-weight: bold; color: brown;">: </span><span style="">1375</span>         <span style="color: blue;"># USER.md の文字数上限（約500トークン）</span><span style="color: green;"><br/>
+  write_approval</span><span style="font-weight: bold; color: brown;">: </span>false         <span style="color: blue;"># true = すべてのメモリ書き込みに手動承認が必要</span><span style="color: green;"><br/>
+  provider</span><span style="font-weight: bold; color: brown;">: </span>honcho              <span style="color: blue;"># オプション：Honcho メモリプロバイダーを有効にする</span><br/>
+<br/>
+<span style="color: blue;"># --- セッション自動クリーンアップ（オプション、デフォルトではオフ）---</span><span style="color: #007F45;"><br/>
+sessions</span>:<span style="color: green;"><br/>
+  auto_prune</span><span style="font-weight: bold; color: brown;">: </span>false             <span style="color: blue;"># 古いセッションを自動クリーンアップするかどうか</span><span style="color: green;"><br/>
+  retention_days</span><span style="font-weight: bold; color: brown;">: </span><span style="">90</span>            <span style="color: blue;"># 直近 N 日間のセッションを保持</span><span style="color: green;"><br/>
+  vacuum_after_prune</span><span style="font-weight: bold; color: brown;">: </span>true      <span style="color: blue;"># クリーンアップ後にディスク領域を回収するかどうか</span><span style="color: green;"><br/>
+  min_interval_hours</span><span style="font-weight: bold; color: brown;">: </span><span style="">24</span>        <span style="color: blue;"># 2回のクリーンアップ間の最小間隔</span><br/>
+<br/>
+<span style="color: blue;"># --- バックグラウンドレビュー通知 ---</span><span style="color: #007F45;"><br/>
+display</span>:<span style="color: green;"><br/>
+  memory_notifications</span><span style="font-weight: bold; color: brown;">: </span>on      <span style="color: blue;"># off | on | verbose</span><br/>
+<br/>
+<span style="color: blue;"># --- バックグラウンドレビューでより安価なモデルを使用（オプション）---</span><span style="color: #007F45;"><br/>
+auxiliary</span>:<span style="color: #007F45;"><br/>
+  background_review</span>:<span style="color: green;"><br/>
+    provider</span><span style="font-weight: bold; color: brown;">: </span>openrouter        <span style="color: blue;"># モデルプロバイダー</span><span style="color: green;"><br/>
+    model</span><span style="font-weight: bold; color: brown;">: </span>google/gemini-<span style="">3</span>-flash-preview  <span style="color: blue;"># モデル名</span><br/>
+</div>
+</div>
+<hr/>
+<h2>よく使うメモリ操作クイックリファレンス</h2>
+<h3>会話中で直接メモリを操作する</h3>
+<p>自然言語で Hermes にメモリ操作を指示できます。コマンドを覚える必要はありません：</p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: #666666; font-style: italic;"># メモリを追加</span><br/>覚えておいて：このプロジェクトでは依存関係の管理に Poetry を使用し、pip は使いません<br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># メモリを削除または上書き</span><br/>MySQL に関する以前の記録は忘れてください。PostgreSQL に移行しました<br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># メモリ内の情報を更新</span><br/>ステージングサーバーの IP を 10.0.2.100 に更新してください<br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># メモリを照会</span><br/>あなたが今、私についてどんな情報を覚えているか教えてください<br/>
+</div>
+</div>
+<h3>スラッシュコマンド</h3>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: #666666; font-style: italic;"># 現在のメモリ内容を表示</span><br/>
+<span style="color: #000000; font-weight: bold;">/</span>memory<br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># 承認待ちの書き込みを表示</span><br/>
+<span style="color: #000000; font-weight: bold;">/</span>memory pending<br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># 承認待ちをすべて承認</span><br/>
+<span style="color: #000000; font-weight: bold;">/</span>memory approve all<br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># 承認待ちをすべて拒否</span><br/>
+<span style="color: #000000; font-weight: bold;">/</span>memory reject all<br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># 書き込み承認を有効化</span><br/>
+<span style="color: #000000; font-weight: bold;">/</span>memory approval on<br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># 書き込み承認を無効化</span><br/>
+<span style="color: #000000; font-weight: bold;">/</span>memory approval off<br/>
+</div>
+</div>
+<h3>メモリファイルを直接編集する</h3>
+<p>メモリファイルはプレーンな Markdown なので、エディタで直接開いて修正できます：</p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: #666666; font-style: italic;"># 現在のメモリ内容を表示</span><br/>
+<span style="color: #c20cb9; font-weight: bold;">cat</span> ~<span style="color: #000000; font-weight: bold;">/</span>.hermes<span style="color: #000000; font-weight: bold;">/</span>memories<span style="color: #000000; font-weight: bold;">/</span>MEMORY.md<br/>
+<span style="color: #c20cb9; font-weight: bold;">cat</span> ~<span style="color: #000000; font-weight: bold;">/</span>.hermes<span style="color: #000000; font-weight: bold;">/</span>memories<span style="color: #000000; font-weight: bold;">/</span>USER.md<br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># エディタで開いて修正</span><br/>
+<span style="color: #c20cb9; font-weight: bold;">nano</span> ~<span style="color: #000000; font-weight: bold;">/</span>.hermes<span style="color: #000000; font-weight: bold;">/</span>memories<span style="color: #000000; font-weight: bold;">/</span>MEMORY.md<br/>
+</div>
+</div>
+<blockquote><p>注意：ファイルを直接編集した場合、変更は次回のセッション起動時に有効になり、現在のセッションのコンテキストにはすぐには反映されません。</p></blockquote>
+<hr/>
+<h2>メモリのセキュリティとプライバシー</h2>
+<h3>セキュリティスキャン</h3>
+<p>メモリコンテンツは書き込み前にセキュリティスキャンを受け、インジェクション攻撃やデータ窃取パターンを検出します。</p>
+<p>システムは以下の脅威パターンを検出します：</p>
+<table class="reference">
+<tr><th>脅威タイプ</th><th>検出内容</th></tr>
+<tr><td>プロンプトインジェクション</td><td>Agent のシステム命令を上書きしようとするインジェクションパターン</td></tr>
+<tr><td>認証情報の窃取</td><td>Agent に API キーやトークンの漏えいを誘導する命令</td></tr>
+<tr><td>バックドアのインストール</td><td>SSH バックドアやリモートアクセスのインストール命令</td></tr>
+<tr><td>隠し文字</td><td>不可視の Unicode 文字（ゼロ幅スペース、方向オーバーライドなど）</td></tr>
+</table>
+<p>脅威パターンに一致するコンテンツは<span class="tag1">書き込みが拒否されます</span>。</p>
+<h3>ログ内の機密情報のマスキング</h3>
+<p>API キー、トークンなどの機密情報は、すべてのログファイルで自動的にマスキングされます。ツール出力に現れた場合でも、平文では記録されません：</p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: blue;"># ファイルパス：~/.hermes/config.yaml</span><br/>
+<span style="color: blue;"># デフォルトで有効、機密情報は自動的にマスキングされます</span><span style="color: #007F45;"><br/>
+security</span>:<span style="color: green;"><br/>
+  redact_secrets</span><span style="font-weight: bold; color: brown;">: </span>true<br/>
+</div>
+</div>
+<h3>データのローカル保存</h3>
+<p>すべてのメモリデータ（MEMORY.md、USER.md、state.db）はデフォルトでローカルの<code>~/.hermes/</code>ディレクトリに保存され、クラウドにはアップロードされません。</p>
+<p>Honcho を使用することを選択した場合、会話データは処理のために Honcho のサーバーに送信されます。これは意図的なトレードオフです：データのアップロードと引き換えに、より深い推論能力を得るためです。</p>
+その他の拡張
+</div>
+</div>
+<div class="archive-list" style="display:none;font-size: 14px;line-height: 1.8;margin-top: 20px;padding: 10px;">
+<div class="archive-list-item">
+<div class="post-intro" id="ai-info" style="width: 100%;">AI 思考中...</div>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../hermes-agent/hermes-agent-desktop.html" rel="prev">Hermes Agent デスクトップ版</a> </div>
+<div class="next-design-link"><a href="../hermes-agent/hermes-agent-skills.html" rel="next">Hermes Agent スキル（Skills）</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="sidebar-box">
+</div>
+ノート一覧
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>クリックしてノートを共有</h3>
+&lt;p style="font-size:14px;"&gt;ノートは本記事の内容の拡張である必要があります！&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;記事の投稿は、こちらをクリック&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; ノートを共有する前に&lt;a href=";.html" class="runoob-pop"&gt;ログイン&lt;/a&gt;が必要です！&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=";.html" id="cancel-comment-reply-link">キャンセル</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="31573"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>ノートを共有</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">ニックネーム</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">ニックネーム（必須）</span></li>
+<li class="form-inline"><label class="hide" for="email">メールアドレス</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">メールアドレス（必須）</span></li>
+<li class="form-inline"><label class="hide" for="url">引用アドレス</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">引用地址</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  31573;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 31573, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":31573},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+</div>
+</div>
+<!-- 右边栏 -->
+<div class="fivecol last right-column">
+<style>
+.sidebar-tree .double-li {
+    width:300px;
+}
+.sidebar-tree .double-li li {
+    width: 44%;
+    line-height: 1.5em;
+    border-bottom: 1px solid #ccc;
+    float: left;
+    display: inline;
+}
+</style>
+<div class="sidebar-box re-box re-box-large">
+<div class="sidebar-box recommend-here" style="margin: 0 auto;">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;"> <i aria-hidden="true" class="fa fa-list"></i> 分类导航</a>
+</div>
+<div class="sidebar-box sidebar-cate">
+<div class="sidebar-tree">
+<ul><li style="margin: 0;"><a class="tit" href="#"> Python / 数据科学</a><ul class="double-li"><li><a href="../python3/python3-tutorial.html" title="Python 教程">Python 教程</a></li><li><a href="../python/python-tutorial.html" title="Python2.x 教程">Python2.x 教程</a></li><li><a href="../fastapi/fastapi-tutorial.html" title="FastAPI 教程">FastAPI 教程</a></li><li><a href="../flask/flask-tutorial.html" title="Flask 教程">Flask 教程</a></li><li><a href="../django/django-tutorial.html" title="Django 教程">Django 教程</a></li><li><a href="../numpy/numpy-tutorial.html" title="NumPy 教程">NumPy 教程</a></li><li><a href="../pandas/pandas-tutorial.html" title="Pandas 教程">Pandas 教程</a></li><li><a href="../scipy/scipy-tutorial.html" title="SciPy 教程">SciPy 教程</a></li><li><a href="../matplotlib/matplotlib-tutorial.html" title="Matplotlib 教程">Matplotlib 教程</a></li><li><a href="../dash/dash-tutorial.html" title="Dash 教程">Dash 教程</a></li><li><a href="../jupyter-notebook/jupyter-notebook-tutorial.html" title="Jupyter Notebook 教程">Jupyter Notebook 教程</a></li><li><a href="../pillow/pillow-tutorial.html" title="Pillow 教程">Pillow 教程</a></li><li><a href="../qt/qt-tutorial.html" title="量化交易">量化交易</a></li><li><a href="../r/r-tutorial.html" title="R 教程">R 教程</a></li><li><a href="../julia/julia-tutorial.html" title="Julia 教程">Julia 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> AI / 智能开发</a><ul class="double-li"><li><a href="../ai-agent/ai-agent-tutorial.html" title="AI Agent（智能体）">AI Agent（智能体）</a></li><li><a href="../ai/ai-tutorial.html" title="AI（人工智能）">AI（人工智能）</a></li><li><a href="../codex/codex-tutorial.html" title="Codex 教程">Codex 教程</a></li><li><a href="../vibe-coding/vibe-coding-tutorial.html" title="Vibe Coding 教程">Vibe Coding 教程</a></li><li><a href="../claude-code/claude-code-tutorial.html" title="Claude Code">Claude Code</a></li><li><a href="../opencode/opencode-tutorial.html" title="OpenCode">OpenCode</a></li><li><a href="../skills/skills-tutorial.html" title="Skills（技能）">Skills（技能）</a></li><li><a href="../ollama/ollama-tutorial.html" title="Ollama 教程">Ollama 教程</a></li><li><a href="../hermes-agent/hermes-agent-tutorial.html" title="Hermes Agent">Hermes Agent</a></li><li><a href="../deepseek-harness/deepseek-harness-tutorial.html" title="DeepSeek Harness">DeepSeek Harness</a></li><li><a href="../pi-agent/pi-agent-tutorial.html" title="Pi Agent">Pi Agent</a></li><li><a href="../ai-math/ai-math-tutorial.html" title="AI 数学基础">AI 数学基础</a></li><li><a href="../tensorflow/tensorflow-tutorial.html" title="TensorFlow 教程">TensorFlow 教程</a></li><li><a href="../pytorch/pytorch-tutorial.html" title="PyTorch 教程">PyTorch 教程</a></li><li><a href="../sklearn/sklearn-tutorial.html" title="Scikit-learn 教程">Scikit-learn 教程</a></li><li><a href="../ml/ml-tutorial.html" title="机器 教程">机器 教程</a></li><li><a href="../langchain/langchain-tutorial.html" title="LangChain">LangChain</a></li><li><a href="../nlp/nlp-tutorial.html" title="自然语言处理 NLP">自然语言处理 NLP</a></li><li><a href="../opencv/opencv-tutorial.html" title="OpenCV 教程">OpenCV 教程</a></li><li><a href="../selenium/selenium-tutorial.html" title="Selenium 教程">Selenium 教程</a></li><li><a href="../playwright/playwright-tutorial.html" title="Playwright 教程">Playwright 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 前端开发</a><ul class="double-li"><li><a href="../html/html-tutorial.html" title="HTML 教程">HTML 教程</a></li><li><a href="../html/html5-intro.html" title="HTML5 教程">HTML5 教程</a></li><li><a href="../css/css-tutorial.html" title="CSS 教程">CSS 教程</a></li><li><a href="../css3/css3-tutorial.html" title="CSS3 教程">CSS3 教程</a></li><li><a href="../js/js-tutorial.html" title="JavaScript 教程">JavaScript 教程</a></li><li><a href="../htmldom/htmldom-tutorial.html" title="HTML DOM 教程">HTML DOM 教程</a></li><li><a href="../typescript/ts-tutorial.html" title="TypeScript 教程">TypeScript 教程</a></li><li><a href="../ajax/ajax-tutorial.html" title="AJAX 教程">AJAX 教程</a></li><li><a href="../json/json-tutorial.html" title="JSON 教程">JSON 教程</a></li><li><a href="../tailwindcss/tailwindcss-tutorial.html" title="Tailwind CSS 教程">Tailwind CSS 教程</a></li><li><a href="../bootstrap4/bootstrap4-tutorial.html" title="Bootstrap4 教程">Bootstrap4 教程</a></li><li><a href="../bootstrap5/bootstrap5-tutorial.html" title="Bootstrap5 教程">Bootstrap5 教程</a></li><li><a href="../foundation/foundation-tutorial.html" title="Foundation 教程">Foundation 教程</a></li><li><a href="../vue2/vue-tutorial.html" title="Vue.js 教程">Vue.js 教程</a></li><li><a href="../vue3/vue3-tutorial.html" title="Vue3 教程">Vue3 教程</a></li><li><a href="../react/react-tutorial.html" title="React 教程">React 教程</a></li><li><a href="../nextjs/nextjs-tutorial.html" title="Next.js 教程">Next.js 教程</a></li><li><a href="../angularjs/angularjs-tutorial.html" title="AngularJS 教程">AngularJS 教程</a></li><li><a href="../angularjs2/angularjs2-tutorial.html" title="Angular 教程">Angular 教程</a></li><li><a href="../jquery/jquery-tutorial.html" title="jQuery 教程">jQuery 教程</a></li><li><a href="../jqueryui/jqueryui-tutorial.html" title="jQuery UI 教程">jQuery UI 教程</a></li><li><a href="../jeasyui/jqueryeasyui-tutorial.html" title="jQuery EasyUI 教程">jQuery EasyUI 教程</a></li><li><a href="../echarts/echarts-tutorial.html" title="ECharts 教程">ECharts 教程</a></li><li><a href="../chartjs/chartjs-tutorial.html" title="Chart.js 教程">Chart.js 教程</a></li><li><a href="../highcharts/highcharts-tutorial.html" title="Highcharts 教程">Highcharts 教程</a></li><li><a href="../googleapi/google-maps-basic.html" title="Google 地图 教程">Google 地图 教程</a></li><li><a href="../svg/svg-tutorial.html" title="SVG 教程">SVG 教程</a></li><li><a href="../font-awesome/fontawesome-tutorial.html" title="Font Awesome 教程">Font Awesome 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 后端开发</a><ul class="double-li"><li><a href="../nodejs/nodejs-tutorial.html" title="Node.js 教程">Node.js 教程</a></li><li><a href="../electron/electron-tutorial.html" title="Electron 教程">Electron 教程</a></li><li><a href="../php/php-tutorial.html" title="PHP 教程">PHP 教程</a></li><li><a href="../java/java-tutorial.html" title="Java 教程">Java 教程</a></li><li><a href="../go/go-tutorial.html" title="Go 教程">Go 教程</a></li><li><a href="../rust/rust-tutorial.html" title="Rust 教程">Rust 教程</a></li><li><a href="../csharp/csharp-tutorial.html" title="C# 教程">C# 教程</a></li><li><a href="../servlet/servlet-tutorial.html" title="Servlet 教程">Servlet 教程</a></li><li><a href="../jsp/jsp-tutorial.html" title="JSP 教程">JSP 教程</a></li><li><a href="../asp/asp-tutorial.html" title="ASP 教程">ASP 教程</a></li><li><a href="../appml/appml-tutorial.html" title="AppML 教程">AppML 教程</a></li><li><a href="../vbscript/vbscript-tutorial.html" title="VBScript 教程">VBScript 教程</a></li><li><a href="../swagger/swagger-tutorial.html" title="Swagger 教程">Swagger 教程</a></li><li><a href="../restfulapi/restful-api-tutorial.html" title="RESTful API 教程">RESTful API 教程</a></li><li><a href="../docker/docker-tutorial.html" title="Docker 教程">Docker 教程</a></li><li><a href="../linux/linux-tutorial.html" title="Linux 教程">Linux 教程</a></li><li><a href="../w3cnote/zookeeper-tutorial.html" title="ZooKeeper 教程">ZooKeeper 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 数据库</a><ul class="double-li"><li><a href="../sql/sql-tutorial.html" title="SQL 教程">SQL 教程</a></li><li><a href="../mysql/mysql-tutorial.html" title="MySQL 教程">MySQL 教程</a></li><li><a href="../postgresql/postgresql-tutorial.html" title="PostgreSQL 教程">PostgreSQL 教程</a></li><li><a href="../sqlite/sqlite-tutorial.html" title="SQLite 教程">SQLite 教程</a></li><li><a href="../mongodb/mongodb-tutorial.html" title="MongoDB 教程">MongoDB 教程</a></li><li><a href="../redis/redis-tutorial.html" title="Redis 教程">Redis 教程</a></li><li><a href="../memcached/memcached-tutorial.html" title="Memcached 教程">Memcached 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 移动开发</a><ul class="double-li"><li><a href="../w3cnote/android-tutorial-intro.html" title="Android 教程">Android 教程</a></li><li><a href="../flutter/flutter-tutorial.html" title="Flutter 教程">Flutter 教程</a></li><li><a href="../ionic/ionic-tutorial.html" title="Ionic 教程">Ionic 教程</a></li><li><a href="../jquerymobile/jquerymobile-tutorial.html" title="jQuery Mobile 教程">jQuery Mobile 教程</a></li><li><a href="../swift/swift-tutorial.html" title="Swift 教程">Swift 教程</a></li><li><a href="../kotlin/kotlin-tutorial.html" title="Kotlin 教程">Kotlin 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> DevOps / 工程化</a><ul class="double-li"><li><a href="../git/git-tutorial.html" title="Git 教程">Git 教程</a></li><li><a href="../svn/svn-tutorial.html" title="SVN 教程">SVN 教程</a></li><li><a href="../cmake/cmake-tutorial.html" title="CMake 教程">CMake 教程</a></li><li><a href="../maven/maven-tutorial.html" title="Maven 教程">Maven 教程</a></li><li><a href="../vscode/vscode-tutorial.html" title="VS Code 教程">VS Code 教程</a></li><li><a href="../obsidian/obsidian-tutorial.html" title="Obsidian 教程">Obsidian 教程</a></li><li><a href="../pycharm/pycharm-tutorial.html" title="PyCharm 教程">PyCharm 教程</a></li><li><a href="../eclipse/eclipse-tutorial.html" title="Eclipse 教程">Eclipse 教程</a></li><li><a href="../markdown/md-tutorial.html" title="Markdown 教程">Markdown 教程</a></li><li><a href="../latex/latex-tutorial.html" title="LaTeX 教程">LaTeX 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 编程语言</a><ul class="double-li"><li><a href="../c/c-tutorial.html" title="C 教程">C 教程</a></li><li><a href="../cplusplus/cpp-tutorial.html" title="C++ 教程">C++ 教程</a></li><li><a href="../zig/zig-tutorial.html" title="Zig 教程">Zig 教程</a></li><li><a href="../scala/scala-tutorial.html" title="Scala 教程">Scala 教程</a></li><li><a href="../ruby/ruby-tutorial.html" title="Ruby 教程">Ruby 教程</a></li><li><a href="../perl/perl-tutorial.html" title="Perl 教程">Perl 教程</a></li><li><a href="../lua/lua-tutorial.html" title="Lua 教程">Lua 教程</a></li><li><a href="../dart/dart-tutorial.html" title="Dart 教程">Dart 教程</a></li><li><a href="../assembly/assembly-tutorial.html" title="汇编语言 教程">汇编语言 教程</a></li><li><a href="../w3cnote/verilog-tutorial.html" title="Verilog 教程">Verilog 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 计算机基础</a><ul class="double-li"><li><a href="../computer-organization/computer-organization-tutorial.html" title="计算机组成原理">计算机组成原理</a></li><li><a href="../data-structures/data-structures-tutorial.html" title="数据结构与算法">数据结构与算法</a></li><li><a href="../c-dsa/c-dsa-tutorial.html" title="C 语言数据结构与算法">C 语言数据结构与算法</a></li><li><a href="../design-pattern/design-pattern-tutorial.html" title="设计模式">设计模式</a></li><li><a href="../python-design-pattern/python-design-pattern-tutorial.html" title="Python 设计模式">Python 设计模式</a></li><li><a href="../regexp/regexp-tutorial.html" title="正则表达式">正则表达式</a></li><li><a href="../http/http-tutorial.html" title="HTTP 教程">HTTP 教程</a></li><li><a href="../tcpip/tcpip-tutorial.html" title="TCP/IP 教程">TCP/IP 教程</a></li><li><a href="../np/np-tutorial.html" title="网络协议">网络协议</a></li><li><a href="../w3c/w3c-tutorial.html" title="W3C 教程">W3C 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> XML / Web Service</a><ul class="double-li"><li><a href="../xml/xml-tutorial.html" title="XML 教程">XML 教程</a></li><li><a href="../dtd/dtd-tutorial.html" title="DTD 教程">DTD 教程</a></li><li><a href="../dom/dom-tutorial.html" title="XML DOM 教程">XML DOM 教程</a></li><li><a href="../xsl/xsl-tutorial.html" title="XSLT 教程">XSLT 教程</a></li><li><a href="../xpath/xpath-tutorial.html" title="XPath 教程">XPath 教程</a></li><li><a href="../xquery/xquery-tutorial.html" title="XQuery 教程">XQuery 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XLink 教程">XLink 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XPointer 教程">XPointer 教程</a></li><li><a href="../schema/schema-tutorial.html" title="XML Schema 教程">XML Schema 教程</a></li><li><a href="../xslfo/xslfo-tutorial.html" title="XSL-FO 教程">XSL-FO 教程</a></li><li><a href="../webservices/webservices-tutorial.html" title="Web Service 教程">Web Service 教程</a></li><li><a href="../wsdl/wsdl-tutorial.html" title="WSDL 教程">WSDL 教程</a></li><li><a href="../soap/soap-tutorial.html" title="SOAP 教程">SOAP 教程</a></li><li><a href="../rss/rss-tutorial.html" title="RSS 教程">RSS 教程</a></li><li><a href="../rdf/rdf-tutorial.html" title="RDF 教程">RDF 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> .NET</a><ul class="double-li"><li><a href="../aspnet/aspnet-tutorial.html" title="ASP.NET 教程">ASP.NET 教程</a></li><li><a href="../aspnet/mvc-intro.html" title="MVC 教程">MVC 教程</a></li><li><a href="../aspnet/razor-intro.html" title="Razor 教程">Razor 教程</a></li><li><a href="../aspnet/aspnet-intro.html" title="Web Forms 教程">Web Forms 教程</a></li><li><a href="../aspnet/webpages-intro.html" title="Web Pages 教程">Web Pages 教程</a></li><li><a href="../powershell/powershell-tutorial.html" title="PowerShell 教程">PowerShell 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 网站建设</a><ul class="double-li"><li><a href="../web/web-buildingprimer.html" title="网站建设指南">网站建设指南</a></li><li><a href="../browsers/browser-information.html" title="浏览器信息">浏览器信息</a></li><li><a href="../hosting/hosting-tutorial.html" title="网站主机教程">网站主机教程</a></li><li><a href="../quality/quality-tutorial.html" title="网站品质">网站品质</a></li></ul></li></ul> </div>
+</div>
+</div>
+<br/>
+<div class="sidebar-box re-box re-box-large">
+</div>
+</div></div>
+</div>
+<script>
+var aid = 31573;
+function coll() {
+	$.post( '/wp-content/themes/runoob/option/user/userinfo.php', {aid:aid, action:"collarticle", opt:'add'},function( data ) {
+		if(data.error==0) {
+			$("#content").find("h1:first").find("a").attr("href","javascript:void(0);");
+			$("#content").find("h1:first").find("img").attr("src","http://www.runoob.com/wp-content/themes/runoob/assets/img/coll2.png").css({width:32+"px",height:32+"px"});
+		}
+		alert(data.msg);
+	},'json');
+}
+
+(function () {
+    // 1. 仅 HTML 页面
+    if (!document.contentType || !document.contentType.includes('text/html')) return;
+
+    // 2. 容器判断
+    var container = document.querySelector('.article-intro');
+    if (!container) return;
+
+    var h1 = container.querySelector('h1');
+    if (!h1) return;
+
+    // 3. URL 判断
+    var url = window.location.href.toLowerCase();
+    var version = null;
+
+    if (url.includes('/python3/')) {
+        version = 'Python3.x';
+    } else if (url.includes('/python/')) {
+        version = 'Python2.x';
+    }
+
+    if (!version) return;
+
+    // 4. 防重复
+    if (h1.querySelector('.py-version-badge')) return;
+
+    // 5. 创建标签
+    var badge = document.createElement('span');
+    badge.className = 'py-version-badge';
+    badge.innerText = version;
+
+    // 6. 样式（核心：float 实现右上角）
+    badge.style.float = 'right';
+    badge.style.fontSize = '12px';
+    badge.style.padding = '2px 8px';
+    badge.style.borderRadius = '999px';
+
+   // 自适应亮/暗色 + 渐变背景（增强版）
+	badge.style.color = 'inherit';
+
+	// 渐变背景（低透明度，不影响暗黑模式）
+	if (version.includes('3')) {
+		badge.style.background = 'linear-gradient(90deg, rgba(79,172,254,0.15), rgba(0,242,254,0.15))';
+	} else {
+		badge.style.background = 'linear-gradient(90deg, rgba(161,140,209,0.15), rgba(251,194,235,0.15))';
+	}
+
+	// 边框弱化（更精致）
+	badge.style.border = '1px solid rgba(127,127,127,0.3)';
+
+	// 提升可读性
+	badge.style.opacity = '0.95';
+
+    // 微调位置（更贴近“右上角”）
+    badge.style.marginTop = '4px';
+    badge.style.marginLeft = '10px';
+
+    // 7. 插入到 h1 最前面（让 float 生效更稳定）
+    h1.insertBefore(badge, h1.firstChild);
+
+})();
+</script>
+<!-- 反馈对话框开始 -->
+<script src="../wp-content/themes/runoob/assets/js/runoob-article-dir.min.js"></script>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

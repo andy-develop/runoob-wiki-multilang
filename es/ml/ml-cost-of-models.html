@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>El costo real de los modelos | Tutorial para principiantes</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<link href="../manifest.webmanifest.html" rel="manifest"/>
+<meta content="#10151c" name="theme-color"/>
+<link href="../pwa/icon-192.png.html" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="application-name"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="../ml/ml-cost-of-models.html" rel="canonical"/>
+<meta content="模型的现实成本" name="keywords"/>
+<meta content="模型的现实成本 想象一下，你刚刚训练了一个在测试集上准确率达到 99% 的图像识别模型，你满怀信心地将它部署到一家工厂的生产线上。然而，几周后你收到反馈：模型频繁误判，导致生产线多次无故停机，造成了巨大的经济损失。问题出在哪里？ 这个场景揭示了机器学习领域一个常被忽视的真相：一个模型在实验室或测试环境中的优异表现，并不等同于它在现实世界中的成功。 在模型从开发到部署的旅程中，存在着诸多限制和隐藏的成本。本文将带你深入探讨这些现实成本，帮.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div>
+<!-- 导航栏 -->
+<style>
+/* 主题切换按钮 */
+/* ===== 主题变量（核心）===== */
+:root {
+  --theme-bg: #ffffff;
+  --theme-border: #e5e7eb;
+  --theme-icon: #333;
+  --theme-hover: #f3f4f6;
+}
+
+.dark {
+  --theme-bg: #1f2937;
+  --theme-border: #374151;
+  --theme-icon: #e5e7eb;
+  --theme-hover: #374151;
+}
+
+/* ===== 按钮容器 ===== */
+.nav-theme-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== 按钮本体 ===== */
+.nav-theme-toggle button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  border-radius: 6px;
+  border: 1px solid var(--theme-border);
+
+  background: var(--theme-bg);
+  color: var(--theme-icon);
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* ===== 图标大小 ===== */
+.nav-theme-toggle i {
+  font-size: 14px;
+}
+
+/* ===== hover 效果 ===== */
+.nav-theme-toggle button:hover {
+  background: var(--theme-hover);
+  transform: translateY(-1px);
+}
+
+/* ===== 点击反馈 ===== */
+.nav-theme-toggle button:active {
+  transform: scale(0.95);
+}
+
+/* ===== 当前激活态（可选）===== */
+.nav-theme-toggle button.active {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+</style>
+<!-- 导航栏 -->
+<nav aria-label="主导航" class="container navigation">
+<div class="row">
+<div class="col nav">
+<!-- PC 导航 -->
+<ul class="pc-nav" id="runoob-detail-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../js/js-tutorial.html">JavaScript</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a data-id="vue" href="#">Vue</a></li>
+<li><a href="../react/react-tutorial.html">React</a></li>
+<li><a href="../python3/python3-tutorial.html">Python3</a></li>
+<li><a href="../java/java-tutorial.html">Java</a></li>
+<li><a href="../cprogramming/c-tutorial.html">C</a></li>
+<li><a href="../cplusplus/cpp-tutorial.html">C++</a></li>
+<li><a href="../csharp/csharp-tutorial.html">C#</a></li>
+<li><a data-id="aiNav" href="#">AI</a></li>
+<li><a href="../go/go-tutorial.html">Go</a></li>
+<li><a href="../sql/sql-tutorial.html">SQL</a></li>
+<li><a href="../linux/linux-tutorial.html">Linux</a></li>
+<li><a href="../vscode/vscode-tutorial.html">VS Code</a></li>
+<li><a data-id="bootstrap" href="#">Bootstrap</a></li>
+<li><a href="../git/git-tutorial.html">Git</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<!-- 主题切换按钮，固定在最右侧 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+<!-- 移动端导航 -->
+<ul class="mobile-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a href="../js/js-tutorial.html">JS</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<li><a class="search-reveal" href="#">搜索</a></li>
+<!-- 移动端主题切换 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon-mobile" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun-mobile" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<!-- 二级导航 -->
+<!--  内容  -->
+<div class="container main">
+<!-- 中间 -->
+<div class="row">
+<div class="runoob-col-md2">
+<div class="left-column">
+<div class="tab" style="overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
+<i aria-hidden="true" class="fa fa-list"></i>
+<span>机器学习</span>
+</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+<a data-p="par" href="../ml/ml-tutorial.html" target="_top" title="机器学习教程">
+			机器学习教程			</a>
+<a data-p="par" href="../ml/ml-intro.html" target="_top" title="机器学习简介">
+			机器学习简介			</a>
+<a href="../ml/ml-how-to-learn.html" target="_top">机器学习学习路线</a>
+<a href="../ml/ml-project-lifecycle.html" target="_top">机器学习生命周期</a>
+<a data-p="par" href="../ml/ml-hw.html" target="_top" title="机器学习如何工作">
+			机器学习如何工作			</a>
+<a data-p="par" href="../ml/ml-basics.html" target="_top" title="机器学习基础术语">
+			机器学习基础术语			</a>
+<a data-p="par" href="../ml/ml-python.html" target="_top" title="Python 入门机器学习">
+			Python 入门机器学习			</a>
+<a href="../ml/ml-python-libs.html" target="_top">Python 机器学习库</a>
+<a href="../ml/ml-datatype.html" target="_top">常用数据类型</a>
+<a href="../ml/ml-applications.html" target="_top">机器学习应用</a>
+<br/>
+<h2 class="left"><span class="left_h2">数据处理与统计</span></h2>
+<a href="../ml/ml-data-understanding.html" target="_top">数据理解</a>
+<a href="../ml/ml-data-cleaning.html" target="_top">数据清洗</a>
+<a href="../ml/ml-feature-engineering.html" target="_top">特征工程</a>
+<a href="../ml/ml-data-visualizations.html" target="_top">数据可视化</a>
+<a href="../ml/ml-training-and-test-set-splitting.html" target="_top">训练集测试集划分</a>
+<a href="../ml/ml-foundations-of-statistics.html" target="_top"> 统计学基础</a>
+<a href="../ml/ml-probabilistic-thinking.html" target="_top"> 概率思维</a>
+<a href="../ml/ml-loss-function-and-gradient.html" target="_top">损失函数与梯度</a>
+<a href="../ml/ml-overfitting-underfitting-bias-and-variance.html" target="_top">过拟合、欠拟合、偏差与方差</a>
+<br/>
+<h2 class="left"><span class="left_h2">监督学习</span></h2>
+<a data-p="par" href="../ml/ml-algorithms.html" target="_top" title="机器学习算法">
+			机器学习算法			</a>
+<a data-p="par" href="../ml/ml-linear-regression.html" target="_top" title="线性回归 (Linear Regression)">
+			线性回归			</a>
+<a href="../ml/ml-multiple-linear-regression.html" target="_top">多元线性回归</a>
+<a href="../ml/ml-multinomial-regression.html" target="_top">多项式回归</a> <a data-p="par" href="../ml/ml-logistic-regression.html" target="_top" title="逻辑回归（Logistic Regression）">
+			逻辑回归			</a>
+<a href="../ml/ml-regression-model-evaluation.html" target="_top">回归模型评估</a> <a data-p="par" href="../ml/ml-decision-tree.html" target="_top" title="决策树（Decision Tree）">
+			决策树			</a>
+<a data-p="par" href="../ml/ml-svm.html" target="_top" title="支持向量机">
+			支持向量机			</a>
+<a data-p="par" href="../ml/ml-knn.html" target="_top" title="K 近邻算法">
+			K 近邻算法			</a>
+<a data-p="par" href="../ml/ml-ensemble-learning.html" target="_top" title="集成学习">
+			集成学习			</a>
+<a data-p="par" href="../ml/ml-naive-bayes.html" target="_top" title="朴素贝叶斯">
+			朴素贝叶斯			</a>
+<a data-p="par" href="../ml/ml-random-forest.html" target="_top" title="随机森林">
+			随机森林			</a>
+<a data-p="par" href="../ml/ml-classification-metrics.html" target="_top" title="分类指标">
+			分类指标			</a>
+<br/><h2 class="left"><span class="left_h2">无监督学习</span></h2> <a data-p="par" href="../ml/ml-cluster-analysis.html" target="_top" title="无监督学习 – 聚类">
+			聚类			</a>
+<a data-p="par" href="../ml/ml-dimensionality-reduction.html" target="_top" title="无监督学习 – 降维">
+			降维			</a>
+<br/><h2 class="left"><span class="left_h2">强化学习</span></h2> <a data-p="par" href="../ml/ml-basic-framework-of-reinforcement-learning.html" target="_top" title="强化学习基本框架">
+			强化学习基本框架			</a>
+<a data-p="par" href="../ml/ml-exploration-exploitation.html" target="_top" title="强化学习探索vs开采">
+			强化学习探索vs开采			</a>
+<a data-p="par" href="../ml/ml-qlearning-sarsa.html" target="_top" title="强化学习 Q-learning 与 SARSA">
+			强化学习 Q-learning 与 SARSA			</a>
+<a data-p="par" href="../ml/ml-deep-reinforcement-learning.html" target="_top" title="深度强化学习">
+			深度强化学习			</a>
+<br/><h2 class="left"><span class="left_h2">深度学习</span></h2> <a data-p="par" href="../ml/ml-structure-of-neural-networks.html" target="_top" title="神经网络的基本结构">
+			神经网络的基本结构			</a>
+<a data-p="par" href="../ml/ml-forward-and-backward-propagation.html" target="_top" title="前向传播与反向传播">
+			前向传播与反向传播			</a>
+<a data-p="par" href="../ml/ml-deep-learning-traditional-machine-learning.html" target="_top" title="深度学习vs传统机器学习">
+			深度学习vs传统机器学习			</a>
+<a data-p="par" href="../ml/ml-common-network-types.html" target="_top" title="常见网络类型">
+			常见网络类型			</a>
+<br/><h2 class="left"><span class="left_h2">模型优化与工程</span></h2> <a data-p="par" href="../ml/ml-cross-validation.html" target="_top" title="交叉验证">
+			交叉验证			</a>
+<a data-p="par" href="../ml/ml-model-optimization-regularization.html" target="_top" title="正则化">
+			正则化			</a>
+<a data-p="par" href="../ml/ml-model-optimization-data-leakage.html" target="_top" title="数据泄漏">
+			数据泄漏			</a>
+<a data-p="par" href="../ml/ml-model-optimization-integrated-approaches.html" target="_top" title="集成方法">
+			集成方法			</a>
+<a data-p="par" href="../ml/ml-hyperparameter-search.html" target="_top" title="超参搜索">
+			超参搜索			</a>
+<a data-p="par" href="../ml/ml-model-optimization-mlops.html" target="_top" title="MLOps 概念">
+			MLOps 概念			</a>
+<a data-p="par" href="../ml/ml-model-optimization-common-problems.html" target="_top" title="常见问题排查">
+			常见问题排查			</a>
+<br/><h2 class="left"><span class="left_h2">机器学习的限制与边界</span></h2> <a data-p="par" href="../ml/ml-interpretability-problem.html" target="_top" title="可解释性问题">
+			可解释性问题			</a>
+<a data-p="par" href="../ml/ml-hypothesis-limitations.html" target="_top" title="假设限制">
+			假设限制			</a>
+<a data-p="par" href="../ml/ml-data-bias.html" target="_top" title="数据偏差">
+			数据偏差			</a>
+<a data-p="par" href="../ml/ml-cost-of-models.html" target="_top" title="模型的现实成本">
+			模型的现实成本			</a>
+<br/><h2 class="left"><span class="left_h2">实战案例</span></h2> <a data-p="par" href="../ml/ml-titanic-survival-prediction.html" target="_top" title="泰坦尼克号生存预测">
+			泰坦尼克号生存预测			</a>
+<a data-p="par" href="../ml/ml-house-price-prediction.html" target="_top" title="机器学习 – 房价预测">
+			房价预测			</a>
+<a data-p="par" href="../ml/ml-customer-segmentation.html" target="_top" title="机器学习 – 客户分群">
+			机器学习 - 客户分群			</a>
+<a data-p="par" href="../ml/ml-pca-visualization-case.html" target="_top" title="机器学习 – PCA 可视化案例">
+			PCA 可视化			</a>
+<a data-p="par" href="../ml/ml-reinforcement-learning.html" target="_top" title="机器学习 – 强化学习示例">
+			强化学习示例			</a>
+</div>
+</div>
+</div>
+</div> <div class="col middle-column">
+<div class="article">
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../ml/ml-data-bias.html" rel="prev">Sesgo de datos</a> </div>
+<div class="next-design-link"><a href="../ml/ml-titanic-survival-prediction.html" rel="next">Predicción de supervivencia en el Titanic</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="article-body">
+<div class="article-intro" id="content">
+<h1>El costo real de los modelos</h1>
+<p>Imagina que acabas de entrenar un modelo de reconocimiento de imágenes con una precisión del 99% en el conjunto de prueba. Con plena confianza, lo implementas en la línea de producción de una fábrica.</p><p>Sin embargo, semanas después recibes comentarios: el modelo comete errores frecuentemente, provocando paradas injustificadas en la línea de producción y enormes pérdidas económicas. ¿Dónde está el problema?</p>
+<p>Este escenario revela una verdad a menudo ignorada en el campo del aprendizaje automático:<strong>El excelente desempeño de un modelo en el laboratorio o en un entorno de prueba no equivale a su éxito en el mundo real.</strong> </p><p>En el viaje del modelo desde el desarrollo hasta la implementación, existen muchas limitaciones y costos ocultos.</p><p>Este artículo te llevará a explorar en profundidad estos costos reales, ayudándote a desarrollar una perspectiva más completa y pragmática del aprendizaje automático.</p>
+<hr/>
+<h2>Más allá de la precisión: entendiendo el costo integral de los modelos</h2>
+<p>Cuando hablamos del costo de un modelo, la mayoría piensa primero en el tiempo de GPU y la electricidad consumidos para entrenarlo. Pero esto es solo la punta del iceberg.</p><p>El costo de un proyecto completo de aprendizaje automático incluye al menos las siguientes cuatro dimensiones:</p>
+<h3>1. Costo de datos: obtención y limpieza del combustible</h3>
+<p>Los modelos de aprendizaje automático usan datos como "combustible", y el costo de obtener combustible de alta calidad es extremadamente alto.</p>
+<p><strong>Costo de recopilación de datos</strong>：</p>
+<ul>
+<li><strong>Costo monetario</strong>: gastos en comprar conjuntos de datos etiquetados y utilizar servicios de recopilación de datos (como la plataforma de crowdsourcing MTurk).</li>
+<li><strong>Costo de tiempo</strong>: desde definir las especificaciones de etiquetado y capacitar al personal de etiquetado hasta completar el etiquetado inicial, el ciclo puede durar semanas o incluso meses.</li>
+<li><strong>Costo de cumplimiento normativo</strong>: garantizar que la recopilación de datos cumpla con regulaciones como GDPR (Reglamento General de Protección de Datos) y CCPA (Ley de Privacidad del Consumidor de California) puede requerir asesoría legal y diseño de procesos.</li>
+</ul>
+<p><strong>Costos de preprocesamiento y etiquetado de datos</strong>：</p>
+<ul>
+<li><strong>Costo de limpieza</strong>: los datos reales están llenos de ruido, valores faltantes y valores atípicos. La limpieza generalmente ocupa del 60% al 80% del tiempo total del proyecto.</li>
+<li><strong>Costo de etiquetado</strong>: tomando como ejemplo el etiquetado de cuadros delimitadores en imágenes, una imagen compleja puede requerir varios minutos de etiquetado. Para un conjunto de datos de cien mil imágenes, el costo de mano de obra y gestión del etiquetado es muy considerable.</li>
+</ul>
+<div class="example">
+<h2 class="example">Ejemplo</h2>
+<div class="example_code">
+<span style="color: #a50"># Un ejemplo sencillo: estimar el costo del etiquetado de datos</span><br/>
+<span style="color: Green;font-weight:bold;">def</span> estimate_labeling_cost<span style="color: Olive;">(</span>num_images<span style="color: Gray;">,</span> time_per_image<span style="color: Gray;">,</span> cost_per_hour<span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""<br/>Estimar el costo total del etiquetado de datos<br/>
+<br/>Parámetros:<br/>num_images (int): número total de imágenes a etiquetar<br/>time_per_image (float): tiempo promedio de etiquetado por imagen (horas)<br/>cost_per_hour (float): costo por hora del personal de etiquetado (unidad monetaria)<br/>
+<br/>Retorna:<br/>total_hours, total_cost: tiempo total y costo total<br/>
+    """</span><br/>
+    total_hours <span style="color: Gray;">=</span> num_images * time_per_image<br/>
+    total_cost <span style="color: Gray;">=</span> total_hours * cost_per_hour<br/>
+    <span style="color: Green;font-weight:bold;">return</span> total_hours<span style="color: Gray;">,</span> total_cost<br/>
+<br/>
+<span style="color: #a50"># Supongamos que un proyecto tiene 100,000 imágenes, cada una requiere 0.05 horas (3 minutos) de etiquetado y el costo por hora es de 20 yuanes.</span><br/>
+hours<span style="color: Gray;">,</span> cost <span style="color: Gray;">=</span> estimate_labeling_cost<span style="color: Olive;">(</span><span style="color: Maroon;">100000</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0.05</span><span style="color: Gray;">,</span> <span style="color: Maroon;">20</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Tiempo total: {hours:.0f} horas"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Costo total: {cost:.2f} yuanes"</span><span style="color: Olive;">)</span><br/>
+<span style="color: #a50"># Salida: Tiempo total: 5000 horas</span><br/>
+<span style="color: #a50"># Salida: Costo total: 100000.00 yuanes</span><br/>
+</div>
+</div>
+<h3>2. Costo computacional: la factura energética del entrenamiento y la inferencia</h3>
+<p>El costo computacional se divide en costo de entrenamiento único y costo de inferencia continuo.</p>
+<p><strong>Costo de entrenamiento</strong>：</p>
+<ul>
+<li>Uso de instancias GPU facturadas por hora en servicios en la nube (como AWS SageMaker, Google Cloud AI Platform).</li>
+<li>El proceso de ajuste de modelos (optimización de hiperparámetros) puede requerir entrenar decenas o cientos de copias del modelo, multiplicando el costo.</li>
+</ul>
+<p><strong>Costo de inferencia</strong>：</p>
+<ul>
+<li>Una vez implementado el modelo, cada vez que se procesa una solicitud de usuario (es decir, se realiza una predicción) se genera un costo computacional.</li>
+<li>Para servicios de alta concurrencia (como sistemas de recomendación personalizados para miles de usuarios), incluso si el costo de una sola inferencia es muy bajo, acumulado resulta extremadamente grande.</li>
+</ul>
+<div class="example">
+<h2 class="example">Ejemplo</h2>
+<div class="example_code">
+<span style="color: #a50"># Ejemplo: estimar el costo de entrenamiento en la nube</span><br/>
+<span style="color: Green;font-weight:bold;">def</span> estimate_training_cost<span style="color: Olive;">(</span>training_hours<span style="color: Gray;">,</span> instance_hourly_rate<span style="color: Gray;">,</span> num_trials<span style="color: Gray;">=</span><span style="color: Maroon;">1</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""<br/>Estimar el costo de entrenar un modelo en una plataforma en la nube<br/>
+<br/>Parámetros:<br/>training_hours (float): horas necesarias para un solo entrenamiento<br/>instance_hourly_rate (float): tarifa por hora de la instancia GPU (en dólares)<br/>num_trials (int): número de búsquedas de hiperparámetros o experimentos<br/>
+<br/>Retorna:<br/>total_cost: costo total estimado<br/>
+    """</span><br/>
+    total_cost <span style="color: Gray;">=</span> training_hours * instance_hourly_rate * num_trials<br/>
+    <span style="color: Green;font-weight:bold;">return</span> total_cost<br/>
+<br/>
+<span style="color: #a50"># Supongamos que entrenar un modelo requiere 10 horas, usando una instancia P3 a 4 dólares por hora, y se realizan 20 experimentos de hiperparámetros.</span><br/>
+cost <span style="color: Gray;">=</span> estimate_training_cost<span style="color: Olive;">(</span><span style="color: Maroon;">10</span><span style="color: Gray;">,</span> <span style="color: Maroon;">4</span><span style="color: Gray;">,</span> <span style="color: Maroon;">20</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Costo total estimado de entrenamiento: {cost} dólares"</span><span style="color: Olive;">)</span><br/>
+<span style="color: #a50"># Salida: Costo total estimado de entrenamiento: 800 dólares</span><br/>
+</div>
+</div>
+<h3>3. Costos de implementación y mantenimiento: mantener el modelo en funcionamiento</h3>
+<p>Implementar el modelo en un entorno de producción y mantener su funcionamiento estable es una inversión a largo plazo.</p>
+<p><strong>Costo de infraestructura</strong>：</p>
+<ul>
+<li>Gastos de servidores, gestión de contenedores (como Kubernetes), balanceo de carga y tráfico de red.</li>
+<li>Costos de herramientas y mano de obra para desarrollar el pipeline de implementación (CI/CD para ML).</li>
+</ul>
+<p><strong>Costos de monitoreo y mantenimiento</strong>：</p>
+<ul>
+<li>Es necesario monitorear continuamente el rendimiento de predicción, la latencia y el uso de recursos del modelo.</li>
+<li>La distribución de datos puede cambiar con el tiempo (deriva conceptual), lo que requiere reentrenar o ajustar el modelo periódicamente con nuevos datos, generando costos continuos de reentrenamiento.</li>
+</ul>
+<h3>4. Costo de oportunidad y costo de riesgo: el precio invisible</h3>
+<p>Esta es la parte más fácil de subestimar.</p>
+<p><strong>Costo de oportunidad</strong>：</p>
+<ul>
+<li>Que un equipo dedique 3 meses a desarrollar una solución de aprendizaje automático puede significar perder la oportunidad de resolver el problema en 1 mes con un sistema de reglas más simple.</li>
+</ul>
+<p><strong>Costo de riesgo</strong>：</p>
+<ul>
+<li><strong>Sesgo del modelo</strong>: si los datos de entrenamiento no representan a todos los usuarios, el modelo puede ser injusto con ciertos grupos, provocando problemas éticos y crisis de relaciones públicas.</li>
+<li><strong>Errores de predicción</strong>: en campos como la medicina, las finanzas y la conducción autónoma, una predicción errónea puede causar daños personales o pérdidas materiales significativas, generando riesgos legales.</li>
+</ul>
+<hr/>
+<h2>El techo de la tecnología: limitaciones inherentes del aprendizaje automático</h2>
+<p>Incluso sin considerar los costos, la tecnología de aprendizaje automático tiene límites inherentes.</p>
+<h3>1. Dependencia de datos y "basura entra, basura sale"</h3>
+<p>Los modelos de aprendizaje automático dependen completamente de sus datos de entrenamiento. Si la calidad de los datos es deficiente, su escala es pequeña o presentan sesgos, el desempeño del modelo se verá limitado.</p>
+<ul>
+<li><strong>Problema de datos pequeños</strong>: en ciertos campos de nicho (como el diagnóstico de enfermedades raras), puede ser imposible obtener suficientes datos de alta calidad para entrenar un modelo confiable.</li>
+<li><strong>Sesgo de datos</strong>: si los datos históricos contienen sesgos sociales (como la discriminación de género en la contratación), el modelo aprenderá y amplificará estos sesgos.</li>
+</ul>
+<h3>2. El dilema de la explicabilidad: el precio de la caja negra</h3>
+<p>Muchos modelos de alto rendimiento (como las redes neuronales profundas) son "cajas negras" complejas; es difícil entender su lógica interna de decisión.</p>
+<ul>
+<li>En áreas que requieren alta confiabilidad y auditabilidad (como la aprobación de créditos o la asistencia judicial), el uso de modelos de caja negra puede no estar permitido.</li>
+<li>Cuando el modelo comete errores, es difícil diagnosticar la causa raíz, lo que aumenta la dificultad de depuración y corrección.</li>
+</ul>
+<h3>3. Los límites de la capacidad de generalización</h3>
+<p>Que un modelo funcione bien en los conjuntos de entrenamiento y prueba no significa que pueda manejar todas las situaciones del mundo real.</p>
+<ul>
+<li><strong>Datos fuera de distribución</strong>: el modelo puede no ser capaz de procesar entradas cuya distribución difiera demasiado de los datos de entrenamiento. Por ejemplo, un sistema de conducción autónoma entrenado solo con imágenes de días despejados podría fallar por completo en días de niebla.</li>
+<li><strong>Muestras adversariales</strong>: realizar perturbaciones mínimas e imperceptibles para los humanos en la entrada puede provocar que el modelo haga predicciones completamente erróneas, lo que supone una gran amenaza para sistemas con altos requisitos de seguridad.</li>
+</ul>
+<div class="example">
+<h2 class="example">Ejemplo</h2>
+<div class="example_code">
+<span style="color: #a50"># Un ejemplo conceptual: mostrar la vulnerabilidad del modelo ante datos fuera de distribución</span><br/>
+<span style="color: Green;font-weight:bold;">import</span> numpy <span style="color: Green;font-weight:bold;">as</span> np<br/>
+<br/>
+<span style="color: #a50"># Supongamos que un simple "clasificador de perros y gatos" solo ha visto imágenes nítidas durante el entrenamiento</span><br/>
+<span style="color: Green;font-weight:bold;">def</span> trained_classifier_confidence<span style="color: Olive;">(</span>image<span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""Simular un modelo entrenado con imágenes nítidas"""</span><br/>
+    <span style="color: #a50"># Aquí simplificamos: si la varianza de los valores de píxeles es grande (indica más detalles y nitidez), la confianza es alta</span><br/>
+    clarity <span style="color: Gray;">=</span> np.<span style="color: #05a;">var</span><span style="color: Olive;">(</span>image<span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">if</span> clarity <span style="color: Gray;">&gt;</span> <span style="color: Maroon;">1000</span>: <span style="color: #a50"># Umbral hipotético para imágenes nítidas</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> <span style="color: Maroon;">0.95</span> <span style="color: #a50"># Alta confianza</span><br/>
+    <span style="color: Green;font-weight:bold;">else</span>:<br/>
+        <span style="color: Green;font-weight:bold;">return</span> <span style="color: Maroon;">0.55</span> <span style="color: #a50"># Baja confianza, indica que el modelo no está seguro</span><br/>
+<br/>
+<span style="color: #a50"># Simular una imagen nítida (alta varianza) y una imagen borrosa (baja varianza)</span><br/>
+clear_image <span style="color: Gray;">=</span> np.<span style="color: #05a;">random</span>.<span style="color: #05a;">randn</span><span style="color: Olive;">(</span><span style="color: Maroon;">100</span><span style="color: Gray;">,</span> <span style="color: Maroon;">100</span><span style="color: Olive;">)</span> * <span style="color: Maroon;">255</span> <span style="color: #a50"># Alta varianza, simula nitidez</span><br/>
+blurry_image <span style="color: Gray;">=</span> np.<span style="color: #05a;">random</span>.<span style="color: #05a;">randn</span><span style="color: Olive;">(</span><span style="color: Maroon;">100</span><span style="color: Gray;">,</span> <span style="color: Maroon;">100</span><span style="color: Olive;">)</span> * <span style="color: Maroon;">50</span> + <span style="color: Maroon;">128</span> <span style="color: #a50"># Baja varianza, simula borrosidad</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Confianza de predicción para imagen nítida: {trained_classifier_confidence(clear_image):.2f}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Confianza de predicción para imagen borrosa: {trained_classifier_confidence(blurry_image):.2f}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: #a50"># Posible salida: Confianza de predicción para imagen nítida: 0.95</span><br/>
+<span style="color: #a50"># Posible salida: Confianza de predicción para imagen borrosa: 0.55</span><br/>
+<span style="color: #a50"># Indica que el modelo no tiene suficiente confianza en imágenes borrosas no vistas</span><br/>
+</div>
+</div>
+<hr/>
+<h2>Análisis de costo-beneficio: ¿cuándo usar aprendizaje automático?</h2>
+<p>Ante estos costes y limitaciones, no deberíamos aplicar machine learning a ciegas. Antes de iniciar un proyecto, asegúrate de realizar un análisis de coste-beneficio y considera las siguientes alternativas:</p>
+<h3>Diagrama de flujo de decisión: ¿deberíamos usar aprendizaje automático?</h3>
+<p><img decoding="async" src="../wp-content/uploads/2025/12/ml-cost-of-models-runoob-2-scaled.png" style="max-width:600px"/></p>
+<h3>Alternativas pragmáticas</h3>
+<ul>
+<li><strong>Sistemas basados en reglas</strong>: Si la lógica de negocio es clara y estable, y hay pocos casos excepcionales, escribir reglas if-else puede ser más rápido, barato y fiable.</li>
+<li><strong>Métodos estadísticos</strong>: Para muchas tareas de análisis, métodos estadísticos clásicos como la regresión lineal y las pruebas de hipótesis pueden ser suficientes y más fáciles de interpretar.</li>
+<li><strong>Colaboración humano-máquina</strong>: En algunos escenarios, utilizar machine learning como herramienta de apoyo (por ejemplo, filtrar casos de alta probabilidad para revisión humana) es más rentable y seguro que la automatización total.</li>
+</ul>
+<hr/>
+<h2>Resumen y guía de acción</h2>
+<p>El machine learning es una tecnología poderosa, pero no es una "bala de plata" que resuelva todos los problemas. Su aplicación exitosa se basa en el<strong>coste real</strong>claro conocimiento y<strong>límites técnicos</strong>y en el pleno respeto.</p>
+<h3>Recomendaciones de acción para principiantes</h3>
+<ul>
+<li><strong>Empieza poco a poco</strong>: Elige escenarios con un alcance pequeño, datos fáciles de obtener y bajo coste de error (por ejemplo, análisis de sentimiento de reseñas de películas con un conjunto de datos público).</li>
+<li><strong>Estima los costes de forma integral</strong>: En la fase de planificación del proyecto, realiza conscientemente una estimación aproximada de los costes desde cuatro dimensiones: datos, computación, implementación y riesgos.</li>
+<li><strong>Prioriza las soluciones simples</strong>: Antes de probar modelos complejos de deep learning, prueba primero modelos simples como regresión logística o árboles de decisión. Son más baratos, más rápidos y más fáciles de interpretar.</li>
+<li><strong>Monitorización y evaluación continuas</strong>: El despliegue del modelo no es el final. Establece métricas de monitorización y evalúa periódicamente el rendimiento del modelo en el entorno real y su valor para el negocio.</li>
+</ul>
+<p>Recuerda: un buen profesional de machine learning no solo es arquitecto de modelos, sino también un<strong>ingeniero.</strong>。</p> Otras ampliaciones
+</div>
+</div>
+<div class="archive-list" style="display:none;font-size: 14px;line-height: 1.8;margin-top: 20px;padding: 10px;">
+<div class="archive-list-item">
+<div class="post-intro" id="ai-info" style="width: 100%;">AI pensando...</div>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../ml/ml-data-bias.html" rel="prev">Sesgo de datos</a> </div>
+<div class="next-design-link"><a href="../ml/ml-titanic-survival-prediction.html" rel="next">Predicción de supervivencia en el Titanic</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="sidebar-box">
+</div>
+Lista de notas
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>Haz clic para compartir notas</h3>
+&lt;p style="font-size:14px;"&gt;¡Las notas deben ser una ampliación del contenido de este artículo!&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;Envío de artículos, puedes hacer clic aquí&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;Cómo obtener el código de invitación de registro&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; ¡Antes de compartir notas, debes &lt;a href=";.html" class="runoob-pop"&gt;iniciar sesión&lt;/a&gt;!&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;Cómo obtener el código de invitación de registro&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=";.html" id="cancel-comment-reply-link">Cancelar</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="29043"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>Compartir notas</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">Apodo</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">Apodo (obligatorio)</span></li>
+<li class="form-inline"><label class="hide" for="email">Correo electrónico</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">Correo electrónico (obligatorio)</span></li>
+<li class="form-inline"><label class="hide" for="url">URL de referencia</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">URL de referencia</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  29043;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 29043, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":29043},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+</div>
+</div>
+<!-- 右边栏 -->
+<div class="fivecol last right-column">
+<style>
+.sidebar-tree .double-li {
+    width:300px;
+}
+.sidebar-tree .double-li li {
+    width: 44%;
+    line-height: 1.5em;
+    border-bottom: 1px solid #ccc;
+    float: left;
+    display: inline;
+}
+</style>
+<div class="sidebar-box re-box re-box-large">
+<div class="sidebar-box recommend-here" style="margin: 0 auto;">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;"> <i aria-hidden="true" class="fa fa-list"></i> 分类导航</a>
+</div>
+<div class="sidebar-box sidebar-cate">
+<div class="sidebar-tree">
+<ul><li style="margin: 0;"><a class="tit" href="#"> Python / 数据科学</a><ul class="double-li"><li><a href="../python3/python3-tutorial.html" title="Python 教程">Python 教程</a></li><li><a href="../python/python-tutorial.html" title="Python2.x 教程">Python2.x 教程</a></li><li><a href="../fastapi/fastapi-tutorial.html" title="FastAPI 教程">FastAPI 教程</a></li><li><a href="../flask/flask-tutorial.html" title="Flask 教程">Flask 教程</a></li><li><a href="../django/django-tutorial.html" title="Django 教程">Django 教程</a></li><li><a href="../numpy/numpy-tutorial.html" title="NumPy 教程">NumPy 教程</a></li><li><a href="../pandas/pandas-tutorial.html" title="Pandas 教程">Pandas 教程</a></li><li><a href="../scipy/scipy-tutorial.html" title="SciPy 教程">SciPy 教程</a></li><li><a href="../matplotlib/matplotlib-tutorial.html" title="Matplotlib 教程">Matplotlib 教程</a></li><li><a href="../dash/dash-tutorial.html" title="Dash 教程">Dash 教程</a></li><li><a href="../jupyter-notebook/jupyter-notebook-tutorial.html" title="Jupyter Notebook 教程">Jupyter Notebook 教程</a></li><li><a href="../pillow/pillow-tutorial.html" title="Pillow 教程">Pillow 教程</a></li><li><a href="../qt/qt-tutorial.html" title="量化交易">量化交易</a></li><li><a href="../r/r-tutorial.html" title="R 教程">R 教程</a></li><li><a href="../julia/julia-tutorial.html" title="Julia 教程">Julia 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> AI / 智能开发</a><ul class="double-li"><li><a href="../ai-agent/ai-agent-tutorial.html" title="AI Agent（智能体）">AI Agent（智能体）</a></li><li><a href="../ai/ai-tutorial.html" title="AI（人工智能）">AI（人工智能）</a></li><li><a href="../codex/codex-tutorial.html" title="Codex 教程">Codex 教程</a></li><li><a href="../vibe-coding/vibe-coding-tutorial.html" title="Vibe Coding 教程">Vibe Coding 教程</a></li><li><a href="../claude-code/claude-code-tutorial.html" title="Claude Code">Claude Code</a></li><li><a href="../opencode/opencode-tutorial.html" title="OpenCode">OpenCode</a></li><li><a href="../skills/skills-tutorial.html" title="Skills（技能）">Skills（技能）</a></li><li><a href="../ollama/ollama-tutorial.html" title="Ollama 教程">Ollama 教程</a></li><li><a href="../hermes-agent/hermes-agent-tutorial.html" title="Hermes Agent">Hermes Agent</a></li><li><a href="../deepseek-harness/deepseek-harness-tutorial.html" title="DeepSeek Harness">DeepSeek Harness</a></li><li><a href="../pi-agent/pi-agent-tutorial.html" title="Pi Agent">Pi Agent</a></li><li><a href="../ai-math/ai-math-tutorial.html" title="AI 数学基础">AI 数学基础</a></li><li><a href="../tensorflow/tensorflow-tutorial.html" title="TensorFlow 教程">TensorFlow 教程</a></li><li><a href="../pytorch/pytorch-tutorial.html" title="PyTorch 教程">PyTorch 教程</a></li><li><a href="../sklearn/sklearn-tutorial.html" title="Scikit-learn 教程">Scikit-learn 教程</a></li><li><a href="../ml/ml-tutorial.html" title="机器 教程">机器 教程</a></li><li><a href="../langchain/langchain-tutorial.html" title="LangChain">LangChain</a></li><li><a href="../nlp/nlp-tutorial.html" title="自然语言处理 NLP">自然语言处理 NLP</a></li><li><a href="../opencv/opencv-tutorial.html" title="OpenCV 教程">OpenCV 教程</a></li><li><a href="../selenium/selenium-tutorial.html" title="Selenium 教程">Selenium 教程</a></li><li><a href="../playwright/playwright-tutorial.html" title="Playwright 教程">Playwright 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 前端开发</a><ul class="double-li"><li><a href="../html/html-tutorial.html" title="HTML 教程">HTML 教程</a></li><li><a href="../html/html5-intro.html" title="HTML5 教程">HTML5 教程</a></li><li><a href="../css/css-tutorial.html" title="CSS 教程">CSS 教程</a></li><li><a href="../css3/css3-tutorial.html" title="CSS3 教程">CSS3 教程</a></li><li><a href="../js/js-tutorial.html" title="JavaScript 教程">JavaScript 教程</a></li><li><a href="../htmldom/htmldom-tutorial.html" title="HTML DOM 教程">HTML DOM 教程</a></li><li><a href="../typescript/ts-tutorial.html" title="TypeScript 教程">TypeScript 教程</a></li><li><a href="../ajax/ajax-tutorial.html" title="AJAX 教程">AJAX 教程</a></li><li><a href="../json/json-tutorial.html" title="JSON 教程">JSON 教程</a></li><li><a href="../tailwindcss/tailwindcss-tutorial.html" title="Tailwind CSS 教程">Tailwind CSS 教程</a></li><li><a href="../bootstrap4/bootstrap4-tutorial.html" title="Bootstrap4 教程">Bootstrap4 教程</a></li><li><a href="../bootstrap5/bootstrap5-tutorial.html" title="Bootstrap5 教程">Bootstrap5 教程</a></li><li><a href="../foundation/foundation-tutorial.html" title="Foundation 教程">Foundation 教程</a></li><li><a href="../vue2/vue-tutorial.html" title="Vue.js 教程">Vue.js 教程</a></li><li><a href="../vue3/vue3-tutorial.html" title="Vue3 教程">Vue3 教程</a></li><li><a href="../react/react-tutorial.html" title="React 教程">React 教程</a></li><li><a href="../nextjs/nextjs-tutorial.html" title="Next.js 教程">Next.js 教程</a></li><li><a href="../angularjs/angularjs-tutorial.html" title="AngularJS 教程">AngularJS 教程</a></li><li><a href="../angularjs2/angularjs2-tutorial.html" title="Angular 教程">Angular 教程</a></li><li><a href="../jquery/jquery-tutorial.html" title="jQuery 教程">jQuery 教程</a></li><li><a href="../jqueryui/jqueryui-tutorial.html" title="jQuery UI 教程">jQuery UI 教程</a></li><li><a href="../jeasyui/jqueryeasyui-tutorial.html" title="jQuery EasyUI 教程">jQuery EasyUI 教程</a></li><li><a href="../echarts/echarts-tutorial.html" title="ECharts 教程">ECharts 教程</a></li><li><a href="../chartjs/chartjs-tutorial.html" title="Chart.js 教程">Chart.js 教程</a></li><li><a href="../highcharts/highcharts-tutorial.html" title="Highcharts 教程">Highcharts 教程</a></li><li><a href="../googleapi/google-maps-basic.html" title="Google 地图 教程">Google 地图 教程</a></li><li><a href="../svg/svg-tutorial.html" title="SVG 教程">SVG 教程</a></li><li><a href="../font-awesome/fontawesome-tutorial.html" title="Font Awesome 教程">Font Awesome 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 后端开发</a><ul class="double-li"><li><a href="../nodejs/nodejs-tutorial.html" title="Node.js 教程">Node.js 教程</a></li><li><a href="../electron/electron-tutorial.html" title="Electron 教程">Electron 教程</a></li><li><a href="../php/php-tutorial.html" title="PHP 教程">PHP 教程</a></li><li><a href="../java/java-tutorial.html" title="Java 教程">Java 教程</a></li><li><a href="../go/go-tutorial.html" title="Go 教程">Go 教程</a></li><li><a href="../rust/rust-tutorial.html" title="Rust 教程">Rust 教程</a></li><li><a href="../csharp/csharp-tutorial.html" title="C# 教程">C# 教程</a></li><li><a href="../servlet/servlet-tutorial.html" title="Servlet 教程">Servlet 教程</a></li><li><a href="../jsp/jsp-tutorial.html" title="JSP 教程">JSP 教程</a></li><li><a href="../asp/asp-tutorial.html" title="ASP 教程">ASP 教程</a></li><li><a href="../appml/appml-tutorial.html" title="AppML 教程">AppML 教程</a></li><li><a href="../vbscript/vbscript-tutorial.html" title="VBScript 教程">VBScript 教程</a></li><li><a href="../swagger/swagger-tutorial.html" title="Swagger 教程">Swagger 教程</a></li><li><a href="../restfulapi/restful-api-tutorial.html" title="RESTful API 教程">RESTful API 教程</a></li><li><a href="../docker/docker-tutorial.html" title="Docker 教程">Docker 教程</a></li><li><a href="../linux/linux-tutorial.html" title="Linux 教程">Linux 教程</a></li><li><a href="../w3cnote/zookeeper-tutorial.html" title="ZooKeeper 教程">ZooKeeper 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 数据库</a><ul class="double-li"><li><a href="../sql/sql-tutorial.html" title="SQL 教程">SQL 教程</a></li><li><a href="../mysql/mysql-tutorial.html" title="MySQL 教程">MySQL 教程</a></li><li><a href="../postgresql/postgresql-tutorial.html" title="PostgreSQL 教程">PostgreSQL 教程</a></li><li><a href="../sqlite/sqlite-tutorial.html" title="SQLite 教程">SQLite 教程</a></li><li><a href="../mongodb/mongodb-tutorial.html" title="MongoDB 教程">MongoDB 教程</a></li><li><a href="../redis/redis-tutorial.html" title="Redis 教程">Redis 教程</a></li><li><a href="../memcached/memcached-tutorial.html" title="Memcached 教程">Memcached 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 移动开发</a><ul class="double-li"><li><a href="../w3cnote/android-tutorial-intro.html" title="Android 教程">Android 教程</a></li><li><a href="../flutter/flutter-tutorial.html" title="Flutter 教程">Flutter 教程</a></li><li><a href="../ionic/ionic-tutorial.html" title="Ionic 教程">Ionic 教程</a></li><li><a href="../jquerymobile/jquerymobile-tutorial.html" title="jQuery Mobile 教程">jQuery Mobile 教程</a></li><li><a href="../swift/swift-tutorial.html" title="Swift 教程">Swift 教程</a></li><li><a href="../kotlin/kotlin-tutorial.html" title="Kotlin 教程">Kotlin 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> DevOps / 工程化</a><ul class="double-li"><li><a href="../git/git-tutorial.html" title="Git 教程">Git 教程</a></li><li><a href="../svn/svn-tutorial.html" title="SVN 教程">SVN 教程</a></li><li><a href="../cmake/cmake-tutorial.html" title="CMake 教程">CMake 教程</a></li><li><a href="../maven/maven-tutorial.html" title="Maven 教程">Maven 教程</a></li><li><a href="../vscode/vscode-tutorial.html" title="VS Code 教程">VS Code 教程</a></li><li><a href="../obsidian/obsidian-tutorial.html" title="Obsidian 教程">Obsidian 教程</a></li><li><a href="../pycharm/pycharm-tutorial.html" title="PyCharm 教程">PyCharm 教程</a></li><li><a href="../eclipse/eclipse-tutorial.html" title="Eclipse 教程">Eclipse 教程</a></li><li><a href="../markdown/md-tutorial.html" title="Markdown 教程">Markdown 教程</a></li><li><a href="../latex/latex-tutorial.html" title="LaTeX 教程">LaTeX 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 编程语言</a><ul class="double-li"><li><a href="../c/c-tutorial.html" title="C 教程">C 教程</a></li><li><a href="../cplusplus/cpp-tutorial.html" title="C++ 教程">C++ 教程</a></li><li><a href="../zig/zig-tutorial.html" title="Zig 教程">Zig 教程</a></li><li><a href="../scala/scala-tutorial.html" title="Scala 教程">Scala 教程</a></li><li><a href="../ruby/ruby-tutorial.html" title="Ruby 教程">Ruby 教程</a></li><li><a href="../perl/perl-tutorial.html" title="Perl 教程">Perl 教程</a></li><li><a href="../lua/lua-tutorial.html" title="Lua 教程">Lua 教程</a></li><li><a href="../dart/dart-tutorial.html" title="Dart 教程">Dart 教程</a></li><li><a href="../assembly/assembly-tutorial.html" title="汇编语言 教程">汇编语言 教程</a></li><li><a href="../w3cnote/verilog-tutorial.html" title="Verilog 教程">Verilog 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 计算机基础</a><ul class="double-li"><li><a href="../computer-organization/computer-organization-tutorial.html" title="计算机组成原理">计算机组成原理</a></li><li><a href="../data-structures/data-structures-tutorial.html" title="数据结构与算法">数据结构与算法</a></li><li><a href="../c-dsa/c-dsa-tutorial.html" title="C 语言数据结构与算法">C 语言数据结构与算法</a></li><li><a href="../design-pattern/design-pattern-tutorial.html" title="设计模式">设计模式</a></li><li><a href="../python-design-pattern/python-design-pattern-tutorial.html" title="Python 设计模式">Python 设计模式</a></li><li><a href="../regexp/regexp-tutorial.html" title="正则表达式">正则表达式</a></li><li><a href="../http/http-tutorial.html" title="HTTP 教程">HTTP 教程</a></li><li><a href="../tcpip/tcpip-tutorial.html" title="TCP/IP 教程">TCP/IP 教程</a></li><li><a href="../np/np-tutorial.html" title="网络协议">网络协议</a></li><li><a href="../w3c/w3c-tutorial.html" title="W3C 教程">W3C 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> XML / Web Service</a><ul class="double-li"><li><a href="../xml/xml-tutorial.html" title="XML 教程">XML 教程</a></li><li><a href="../dtd/dtd-tutorial.html" title="DTD 教程">DTD 教程</a></li><li><a href="../dom/dom-tutorial.html" title="XML DOM 教程">XML DOM 教程</a></li><li><a href="../xsl/xsl-tutorial.html" title="XSLT 教程">XSLT 教程</a></li><li><a href="../xpath/xpath-tutorial.html" title="XPath 教程">XPath 教程</a></li><li><a href="../xquery/xquery-tutorial.html" title="XQuery 教程">XQuery 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XLink 教程">XLink 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XPointer 教程">XPointer 教程</a></li><li><a href="../schema/schema-tutorial.html" title="XML Schema 教程">XML Schema 教程</a></li><li><a href="../xslfo/xslfo-tutorial.html" title="XSL-FO 教程">XSL-FO 教程</a></li><li><a href="../webservices/webservices-tutorial.html" title="Web Service 教程">Web Service 教程</a></li><li><a href="../wsdl/wsdl-tutorial.html" title="WSDL 教程">WSDL 教程</a></li><li><a href="../soap/soap-tutorial.html" title="SOAP 教程">SOAP 教程</a></li><li><a href="../rss/rss-tutorial.html" title="RSS 教程">RSS 教程</a></li><li><a href="../rdf/rdf-tutorial.html" title="RDF 教程">RDF 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> .NET</a><ul class="double-li"><li><a href="../aspnet/aspnet-tutorial.html" title="ASP.NET 教程">ASP.NET 教程</a></li><li><a href="../aspnet/mvc-intro.html" title="MVC 教程">MVC 教程</a></li><li><a href="../aspnet/razor-intro.html" title="Razor 教程">Razor 教程</a></li><li><a href="../aspnet/aspnet-intro.html" title="Web Forms 教程">Web Forms 教程</a></li><li><a href="../aspnet/webpages-intro.html" title="Web Pages 教程">Web Pages 教程</a></li><li><a href="../powershell/powershell-tutorial.html" title="PowerShell 教程">PowerShell 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 网站建设</a><ul class="double-li"><li><a href="../web/web-buildingprimer.html" title="网站建设指南">网站建设指南</a></li><li><a href="../browsers/browser-information.html" title="浏览器信息">浏览器信息</a></li><li><a href="../hosting/hosting-tutorial.html" title="网站主机教程">网站主机教程</a></li><li><a href="../quality/quality-tutorial.html" title="网站品质">网站品质</a></li></ul></li></ul> </div>
+</div>
+</div>
+<br/>
+<div class="sidebar-box re-box re-box-large">
+</div>
+</div></div>
+</div>
+<script>
+var aid = 29043;
+function coll() {
+	$.post( '/wp-content/themes/runoob/option/user/userinfo.php', {aid:aid, action:"collarticle", opt:'add'},function( data ) {
+		if(data.error==0) {
+			$("#content").find("h1:first").find("a").attr("href","javascript:void(0);");
+			$("#content").find("h1:first").find("img").attr("src","http://www.runoob.com/wp-content/themes/runoob/assets/img/coll2.png").css({width:32+"px",height:32+"px"});
+		}
+		alert(data.msg);
+	},'json');
+}
+
+(function () {
+    // 1. 仅 HTML 页面
+    if (!document.contentType || !document.contentType.includes('text/html')) return;
+
+    // 2. 容器判断
+    var container = document.querySelector('.article-intro');
+    if (!container) return;
+
+    var h1 = container.querySelector('h1');
+    if (!h1) return;
+
+    // 3. URL 判断
+    var url = window.location.href.toLowerCase();
+    var version = null;
+
+    if (url.includes('/python3/')) {
+        version = 'Python3.x';
+    } else if (url.includes('/python/')) {
+        version = 'Python2.x';
+    }
+
+    if (!version) return;
+
+    // 4. 防重复
+    if (h1.querySelector('.py-version-badge')) return;
+
+    // 5. 创建标签
+    var badge = document.createElement('span');
+    badge.className = 'py-version-badge';
+    badge.innerText = version;
+
+    // 6. 样式（核心：float 实现右上角）
+    badge.style.float = 'right';
+    badge.style.fontSize = '12px';
+    badge.style.padding = '2px 8px';
+    badge.style.borderRadius = '999px';
+
+   // 自适应亮/暗色 + 渐变背景（增强版）
+	badge.style.color = 'inherit';
+
+	// 渐变背景（低透明度，不影响暗黑模式）
+	if (version.includes('3')) {
+		badge.style.background = 'linear-gradient(90deg, rgba(79,172,254,0.15), rgba(0,242,254,0.15))';
+	} else {
+		badge.style.background = 'linear-gradient(90deg, rgba(161,140,209,0.15), rgba(251,194,235,0.15))';
+	}
+
+	// 边框弱化（更精致）
+	badge.style.border = '1px solid rgba(127,127,127,0.3)';
+
+	// 提升可读性
+	badge.style.opacity = '0.95';
+
+    // 微调位置（更贴近“右上角”）
+    badge.style.marginTop = '4px';
+    badge.style.marginLeft = '10px';
+
+    // 7. 插入到 h1 最前面（让 float 生效更稳定）
+    h1.insertBefore(badge, h1.firstChild);
+
+})();
+</script>
+<!-- 反馈对话框开始 -->
+<script src="../wp-content/themes/runoob/assets/js/runoob-article-dir.min.js"></script>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

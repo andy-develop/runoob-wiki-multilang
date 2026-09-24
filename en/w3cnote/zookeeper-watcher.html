@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>11.0 Analysis of Zookeeper Watcher Event Mechanism | Runoob Tutorial</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="./zookeeper-watcher.html" rel="canonical"/>
+<meta content="11.0 Zookeeper watcher 事件机制原理剖析" name="keywords"/>
+<meta content="zookeeper 的 watcher 机制，可以分为四个过程：  客户端注册 watcher。 服务端处理 watcher。 服务端触发 watcher 事件。 客户端回调 watcher。  其中客户端注册 watcher 有三种方式，调用客户端 API 可以分别通过 getData、exists、getChildren 实现，利用前面章节创建的 maven 工程，新建 WatcherDemo 类，以 exists 方法举例说明其原.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div><!-- 导航栏 -->
+<!--  内容  -->
+<div class="container main">
+<div class="row">
+<!--  Android 基础入门教程 start  -->
+<div class="col left-column" style="display:none;">
+<div class="tab">Zookeeper 教程</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+</div>
+</div>
+</div>
+<!--  Android 基础入门教程 end  -->
+<div class="col middle-column big-middle-column">
+<div class="article">
+<div class="article-heading">
+<h2>11.0 Analysis of Zookeeper Watcher Event Mechanism</h2> <h3><em>Category</em> <a href="../w3cnote_genre/zookeeper.html" title="Zookeeper 教程">Zookeeper Tutorial</a> </h3>
+</div>
+<div class="article-body note-body">
+<div class="article-intro">
+<!-- ad start-->
+<!-- ad end-->
+<p>The Zookeeper watcher mechanism can be divided into four processes:</p>
+<ul><li>Client registers watcher.</li><li>Server processes watcher.</li><li>Server triggers watcher event.</li><li>Client callback watcher.</li></ul>
+<p>There are three ways for the client to register a watcher. The client API can be called via getData, exists, and getChildren respectively. Using the Maven project created in the previous chapter, create a WatcherDemo class and take the exists method as an example to illustrate the principle.</p>
+<div class="example"><h2 class="example">Example</h2> <div class="example_code">
+<span style="color: #000000; font-weight: bold;">public</span> <span style="color: #000000; font-weight: bold;">class</span> WatcherDemo <span style="color: #000000; font-weight: bold;">implements</span> Watcher <span style="color: #009900;">{</span><br/>
+    <span style="color: #000000; font-weight: bold;">static</span> ZooKeeper zooKeeper<span style="color: #339933;">;</span><br/>
+    <span style="color: #000000; font-weight: bold;">static</span> <span style="color: #009900;">{</span><br/>
+        <span style="color: #000000; font-weight: bold;">try</span> <span style="color: #009900;">{</span><br/>
+            zooKeeper <span style="color: #339933;">=</span> <span style="color: #000000; font-weight: bold;">new</span> ZooKeeper<span style="color: #009900;">(</span><span style="color: #0000ff;">"192.168.3.39:2181"</span>, <span style="color: #cc66cc;">4000</span>,<span style="color: #000000; font-weight: bold;">new</span> WatcherDemo<span style="color: #009900;">(</span><span style="color: #009900;">)</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+        <span style="color: #009900;">}</span> <span style="color: #000000; font-weight: bold;">catch</span> <span style="color: #009900;">(</span><span style="color: #003399;">IOException</span> e<span style="color: #009900;">)</span> <span style="color: #009900;">{</span><br/>
+            e.<span style="color: #006633;">printStackTrace</span><span style="color: #009900;">(</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+        <span style="color: #009900;">}</span><br/>
+    <span style="color: #009900;">}</span><br/>
+    @Override<br/>
+    <span style="color: #000000; font-weight: bold;">public</span> <span style="color: #000066; font-weight: bold;">void</span> process<span style="color: #009900;">(</span>WatchedEvent event<span style="color: #009900;">)</span> <span style="color: #009900;">{</span><br/>
+        <span style="color: #003399;">System</span>.<span style="color: #006633;">out</span>.<span style="color: #006633;">println</span><span style="color: #009900;">(</span><span style="color: #0000ff;">"eventType:"</span><span style="color: #339933;">+</span>event.<span style="color: #006633;">getType</span><span style="color: #009900;">(</span><span style="color: #009900;">)</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+        <span style="color: #000000; font-weight: bold;">if</span><span style="color: #009900;">(</span>event.<span style="color: #006633;">getType</span><span style="color: #009900;">(</span><span style="color: #009900;">)</span><span style="color: #339933;">==</span><span style="color: #003399;">Event</span>.<span style="color: #006633;">EventType</span>.<span style="color: #006633;">NodeDataChanged</span><span style="color: #009900;">)</span><span style="color: #009900;">{</span><br/>
+            <span style="color: #000000; font-weight: bold;">try</span> <span style="color: #009900;">{</span><br/>
+                zooKeeper.<span style="color: #006633;">exists</span><span style="color: #009900;">(</span>event.<span style="color: #006633;">getPath</span><span style="color: #009900;">(</span><span style="color: #009900;">)</span>,<span style="color: #000066; font-weight: bold;">true</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+            <span style="color: #009900;">}</span> <span style="color: #000000; font-weight: bold;">catch</span> <span style="color: #009900;">(</span>KeeperException e<span style="color: #009900;">)</span> <span style="color: #009900;">{</span><br/>
+                e.<span style="color: #006633;">printStackTrace</span><span style="color: #009900;">(</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+            <span style="color: #009900;">}</span> <span style="color: #000000; font-weight: bold;">catch</span> <span style="color: #009900;">(</span><span style="color: #003399;">InterruptedException</span> e<span style="color: #009900;">)</span> <span style="color: #009900;">{</span><br/>
+                e.<span style="color: #006633;">printStackTrace</span><span style="color: #009900;">(</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+            <span style="color: #009900;">}</span><br/>
+        <span style="color: #009900;">}</span><br/>
+    <span style="color: #009900;">}</span><br/>
+    <span style="color: #000000; font-weight: bold;">public</span> <span style="color: #000000; font-weight: bold;">static</span> <span style="color: #000066; font-weight: bold;">void</span> main<span style="color: #009900;">(</span><span style="color: #003399;">String</span><span style="color: #009900;">[</span><span style="color: #009900;">]</span> args<span style="color: #009900;">)</span> <span style="color: #000000; font-weight: bold;">throws</span> <span style="color: #003399;">IOException</span>, KeeperException, <span style="color: #003399;">InterruptedException</span> <span style="color: #009900;">{</span><br/>
+        <span style="color: #003399;">String</span> path<span style="color: #339933;">=</span><span style="color: #0000ff;">"/watcher"</span><span style="color: #339933;">;</span><br/>
+        <span style="color: #000000; font-weight: bold;">if</span><span style="color: #009900;">(</span>zooKeeper.<span style="color: #006633;">exists</span><span style="color: #009900;">(</span>path,<span style="color: #000066; font-weight: bold;">false</span><span style="color: #009900;">)</span><span style="color: #339933;">==</span><span style="color: #000066; font-weight: bold;">null</span><span style="color: #009900;">)</span> <span style="color: #009900;">{</span><br/>
+            zooKeeper.<span style="color: #006633;">create</span><span style="color: #009900;">(</span><span style="color: #0000ff;">"/watcher"</span>, <span style="color: #0000ff;">"0"</span>.<span style="color: #006633;">getBytes</span><span style="color: #009900;">(</span><span style="color: #009900;">)</span>, ZooDefs.<span style="color: #006633;">Ids</span>.<span style="color: #006633;">OPEN_ACL_UNSAFE</span>, CreateMode.<span style="color: #006633;">PERSISTENT</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+        <span style="color: #009900;">}</span><br/>
+        <span style="color: #003399;">Thread</span>.<span style="color: #006633;">sleep</span><span style="color: #009900;">(</span><span style="color: #cc66cc;">1000</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+        <span style="color: #003399;">System</span>.<span style="color: #006633;">out</span>.<span style="color: #006633;">println</span><span style="color: #009900;">(</span><span style="color: #0000ff;">"-----------"</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+        <span style="color: #666666; font-style: italic;">//true indicates using the watcher configured in the Zookeeper instance</span><br/>
+        Stat stat<span style="color: #339933;">=</span>zooKeeper.<span style="color: #006633;">exists</span><span style="color: #009900;">(</span>path,<span style="color: #000066; font-weight: bold;">true</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+        <span style="color: #003399;">System</span>.<span style="color: #006633;">in</span>.<span style="color: #006633;">read</span><span style="color: #009900;">(</span><span style="color: #009900;">)</span><span style="color: #339933;">;</span><br/>
+    <span style="color: #009900;">}</span><br/>
+<span style="color: #009900;">}</span><br/>
+</div></div>
+<p>After running the program, the console displays:</p>
+<p><img decoding="async" src="../wp-content/uploads/2020/09/watcher-01.png"/></p>
+<p>Now start the Zookeeper command-line terminal, view and delete<strong>watcher</strong>the node:</p>
+<p><img decoding="async" src="../wp-content/uploads/2020/09/watcher-02.png"/></p>
+<p>IDE console output: the node deletion event was triggered:</p>
+<p><img decoding="async" src="../wp-content/uploads/2020/09/watcher-03.png"/></p><p>The client sends requests to the server through a TCP long connection to establish a network channel. By default, the underlying implementation uses Java NIO, and it can also be configured to use Netty.</p>
+<p><img decoding="async" src="../wp-content/uploads/2020/09/watcher-04.png"/></p>
+<p>Flowchart of registering watcher listening events:</p>
+<p><img decoding="async" src="../wp-content/uploads/2020/09/watcher-05.png"/></p>
+<h3>1. Client sends event notification request</h3>
+<p>When the Zookeeper class calls the exists method, the event listener creation is encapsulated into the request object with the watch attribute set to true. After the server returns a response, the listener event is encapsulated into the client's ZKWatchManager class.</p>
+<p><img decoding="async" src="../wp-content/uploads/2020/09/watcher-06.png"/></p>
+<h3>2. Server processes the watcher event request</h3>
+<p>The server-side NIOServerCnxn class is used to process requests sent by the client, ultimately calling FinalRequestProcessor, where a piece of source code adds the watcher event sent by the client:</p>
+<p><img decoding="async" src="../wp-content/uploads/2020/09/watcher-07.png"/></p>
+<p>Then it enters the statNode method, adds the watcher event in the DataTree class method, and saves it to WatchManager's watchTable and watchTable.</p>
+<p><img decoding="async" src="../wp-content/uploads/2020/09/watcher-08.png"/></p>
+<p><img decoding="async" src="../wp-content/uploads/2020/09/watcher-09.png"/></p>
+<h3>3. Server triggers watcher event flow:</h3><p>If a monitored node on the server receives a transaction request, during the server's processing of the request, the code in the processRequest method of the FinalRequestProcessor class is called as follows:</p>
+<p><img decoding="async" src="../wp-content/uploads/2020/09/watcher-10.png"/></p>
+<p>The deletion call chain eventually reaches the trigger code segment for the delete node branch in the DataTree class:</p>
+<p><img decoding="async" src="../wp-content/uploads/2020/09/watcher-11.png"/></p>
+<p>Enter the triggerWatch method of the WatchManager class:</p>
+<p><img decoding="async" src="../wp-content/uploads/2020/09/watcher-12.png"/></p><p>Continuing to trace into NIOServerCnxn, it constructs a ReplyHeader object with xid of -1 and zxid of -1, and then calls the sendResonpe method.</p>
+<p><img decoding="async" src="../wp-content/uploads/2020/09/watcher-13.png"/></p>
+<h3>4. Client callback for watcher event</h3><p>The client's SendThread class readResponse method receives the event notification triggered by the server, enters the xid = -1 flow, and processes the Event.</p>
+<p><img decoding="async" src="../wp-content/uploads/2020/09/watcher-14.png"/></p>
+<p><img decoding="async" src="../wp-content/uploads/2020/09/watcher-15.png"/></p>
+<h3>Download source code for this chapter</h3><p>
+<a class="download" href="../wp-content/uploads/2020/09/zookeeper-demo-watcher.zip">Download</a></p> </div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link">← <a href="./zookeeper-acl.html" rel="prev">10.0 Zookeeper ACL Permission Control</a> </div>
+<div class="next-design-link"><a href="./zookeeper-data-sync.html" rel="next">12.0 Zookeeper Data Synchronization Process</a> →</div>
+</div>
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>Click me to share notes</h3>
+&lt;p style="font-size:14px;"&gt;Notes must be an extension of the content of this article!&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;To submit an article, click here&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;How to get a registration invitation code&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; Before sharing notes, you must &lt;a href=".." class="runoob-pop"&gt;log in&lt;/a&gt;!&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;How to get a registration invitation code&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=".." id="cancel-comment-reply-link">Cancel</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="22824"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>Share notes</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">Nickname</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">Nickname (required)</span></li>
+<li class="form-inline"><label class="hide" for="email">Email</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">Email (required)</span></li>
+<li class="form-inline"><label class="hide" for="url">Reference address</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">Reference address</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  22824;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 22824, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":22824},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+<style>
+@media screen and (max-width: 768px) {
+	#w3cnote-ad728 {
+		display: none;
+	}
+}
+p.note-author {
+    border-bottom: 1px solid #ddd;
+    font-size: 18px;
+    font-weight: bold;
+    color: #78a15a;
+    padding-bottom: 2px;
+    margin-bottom: 4px;
+}
+</style>
+<script>
+var aid = 22824;
+</script>
+</div>
+</div>
+<div class="listcol last right-column">
+<script type="text/javascript">
+jQuery(document).ready(function ($){
+	var total = $(".membership li").length;
+	var left_list = '';
+	href = window.location.href;
+	
+	$(".membership li").each(function(index, value){
+
+		left_list += $(this).html();
+
+		cur_href = $(this).find("a").attr("href");
+		cur_obj = $(this);
+		
+		if(href.match(cur_href) != null) {
+			if(index==0) {
+				$(".previous-design-link").hide();
+			}
+			if(index==(total-1)) {
+				$(".next-design-link").hide();
+			}
+			prev_href = cur_obj.prev("li").find("a").attr("href");
+			prev_title = cur_obj.prev("li").find("a").attr("title");
+
+			next_href = cur_obj.next("li").find("a").attr("href");
+			next_title = cur_obj.next("li").find("a").attr("title");
+			if(prev_title) {
+				$(".previous-design-link a").attr("href", prev_href);
+				$(".previous-design-link a").attr("title", prev_title);
+				$(".previous-design-link a").text(prev_title);
+			} else {
+				$(".previous-design-link").html("");
+			}
+
+			if(next_title) {
+				$(".next-design-link a").attr("href", next_href);
+				$(".next-design-link a").attr("title", next_title);
+				$(".next-design-link a").text(next_title);
+			} else {
+				$(".next-design-link").html("");
+			}
+		}
+	});
+
+	$("#leftcolumn").html(left_list);
+});
+	</script>
+<div class="sidebar-box cate-list">
+<div class="sidebar-box recommend-here list-link">
+<a href="#">Zookeeper 教程</a> </div>
+<ul class="membership">
+<li><a data-id="22726" href="./zookeeper-tutorial.html" target="_top" title="1.0 Zookeeper 教程">1.0 Zookeeper 教程</a></li>
+<li><a data-id="22725" href="./zookeeper-setup.html" target="_top" title="2.0 Zookeeper 安装配置">2.0 Zookeeper 安装配置</a></li>
+<li><a data-id="22745" href="./zookeeper-linux-cluster.html" target="_top" title="3.0 Zookeeper  linux 服务端集群搭建步骤">3.0 Zookeeper  linux 服务端集群搭建步骤</a></li>
+<li><a data-id="22757" href="./zookeeper-java-setup.html" target="_top" title="4.0 Zookeeper Java 客户端搭建">4.0 Zookeeper Java 客户端搭建</a></li>
+<li><a data-id="22764" href="./zookeeper-znode-data-model.html" target="_top" title="5.0 ZooKeeper 数据模型 znode 结构详解">5.0 ZooKeeper 数据模型 znode 结构详解</a></li>
+<li><a data-id="22770" href="./zookeeper-session.html" target="_top" title="6.0 Zookeeper session 基本原理">6.0 Zookeeper session 基本原理</a></li>
+<li><a data-id="22775" href="./zookeeper-bs-command.html" target="_top" title="7.0 Zookeeper 客户端基础命令使用">7.0 Zookeeper 客户端基础命令使用</a></li>
+<li><a data-id="22803" href="./zookeeper-sc-4lw.html" target="_top" title="8.0 Zookeeper 四字命令">8.0 Zookeeper 四字命令</a></li>
+<li><a data-id="22810" href="./zookeeper-node-feature.html" target="_top" title="9.0 Zookeeper 节点特性">9.0 Zookeeper 节点特性</a></li>
+<li><a data-id="22819" href="./zookeeper-acl.html" target="_top" title="10.0 Zookeeper 权限控制 ACL">10.0 Zookeeper 权限控制 ACL</a></li>
+<li>
+	11.0 Zookeeper watcher 事件机制原理剖析	</li>
+<li><a data-id="22841" href="./zookeeper-data-sync.html" target="_top" title="12.0 Zookeeper 数据同步流程">12.0 Zookeeper 数据同步流程</a></li>
+<li><a data-id="22843" href="./zookeeper-leader.html" target="_top" title="13.0 Zookeeper Leader 选举原理">13.0 Zookeeper Leader 选举原理</a></li>
+<li><a data-id="22845" href="./zookeeper-locks.html" target="_top" title="14.0 Zookeeper 分布式锁实现原理">14.0 Zookeeper 分布式锁实现原理</a></li>
+</ul></div> </div>
+</div>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+</div><script src="../../lang-switcher.js"></script>
+</body>
+</html>

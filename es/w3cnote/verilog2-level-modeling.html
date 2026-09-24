@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>1.2 Modelado a nivel de interruptores en Verilog | Tutorial para novatos</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="./verilog2-level-modeling.html" rel="canonical"/>
+<meta content="1.2 Verilog 开关级建模" name="keywords"/>
+<meta content="关键词：MOS, CMOS, 双向开关, PAD 开关级建模是比门级建模更为低级抽象层次上的设计。在极少数情况下，设计者可能会选择使用晶体管作为设计的底层模块。随着电路设计复杂度及相关先进工具的出现，以开关为基础的数字设计慢慢步入黄昏。目前，Verilog 仅仅提供了用逻辑值 0、1、x、z 作为相关驱动强度的数字设计能力，因此，Verilog 中晶体管也仅被当做导通或截止的开关。  MOS 开关 MOS 开关有 2 种，用如下关键字声.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div><!-- 导航栏 -->
+<!--  内容  -->
+<div class="container main">
+<div class="row">
+<!--  Android 基础入门教程 start  -->
+<div class="col left-column" style="display:none;">
+<div class="tab">Verilog 高级教程</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+</div>
+</div>
+</div>
+<!--  Android 基础入门教程 end  -->
+<div class="col middle-column big-middle-column">
+<div class="article">
+<div class="article-heading">
+<h2>1.2 Modelado a nivel de interruptores en Verilog</h2> <h3><em>Categoría</em> <a href="../w3cnote_genre/verilog2.html" title="Verilog 教程高级篇">Tutorial avanzado de Verilog</a> </h3>
+</div>
+<div class="article-body note-body">
+<div class="article-intro">
+<!-- ad start-->
+<!-- ad end-->
+<h3>Palabras clave: MOS, CMOS, interruptor bidireccional, PAD</h3><p>El modelado a nivel de interruptores es un diseño en un nivel de abstracción más bajo que el modelado a nivel de puertas. En raras ocasiones, el diseñador puede optar por utilizar transistores como módulos subyacentes del diseño. Con la creciente complejidad del diseño de circuitos y la aparición de herramientas avanzadas, el diseño digital basado en interruptores está entrando lentamente en su ocaso. Actualmente, Verilog solo proporciona capacidad de diseño digital utilizando valores lógicos 0, 1, x, z como intensidades de excitación relacionadas, por lo que los transistores en Verilog también se tratan simplemente como interruptores conductores o cortados.</p>
+<hr/>
+<h2>Interruptor MOS</h2><p>Hay 2 tipos de interruptores MOS, que se declaran con las siguientes palabras clave:</p>
+<pre>nmos（N 类型 MOS 管）   pmos（P 类型 MOS 管）  
+rnmos （带有高阻抗的 NMOS 管） rpmos（带有高阻抗的 PMOS 管）</pre>
+<p>Los transistores MOS se utilizan para modelar la lógica de interruptores. Los datos fluyen de la entrada a la salida, y el flujo de datos se puede abrir o cerrar mediante una configuración adecuada.</p>
+<p>Los transistores MOS con impedancia tienen una alta impedancia de fuente a drenador y reducen la intensidad de la señal al transmitirla.</p>
+<p>El diagrama de estructura del interruptor de transistor MOS se muestra a continuación.</p>
+<p><img alt="" decoding="async" src="../wp-content/uploads/2021/05/v-level-modling-1.png"/></p>
+<p>Al instanciar, el primer puerto del transistor MOS es la salida, el segundo puerto es la entrada de datos y el tercer puerto es la entrada de control.</p>
+<div class="example"><h2 class="example">Ejemplo</h2> <div class="example_code">
+   <span style="color: #00008B; font-style: italic;">//tri</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">pmos</span> pmos1           <span style="color: #9F79EE;">(</span>OUTX<span style="color: #5D478B;">,</span> IN1<span style="color: #5D478B;">,</span> CTRL1<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #00008B; font-style: italic;">//no instantiation name</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">nmos</span>                 <span style="color: #9F79EE;">(</span>OUTX1<span style="color: #5D478B;">,</span> IN1<span style="color: #5D478B;">,</span> CTRL2<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+</div></div>
+<p>La tabla de verdad del transistor MOS se muestra a continuación, muy similar a la puerta triestado.</p>
+<table class="tecspec"><thead><tr><th style="text-align:center;"><span>nmos</span></th><th style="text-align:left;"><span>Terminal de control</span></th><th style="text-align:center;"> </th><th style="text-align:left;"> </th><th style="text-align:center;"> </th><th style="text-align:left;"> </th><th style="text-align:center;"><span>pmos</span></th><th style="text-align:left;"><span>Terminal de control</span></th><th style="text-align:center;"> </th><th style="text-align:left;"> </th><th style="text-align:left;"> </th></tr></thead><tbody><tr><td style="text-align:center;"> </td><td style="text-align:left;"><span>0</span></td><td style="text-align:center;"><span>1</span></td><td style="text-align:left;"><span>x</span></td><td style="text-align:center;"><span>z</span></td><td style="text-align:left;"> </td><td style="text-align:center;"> </td><td style="text-align:left;"><span>0</span></td><td style="text-align:center;"><span>1</span></td><td style="text-align:left;"><span>x</span></td><td style="text-align:left;"><span>z</span></td></tr><tr><td style="text-align:center;"><span>0</span></td><td style="text-align:left;"><span>z</span></td><td style="text-align:center;"><span>0</span></td><td style="text-align:left;"><span>0/z</span></td><td style="text-align:center;"><span>0/z</span></td><td style="text-align:left;"> </td><td style="text-align:center;"><span>0</span></td><td style="text-align:left;"><span>0</span></td><td style="text-align:center;"><span>z</span></td><td style="text-align:left;"><span>0/z</span></td><td style="text-align:left;"><span>0/z</span></td></tr><tr><td style="text-align:center;"><span>1</span></td><td style="text-align:left;"><span>z</span></td><td style="text-align:center;"><span>1</span></td><td style="text-align:left;"><span>1/z</span></td><td style="text-align:center;"><span>1/z</span></td><td style="text-align:left;"> </td><td style="text-align:center;"><span>1</span></td><td style="text-align:left;"><span>1</span></td><td style="text-align:center;"><span>z</span></td><td style="text-align:left;"><span>1/z</span></td><td style="text-align:left;"><span>1/z</span></td></tr><tr><td style="text-align:center;"><span>x</span></td><td style="text-align:left;"><span>z</span></td><td style="text-align:center;"><span>x</span></td><td style="text-align:left;"><span>x</span></td><td style="text-align:center;"><span>x</span></td><td style="text-align:left;"> </td><td style="text-align:center;"><span>x</span></td><td style="text-align:left;"><span>x</span></td><td style="text-align:center;"><span>z</span></td><td style="text-align:left;"><span>x</span></td><td style="text-align:left;"><span>x</span></td></tr><tr><td style="text-align:center;"><span>z</span></td><td style="text-align:left;"><span>z</span></td><td style="text-align:center;"><span>x</span></td><td style="text-align:left;"><span>x</span></td><td style="text-align:center;"><span>x</span></td><td style="text-align:left;"> </td><td style="text-align:center;"><span>z</span></td><td style="text-align:left;"><span>x</span></td><td style="text-align:center;"><span>z</span></td><td style="text-align:left;"><span>x</span></td><td style="text-align:left;"><span>x</span></td></tr></tbody></table>
+<hr/>
+<h2>Interruptor CMOS</h2><p>El interruptor CMOS se declara con las palabras clave cmos y rcmos (con alta impedancia).</p>
+<p>CMOS tiene una salida de datos, una entrada de datos y 2 entradas de control. El diagrama esquemático es el siguiente:</p>
+<p><img decoding="async" src="../wp-content/uploads/2021/05/v-level-modling-2.png"/></p>
+<p>Las señales PControl y Ncontrol suelen ser complementarias. Cuando la señal Ncontrol es 1 y PControl es 0, el interruptor conduce. Cuando Ncontrol es 0 y PControl es 1, la salida del interruptor es de alta impedancia. El interruptor CMOS puede considerarse como una combinación de interruptores NMOS y PMOS.</p>
+<p>Al instanciar, el primer puerto del transistor CMOS es la salida, el segundo es la entrada de datos, el tercero es la entrada de control Ncontrol, y el cuarto es la entrada de control Pcontrol.</p>
+<p>El formato de instanciación del interruptor CMOS es el siguiente.</p>
+<div class="example"><h2 class="example">Ejemplo</h2> <div class="example_code">
+   <span style="color: #00008B; font-style: italic;">//coms</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">cmos</span> c1              <span style="color: #9F79EE;">(</span>OUTY<span style="color: #5D478B;">,</span> IN1<span style="color: #5D478B;">,</span> NCTRL<span style="color: #5D478B;">,</span> PCTRL<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #00008B; font-style: italic;">//no instantiation name</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">cmos</span>                 <span style="color: #9F79EE;">(</span>OUTY1<span style="color: #5D478B;">,</span> IN1<span style="color: #5D478B;">,</span> NCTRL<span style="color: #5D478B;">,</span> PCTRL<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+</div></div>
+<p>Dado que CMOS puede considerarse como una combinación de interruptores NMOS y PMOS, también se pueden usar estos dos tipos de interruptores MOS para construir un interruptor CMOS, como sigue:</p>
+<div class="example"><h2 class="example">Ejemplo</h2> <div class="example_code">
+   <span style="color: #00008B; font-style: italic;">//the same 2-way instantiation of cmos</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">nmos</span> n2              <span style="color: #9F79EE;">(</span>OUTY<span style="color: #5D478B;">,</span> IN1<span style="color: #5D478B;">,</span> NCTRL<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">pmos</span> p2              <span style="color: #9F79EE;">(</span>OUTY<span style="color: #5D478B;">,</span> IN1<span style="color: #5D478B;">,</span> PCTRL<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+</div></div>
+<p>La tabla de verdad de CMOS es similar a la del interruptor MOS; observe la complementariedad de las señales Ncontrol y Pcontrol.</p>
+<hr/>
+<h2>Interruptor bidireccional</h2><p>Las puertas de interruptores NMOS, PMOS y CMOS conducen del drenador a la fuente, y la dirección es unidireccional. Verilog también proporciona dispositivos de interruptor que conducen en ambas direcciones; los datos pueden fluir en ambos sentidos, y las señales de ambos lados pueden ser señales de excitación.</p>
+<p>Las declaraciones de palabras clave para el interruptor bidireccional y su modo de impedancia son las siguientes:</p>
+<pre>tran  tranif1  tranif0   rtran  rtranif1  rtranif0</pre>
+<p>El diagrama de estructura del interruptor bidireccional es el siguiente:</p>
+<p><img decoding="async" src="../wp-content/uploads/2021/05/v-level-modling-3.png"/></p>
+<p>El interruptor tran es un búfer directo entre dos señales; inout1 o inout2 pueden ser la señal de excitación.</p>
+<p>tranif1 solo conduce las señales de ambos lados del interruptor cuando la señal control es 1. Cuando control es 0, las dos señales se desconectan; la señal con fuente de excitación mantiene el mismo valor lógico que la fuente, y la señal sin fuente de excitación presenta un estado de alta impedancia.</p>
+<p>tranif0 es análogo.</p>
+<p>Por lo tanto, los interruptores bidireccionales se utilizan a menudo para aislar buses o señales.</p>
+<p>Al instanciar, el interruptor bidireccional<p>tiene los dos primeros puertos como terminales de datos, y el tercer puerto como terminal de entrada de control.</p>A continuación se muestra un ejemplo de instanciación del interruptor bidireccional:</p>
+<div class="example"><h2 class="example">Ejemplo</h2> <div class="example_code">
+   <span style="color: #A52A2A; font-weight: bold;">tranif0</span> tr0              <span style="color: #9F79EE;">(</span>inout1<span style="color: #5D478B;">,</span> inout2<span style="color: #5D478B;">,</span> control<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #00008B; font-style: italic;">//no instantiation name</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">tranif1</span>                  <span style="color: #9F79EE;">(</span>inout1<span style="color: #5D478B;">,</span> inout2<span style="color: #5D478B;">,</span> control<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+</div></div><hr/>
+<h2>Alimentación y tierra</h2>
+<p>Los circuitos a nivel de transistor requieren el terminal de fuente (Vdd, lógica 1) y el terminal de tierra (Vss, lógica 0), que se definen con las palabras clave supply1 y supply0, respectivamente. El uso es el siguiente:</p>
+<div class="example"><h2 class="example">Ejemplo</h2> <div class="example_code">
+   <span style="color: #A52A2A; font-weight: bold;">supply1</span>              VDD <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">supply0</span>              GND <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">wire</span>                 siga <span style="color: #5D478B;">=</span> VDD <span style="color: #5D478B;">;</span> <span style="color: #00008B; font-style: italic;">//siga is connected to logic 1</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">wire</span>                 sigb <span style="color: #5D478B;">=</span> GND <span style="color: #5D478B;">;</span> <span style="color: #00008B; font-style: italic;">//sign is connected to logic 0</span><br/>
+</div></div><hr/>
+<h2>Simulación del modelo PAD</h2>
+<p>En la sección «5.1 Módulos y puertos de Verilog» del «Tutorial de Verilog», se trató la escritura y simulación del modelo PAD. A continuación, se remodela el modelo PAD utilizando puertas triestado, con las funciones de pull-up y pull-down fijas, y se utiliza el interruptor bidireccional para probar la conectividad del PAD.</p>
+<p>El modelo de pad con función pullup escrito con puertas triestado es el siguiente; para el modelo de pad con función pulldown, simplemente cambie los comentarios.</p>
+<div class="example"><h2 class="example">Ejemplo</h2> <div class="example_code">
+<span style="color: #A52A2A; font-weight: bold;">module</span> PADUP<span style="color: #9F79EE;">(</span><br/>
+   <span style="color: #00008B; font-style: italic;">//DIN, pad driver when pad configured as output</span><br/>
+   <span style="color: #00008B; font-style: italic;">//OEN, pad direction(1-input, o-output)</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">input</span>        DIN<span style="color: #5D478B;">,</span> OEN <span style="color: #5D478B;">,</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">inout</span>        PAD <span style="color: #5D478B;">,</span><br/>
+   <span style="color: #00008B; font-style: italic;">//pad load when pad configured as input</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">output</span>       DOUT<br/>
+  <span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+   <span style="color: #00008B; font-style: italic;">//input:(not effect pad external input logic), output: DIN-&gt;PAD</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">bufif0</span> <span style="color: #9F79EE;">(</span>PAD<span style="color: #5D478B;">,</span> DIN<span style="color: #5D478B;">,</span> OEN<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span>     <span style="color: #00008B; font-style: italic;">//0-output</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">bufif1</span> <span style="color: #9F79EE;">(</span>DOUT<span style="color: #5D478B;">,</span> PAD<span style="color: #5D478B;">,</span> OEN<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span>    <span style="color: #00008B; font-style: italic;">//1-input</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">pullup</span> <span style="color: #9F79EE;">(</span>PAD<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+   <span style="color: #00008B; font-style: italic;">//pulldown (PAD);   //pulldown</span><br/>
+<span style="color: #A52A2A; font-weight: bold;">endmodule</span><br/>
+</div></div><p>El testbench que utiliza interruptores bidireccionales para controlar la conectividad de E/S del PAD se escribe de la siguiente manera.</p>
+<p>El flujo de prueba es: PAD0/1 se interconectan; luego PAD0 actúa como salida y PAD1 como entrada, se impulsa PAD0 y se lee el valor de PAD1. Después, las direcciones de ambos se invierten, se impulsa PAD1 y se lee el valor de PAD0.</p>
+<p>El proceso de prueba de PAD2/3 es exactamente el mismo.</p>
+<div class="example"><h2 class="example">Ejemplo</h2> <div class="example_code">
+<span style="color: #008800;">`timescale</span> <span style="color: #ff0055;">1ns</span><span style="color: #5D478B;">/</span><span style="color: #ff0055;">1ns</span><br/>
+<span style="color: #A52A2A; font-weight: bold;">module</span> test <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">parameter</span>    PULL_UP         <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1</span> <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">parameter</span>    PULL_DOWN       <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">0</span> <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">parameter</span>    IO0_OUT         <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">0</span> <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">parameter</span>    IO1_OUT         <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1</span> <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">parameter</span>    IO2_OUT         <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">2</span> <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">parameter</span>    IO3_OUT         <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">3</span> <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">parameter</span>    IO0_IN          <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">0</span> <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">parameter</span>    IO1_IN          <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1</span> <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">parameter</span>    IO2_IN          <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">2</span> <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">parameter</span>    IO3_IN          <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">3</span> <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>    DIN<span style="color: #5D478B;">,</span> OEN <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   DOUT <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">wire</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>   PAD <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #00008B; font-style: italic;">//test connection control, using tranif1</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">reg</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>    con_ena <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">tranif1</span> <span style="color: #9F79EE;">(</span>PAD<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">,</span> PAD<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">,</span> con_ena<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">tranif1</span> <span style="color: #9F79EE;">(</span>PAD<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">,</span> PAD<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">,</span> con_ena<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">reg</span> err <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">0</span><span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">task</span> test_io_conn<span style="color: #5D478B;">;</span><br/>
+      <span style="color: #00008B; font-style: italic;">//test pull</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">input</span>             pull_type <span style="color: #5D478B;">;</span><br/>
+      <span style="color: #00008B; font-style: italic;">//test conn</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>       xout <span style="color: #5D478B;">;</span>     <span style="color: #00008B; font-style: italic;">//output postion</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">input</span> <span style="color: #9F79EE;">[</span><span style="color: #ff0055;">1</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>       yin <span style="color: #5D478B;">;</span>     <span style="color: #00008B; font-style: italic;">//output postion</span><br/>
+      DIN<span style="color: #9F79EE;">[</span>xout<span style="color: #9F79EE;">]</span>         <span style="color: #5D478B;">=</span> <span style="color: #5D478B;">~</span>pull_type <span style="color: #5D478B;">;</span><br/>
+      <span style="color: #5D478B;">#</span> <span style="color: #ff0055;">20</span> <span style="color: #5D478B;">;</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span>DOUT<span style="color: #9F79EE;">[</span>yin<span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">!=</span> <span style="color: #5D478B;">~</span>pull_type<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+         <span style="color: #9932CC;">$display</span><span style="color: #9F79EE;">(</span><span style="color: #FF00FF;">"write value and get value is: %h, %h"</span><span style="color: #5D478B;">,</span> <span style="color: #5D478B;">~</span>pull_type<span style="color: #5D478B;">,</span> DOUT<span style="color: #9F79EE;">[</span>yin<span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+         err        <span style="color: #5D478B;">|=</span> <span style="color: #ff0055;">1</span> <span style="color: #5D478B;">;</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+      DIN<span style="color: #9F79EE;">[</span>xout<span style="color: #9F79EE;">]</span>         <span style="color: #5D478B;">=</span> pull_type<span style="color: #5D478B;">;</span><br/>
+      <span style="color: #5D478B;">#</span> <span style="color: #ff0055;">20</span> <span style="color: #5D478B;">;</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span>DOUT<span style="color: #9F79EE;">[</span>yin<span style="color: #9F79EE;">]</span> <span style="color: #5D478B;">!=</span> pull_type<span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+         <span style="color: #9932CC;">$display</span><span style="color: #9F79EE;">(</span><span style="color: #FF00FF;">"write value and get value is: %h, %h"</span><span style="color: #5D478B;">,</span> pull_type<span style="color: #5D478B;">,</span> DOUT<span style="color: #9F79EE;">[</span>yin<span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+         err        <span style="color: #5D478B;">|=</span> <span style="color: #ff0055;">1</span> <span style="color: #5D478B;">;</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">endtask</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">initial</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+      con_ena   <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">2'b01</span> <span style="color: #5D478B;">;</span><br/>
+      OEN       <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">4'b1111</span> <span style="color: #5D478B;">;</span><br/>
+      <span style="color: #5D478B;">#</span><span style="color: #ff0055;">13</span> <span style="color: #5D478B;">;</span><br/>
+      <span style="color: #00008B; font-style: italic;">//test between io0/io1</span><br/>
+      OEN<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>    <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">0</span> <span style="color: #5D478B;">;</span><br/>
+      OEN<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">]</span>    <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1</span> <span style="color: #5D478B;">;</span> <span style="color: #00008B; font-style: italic;">//gpio0 -&gt; gpio1</span><br/>
+      test_io_conn<span style="color: #9F79EE;">(</span>PULL_UP<span style="color: #5D478B;">,</span> IO0_OUT<span style="color: #5D478B;">,</span> IO1_IN<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+      OEN<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">]</span>    <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">0</span> <span style="color: #5D478B;">;</span><br/>
+      OEN<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span>    <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1</span> <span style="color: #5D478B;">;</span> <span style="color: #00008B; font-style: italic;">//gpio0 -&gt; gpio1</span><br/>
+      test_io_conn<span style="color: #9F79EE;">(</span>PULL_UP<span style="color: #5D478B;">,</span> IO1_OUT<span style="color: #5D478B;">,</span> IO0_IN<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+      OEN       <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">4'b1111</span> <span style="color: #5D478B;">;</span><br/>
+      con_ena   <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">2'b10</span> <span style="color: #5D478B;">;</span><br/>
+      OEN<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">]</span>    <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1'b0</span> <span style="color: #5D478B;">;</span><br/>
+      OEN<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">]</span>    <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1'b1</span> <span style="color: #5D478B;">;</span><br/>
+      test_io_conn<span style="color: #9F79EE;">(</span>PULL_DOWN<span style="color: #5D478B;">,</span> IO2_OUT<span style="color: #5D478B;">,</span> IO3_IN<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+      OEN<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">]</span>    <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1'b0</span> <span style="color: #5D478B;">;</span><br/>
+      OEN<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">]</span>    <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1'b1</span> <span style="color: #5D478B;">;</span><br/>
+      test_io_conn<span style="color: #9F79EE;">(</span>PULL_DOWN<span style="color: #5D478B;">,</span> IO3_OUT<span style="color: #5D478B;">,</span> IO2_IN<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+   PADUP        u_pad_up0<span style="color: #9F79EE;">(</span> DIN<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">,</span> OEN<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">,</span> PAD<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">,</span> DOUT<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">0</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+   PADUP        u_pad_up1<span style="color: #9F79EE;">(</span> DIN<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">,</span> OEN<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">,</span> PAD<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">,</span> DOUT<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+   PADDOWN      u_pad_down3<span style="color: #9F79EE;">(</span> DIN<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">,</span> OEN<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">,</span> PAD<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">,</span> DOUT<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+   PADDOWN      u_pad_down4<span style="color: #9F79EE;">(</span> DIN<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">,</span> OEN<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">,</span> PAD<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">]</span><span style="color: #5D478B;">,</span> DOUT<span style="color: #9F79EE;">[</span><span style="color: #ff0055;">3</span><span style="color: #9F79EE;">]</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">initial</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">forever</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+         <span style="color: #5D478B;">#</span><span style="color: #ff0055;">100</span><span style="color: #5D478B;">;</span><br/>
+         <span style="color: #00008B; font-style: italic;">//$display("---gyc---%d", $time);</span><br/>
+         <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span><span style="color: #9932CC;">$time</span> <span style="color: #5D478B;">&gt;=</span> <span style="color: #ff0055;">1000</span><span style="color: #9F79EE;">)</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+            <span style="color: #9932CC;">$finish</span> <span style="color: #5D478B;">;</span><br/>
+         <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+<span style="color: #A52A2A; font-weight: bold;">endmodule</span> <span style="color: #00008B; font-style: italic;">// test</span><br/>
+</div></div>
+<p>Los resultados de la simulación son los siguientes.</p><p>Como se muestra en la figura, dentro de 13ns, cuando los 4 PAD son entradas, los valores de PAD corresponden a la función pull, es decir, PAD0-1 tienen función de pull-up, y PAD2-3 tienen función de pull-down.</p>
+<p>Dentro de 13-53ns, PAD0 es la salida, PAD1 es la entrada y están conectados, por lo que los valores lógicos de ambos cambian de manera consistente. De manera similar, dentro de 53ns-93ns, PAD1 es la salida, PAD0 es la entrada, y en estado conectado los valores lógicos también son consistentes. Esto indica que las funciones de entrada y salida de PAD0/1 son normales.</p>
+<p>Los resultados de PAD2/3 son similares y no se explicarán aquí.</p>
+<p><img decoding="async" src="../wp-content/uploads/2021/05/v-level-modling-4.png"/></p>
+<h3>Descarga del código fuente de este capítulo</h3><p>
+<a class="download" href="../wp-content/uploads/2021/05/v1.2_mos_switch.zip">Download</a> </p> </div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link">← <a href="./verilog2-gate.html" rel="prev">1.1 Tipos de puertas Verilog</a> </div>
+<div class="next-design-link"><a href="./verilog2-gate-delay.html" rel="next">1.3 Retardo de puertas Verilog</a> →</div>
+</div>
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>Haz clic para compartir notas</h3>
+&lt;p style="font-size:14px;"&gt;¡La nota debe ser una extensión del contenido de este artículo!&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;Envío de artículos, haga clic aquí&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;Cómo obtener el código de invitación de registro&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; Antes de compartir notas, debe &lt;a href=".." class="runoob-pop"&gt;iniciar sesión&lt;/a&gt;.&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;Cómo obtener el código de invitación de registro&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=".." id="cancel-comment-reply-link">Cancelar</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="23648"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>Compartir notas</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">Apodo</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">Apodo (obligatorio)</span></li>
+<li class="form-inline"><label class="hide" for="email">Correo electrónico</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">Correo electrónico (obligatorio)</span></li>
+<li class="form-inline"><label class="hide" for="url">Dirección de referencia</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">Dirección de referencia</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  23648;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 23648, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":23648},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+<style>
+@media screen and (max-width: 768px) {
+	#w3cnote-ad728 {
+		display: none;
+	}
+}
+p.note-author {
+    border-bottom: 1px solid #ddd;
+    font-size: 18px;
+    font-weight: bold;
+    color: #78a15a;
+    padding-bottom: 2px;
+    margin-bottom: 4px;
+}
+</style>
+<script>
+var aid = 23648;
+</script>
+</div>
+</div>
+<div class="listcol last right-column">
+<script type="text/javascript">
+jQuery(document).ready(function ($){
+	var total = $(".membership li").length;
+	var left_list = '';
+	href = window.location.href;
+	
+	$(".membership li").each(function(index, value){
+
+		left_list += $(this).html();
+
+		cur_href = $(this).find("a").attr("href");
+		cur_obj = $(this);
+		
+		if(href.match(cur_href) != null) {
+			if(index==0) {
+				$(".previous-design-link").hide();
+			}
+			if(index==(total-1)) {
+				$(".next-design-link").hide();
+			}
+			prev_href = cur_obj.prev("li").find("a").attr("href");
+			prev_title = cur_obj.prev("li").find("a").attr("title");
+
+			next_href = cur_obj.next("li").find("a").attr("href");
+			next_title = cur_obj.next("li").find("a").attr("title");
+			if(prev_title) {
+				$(".previous-design-link a").attr("href", prev_href);
+				$(".previous-design-link a").attr("title", prev_title);
+				$(".previous-design-link a").text(prev_title);
+			} else {
+				$(".previous-design-link").html("");
+			}
+
+			if(next_title) {
+				$(".next-design-link a").attr("href", next_href);
+				$(".next-design-link a").attr("title", next_title);
+				$(".next-design-link a").text(next_title);
+			} else {
+				$(".next-design-link").html("");
+			}
+		}
+	});
+
+	$("#leftcolumn").html(left_list);
+});
+	</script>
+<div class="sidebar-box cate-list">
+<div class="sidebar-box recommend-here list-link">
+<a href="#">Verilog 高级教程</a> </div>
+<ul class="membership">
+<li><a data-id="23639" href="./verilog2-tutorial.html" target="_top" title="0.1 数字逻辑设计">0.1 数字逻辑设计</a></li>
+<li><a data-id="23641" href="./verilog2-codestyle.html" target="_top" title="0.2 Verilog 编码风格">0.2 Verilog 编码风格</a></li>
+<li><a data-id="23644" href="./verilog2-codeguide.html" target="_top" title="0.3 Verilog 代码规范">0.3 Verilog 代码规范</a></li>
+<li><a data-id="23645" href="./verilog2-gate.html" target="_top" title="1.1 Verilog 门的类型">1.1 Verilog 门的类型</a></li>
+<li>
+	1.2 Verilog 开关级建模	</li>
+<li><a data-id="23656" href="./verilog2-gate-delay.html" target="_top" title="1.3 Verilog 门延迟">1.3 Verilog 门延迟</a></li>
+<li><a data-id="23673" href="./verilog2-udp.html" target="_top" title="2.1 Verilog UDP 基础知识">2.1 Verilog UDP 基础知识</a></li>
+<li><a data-id="23674" href="./verilog2-udp-logic.html" target="_top" title="2.2 Verilog 组合逻辑 UDP">2.2 Verilog 组合逻辑 UDP</a></li>
+<li><a data-id="23677" href="./verilog2-udp-timing.html" target="_top" title="2.3 Verilog 时序逻辑 UDP">2.3 Verilog 时序逻辑 UDP</a></li>
+<li><a data-id="23685" href="./verilog2-delay-type.html" target="_top" title="3.1 Verilog 延迟模型">3.1 Verilog 延迟模型</a></li>
+<li><a data-id="23690" href="./verilog2-specify.html" target="_top" title="3.2 Verilog specify 块语句">3.2 Verilog specify 块语句</a></li>
+<li><a data-id="23692" href="./verilog2-setup-hold-time.html" target="_top" title="3.3 Verilog 建立时间和保持时间">3.3 Verilog 建立时间和保持时间</a></li>
+<li><a data-id="23701" href="./verilog2-timing-check.html" target="_top" title="3.4 Verilog 时序检查">3.4 Verilog 时序检查</a></li>
+<li><a data-id="23708" href="./verilog2-sdf.html" target="_top" title="3.5 Verilog 延迟反标注">3.5 Verilog 延迟反标注</a></li>
+<li><a data-id="23714" href="./verilog-sync.html" target="_top" title="4.1 Verilog 同步与异步">4.1 Verilog 同步与异步</a></li>
+<li><a data-id="23725" href="./verilog2-slow2fast.html" target="_top" title="4.2 Verilog 跨时钟域传输：慢到快">4.2 Verilog 跨时钟域传输：慢到快</a></li>
+<li><a data-id="23729" href="./verilog2-fast2slow.html" target="_top" title="4.3 Verilog 跨时钟域传输：快到慢">4.3 Verilog 跨时钟域传输：快到慢</a></li>
+<li><a data-id="23731" href="./verilog2-fifo.html" target="_top" title="4.4 Verilog FIFO 设计">4.4 Verilog FIFO 设计</a></li>
+<li><a data-id="23739" href="./verilog2-reset.html" target="_top" title="5.1 Verilog 复位简介">5.1 Verilog 复位简介</a></li>
+<li><a data-id="23743" href="./verilog2-clock.html" target="_top" title="5.2 Verilog 时钟简介">5.2 Verilog 时钟简介</a></li>
+<li><a data-id="23757" href="./verilog2-clock-division.html" target="_top" title="5.3 Verilog 时钟分频">5.3 Verilog 时钟分频</a></li>
+<li><a data-id="23768" href="./verilog2-clock-switch.html" target="_top" title="5.4 Verilog 时钟切换">5.4 Verilog 时钟切换</a></li>
+<li><a data-id="23779" href="./verilog2-low-power.html" target="_top" title="6.1 Verilog 低功耗简介">6.1 Verilog 低功耗简介</a></li>
+<li><a data-id="23788" href="./verilog2-lower-power-design.html" target="_top" title="6.2 Verilog 系统级低功耗设计">6.2 Verilog 系统级低功耗设计</a></li>
+<li><a data-id="23792" href="./verilog2-rtl-low-power-design-1.html" target="_top" title="6.3 Verilog  RTL 级低功耗设计（上）">6.3 Verilog  RTL 级低功耗设计（上）</a></li>
+<li><a data-id="23796" href="./verilog2-rtl-low-power-design-2.html" target="_top" title="6.4 Verilog RTL 级低功耗设计（下）">6.4 Verilog RTL 级低功耗设计（下）</a></li>
+<li><a data-id="23806" href="./verilog2-display.html" target="_top" title="7.1 Verilog 显示任务">7.1 Verilog 显示任务</a></li>
+<li><a data-id="23813" href="./verilog2-file.html" target="_top" title="7.2 Verilog 文件操作">7.2 Verilog 文件操作</a></li>
+<li><a data-id="23825" href="./verilog2-random.html" target="_top" title="7.3 Verilog 随机数及概率分布">7.3 Verilog 随机数及概率分布</a></li>
+<li><a data-id="23847" href="./verilog2-real2int.html" target="_top" title="7.4 Verilog 实数整数转换">7.4 Verilog 实数整数转换</a></li>
+<li><a data-id="23851" href="./verilog2-other-task.html" target="_top" title="7.5 Verilog 其他系统任务">7.5 Verilog 其他系统任务</a></li>
+<li><a data-id="23862" href="./verilog2-pli-intro.html" target="_top" title="8.1 Verilog  PLI 简介">8.1 Verilog  PLI 简介</a></li>
+<li><a data-id="23865" href="./verilog2-tf.html" target="_top" title="8.2 Verilog TF 子程序">8.2 Verilog TF 子程序</a></li>
+<li><a data-id="23869" href="./verilog2-tf-sub.html" target="_top" title="8.3 Verilog TF 子程序列表">8.3 Verilog TF 子程序列表</a></li>
+<li><a data-id="23870" href="./verilog2-acc.html" target="_top" title="8.4 Verilog ACC 子程序">8.4 Verilog ACC 子程序</a></li>
+<li><a data-id="23872" href="./verilog2-acc-sub.html" target="_top" title="8.5 Verilog ACC 子程序列表">8.5 Verilog ACC 子程序列表</a></li>
+<li><a data-id="23876" href="./verilog2-logic-sumarry.html" target="_top" title="9.1 Verilog 逻辑综合">9.1 Verilog 逻辑综合</a></li>
+<li><a data-id="23882" href="./verilog2-integrated-design.html" target="_top" title="9.2 Verilog 可综合性设计">9.2 Verilog 可综合性设计</a></li>
+</ul></div> </div>
+</div>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+</div><script src="../../lang-switcher.js"></script>
+</body>
+</html>

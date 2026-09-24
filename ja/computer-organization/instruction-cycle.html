@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>命令サイクル — 命令フェッチ、デコード、実行、ライトバック | 菜鸟教程</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<link href="../manifest.webmanifest.html" rel="manifest"/>
+<meta content="#10151c" name="theme-color"/>
+<link href="../pwa/icon-192.png.html" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="application-name"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="../computer-organization/instruction-cycle.html" rel="canonical"/>
+<meta content="指令周期 — 取指、译码、执行、写回" name="keywords"/>
+<meta content="指令周期 -- 取指、译码、执行、写回 CPU 执行每一条指令都遵循同样的四步流程，就像一个永不停止的流水线节拍。本讲将带你深入了解这四步分别做了什么，并用 Python 模拟一个完整 CPU 的指令执行过程。   生活中的类比：餐厅后厨  想象你是一家餐厅的主厨。客人下单后，你按以下步骤出菜：   取单（Fetch）：从前台取一张新的点菜单，看看客人点了什么 看单（Decode）：分析菜单——「红烧肉」需要五花肉、酱油、冰糖，「清炒时.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div>
+<!-- 导航栏 -->
+<style>
+/* 主题切换按钮 */
+/* ===== 主题变量（核心）===== */
+:root {
+  --theme-bg: #ffffff;
+  --theme-border: #e5e7eb;
+  --theme-icon: #333;
+  --theme-hover: #f3f4f6;
+}
+
+.dark {
+  --theme-bg: #1f2937;
+  --theme-border: #374151;
+  --theme-icon: #e5e7eb;
+  --theme-hover: #374151;
+}
+
+/* ===== 按钮容器 ===== */
+.nav-theme-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== 按钮本体 ===== */
+.nav-theme-toggle button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  border-radius: 6px;
+  border: 1px solid var(--theme-border);
+
+  background: var(--theme-bg);
+  color: var(--theme-icon);
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* ===== 图标大小 ===== */
+.nav-theme-toggle i {
+  font-size: 14px;
+}
+
+/* ===== hover 效果 ===== */
+.nav-theme-toggle button:hover {
+  background: var(--theme-hover);
+  transform: translateY(-1px);
+}
+
+/* ===== 点击反馈 ===== */
+.nav-theme-toggle button:active {
+  transform: scale(0.95);
+}
+
+/* ===== 当前激活态（可选）===== */
+.nav-theme-toggle button.active {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+</style>
+<!-- 导航栏 -->
+<nav aria-label="主导航" class="container navigation">
+<div class="row">
+<div class="col nav">
+<!-- PC 导航 -->
+<ul class="pc-nav" id="runoob-detail-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../js/js-tutorial.html">JavaScript</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a data-id="vue" href="#">Vue</a></li>
+<li><a href="../react/react-tutorial.html">React</a></li>
+<li><a href="../python3/python3-tutorial.html">Python3</a></li>
+<li><a href="../java/java-tutorial.html">Java</a></li>
+<li><a href="../cprogramming/c-tutorial.html">C</a></li>
+<li><a href="../cplusplus/cpp-tutorial.html">C++</a></li>
+<li><a href="../csharp/csharp-tutorial.html">C#</a></li>
+<li><a data-id="aiNav" href="#">AI</a></li>
+<li><a href="../go/go-tutorial.html">Go</a></li>
+<li><a href="../sql/sql-tutorial.html">SQL</a></li>
+<li><a href="../linux/linux-tutorial.html">Linux</a></li>
+<li><a href="../vscode/vscode-tutorial.html">VS Code</a></li>
+<li><a data-id="bootstrap" href="#">Bootstrap</a></li>
+<li><a href="../git/git-tutorial.html">Git</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<!-- 主题切换按钮，固定在最右侧 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+<!-- 移动端导航 -->
+<ul class="mobile-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a href="../js/js-tutorial.html">JS</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<li><a class="search-reveal" href="#">搜索</a></li>
+<!-- 移动端主题切换 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon-mobile" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun-mobile" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<!-- 二级导航 -->
+<!--  内容  -->
+<div class="container main">
+<!-- 中间 -->
+<div class="row">
+<div class="runoob-col-md2">
+<div class="left-column">
+<div class="tab" style="overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
+<i aria-hidden="true" class="fa fa-list"></i>
+<span>计算机组成原理</span>
+</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+<a data-p="par" href="../computer-organization/computer-organization-tutorial.html" target="_top" title="计算机组成原理">
+			计算机组成原理			</a>
+<a data-p="par" href="../computer-organization/why-computer-only-knows-0-and-1.html" target="_top" title="为什么计算机只认识 0 和 1">
+			计算机只认识 0 和 1			</a>
+<a data-p="par" href="../computer-organization/number-system-conversion.html" target="_top" title="进制转换 — 二进制、十进制、十六进制">
+			进制转换			</a>
+<a data-p="par" href="../computer-organization/negative-numbers-complement.html" target="_top" title="负数怎么表示 — 原码、反码、补码">
+			负数怎么表示			</a>
+<a data-p="par" href="../computer-organization/floating-point-ieee754.html" target="_top" title="小数怎么表示 — 浮点数与 IEEE 754">
+			小数怎么表示			</a>
+<a data-p="par" href="../computer-organization/character-encoding.html" target="_top" title="字符怎么表示 — ASCII 与 Unicode">
+			字符怎么表示			</a>
+<a data-p="par" href="../computer-organization/boolean-algebra-logic-gates.html" target="_top" title="布尔代数基础 — AND / OR / NOT / XOR">
+			布尔代数基础			</a>
+<a data-p="par" href="../computer-organization/building-logic-circuits.html" target="_top" title="逻辑门电路搭建">
+			逻辑门电路搭建			</a>
+<a data-p="par" href="../computer-organization/from-gates-to-adder.html" target="_top" title="从逻辑门到加法器">
+			从逻辑门到加法器			</a>
+<a data-p="par" href="../computer-organization/flip-flops-and-registers.html" target="_top" title="触发器与寄存器 — 计算机如何「记住」数据">
+			触发器与寄存器			</a>
+<a data-p="par" href="../computer-organization/computer-architecture-overview.html" target="_top" title="一台计算机的整体骨架">
+			一台计算机的整体骨架			</a>
+<a data-p="par" href="../computer-organization/stored-program-concept.html" target="_top" title="程序和数据为什么能放在同一块内存里">
+			程序和数据			</a>
+<a data-p="par" href="../computer-organization/instruction-cycle.html" target="_top" title="指令周期 — 取指、译码、执行、写回">
+			指令周期			</a>
+<a data-p="par" href="../computer-organization/clock-frequency.html" target="_top" title="时钟频率是什么意思">
+			时钟频率			</a>
+<a data-p="par" href="../computer-organization/cpu-pipeline.html" target="_top" title="流水线 — 如何让 CPU 更快">
+			流水线			</a>
+<a data-p="par" href="../computer-organization/multi-core-processors.html" target="_top" title="多核心是怎么回事">
+			多核心是怎么回事			</a>
+<a data-p="par" href="../computer-organization/memory-hierarchy.html" target="_top" title="存储金字塔 — 为什么要分这么多层">
+			存储金字塔			</a>
+<a data-p="par" href="../computer-organization/cache-hits-and-misses.html" target="_top" title="缓存命中与缓存未命中">
+			缓存命中与缓存未命中			</a>
+<a data-p="par" href="../computer-organization/memory-addressing.html" target="_top" title="内存地址与寻址">
+			内存地址与寻址			</a>
+<a data-p="par" href="../computer-organization/computer-bus-system.html" target="_top" title="总线 — 计算机内部的「公路系统」">
+			总线			</a>
+<a data-p="par" href="../computer-organization/io-polling-interrupt-dma.html" target="_top" title="I/O 的三种方式 — 轮询、中断、DMA">
+			I/O 的三种方式			</a>
+<a data-p="par" href="../computer-organization/instruction-journey-summary.html" target="_top" title="一条指令的完整旅程">
+			一条指令的完整旅程			</a>
+</div>
+</div>
+</div>
+</div> <div class="col middle-column">
+<div class="article">
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../computer-organization/stored-program-concept.html" rel="prev">プログラムとデータはなぜ同じメモリに入れられるのか</a> </div>
+<div class="next-design-link"><a href="../computer-organization/clock-frequency.html" rel="next">クロック周波数とはどういう意味か</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="article-body">
+<div class="article-intro" id="content">
+<h1>命令サイクル — 命令フェッチ、デコード、実行、ライトバック</h1>
+<p>CPUはすべての命令の実行において同じ4ステップの流れに従います。それは止まることのないパイプラインの拍子のようなものです。この講義では、この4ステップがそれぞれ何を行うのかを詳しく学び、Pythonで完全なCPUの命令実行プロセスをシミュレートします。</p>
+<hr/>
+<h2>生活の例え：レストランの厨房</h2>
+<p>あなたがレストランの料理長だと想像してください。客が注文した後、以下の手順で料理を出します。</p>
+<ol>
+<li><span class="marked">注文を受ける（Fetch）</span>：フロントから新しい注文票を取り、客が何を注文したかを確認する</li>
+<li><span class="marked">注文票を読む（Decode）</span>：メニューを分析する——「紅焼肉」には三枚肉、醤油、氷砂糖が必要、「清炒時蔬」には青菜、にんにくのみじん切りが必要</li>
+<li><span class="marked">料理する（Execute）</span>：実際に火をつけて調理し、野菜を切り、炒め、味を調える</li>
+<li><span class="marked">料理を出す（Write Back）</span>：出来上がった料理を皿に盛り、ウェイターに渡して運んでもらう</li>
+</ol>
+<p>すべての注文票はこの4ステップを経ます。1品作り終えたら、次の注文票を取りに行きます。CPUも同様です——命令を1つ取得し、1つ解析し、1つ実行し、結果を書き戻し、これを繰り返します。</p>
+<blockquote><p>この4ステップの循環は、CPUの最も中心となる動作のリズムです。コンピュータの電源を入れてから切るまでの毎秒、CPUは「フェッチ-デコード-実行-ライトバック」というこの循環を絶えず繰り返し、毎秒数十億回実行します。</p></blockquote>
+<hr/>
+<h2>4つの段階の詳しい説明</h2>
+<h3>段階1：命令フェッチ（Fetch）</h3>
+<p>CPUはまずメモリから次に実行する命令を「取り出し」ます。</p>
+<p>特別なレジスタがあります。それは<span class="marked">プログラムカウンタ（PC、Program Counter）</span>と呼ばれ、常にメモリ内の次に実行する命令のアドレスを保持しています。</p>
+<p>フェッチ段階では何をするのか：</p>
+<ol>
+<li>CPUはPC内のアドレスをアドレスバスに置く</li>
+<li>CPUはコントロールバスに「読み出し」信号を送る</li>
+<li>メモリはそのアドレスにある命令データを返す</li>
+<li>命令は命令レジスタ（IR、Instruction Register）に置かれる</li>
+<li>PCは自動的に1加算され、次の命令を指す</li>
+</ol>
+<p>ここに重要な設計があります：<span class="marked">PCの自動インクリメント</span>。これは、CPUがデフォルトで命令を順番に実行することを意味します。ただし、ジャンプ命令（if-elseやループなど）によってPCの値が変更される場合は例外です。</p>
+<h3>段階2：デコード（Decode）</h3>
+<p>フェッチした命令は2進数の並びです（例えば<code>0001 0010 0011</code>）、CPUはそれを「翻訳」する必要があります。</p>
+<p>デコード段階の中心的な仕事：</p>
+<ul>
+<li><span class="tag1">オペコード（Opcode）の識別</span>：命令の先頭数ビットはCPUに何を行うかを伝えます——加算、減算、データのロード、それともジャンプ？</li>
+<li><span class="tag1">オペランド（Operands）の抽出</span>：命令の後半のビットは操作対象を示します——どのレジスタを使うか？メモリ内のどのアドレスか？</li>
+<li><span class="tag1">制御信号の設定</span>：コントローラはデコード結果に基づいて、ALU、レジスタファイル、バスなどの部品に適切な制御信号を送ります。</li>
+</ul>
+<p>例えば1つの命令<code>ADD R1, R2, R3</code>の場合、デコード後CPUは次のことを認識します：ALUに加算演算をさせ、入力はレジスタR2とR3から、結果はR1に格納します。</p>
+<h3>段階3：実行（Execute）</h3>
+<p>これは命令が実際に「働く」段階です。命令の種類に応じて、実行段階で行うことは異なります：</p>
+<table class="reference">
+<tr><th>命令の種類</th><th>実行段階で行うこと</th><th>関連するハードウェア</th></tr>
+<tr><td>算術演算（ADD、SUB など）</td><td>ALUがオペランドに対して演算を行う</td><td>ALU、レジスタファイル</td></tr>
+<tr><td>論理演算（AND、OR など）</td><td>ALUがオペランドに対してビット演算を行う</td><td>ALU、レジスタファイル</td></tr>
+<tr><td>メモリ読み出し（LOAD）</td><td>アドレスバスを介してメモリにアクセスし、データを読み出す</td><td>アドレスバス、データバス、メモリ</td></tr>
+<tr><td>メモリ書き込み（STORE）</td><td>アドレスバスを介してメモリにアクセスし、データを書き込む</td><td>アドレスバス、データバス、メモリ</td></tr>
+<tr><td>ジャンプ（JUMP、BRANCH）</td><td>PCの値を変更し、実行の流れを変える</td><td>コントローラ、PCレジスタ</td></tr>
+</table>
+<h3>段階4：ライトバック（Write Back）</h3>
+<p>実行段階で生成された結果は、ターゲット位置に「書き込む」必要があります。</p>
+<p>ライトバックのターゲットは次のとおりです：</p>
+<ul>
+<li><span class="tag1 green">レジスタ</span>：演算結果を汎用レジスタに格納する（最も一般的）</li>
+<li><span class="tag1 green">メモリ</span>：結果をメモリ内の特定のアドレスに格納する</li>
+<li><span class="tag1 green">フラグレジスタ</span>：ステータスフラグを更新する（結果がゼロかどうか、オーバーフローかどうか、負かどうかなど）</li>
+</ul>
+<p>ライトバックが完了すると、1つの命令の実行サイクルが正式に終了します。PCがまだ有効な命令アドレスを指している場合、CPUは自動的にフェッチ段階に戻り、次の命令を開始します。</p>
+<hr/>
+<h2>命令サイクルのタイムライン表示</h2>
+<p>次のタイムラインは、3つの命令が順番に実行される完全なプロセスを示しています：</p>
+<pre>
+时钟周期:  1      2      3      4      5      6      7      8      9      10     11     12
+指令1:    [取指] [译码] [执行] [写回]
+指令2:                           [取指] [译码] [执行] [写回]
+指令3:                                                  [取指] [译码] [执行] [写回]
+
+         ↑ 指令1 完成后才开始指令2，完全串行执行
+</pre>
+<p>ここでは各命令に4サイクル、3つの命令で合計12サイクルかかっていることに注意してください。後のパイプラインの説明では、この時間を大幅に短縮する方法を学びます。</p>
+<hr/>
+<h2>インタラクティブデモ：SimpleCPU シミュレータ</h2>
+<p>次のPythonプログラムは、極めてシンプルなCPUの完全な命令サイクルをシミュレートします。LOAD（数値のロード）、ADD（加算）、MUL（乗算）、CMP（比較+条件ジャンプ）、STORE（出力）命令をサポートし、各段階のログを詳細に出力します。</p>
+<div class="example">
+<h2 class="example">実例</h2>
+<div class="example_code">
+<span style="color: #a11;">"""<br/>SimpleCPU シミュレータ — 完全な命令サイクルのデモ<br/>サポートする命令: LOAD, ADD, MUL, CMP+JGT, STORE, HALT<br/>すべての命令は次を経ます：フェッチ(IF) → デコード(ID) → 実行(EX) → ライトバック(WB)<br/>
+"""</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> SimpleCPU:<br/>
+    <span style="color: #a11;">"""教学用のCPUシミュレータ。命令サイクルの4つの段階を示す"""</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a50"># 汎用レジスタ：R0〜R3、初期値はすべて0</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">registers</span> <span style="color: Gray;">=</span> <span style="color: Olive;">{</span><span style="color: #a11;">'R0'</span>: <span style="color: Maroon;">0</span><span style="color: Gray;">,</span> <span style="color: #a11;">'R1'</span>: <span style="color: Maroon;">0</span><span style="color: Gray;">,</span> <span style="color: #a11;">'R2'</span>: <span style="color: Maroon;">0</span><span style="color: Gray;">,</span> <span style="color: #a11;">'R3'</span>: <span style="color: Maroon;">0</span><span style="color: Olive;">}</span><br/>
+        <span style="color: #a50"># フラグレジスタ：比較結果を記録</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">flags</span> <span style="color: Gray;">=</span> <span style="color: Olive;">{</span><span style="color: #a11;">'ZERO'</span>: <span style="color: Teal;">False</span><span style="color: Gray;">,</span> <span style="color: #a11;">'GREATER'</span>: <span style="color: Teal;">False</span><span style="color: Olive;">}</span><br/>
+        <span style="color: #a50"># プログラムカウンタ：メモリ内の次の命令の位置を指す</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">pc</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">0</span><br/>
+        <span style="color: #a50"># 命令レジスタ：現在実行中の命令を保持</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">ir</span> <span style="color: Gray;">=</span> <span style="color: Teal;">None</span><br/>
+        <span style="color: #a50"># メモリ：プログラムの命令列を格納</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">memory</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+        <span style="color: #a50"># 各段階の実行回数を集計</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">stats</span> <span style="color: Gray;">=</span> <span style="color: Olive;">{</span><span style="color: #a11;">'fetch'</span>: <span style="color: Maroon;">0</span><span style="color: Gray;">,</span> <span style="color: #a11;">'decode'</span>: <span style="color: Maroon;">0</span><span style="color: Gray;">,</span> <span style="color: #a11;">'execute'</span>: <span style="color: Maroon;">0</span><span style="color: Gray;">,</span> <span style="color: #a11;">'writeback'</span>: <span style="color: Maroon;">0</span><span style="color: Olive;">}</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">total_cycles</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">0</span><br/>
+        <span style="color: #a50"># 制御フラグ</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">running</span> <span style="color: Gray;">=</span> <span style="color: Teal;">False</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> load_program<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> instructions<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""命令リストをメモリにロードする"""</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">memory</span> <span style="color: Gray;">=</span> instructions<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">pc</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">0</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">running</span> <span style="color: Gray;">=</span> <span style="color: Teal;">True</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"[システム] プログラムのロードが完了しました。合計 {len(instructions)} 命令"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"[システム] 初期レジスタ: {self.registers}"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">60</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> fetch<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""段階1：フェッチ (Instruction Fetch)"""</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">total_cycles</span> +<span style="color: Gray;">=</span> <span style="color: Maroon;">1</span><br/>
+        <span style="color: Green;font-weight:bold;">if</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">pc</span> <span style="color: Gray;">&gt;=</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span>.<span style="color: #05a;">memory</span><span style="color: Olive;">)</span>:<br/>
+            <span style="color: Teal;">self</span>.<span style="color: #05a;">running</span> <span style="color: Gray;">=</span> <span style="color: Teal;">False</span><br/>
+            <span style="color: Green;font-weight:bold;">return</span> <span style="color: Teal;">None</span><br/>
+<br/>
+        <span style="color: #a50"># メモリからPCが指す命令を読み出す</span><br/>
+        instruction <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">memory</span><span style="color: Olive;">[</span><span style="color: Teal;">self</span>.<span style="color: #05a;">pc</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">ir</span> <span style="color: Gray;">=</span> instruction<br/>
+        old_pc <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">pc</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">pc</span> +<span style="color: Gray;">=</span> <span style="color: Maroon;">1</span>  <span style="color: #a50"># PCを自動的にインクリメント</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">stats</span><span style="color: Olive;">[</span><span style="color: #a11;">'fetch'</span><span style="color: Olive;">]</span> +<span style="color: Gray;">=</span> <span style="color: Maroon;">1</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"[サイクル {self.total_cycles}] フェッチ (IF)"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  PC={old_pc} → メモリアドレス {old_pc} から命令を読み出し"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  命令内容:
+"<span style="color: #000099; font-weight: bold;">\"</span>{instruction}<span style="color: #000099; font-weight: bold;">\"</span>"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  PC 更新: {old_pc} → {self.pc}"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  IR ← <span style="color: #000099; font-weight: bold;">\"</span>{instruction}<span style="color: #000099; font-weight: bold;">\"</span>"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> instruction<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> decode<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> instruction<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""段階2：デコード (Instruction Decode)"""</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">total_cycles</span> +<span style="color: Gray;">=</span> <span style="color: Maroon;">1</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">stats</span><span style="color: Olive;">[</span><span style="color: #a11;">'decode'</span><span style="color: Olive;">]</span> +<span style="color: Gray;">=</span> <span style="color: Maroon;">1</span><br/>
+<br/>
+        <span style="color: #a50"># オペコードとオペランドを解析</span><br/>
+        parts <span style="color: Gray;">=</span> instruction.<span style="color: #05a;">split</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+        opcode <span style="color: Gray;">=</span> parts<span style="color: Olive;">[</span><span style="color: Maroon;">0</span><span style="color: Olive;">]</span>.<span style="color: #05a;">upper</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span>  <span style="color: #a50"># オペコード</span><br/>
+        operands <span style="color: Gray;">=</span> parts<span style="color: Olive;">[</span><span style="color: Maroon;">1</span>:<span style="color: Olive;">]</span> <span style="color: Green;font-weight:bold;">if</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>parts<span style="color: Olive;">)</span> <span style="color: Gray;">&gt;</span> <span style="color: Maroon;">1</span> <span style="color: Green;font-weight:bold;">else</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span>  <span style="color: #a50"># オペランド</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"[サイクル {self.total_cycles}] デコード (ID)"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  オペコード (Opcode): {opcode}"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  オペランド (Operands): {operands}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># オペコードの意味を解釈</span><br/>
+        opcode_meaning <span style="color: Gray;">=</span> <span style="color: Olive;">{</span><br/>
+            <span style="color: #a11;">'LOAD'</span>: <span style="color: #a11;">'即値からレジスタにロード'</span><span style="color: Gray;">,</span><br/>
+            <span style="color: #a11;">'ADD'</span>:  <span style="color: #a11;">'レジスタ加算'</span><span style="color: Gray;">,</span><br/>
+            <span style="color: #a11;">'MUL'</span>:  <span style="color: #a11;">'レジスタ乗算'</span><span style="color: Gray;">,</span><br/>
+            <span style="color: #a11;">'CMP'</span>:  <span style="color: #a11;">'2つのレジスタの値を比較'</span><span style="color: Gray;">,</span><br/>
+            <span style="color: #a11;">'JGT'</span>:  <span style="color: #a11;">'条件ジャンプ（より大きい場合にジャンプ）'</span><span style="color: Gray;">,</span><br/>
+            <span style="color: #a11;">'STORE'</span>:<span style="color: #a11;">'レジスタの値を出力'</span><span style="color: Gray;">,</span><br/>
+            <span style="color: #a11;">'HALT'</span>: <span style="color: #a11;">'実行を停止'</span><span style="color: Gray;">,</span><br/>
+        <span style="color: Olive;">}</span><br/>
+        <span style="color: Green;font-weight:bold;">if</span> opcode <span style="color: Green;font-weight:bold;">in</span> opcode_meaning:<br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  意味: {opcode_meaning[opcode]}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">return</span> opcode<span style="color: Gray;">,</span> operands<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> execute<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> opcode<span style="color: Gray;">,</span> operands<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""段階 3：実行 (Execute)"""</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">total_cycles</span> +<span style="color: Gray;">=</span> <span style="color: Maroon;">1</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">stats</span><span style="color: Olive;">[</span><span style="color: #a11;">'execute'</span><span style="color: Olive;">]</span> +<span style="color: Gray;">=</span> <span style="color: Maroon;">1</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"[周期 {self.total_cycles}] 実行 (EX)"</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">if</span> opcode <span style="color: Gray;">==</span> <span style="color: #a11;">'HALT'</span>:<br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  HALT: プログラムの実行を終了"</span><span style="color: Olive;">)</span><br/>
+            <span style="color: Teal;">self</span>.<span style="color: #05a;">running</span> <span style="color: Gray;">=</span> <span style="color: Teal;">False</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">elif</span> opcode <span style="color: Gray;">==</span> <span style="color: #a11;">'LOAD'</span>:<br/>
+            <span style="color: #a50"># LOAD Rx, value → 即値 value をレジスタ Rx に格納</span><br/>
+            reg <span style="color: Gray;">=</span> operands<span style="color: Olive;">[</span><span style="color: Maroon;">0</span><span style="color: Olive;">]</span><br/>
+            value <span style="color: Gray;">=</span> <span style="color: Teal;">int</span><span style="color: Olive;">(</span>operands<span style="color: Olive;">[</span><span style="color: Maroon;">1</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  操作: 即値 {value} をレジスタ {reg} にロード"</span><span style="color: Olive;">)</span><br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  関連部品: データバス（即値 {value} を転送）"</span><span style="color: Olive;">)</span><br/>
+            <span style="color: #a50"># 結果を一時保存し、ライトバック段階でレジスタを更新する</span><br/>
+            <span style="color: Green;font-weight:bold;">return</span> <span style="color: Olive;">(</span><span style="color: #a11;">'LOAD'</span><span style="color: Gray;">,</span> reg<span style="color: Gray;">,</span> value<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">elif</span> opcode <span style="color: Gray;">==</span> <span style="color: #a11;">'ADD'</span>:<br/>
+            <span style="color: #a50"># ADD Rx, Ry → Rx = Rx + Ry</span><br/>
+            rx<span style="color: Gray;">,</span> ry <span style="color: Gray;">=</span> operands<span style="color: Olive;">[</span><span style="color: Maroon;">0</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span> operands<span style="color: Olive;">[</span><span style="color: Maroon;">1</span><span style="color: Olive;">]</span><br/>
+            a <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">registers</span><span style="color: Olive;">[</span>rx<span style="color: Olive;">]</span><br/>
+            b <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">registers</span><span style="color: Olive;">[</span>ry<span style="color: Olive;">]</span><br/>
+            result <span style="color: Gray;">=</span> a + b<br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  操作: ALU が {rx}({a}) + {ry}({b}) = {result} を実行"</span><span style="color: Olive;">)</span><br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  関連部品: ALU（演算器）、レジスタ群"</span><span style="color: Olive;">)</span><br/>
+            <span style="color: Green;font-weight:bold;">return</span> <span style="color: Olive;">(</span><span style="color: #a11;">'WRITE_REG'</span><span style="color: Gray;">,</span> rx<span style="color: Gray;">,</span> result<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">elif</span> opcode <span style="color: Gray;">==</span> <span style="color: #a11;">'MUL'</span>:<br/>
+            <span style="color: #a50"># MUL Rx, Ry → Rx = Rx * Ry</span><br/>
+            rx<span style="color: Gray;">,</span> ry <span style="color: Gray;">=</span> operands<span style="color: Olive;">[</span><span style="color: Maroon;">0</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span> operands<span style="color: Olive;">[</span><span style="color: Maroon;">1</span><span style="color: Olive;">]</span><br/>
+            a <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">registers</span><span style="color: Olive;">[</span>rx<span style="color: Olive;">]</span><br/>
+            b <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">registers</span><span style="color: Olive;">[</span>ry<span style="color: Olive;">]</span><br/>
+            result <span style="color: Gray;">=</span> a * b<br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  操作: ALU が {rx}({a}) * {ry}({b}) = {result} を実行"</span><span style="color: Olive;">)</span><br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  関連部品: ALU（演算器）、レジスタ群"</span><span style="color: Olive;">)</span><br/>
+            <span style="color: Green;font-weight:bold;">return</span> <span style="color: Olive;">(</span><span style="color: #a11;">'WRITE_REG'</span><span style="color: Gray;">,</span> rx<span style="color: Gray;">,</span> result<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">elif</span> opcode <span style="color: Gray;">==</span> <span style="color: #a11;">'CMP'</span>:<br/>
+            <span style="color: #a50"># CMP Rx, Ry → 2つのレジスタを比較し、フラグを設定する</span><br/>
+            rx<span style="color: Gray;">,</span> ry <span style="color: Gray;">=</span> operands<span style="color: Olive;">[</span><span style="color: Maroon;">0</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span> operands<span style="color: Olive;">[</span><span style="color: Maroon;">1</span><span style="color: Olive;">]</span><br/>
+            a <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">registers</span><span style="color: Olive;">[</span>rx<span style="color: Olive;">]</span><br/>
+            b <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">registers</span><span style="color: Olive;">[</span>ry<span style="color: Olive;">]</span><br/>
+            <span style="color: Teal;">self</span>.<span style="color: #05a;">flags</span><span style="color: Olive;">[</span><span style="color: #a11;">'ZERO'</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: Olive;">(</span>a <span style="color: Gray;">==</span> b<span style="color: Olive;">)</span><br/>
+            <span style="color: Teal;">self</span>.<span style="color: #05a;">flags</span><span style="color: Olive;">[</span><span style="color: #a11;">'GREATER'</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: Olive;">(</span>a <span style="color: Gray;">&gt;</span> b<span style="color: Olive;">)</span><br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  操作: {rx}({a}) と {ry}({b}) を比較"</span><span style="color: Olive;">)</span><br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  結果: ZERO={self.flags['ZERO']}, GREATER={self.flags['GREATER']}"</span><span style="color: Olive;">)</span><br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  関連部品: ALU（比較器）、フラグレジスタ"</span><span style="color: Olive;">)</span><br/>
+            <span style="color: Green;font-weight:bold;">return</span> <span style="color: Olive;">(</span><span style="color: #a11;">'FLAGS'</span><span style="color: Gray;">,</span> <span style="color: Teal;">None</span><span style="color: Gray;">,</span> <span style="color: Teal;">None</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">elif</span> opcode <span style="color: Gray;">==</span> <span style="color: #a11;">'JGT'</span>:<br/>
+            <span style="color: #a50"># JGT address → GREATER フラグが真の場合、address にジャンプする</span><br/>
+            target <span style="color: Gray;">=</span> <span style="color: Teal;">int</span><span style="color: Olive;">(</span>operands<span style="color: Olive;">[</span><span style="color: Maroon;">0</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+            <span style="color: Green;font-weight:bold;">if</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">flags</span><span style="color: Olive;">[</span><span style="color: #a11;">'GREATER'</span><span style="color: Olive;">]</span>:<br/>
+                old_pc <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">pc</span><br/>
+                <span style="color: Teal;">self</span>.<span style="color: #05a;">pc</span> <span style="color: Gray;">=</span> target<br/>
+                <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  条件成立 (GREATER=True): PC を {old_pc} → {target} にジャンプ"</span><span style="color: Olive;">)</span><br/>
+                <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  関連部品: コントローラ、PC レジスタ"</span><span style="color: Olive;">)</span><br/>
+            <span style="color: Green;font-weight:bold;">else</span>:<br/>
+                <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  条件不成立 (GREATER=False): ジャンプせず、PC は {self.pc} のまま"</span><span style="color: Olive;">)</span><br/>
+            <span style="color: Green;font-weight:bold;">return</span> <span style="color: Teal;">None</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">elif</span> opcode <span style="color: Gray;">==</span> <span style="color: #a11;">'STORE'</span>:<br/>
+            <span style="color: #a50"># STORE Rx → レジスタの値を出力する</span><br/>
+            reg <span style="color: Gray;">=</span> operands<span style="color: Olive;">[</span><span style="color: Maroon;">0</span><span style="color: Olive;">]</span><br/>
+            value <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">registers</span><span style="color: Olive;">[</span>reg<span style="color: Olive;">]</span><br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  操作: レジスタ {reg} の値を出力"</span><span style="color: Olive;">)</span><br/>
+            <span style="color: Green;font-weight:bold;">return</span> <span style="color: Olive;">(</span><span style="color: #a11;">'OUTPUT'</span><span style="color: Gray;">,</span> reg<span style="color: Gray;">,</span> value<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">return</span> <span style="color: Teal;">None</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> writeback<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> action<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""段階 4：ライトバック (Write Back)"""</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">total_cycles</span> +<span style="color: Gray;">=</span> <span style="color: Maroon;">1</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">stats</span><span style="color: Olive;">[</span><span style="color: #a11;">'writeback'</span><span style="color: Olive;">]</span> +<span style="color: Gray;">=</span> <span style="color: Maroon;">1</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">if</span> action <span style="color: Green;font-weight:bold;">is</span> <span style="color: Teal;">None</span>:<br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"[周期 {self.total_cycles}] ライトバック (WB) - 操作なし"</span><span style="color: Olive;">)</span><br/>
+            <span style="color: Green;font-weight:bold;">return</span><br/>
+<br/>
+        action_type <span style="color: Gray;">=</span> action<span style="color: Olive;">[</span><span style="color: Maroon;">0</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"[周期 {self.total_cycles}] ライトバック (WB)"</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">if</span> action_type <span style="color: Gray;">==</span> <span style="color: #a11;">'LOAD'</span>:<br/>
+            reg<span style="color: Gray;">,</span> value <span style="color: Gray;">=</span> action<span style="color: Olive;">[</span><span style="color: Maroon;">1</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span> action<span style="color: Olive;">[</span><span style="color: Maroon;">2</span><span style="color: Olive;">]</span><br/>
+            old_val <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">registers</span><span style="color: Olive;">[</span>reg<span style="color: Olive;">]</span><br/>
+            <span style="color: Teal;">self</span>.<span style="color: #05a;">registers</span><span style="color: Olive;">[</span>reg<span style="color: Olive;">]</span> <span style="color: Gray;">=</span> value<br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  対象: レジスタ {reg}"</span><span style="color: Olive;">)</span><br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  データ: {old_val} → {value}"</span><span style="color: Olive;">)</span><br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  経路: データバス → レジスタ群"</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">elif</span> action_type <span style="color: Gray;">==</span> <span style="color: #a11;">'WRITE_REG'</span>:<br/>
+            reg<span style="color: Gray;">,</span> result <span style="color: Gray;">=</span> action<span style="color: Olive;">[</span><span style="color: Maroon;">1</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span> action<span style="color: Olive;">[</span><span style="color: Maroon;">2</span><span style="color: Olive;">]</span><br/>
+            old_val <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">registers</span><span style="color: Olive;">[</span>reg<span style="color: Olive;">]</span><br/>
+            <span style="color: Teal;">self</span>.<span style="color: #05a;">registers</span><span style="color: Olive;">[</span>reg<span style="color: Olive;">]</span> <span style="color: Gray;">=</span> result<br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  対象: レジスタ {reg}"</span><span style="color: Olive;">)</span><br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  データ: {old_val} → {result}"</span><span style="color: Olive;">)</span><br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  経路: ALU 出力 → レジスタ群（内部バス）"</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">elif</span> action_type <span style="color: Gray;">==</span> <span style="color: #a11;">'OUTPUT'</span>:<br/>
+            reg<span style="color: Gray;">,</span> value <span style="color: Gray;">=</span> action<span style="color: Olive;">[</span><span style="color: Maroon;">1</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span> action<span style="color: Olive;">[</span><span style="color: Maroon;">2</span><span style="color: Olive;">]</span><br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  出力: レジスタ {reg} = {value}"</span><span style="color: Olive;">)</span><br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  経路: レジスタ群 → データバス → I/O インターフェース"</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  現在のレジスタ状態: {self.registers}"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  フラグ: {self.flags}"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"-"</span> * <span style="color: Maroon;">60</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> run<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""プログラム全体を実行し、命令を1つずつ処理する"""</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">60</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"SimpleCPU シミュレータ起動 — 命令サイクルデモ (runoob)"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">60</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">while</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">running</span>:<br/>
+            <span style="color: #a50"># 4つの段階のループ</span><br/>
+            instruction <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">fetch</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span>          <span style="color: #a50"># 段階 1: フェッチ</span><br/>
+            <span style="color: Green;font-weight:bold;">if</span> instruction <span style="color: Green;font-weight:bold;">is</span> <span style="color: Teal;">None</span>:<br/>
+                <span style="color: Green;font-weight:bold;">break</span><br/>
+<br/>
+            opcode<span style="color: Gray;">,</span> operands <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">decode</span><span style="color: Olive;">(</span>instruction<span style="color: Olive;">)</span>  <span style="color: #a50"># 段階 2: デコード</span><br/>
+            action <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">execute</span><span style="color: Olive;">(</span>opcode<span style="color: Gray;">,</span> operands<span style="color: Olive;">)</span>      <span style="color: #a50"># 段階 3: 実行</span><br/>
+            <span style="color: Teal;">self</span>.<span style="color: #05a;">writeback</span><span style="color: Olive;">(</span>action<span style="color: Olive;">)</span>                       <span style="color: #a50"># 段階 4: ライトバック</span><br/>
+<br/>
+        <span style="color: #a50"># 実行完了、統計情報を出力</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>"</span> + <span style="color: #a11;">"="</span> * <span style="color: Maroon;">60</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"プログラムの実行が完了しました！統計情報："</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  総クロックサイクル数: {self.total_cycles}"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  フェッチ段階の実行: {self.stats['fetch']} 回"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  デコード段階の実行: {self.stats['decode']} 回"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  実行段階の実行: {self.stats['execute']} 回"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  ライトバック段階の実行: {self.stats['writeback']} 回"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  最終レジスタ: {self.registers}"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  最終フラグ: {self.flags}"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  最終 PC: {self.pc}"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">60</span><span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: #a50"># ===== デモプログラムを実行 =====</span><br/>
+<span style="color: #a50"># プログラムのロジック：1+2 の結果を計算し、3 を掛けて、10 と比較する</span><br/>
+<span style="color: #a50"># LOAD R0, 1   → R0 = 1</span><br/>
+<span style="color: #a50"># LOAD R1, 2   → R1 = 2</span><br/>
+<span style="color: #a50"># ADD R0, R1   → R0 = R0 + R1 = 1 + 2 = 3</span><br/>
+<span style="color: #a50"># LOAD R2, 3   → R2 = 3</span><br/>
+<span style="color: #a50"># MUL R0, R2   → R0 = R0 * R2 = 3 * 3 = 9</span><br/>
+<span style="color: #a50"># CMP R0, R2   → R0(9) と R2(3) を比較し、GREATER=True を設定</span><br/>
+<span style="color: #a50"># STORE R0     → R0 の値を出力</span><br/>
+<span style="color: #a50"># HALT         → 停止</span><br/>
+<br/>
+cpu <span style="color: Gray;">=</span> SimpleCPU<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+program <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><br/>
+    <span style="color: #a11;">"LOAD R0 1"</span><span style="color: Gray;">,</span>      <span style="color: #a50"># R0 = 1</span><br/>
+    <span style="color: #a11;">"LOAD R1 2"</span><span style="color: Gray;">,</span>      <span style="color: #a50"># R1 = 2</span><br/>
+    <span style="color: #a11;">"ADD R0 R1"</span><span style="color: Gray;">,</span>      <span style="color: #a50"># R0 = R0 + R1 = 3</span><br/>
+    <span style="color: #a11;">"LOAD R2 3"</span><span style="color: Gray;">,</span>      <span style="color: #a50"># R2 = 3</span><br/>
+    <span style="color: #a11;">"MUL R0 R2"</span><span style="color: Gray;">,</span>      <span style="color: #a50"># R0 = R0 * R2 = 9</span><br/>
+    <span style="color: #a11;">"CMP R0 R2"</span><span style="color: Gray;">,</span>      <span style="color: #a50"># 9 と 3 を比較、GREATER=True</span><br/>
+    <span style="color: #a11;">"JGT 8"</span><span style="color: Gray;">,</span>          <span style="color: #a50"># GREATER なら命令 8 にジャンプ</span><br/>
+    <span style="color: #a11;">"LOAD R3 0"</span><span style="color: Gray;">,</span>      <span style="color: #a50"># (JGT がスキップしたため、これは実行されない)</span><br/>
+    <span style="color: #a11;">"STORE R0"</span><span style="color: Gray;">,</span>       <span style="color: #a50"># R0 = 9 を出力</span><br/>
+    <span style="color: #a11;">"HALT"</span><span style="color: Gray;">,</span>           <span style="color: #a50"># 停止</span><br/>
+<span style="color: Olive;">]</span><br/>
+cpu.<span style="color: #05a;">load_program</span><span style="color: Olive;">(</span>program<span style="color: Olive;">)</span><br/>
+cpu.<span style="color: #05a;">run</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<p>上記のコードは各命令の各段階で詳細なログを出力するため、CPU 内部が各クロックサイクルで何を行っているかを明確に確認できます。注目すべき点：</p>
+<ul>
+<li><span class="tag1 green">PC の自動インクリメント</span>：命令を1つ実行するたびに、PC が自動的に +1 される（フェッチ段階）</li>
+<li><span class="tag1 green">条件分岐</span>：CMP+JGT の組み合わせで if 判定を実現——R0 &gt; R2 の場合、命令 8 にジャンプし、命令 7 をスキップ</li>
+<li><span class="tag1 green">レジスタは中継地点として機能</span>：すべてのデータはまずレジスタにロードされ、ALU はレジスタからデータを取得し、計算後にレジスタへ書き戻す</li>
+</ul>
+<h2>インタラクティブデモ：CPU内部構造＆命令サイクルのステップ再生</h2>
+<p>以下は vis-network を使用して描画した簡易版 CPU 内部構造図です。「次へ」ボタンをクリックして、命令が4つの段階でそれぞれどのハードウェア部品を使用するかを確認できます。アクティブになった部品は対応する段階の色でハイライト表示されます。</p>
+<script src="../static.jyshare.com/assets/libs/vis-network.min.js"></script>
+<style>
+/* CPU 内部结构图 & 分步播放器样式 (runoob) */
+.cpu-demo-container {
+  background: #1a1a2e;
+  border-radius: 12px;
+  padding: 24px;
+  margin: 20px 0;
+  color: #e0e0e0;
+}
+.cpu-demo-container .cpu-demo-container h3 {
+  text-align: center;
+  color: #58a6ff;
+  margin: 0 0 16px 0;
+  font-size: 18px;
+}
+#cpu-network {
+  width: 100%;
+  height: 420px;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  background: #0d1117;
+}
+.cpu-controls {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin: 16px 0;
+  flex-wrap: wrap;
+}
+.cpu-btn {
+  background: #238636;
+  color: #fff;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+.cpu-btn:hover { background: #2ea043; }
+.cpu-btn:disabled { background: #484f58; cursor: not-allowed; }
+.cpu-btn.reset { background: #da3633; }
+.cpu-btn.reset:hover { background: #f85149; }
+.stage-info {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 12px;
+  min-height: 60px;
+}
+.stage-indicator {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  margin: 16px 0 8px 0;
+}
+.stage-dot-wrap { text-align: center; }
+.stage-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #30363d;
+  margin: 0 auto 6px auto;
+  transition: all 0.3s;
+}
+.stage-dot.active-fetch { background: #58a6ff; box-shadow: 0 0 12px #58a6ff; }
+.stage-dot.active-decode { background: #e3b341; box-shadow: 0 0 12px #e3b341; }
+.stage-dot.active-execute { background: #3fb950; box-shadow: 0 0 12px #3fb950; }
+.stage-dot.active-writeback { background: #f78166; box-shadow: 0 0 12px #f78166; }
+.stage-dot.completed { background: #484f58; }
+.stage-dot-label { font-size: 13px; color: #8b949e; }
+.stage-description { font-size: 14px; color: #c9d1d9; line-height: 1.8; }
+.stage-description strong { color: #58a6ff; }
+.stage-title { font-size: 16px; font-weight: bold; margin-bottom: 8px; }
+</style>
+<div class="cpu-demo-container">
+<h3>CPU内部構造＆命令サイクルのステップデモ (runoob)</h3>
+<div id="cpu-network"></div>
+<div class="stage-indicator">
+<div class="stage-dot-wrap">
+<div class="stage-dot" id="dotFetch"></div>
+<div class="stage-dot-label">フェッチ IF</div>
+</div>
+<div class="stage-dot-wrap">
+<div class="stage-dot" id="dotDecode"></div>
+<div class="stage-dot-label">デコード ID</div>
+</div>
+<div class="stage-dot-wrap">
+<div class="stage-dot" id="dotExecute"></div>
+<div class="stage-dot-label">実行 EX</div>
+</div>
+<div class="stage-dot-wrap">
+<div class="stage-dot" id="dotWriteback"></div>
+<div class="stage-dot-label">ライトバック WB</div>
+</div>
+</div>
+<div class="stage-info" id="stageInfo">
+<div class="stage-description">「次へ」をクリックして命令サイクルのデモを開始し、各段階で CPU 内部のどの部品がアクティブになるかを確認してください。</div>
+</div>
+<div class="cpu-controls">
+<button class="cpu-btn" id="btnNext" onclick="cpuNextStep()">次へ</button>
+<button class="cpu-btn reset" id="btnReset" onclick="cpuReset()">リセット</button>
+</div>
+</div>
+<script>
+/*
+ * CPU 指令周期分步播放器 (runoob 演示)
+ * 使用 vis-network 绘制简化版 CPU 内部结构图，
+ * 通过「下一步」按钮逐步展示取指/译码/执行/写回四个阶段。
+ * 每个阶段高亮激活的硬件部件，并用不同颜色区分。
+ */
+
+// ----- 节点颜色常量 -----
+var COLOR_DEFAULT = '#484f58';       // 默认灰色
+var COLOR_FETCH   = '#58a6ff';       // 取指 - 蓝色
+var COLOR_DECODE  = '#e3b341';       // 译码 - 黄色
+var COLOR_EXECUTE = '#3fb950';       // 执行 - 绿色
+var COLOR_WB      = '#f78166';       // 写回 - 橙色
+
+// ----- 全局状态 -----
+var cpuNetwork = null;
+var cpuStep = 0;   // 0=初始, 1=取指, 2=译码, 3=执行, 4=写回
+var MAX_STEP = 4;
+
+// ----- 构建 vis-network 节点和边 -----
+var cpuNodes = new vis.DataSet([
+  { id: 'memory',    label: '内存\nMemory',        shape: 'box', x: -200, y: -160, color: { background: '#21262d', border: '#30363d' }, font: { color: '#c9d1d9', size: 13 } },
+  { id: 'pc',        label: 'PC\n程序计数器',       shape: 'box', x: -280, y: -30,  color: { background: '#21262d', border: '#30363d' }, font: { color: '#c9d1d9', size: 13 } },
+  { id: 'ir',        label: 'IR\n指令寄存器',       shape: 'box', x: -80,  y: -30,  color: { background: '#21262d', border: '#30363d' }, font: { color: '#c9d1d9', size: 13 } },
+  { id: 'controller',label: '控制器\nControl Unit', shape: 'box', x: 100,  y: -30,  color: { background: '#21262d', border: '#30363d' }, font: { color: '#c9d1d9', size: 13 } },
+  { id: 'alu',       label: 'ALU\n运算器',          shape: 'box', x: 100,  y: 70,   color: { background: '#21262d', border: '#30363d' }, font: { color: '#c9d1d9', size: 13 } },
+  { id: 'r0',        label: 'R0',                   shape: 'circle', x: -20, y: 150, color: { background: '#21262d', border: '#30363d' }, font: { color: '#c9d1d9', size: 12 }, size: 30 },
+  { id: 'r1',        label: 'R1',                   shape: 'circle', x: 50,  y: 150, color: { background: '#21262d', border: '#30363d' }, font: { color: '#c9d1d9', size: 12 }, size: 30 },
+  { id: 'r2',        label: 'R2',                   shape: 'circle', x: 120, y: 150, color: { background: '#21262d', border: '#30363d' }, font: { color: '#c9d1d9', size: 12 }, size: 30 },
+  { id: 'r3',        label: 'R3',                   shape: 'circle', x: 190, y: 150, color: { background: '#21262d', border: '#30363d' }, font: { color: '#c9d1d9', size: 12 }, size: 30 }
+]);
+
+var cpuEdges = new vis.DataSet([
+  { id: 'e_mem_pc',  from: 'pc',   to: 'memory',     label: '地址', arrows: 'to', color: { color: '#30363d' }, font: { color: '#8b949e', size: 10, strokeWidth: 0 } },
+  { id: 'e_mem_ir',  from: 'memory', to: 'ir',       label: '指令', arrows: 'to', color: { color: '#30363d' }, font: { color: '#8b949e', size: 10, strokeWidth: 0 } },
+  { id: 'e_ir_ctrl', from: 'ir',   to: 'controller',              arrows: 'to', color: { color: '#30363d' } },
+  { id: 'e_ctrl_alu',from: 'controller', to: 'alu',               arrows: 'to', color: { color: '#30363d' } },
+  { id: 'e_alu_r0',  from: 'alu',  to: 'r0',                     arrows: 'to', color: { color: '#30363d' } },
+  { id: 'e_alu_r1',  from: 'alu',  to: 'r1',                     arrows: 'to', color: { color: '#30363d' } },
+  { id: 'e_alu_r2',  from: 'alu',  to: 'r2',                     arrows: 'to', color: { color: '#30363d' } },
+  { id: 'e_alu_r3',  from: 'alu',  to: 'r3',                     arrows: 'to', color: { color: '#30363d' } }
+]);
+
+// ----- 重置所有节点和边的颜色为默认 -----
+function resetAllColors() {
+  cpuNodes.forEach(function(node) {
+    cpuNodes.update({ id: node.id, color: { background: '#21262d', border: '#30363d' } });
+  });
+  cpuEdges.forEach(function(edge) {
+    cpuEdges.update({ id: edge.id, color: { color: '#30363d' } });
+  });
+}
+
+// ----- 高亮指定节点（填充 + 边框） -----
+function highlightNodes(nodeIds, color) {
+  nodeIds.forEach(function(id) {
+    cpuNodes.update({ id: id, color: { background: color, border: color, highlight: { background: color, border: color } } });
+  });
+}
+
+// ----- 高亮指定边 -----
+function highlightEdges(edgeIds, color) {
+  edgeIds.forEach(function(id) {
+    cpuEdges.update({ id: id, color: { color: color } });
+  });
+}
+
+// ----- 更新阶段指示器和描述 -----
+var stageInfoEl = document.getElementById('stageInfo');
+var stageTitles = ['', '阶段一：取指 (Fetch)', '阶段二：译码 (Decode)', '阶段三：执行 (Execute)', '阶段四：写回 (Write Back)'];
+var stageDescs = [
+  '',
+  '<strong>取指阶段：</strong>PC 将指令地址放到地址总线上，向内存发出读信号。<br>内存返回该地址处的指令数据，存入指令寄存器 IR。<br><strong>PC 自动 +1</strong>，指向下一条指令。<br><span style="color:#58a6ff;">激活部件：PC、内存、IR</span>',
+  '<strong>译码阶段：</strong>控制器解析 IR 中的操作码和操作数。<br>识别指令类型（如 ADD、LOAD），确定需要的操作数来源。<br>向 ALU、寄存器组等部件发出相应的<strong>控制信号</strong>。<br><span style="color:#e3b341;">激活部件：IR、控制器</span>',
+  '<strong>执行阶段：</strong>根据译码结果，ALU 执行实际运算。<br>从通用寄存器（R0~R3）读取操作数，进行算术/逻辑运算。<br>这也是指令真正「干活」的阶段。<br><span style="color:#3fb950;">激活部件：控制器、ALU、通用寄存器</span>',
+  '<strong>写回阶段：</strong>将 ALU 的运算结果写回目标寄存器。<br>数据通过内部总线从 ALU 输出端传输到寄存器组。<br>写回完成后，一条指令执行周期结束，CPU 准备取下一条指令。<br><span style="color:#f78166;">激活部件：ALU、目标寄存器</span>'
+];
+
+// 每个阶段高亮的节点和边
+var stageHighlights = {
+  nodes: {
+    1: ['pc', 'memory', 'ir'],
+    2: ['ir', 'controller'],
+    3: ['controller', 'alu', 'r0', 'r1', 'r2', 'r3'],
+    4: ['alu', 'r0', 'r1', 'r2', 'r3']
+  },
+  edges: {
+    1: ['e_mem_pc', 'e_mem_ir'],
+    2: ['e_ir_ctrl'],
+    3: ['e_ctrl_alu', 'e_alu_r0', 'e_alu_r1', 'e_alu_r2', 'e_alu_r3'],
+    4: ['e_alu_r0', 'e_alu_r1', 'e_alu_r2', 'e_alu_r3']
+  },
+  colors: {
+    1: COLOR_FETCH,
+    2: COLOR_DECODE,
+    3: COLOR_EXECUTE,
+    4: COLOR_WB
+  }
+};
+
+// 阶段指示器 dot 元素的 id 和 class 映射
+var dotIds = ['dotFetch', 'dotDecode', 'dotExecute', 'dotWriteback'];
+var dotActiveClasses = ['active-fetch', 'active-decode', 'active-execute', 'active-writeback'];
+
+function updateStageUI(step) {
+  // 更新阶段指示器
+  for (var i = 0; i < 4; i++) {
+    var dot = document.getElementById(dotIds[i]);
+    dot.className = 'stage-dot';
+    if (i + 1 === step) {
+      dot.classList.add(dotActiveClasses[i]);
+    } else if (i + 1 < step) {
+      dot.classList.add('completed');
+    }
+  }
+
+  // 更新描述文字
+  if (step >= 1 && step <= 4) {
+    stageInfoEl.innerHTML = '<div class="stage-title" style="color:' + stageHighlights.colors[step] + ';">' + stageTitles[step] + '</div>' +
+                            '<div class="stage-description">' + stageDescs[step] + '</div>';
+  }
+}
+
+// ----- 主控：下一步 -----
+function cpuNextStep() {
+  if (cpuStep >= MAX_STEP) return;
+
+  cpuStep++;
+  resetAllColors();
+
+  // 高亮当前阶段的节点和边
+  var nodes = stageHighlights.nodes[cpuStep];
+  var edges = stageHighlights.edges[cpuStep];
+  var color = stageHighlights.colors[cpuStep];
+
+  highlightNodes(nodes, color);
+  highlightEdges(edges, color);
+
+  // 更新 UI
+  updateStageUI(cpuStep);
+
+  // 最后一步禁用按钮
+  if (cpuStep >= MAX_STEP) {
+    document.getElementById('btnNext').disabled = true;
+  }
+}
+
+// ----- 重置 -----
+function cpuReset() {
+  cpuStep = 0;
+  resetAllColors();
+  document.getElementById('btnNext').disabled = false;
+
+  // 重置阶段指示器
+  for (var i = 0; i < 4; i++) {
+    document.getElementById(dotIds[i]).className = 'stage-dot';
+  }
+
+  // 重置描述
+  stageInfoEl.innerHTML = '<div class="stage-description">点击「下一步」开始指令周期演示，观察各阶段中 CPU 内部哪些部件被激活。</div>';
+}
+
+// ----- 初始化 vis-network -----
+function initCpuNetwork() {
+  var container = document.getElementById('cpu-network');
+  if (!container) return;
+  var data = { nodes: cpuNodes, edges: cpuEdges };
+  var options = {
+    physics: false,
+    interaction: { dragNodes: false, dragView: true, zoomView: true },
+    edges: { smooth: { type: 'curvedCW', roundness: 0.1 }, width: 2 }
+  };
+  cpuNetwork = new vis.Network(container, data, options);
+}
+
+// 页面加载完成后初始化
+if (typeof vis !== 'undefined') {
+  initCpuNetwork();
+} else {
+  document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(initCpuNetwork, 200);
+  });
+}
+</script>
+その他の拡張
+</div>
+</div>
+<div class="archive-list" style="display:none;font-size: 14px;line-height: 1.8;margin-top: 20px;padding: 10px;">
+<div class="archive-list-item">
+<div class="post-intro" id="ai-info" style="width: 100%;">AI 思考中...</div>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../computer-organization/stored-program-concept.html" rel="prev">プログラムとデータを同じメモリに置けるのはなぜか</a> </div>
+<div class="next-design-link"><a href="../computer-organization/clock-frequency.html" rel="next">クロック周波数とは何か</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="sidebar-box">
+</div>
+ノート一覧
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>クリックしてノートを共有</h3>
+&lt;p style="font-size:14px;"&gt;ノートはこの記事の内容の拡張である必要があります！&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;記事の投稿は、こちらをクリック&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="../w3cnode/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; ノートを共有する前に&lt;a href=";.html" class="runoob-pop"&gt;ログイン&lt;/a&gt;が必要です！&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=";.html" id="cancel-comment-reply-link">キャンセル</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="31882"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>ノートを共有</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">ニックネーム</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">ニックネーム (必須)</span></li>
+<li class="form-inline"><label class="hide" for="email">メールアドレス</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">メールアドレス (必須)</span></li>
+<li class="form-inline"><label class="hide" for="url">引用アドレス</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">引用アドレス</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  31882;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 31882, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":31882},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+</div>
+</div>
+<!-- 右边栏 -->
+<div class="fivecol last right-column">
+<style>
+.sidebar-tree .double-li {
+    width:300px;
+}
+.sidebar-tree .double-li li {
+    width: 44%;
+    line-height: 1.5em;
+    border-bottom: 1px solid #ccc;
+    float: left;
+    display: inline;
+}
+</style>
+<div class="sidebar-box re-box re-box-large">
+<div class="sidebar-box recommend-here" style="margin: 0 auto;">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;"> <i aria-hidden="true" class="fa fa-list"></i> 分类导航</a>
+</div>
+<div class="sidebar-box sidebar-cate">
+<div class="sidebar-tree">
+<ul><li style="margin: 0;"><a class="tit" href="#"> Python / 数据科学</a><ul class="double-li"><li><a href="../python3/python3-tutorial.html" title="Python 教程">Python 教程</a></li><li><a href="../python/python-tutorial.html" title="Python2.x 教程">Python2.x 教程</a></li><li><a href="../fastapi/fastapi-tutorial.html" title="FastAPI 教程">FastAPI 教程</a></li><li><a href="../flask/flask-tutorial.html" title="Flask 教程">Flask 教程</a></li><li><a href="../django/django-tutorial.html" title="Django 教程">Django 教程</a></li><li><a href="../numpy/numpy-tutorial.html" title="NumPy 教程">NumPy 教程</a></li><li><a href="../pandas/pandas-tutorial.html" title="Pandas 教程">Pandas 教程</a></li><li><a href="../scipy/scipy-tutorial.html" title="SciPy 教程">SciPy 教程</a></li><li><a href="../matplotlib/matplotlib-tutorial.html" title="Matplotlib 教程">Matplotlib 教程</a></li><li><a href="../dash/dash-tutorial.html" title="Dash 教程">Dash 教程</a></li><li><a href="../jupyter-notebook/jupyter-notebook-tutorial.html" title="Jupyter Notebook 教程">Jupyter Notebook 教程</a></li><li><a href="../pillow/pillow-tutorial.html" title="Pillow 教程">Pillow 教程</a></li><li><a href="../qt/qt-tutorial.html" title="量化交易">量化交易</a></li><li><a href="../r/r-tutorial.html" title="R 教程">R 教程</a></li><li><a href="../julia/julia-tutorial.html" title="Julia 教程">Julia 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> AI / 智能开发</a><ul class="double-li"><li><a href="../ai-agent/ai-agent-tutorial.html" title="AI Agent（智能体）">AI Agent（智能体）</a></li><li><a href="../ai/ai-tutorial.html" title="AI（人工智能）">AI（人工智能）</a></li><li><a href="../codex/codex-tutorial.html" title="Codex 教程">Codex 教程</a></li><li><a href="../vibe-coding/vibe-coding-tutorial.html" title="Vibe Coding 教程">Vibe Coding 教程</a></li><li><a href="../claude-code/claude-code-tutorial.html" title="Claude Code">Claude Code</a></li><li><a href="../opencode/opencode-tutorial.html" title="OpenCode">OpenCode</a></li><li><a href="../skills/skills-tutorial.html" title="Skills（技能）">Skills（技能）</a></li><li><a href="../ollama/ollama-tutorial.html" title="Ollama 教程">Ollama 教程</a></li><li><a href="../hermes-agent/hermes-agent-tutorial.html" title="Hermes Agent">Hermes Agent</a></li><li><a href="../deepseek-harness/deepseek-harness-tutorial.html" title="DeepSeek Harness">DeepSeek Harness</a></li><li><a href="../pi-agent/pi-agent-tutorial.html" title="Pi Agent">Pi Agent</a></li><li><a href="../ai-math/ai-math-tutorial.html" title="AI 数学基础">AI 数学基础</a></li><li><a href="../tensorflow/tensorflow-tutorial.html" title="TensorFlow 教程">TensorFlow 教程</a></li><li><a href="../pytorch/pytorch-tutorial.html" title="PyTorch 教程">PyTorch 教程</a></li><li><a href="../sklearn/sklearn-tutorial.html" title="Scikit-learn 教程">Scikit-learn 教程</a></li><li><a href="../ml/ml-tutorial.html" title="机器 教程">机器 教程</a></li><li><a href="../langchain/langchain-tutorial.html" title="LangChain">LangChain</a></li><li><a href="../nlp/nlp-tutorial.html" title="自然语言处理 NLP">自然语言处理 NLP</a></li><li><a href="../opencv/opencv-tutorial.html" title="OpenCV 教程">OpenCV 教程</a></li><li><a href="../selenium/selenium-tutorial.html" title="Selenium 教程">Selenium 教程</a></li><li><a href="../playwright/playwright-tutorial.html" title="Playwright 教程">Playwright 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 前端开发</a><ul class="double-li"><li><a href="../html/html-tutorial.html" title="HTML 教程">HTML 教程</a></li><li><a href="../html/html5-intro.html" title="HTML5 教程">HTML5 教程</a></li><li><a href="../css/css-tutorial.html" title="CSS 教程">CSS 教程</a></li><li><a href="../css3/css3-tutorial.html" title="CSS3 教程">CSS3 教程</a></li><li><a href="../js/js-tutorial.html" title="JavaScript 教程">JavaScript 教程</a></li><li><a href="../htmldom/htmldom-tutorial.html" title="HTML DOM 教程">HTML DOM 教程</a></li><li><a href="../typescript/ts-tutorial.html" title="TypeScript 教程">TypeScript 教程</a></li><li><a href="../ajax/ajax-tutorial.html" title="AJAX 教程">AJAX 教程</a></li><li><a href="../json/json-tutorial.html" title="JSON 教程">JSON 教程</a></li><li><a href="../tailwindcss/tailwindcss-tutorial.html" title="Tailwind CSS 教程">Tailwind CSS 教程</a></li><li><a href="../bootstrap4/bootstrap4-tutorial.html" title="Bootstrap4 教程">Bootstrap4 教程</a></li><li><a href="../bootstrap5/bootstrap5-tutorial.html" title="Bootstrap5 教程">Bootstrap5 教程</a></li><li><a href="../foundation/foundation-tutorial.html" title="Foundation 教程">Foundation 教程</a></li><li><a href="../vue2/vue-tutorial.html" title="Vue.js 教程">Vue.js 教程</a></li><li><a href="../vue3/vue3-tutorial.html" title="Vue3 教程">Vue3 教程</a></li><li><a href="../react/react-tutorial.html" title="React 教程">React 教程</a></li><li><a href="../nextjs/nextjs-tutorial.html" title="Next.js 教程">Next.js 教程</a></li><li><a href="../angularjs/angularjs-tutorial.html" title="AngularJS 教程">AngularJS 教程</a></li><li><a href="../angularjs2/angularjs2-tutorial.html" title="Angular 教程">Angular 教程</a></li><li><a href="../jquery/jquery-tutorial.html" title="jQuery 教程">jQuery 教程</a></li><li><a href="../jqueryui/jqueryui-tutorial.html" title="jQuery UI 教程">jQuery UI 教程</a></li><li><a href="../jeasyui/jqueryeasyui-tutorial.html" title="jQuery EasyUI 教程">jQuery EasyUI 教程</a></li><li><a href="../echarts/echarts-tutorial.html" title="ECharts 教程">ECharts 教程</a></li><li><a href="../chartjs/chartjs-tutorial.html" title="Chart.js 教程">Chart.js 教程</a></li><li><a href="../highcharts/highcharts-tutorial.html" title="Highcharts 教程">Highcharts 教程</a></li><li><a href="../googleapi/google-maps-basic.html" title="Google 地图 教程">Google 地图 教程</a></li><li><a href="../svg/svg-tutorial.html" title="SVG 教程">SVG 教程</a></li><li><a href="../font-awesome/fontawesome-tutorial.html" title="Font Awesome 教程">Font Awesome 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 后端开发</a><ul class="double-li"><li><a href="../nodejs/nodejs-tutorial.html" title="Node.js 教程">Node.js 教程</a></li><li><a href="../electron/electron-tutorial.html" title="Electron 教程">Electron 教程</a></li><li><a href="../php/php-tutorial.html" title="PHP 教程">PHP 教程</a></li><li><a href="../java/java-tutorial.html" title="Java 教程">Java 教程</a></li><li><a href="../go/go-tutorial.html" title="Go 教程">Go 教程</a></li><li><a href="../rust/rust-tutorial.html" title="Rust 教程">Rust 教程</a></li><li><a href="../csharp/csharp-tutorial.html" title="C# 教程">C# 教程</a></li><li><a href="../servlet/servlet-tutorial.html" title="Servlet 教程">Servlet 教程</a></li><li><a href="../jsp/jsp-tutorial.html" title="JSP 教程">JSP 教程</a></li><li><a href="../asp/asp-tutorial.html" title="ASP 教程">ASP 教程</a></li><li><a href="../appml/appml-tutorial.html" title="AppML 教程">AppML 教程</a></li><li><a href="../vbscript/vbscript-tutorial.html" title="VBScript 教程">VBScript 教程</a></li><li><a href="../swagger/swagger-tutorial.html" title="Swagger 教程">Swagger 教程</a></li><li><a href="../restfulapi/restful-api-tutorial.html" title="RESTful API 教程">RESTful API 教程</a></li><li><a href="../docker/docker-tutorial.html" title="Docker 教程">Docker 教程</a></li><li><a href="../linux/linux-tutorial.html" title="Linux 教程">Linux 教程</a></li><li><a href="../w3cnote/zookeeper-tutorial.html" title="ZooKeeper 教程">ZooKeeper 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 数据库</a><ul class="double-li"><li><a href="../sql/sql-tutorial.html" title="SQL 教程">SQL 教程</a></li><li><a href="../mysql/mysql-tutorial.html" title="MySQL 教程">MySQL 教程</a></li><li><a href="../postgresql/postgresql-tutorial.html" title="PostgreSQL 教程">PostgreSQL 教程</a></li><li><a href="../sqlite/sqlite-tutorial.html" title="SQLite 教程">SQLite 教程</a></li><li><a href="../mongodb/mongodb-tutorial.html" title="MongoDB 教程">MongoDB 教程</a></li><li><a href="../redis/redis-tutorial.html" title="Redis 教程">Redis 教程</a></li><li><a href="../memcached/memcached-tutorial.html" title="Memcached 教程">Memcached 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 移动开发</a><ul class="double-li"><li><a href="../w3cnote/android-tutorial-intro.html" title="Android 教程">Android 教程</a></li><li><a href="../flutter/flutter-tutorial.html" title="Flutter 教程">Flutter 教程</a></li><li><a href="../ionic/ionic-tutorial.html" title="Ionic 教程">Ionic 教程</a></li><li><a href="../jquerymobile/jquerymobile-tutorial.html" title="jQuery Mobile 教程">jQuery Mobile 教程</a></li><li><a href="../swift/swift-tutorial.html" title="Swift 教程">Swift 教程</a></li><li><a href="../kotlin/kotlin-tutorial.html" title="Kotlin 教程">Kotlin 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> DevOps / 工程化</a><ul class="double-li"><li><a href="../git/git-tutorial.html" title="Git 教程">Git 教程</a></li><li><a href="../svn/svn-tutorial.html" title="SVN 教程">SVN 教程</a></li><li><a href="../cmake/cmake-tutorial.html" title="CMake 教程">CMake 教程</a></li><li><a href="../maven/maven-tutorial.html" title="Maven 教程">Maven 教程</a></li><li><a href="../vscode/vscode-tutorial.html" title="VS Code 教程">VS Code 教程</a></li><li><a href="../obsidian/obsidian-tutorial.html" title="Obsidian 教程">Obsidian 教程</a></li><li><a href="../pycharm/pycharm-tutorial.html" title="PyCharm 教程">PyCharm 教程</a></li><li><a href="../eclipse/eclipse-tutorial.html" title="Eclipse 教程">Eclipse 教程</a></li><li><a href="../markdown/md-tutorial.html" title="Markdown 教程">Markdown 教程</a></li><li><a href="../latex/latex-tutorial.html" title="LaTeX 教程">LaTeX 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 编程语言</a><ul class="double-li"><li><a href="../c/c-tutorial.html" title="C 教程">C 教程</a></li><li><a href="../cplusplus/cpp-tutorial.html" title="C++ 教程">C++ 教程</a></li><li><a href="../zig/zig-tutorial.html" title="Zig 教程">Zig 教程</a></li><li><a href="../scala/scala-tutorial.html" title="Scala 教程">Scala 教程</a></li><li><a href="../ruby/ruby-tutorial.html" title="Ruby 教程">Ruby 教程</a></li><li><a href="../perl/perl-tutorial.html" title="Perl 教程">Perl 教程</a></li><li><a href="../lua/lua-tutorial.html" title="Lua 教程">Lua 教程</a></li><li><a href="../dart/dart-tutorial.html" title="Dart 教程">Dart 教程</a></li><li><a href="../assembly/assembly-tutorial.html" title="汇编语言 教程">汇编语言 教程</a></li><li><a href="../w3cnote/verilog-tutorial.html" title="Verilog 教程">Verilog 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 计算机基础</a><ul class="double-li"><li><a href="../computer-organization/computer-organization-tutorial.html" title="计算机组成原理">计算机组成原理</a></li><li><a href="../data-structures/data-structures-tutorial.html" title="数据结构与算法">数据结构与算法</a></li><li><a href="../c-dsa/c-dsa-tutorial.html" title="C 语言数据结构与算法">C 语言数据结构与算法</a></li><li><a href="../design-pattern/design-pattern-tutorial.html" title="设计模式">设计模式</a></li><li><a href="../python-design-pattern/python-design-pattern-tutorial.html" title="Python 设计模式">Python 设计模式</a></li><li><a href="../regexp/regexp-tutorial.html" title="正则表达式">正则表达式</a></li><li><a href="../http/http-tutorial.html" title="HTTP 教程">HTTP 教程</a></li><li><a href="../tcpip/tcpip-tutorial.html" title="TCP/IP 教程">TCP/IP 教程</a></li><li><a href="../np/np-tutorial.html" title="网络协议">网络协议</a></li><li><a href="../w3c/w3c-tutorial.html" title="W3C 教程">W3C 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> XML / Web Service</a><ul class="double-li"><li><a href="../xml/xml-tutorial.html" title="XML 教程">XML 教程</a></li><li><a href="../dtd/dtd-tutorial.html" title="DTD 教程">DTD 教程</a></li><li><a href="../dom/dom-tutorial.html" title="XML DOM 教程">XML DOM 教程</a></li><li><a href="../xsl/xsl-tutorial.html" title="XSLT 教程">XSLT 教程</a></li><li><a href="../xpath/xpath-tutorial.html" title="XPath 教程">XPath 教程</a></li><li><a href="../xquery/xquery-tutorial.html" title="XQuery 教程">XQuery 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XLink 教程">XLink 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XPointer 教程">XPointer 教程</a></li><li><a href="../schema/schema-tutorial.html" title="XML Schema 教程">XML Schema 教程</a></li><li><a href="../xslfo/xslfo-tutorial.html" title="XSL-FO 教程">XSL-FO 教程</a></li><li><a href="../webservices/webservices-tutorial.html" title="Web Service 教程">Web Service 教程</a></li><li><a href="../wsdl/wsdl-tutorial.html" title="WSDL 教程">WSDL 教程</a></li><li><a href="../soap/soap-tutorial.html" title="SOAP 教程">SOAP 教程</a></li><li><a href="../rss/rss-tutorial.html" title="RSS 教程">RSS 教程</a></li><li><a href="../rdf/rdf-tutorial.html" title="RDF 教程">RDF 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> .NET</a><ul class="double-li"><li><a href="../aspnet/aspnet-tutorial.html" title="ASP.NET 教程">ASP.NET 教程</a></li><li><a href="../aspnet/mvc-intro.html" title="MVC 教程">MVC 教程</a></li><li><a href="../aspnet/razor-intro.html" title="Razor 教程">Razor 教程</a></li><li><a href="../aspnet/aspnet-intro.html" title="Web Forms 教程">Web Forms 教程</a></li><li><a href="../aspnet/webpages-intro.html" title="Web Pages 教程">Web Pages 教程</a></li><li><a href="../powershell/powershell-tutorial.html" title="PowerShell 教程">PowerShell 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 网站建设</a><ul class="double-li"><li><a href="../web/web-buildingprimer.html" title="网站建设指南">网站建设指南</a></li><li><a href="../browsers/browser-information.html" title="浏览器信息">浏览器信息</a></li><li><a href="../hosting/hosting-tutorial.html" title="网站主机教程">网站主机教程</a></li><li><a href="../quality/quality-tutorial.html" title="网站品质">网站品质</a></li></ul></li></ul> </div>
+</div>
+</div>
+<br/>
+<div class="sidebar-box re-box re-box-large">
+</div>
+</div></div>
+</div>
+<script>
+var aid = 31882;
+function coll() {
+	$.post( '/wp-content/themes/runoob/option/user/userinfo.php', {aid:aid, action:"collarticle", opt:'add'},function( data ) {
+		if(data.error==0) {
+			$("#content").find("h1:first").find("a").attr("href","javascript:void(0);");
+			$("#content").find("h1:first").find("img").attr("src","http://www.runoob.com/wp-content/themes/runoob/assets/img/coll2.png").css({width:32+"px",height:32+"px"});
+		}
+		alert(data.msg);
+	},'json');
+}
+
+(function () {
+    // 1. 仅 HTML 页面
+    if (!document.contentType || !document.contentType.includes('text/html')) return;
+
+    // 2. 容器判断
+    var container = document.querySelector('.article-intro');
+    if (!container) return;
+
+    var h1 = container.querySelector('h1');
+    if (!h1) return;
+
+    // 3. URL 判断
+    var url = window.location.href.toLowerCase();
+    var version = null;
+
+    if (url.includes('/python3/')) {
+        version = 'Python3.x';
+    } else if (url.includes('/python/')) {
+        version = 'Python2.x';
+    }
+
+    if (!version) return;
+
+    // 4. 防重复
+    if (h1.querySelector('.py-version-badge')) return;
+
+    // 5. 创建标签
+    var badge = document.createElement('span');
+    badge.className = 'py-version-badge';
+    badge.innerText = version;
+
+    // 6. 样式（核心：float 实现右上角）
+    badge.style.float = 'right';
+    badge.style.fontSize = '12px';
+    badge.style.padding = '2px 8px';
+    badge.style.borderRadius = '999px';
+
+   // 自适应亮/暗色 + 渐变背景（增强版）
+	badge.style.color = 'inherit';
+
+	// 渐变背景（低透明度，不影响暗黑模式）
+	if (version.includes('3')) {
+		badge.style.background = 'linear-gradient(90deg, rgba(79,172,254,0.15), rgba(0,242,254,0.15))';
+	} else {
+		badge.style.background = 'linear-gradient(90deg, rgba(161,140,209,0.15), rgba(251,194,235,0.15))';
+	}
+
+	// 边框弱化（更精致）
+	badge.style.border = '1px solid rgba(127,127,127,0.3)';
+
+	// 提升可读性
+	badge.style.opacity = '0.95';
+
+    // 微调位置（更贴近“右上角”）
+    badge.style.marginTop = '4px';
+    badge.style.marginLeft = '10px';
+
+    // 7. 插入到 h1 最前面（让 float 生效更稳定）
+    h1.insertBefore(badge, h1.firstChild);
+
+})();
+</script>
+<!-- 反馈对话框开始 -->
+<script src="../wp-content/themes/runoob/assets/js/runoob-article-dir.min.js"></script>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

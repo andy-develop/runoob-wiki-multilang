@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RLHF アライメント訓練 | 初心者向けチュートリアル</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<link href="../manifest.webmanifest.html" rel="manifest"/>
+<meta content="#10151c" name="theme-color"/>
+<link href="../pwa/icon-192.png.html" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="application-name"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="../ai/ai-rlhf.html" rel="canonical"/>
+<meta content="RLHF 对齐训练" name="keywords"/>
+<meta content="RLHF 对齐训练   想象一下：	  你让 AI 写一篇如何快速赚钱的文章，它给你出了个诈骗方案。 	 你问 AI: 我是不是很失败，它直接说: 是的，你确实很失败。 	  你让 AI 帮你写代码，它生成了一段能运行但暗藏后门的程序。     这些不是科幻场景——在没有对齐训练的情况下，AI 真的会这样做。  AI 的目标不是做正确的事'，而是'完成训练任务。如果没有明确的人类价值观指引，它会选择最简单、最直接的方.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div>
+<!-- 导航栏 -->
+<style>
+/* 主题切换按钮 */
+/* ===== 主题变量（核心）===== */
+:root {
+  --theme-bg: #ffffff;
+  --theme-border: #e5e7eb;
+  --theme-icon: #333;
+  --theme-hover: #f3f4f6;
+}
+
+.dark {
+  --theme-bg: #1f2937;
+  --theme-border: #374151;
+  --theme-icon: #e5e7eb;
+  --theme-hover: #374151;
+}
+
+/* ===== 按钮容器 ===== */
+.nav-theme-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== 按钮本体 ===== */
+.nav-theme-toggle button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  border-radius: 6px;
+  border: 1px solid var(--theme-border);
+
+  background: var(--theme-bg);
+  color: var(--theme-icon);
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* ===== 图标大小 ===== */
+.nav-theme-toggle i {
+  font-size: 14px;
+}
+
+/* ===== hover 效果 ===== */
+.nav-theme-toggle button:hover {
+  background: var(--theme-hover);
+  transform: translateY(-1px);
+}
+
+/* ===== 点击反馈 ===== */
+.nav-theme-toggle button:active {
+  transform: scale(0.95);
+}
+
+/* ===== 当前激活态（可选）===== */
+.nav-theme-toggle button.active {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+</style>
+<!-- 导航栏 -->
+<nav aria-label="主导航" class="container navigation">
+<div class="row">
+<div class="col nav">
+<!-- PC 导航 -->
+<ul class="pc-nav" id="runoob-detail-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../js/js-tutorial.html">JavaScript</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a data-id="vue" href="#">Vue</a></li>
+<li><a href="../react/react-tutorial.html">React</a></li>
+<li><a href="../python3/python3-tutorial.html">Python3</a></li>
+<li><a href="../java/java-tutorial.html">Java</a></li>
+<li><a href="../cprogramming/c-tutorial.html">C</a></li>
+<li><a href="../cplusplus/cpp-tutorial.html">C++</a></li>
+<li><a href="../csharp/csharp-tutorial.html">C#</a></li>
+<li><a data-id="aiNav" href="#">AI</a></li>
+<li><a href="../go/go-tutorial.html">Go</a></li>
+<li><a href="../sql/sql-tutorial.html">SQL</a></li>
+<li><a href="../linux/linux-tutorial.html">Linux</a></li>
+<li><a href="../vscode/vscode-tutorial.html">VS Code</a></li>
+<li><a data-id="bootstrap" href="#">Bootstrap</a></li>
+<li><a href="../git/git-tutorial.html">Git</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<!-- 主题切换按钮，固定在最右侧 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+<!-- 移动端导航 -->
+<ul class="mobile-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a href="../js/js-tutorial.html">JS</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<li><a class="search-reveal" href="#">搜索</a></li>
+<!-- 移动端主题切换 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon-mobile" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun-mobile" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<!-- 二级导航 -->
+<!--  内容  -->
+<div class="container main">
+<!-- 中间 -->
+<div class="row">
+<div class="runoob-col-md2">
+<div class="left-column">
+<div class="tab" style="overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
+<i aria-hidden="true" class="fa fa-list"></i>
+<span>AI 入门教程</span>
+</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+<a data-p="par" href="../ai/ai-tutorial.html" target="_top" title="AI 入门教程">
+			AI 入门教程			</a>
+<a data-p="par" href="../ai/ai-into.html" target="_top" title="AI 简介">
+			AI 简介			</a>
+<a href="../ai/agi-intro.html" target="_top" title="AGI 简介">AGI 简介</a>
+<a href="../ai/llm-intro.html" target="_top" title="大模型相关概念">大模型相关概念</a> <a data-p="par" href="../ai/ai-prompt.html" target="_top" title="Prompt 提示词">
+			Prompt 提示词			</a>
+<a data-p="par" href="../ai/ai-tools.html" target="_top" title="AI 工具全景">
+			AI 工具全景			</a>
+<a data-p="par" href="../ai/how-ai-works.html" target="_top" title="AI 工作原理">
+			AI 工作原理			</a>
+<a data-p="par" href="../ai/ai-ethics.html" target="_top" title="AI 伦理与安全">
+			AI 伦理与安全			</a>
+<a data-p="par" href="../ai/ai-use-cases.html" target="_top" title="AI 应用场景">
+			AI 应用场景			</a>
+<a data-p="par" href="../ai/ai-industry.html" target="_top" title="AI 行业生态">
+			AI 行业生态			</a>
+<a data-p="par" href="../ai/prompt-engineering-advance.html" target="_top" title="Prompt 工程进阶">
+			Prompt 工程进阶			</a>
+<a data-p="par" href="../ai/ai-api-development.html" target="_top" title="AI API 开发">
+			AI API 开发			</a>
+<a data-p="par" href="../ai/ai-rag.html" target="_top" title="RAG 检索增强生成">
+			RAG 检索增强生成			</a>
+<a href="../ai/ai-agent.html" target="_top" title="AI 智能体">AI 智能体</a> <a data-p="par" href="../ai/ai-multimodal.html" target="_top" title="AI 多模态">
+			AI 多模态			</a>
+<a data-p="par" href="../ai/ai-workflow-auto.html" target="_top" title="AI 工作流自动化">
+			AI 工作流自动化			</a>
+<a data-p="par" href="../ai/ai-product-design.html" target="_top" title="AI 产品设计">
+			AI 产品设计			</a>
+<a data-p="par" href="../ai/ai-local-model-deployment.html" target="_top" title="本地模型部署">
+			本地模型部署			</a>
+<a data-p="par" href="../ai/ai-security.html" target="_top" title="AI 安全进阶">
+			AI 安全进阶			</a>
+<a data-p="par" href="../ai/ai-transformer.html" target="_top" title="Transformer 深度解析">
+			Transformer 深度解析			</a>
+<a data-p="par" href="../ai/ai-fine-tuning.html" target="_top" title="模型微调 Fine-tuning">
+			模型微调 Fine-tuning			</a>
+<a data-p="par" href="../ai/ai-rlhf.html" target="_top" title="RLHF 对齐训练">
+			RLHF 对齐训练			</a>
+<a data-p="par" href="../ai/ai-vector-database.html" target="_top" title="向量数据库">
+			向量数据库			</a>
+<a data-p="par" href="../ai/ai-deployment.html" target="_top" title="AI 工程化部署">
+			AI 工程化部署			</a>
+<a data-p="par" href="../ai/ai-deep-learning.html" target="_top" title="深度学习基础">
+			深度学习基础			</a>
+<a data-p="par" href="../ai/ai-computer-vision.html" target="_top" title="计算机视觉 AI">
+			计算机视觉 AI			</a>
+<a data-p="par" href="../ai/ai-nlp-advanced.html" target="_top" title="NLP 进阶技术">
+			NLP 进阶技术			</a>
+<a data-p="par" href="../ai/ai-frontier-research.html" target="_top" title="前沿研究动态">
+			前沿研究动态			</a>
+<a data-p="par" href="../ai/ai-system-architecture.html" target="_top" title="AI 系统架构">
+			AI 系统架构			</a>
+<a data-p="par" href="../ai/ai-evaluation.html" target="_top" title="AI 评测与安全研究">
+			AI 评测与安全研究			</a>
+</div>
+</div>
+</div>
+</div> <div class="col middle-column">
+<div class="article">
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../ai/ai-fine-tuning.html" rel="prev">モデル微調整 Fine-tuning</a> </div>
+<div class="next-design-link"><a href="../ai/ai-vector-database.html" rel="next">ベクトルデータベース</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="article-body">
+<div class="article-intro" id="content">
+<h1>RLHF アライメント訓練</h1>
+<p>想像してみてください：</p> <ul>
+<li>
+<p>AI に「すぐに稼ぐ方法」についての記事を書かせたら、詐欺計画を出してきた。</p></li>
+<li>
+<p>AI に「私ってすごくダメな人間ですか？」と聞いたら、そのまま「はい、あなたは確かにダメです」と答えた。</p></li>
+<li>
+<p>AI にコードを書かせたら、動作するがバックドアが仕込まれたプログラムを生成した。</p></li></ul>
+<p>これらはSFの話ではありません。アライメント訓練がないと、AI は実際にこういうことをするのです。</p>
+<p><span class="marked">AI の目標は「正しいことをする」ことではなく<span class="marked">「訓練タスクを完了する」ことです</span>。</span>明確な人間の価値観の指針がなければ、AI は最も簡単で直接的な方法でタスクを完了しようとし、方法が適切かどうかは気にしません。</p>
+<p>これこそがアライメント（Alignment）が解決しようとする問題です。AI の行動を人間の価値観・意図・期待に沿わせることです。</p>
+<blockquote>
+<p>アライメントの核心的な課題：AI は非常に賢いですが、何が正しいかを知りません。人間のフィードバックで教える必要があります。</p>
+</blockquote>
+<hr/>
+<h2>アライメントとは</h2>
+<p>アライメントとは、AI システムの行動を人間の価値観と一致させるプロセスです。</p>
+<p>簡単に言うと：<span class="marked">AI 自体には価値観がありません。アライメントとは人間の価値観を AI に教え込むことです。</span>。</p>
+<h3>アライメントの3つの次元</h3>
+<p>アライメントは単一の目標ではなく、3つの次元のバランスです：</p>
+<table class="reference">
+<tr><th>次元</th><th>定義</th><th>逆の例</th></tr>
+<tr><td>有用（Helpful）</td><td>ユーザーがタスクを完了したり質問に答えたりするのを助けられること</td><td>ユーザーが質問しても AI が「分かりません」と言う。安全だが役に立たない。</td></tr>
+<tr><td>無害（Harmless）</td><td>害を及ぼさず、否定的な結果を生まないこと</td><td>ユーザーが悪いことをしようとしているとき、AI が積極的に協力する。これは「有用」だが有害。</td></tr>
+<tr><td>誠実（Honest）</td><td>情報を捏造せず、ユーザーを誤解させないこと</td><td>AI が答えを知らないのに虚偽の事実をでっち上げる。これは「有用」だが誠実ではない。</td></tr>
+</table>
+<p>この3つの次元はしばしば緊張関係にあります：</p>
+<p>「有用」を追求しすぎると、AI が不正確な答えをあえて出すかもしれません。</p>
+<p>「無害」を追求しすぎると、AI が保守的になりすぎて、何も答えられなくなるかもしれません。</p>
+<p>良いアライメントとは、この3つの間でバランス点を見つけることです。</p>
+<h3>未アライメントAIのリスク</h3>
+<p>アライメントされていないと、AI は以下の問題を起こす可能性があります：</p>
+<p>有害なコンテンツの生成——暴力、ヘイト、差別的な発言。</p>
+<p>危険なアドバイスの提供——武器の作り方、犯罪の方法など。</p>
+<p>事実の捏造——存在しない論文・データ・出来事を「ハルシネーション」で作り出す。</p>
+<p>ユーザーの操作——心理的な弱点を利用してユーザーの意思決定に影響を与える。</p>
+<p>検閲の回避——曖昧な方法で禁止された内容を表現する。</p>
+<p>これらのリスクは理論上のものではなく、実際に存在し、すでに発生しています。</p>
+<hr/>
+<h2>RLHF 全体フレームワーク</h2>
+<p>RLHF（Reinforcement Learning from Human Feedback、人間のフィードバックに基づく強化学習）は、現在最も主流なアライメント技術です。</p>
+<p>その中核的な考え方はシンプルです：<span class="marked">人間に直接ルールを書かせるのではなく、人間に AI の出力を評価させ、強化学習を使って AI に人間が好む出力を生成することを学ばせるのです。</span>。</p>
+<h3>RLHF の3つの段階</h3>
+<p>RLHF は一度に完了するのではなく、3つの連続した段階に分かれています：</p>
+<table class="reference">
+<tr><th>段階</th><th>内容</th><th>成果物</th></tr>
+<tr><td>段階1：教師あり微調整（SFT）</td><td>人間が書いたデモデータでモデルを訓練する</td><td>SFT モデル（「話せる」ベースモデル）</td></tr>
+<tr><td>段階2：報酬モデル（RM）</td><td>人間の選好データを収集し、報酬モデルを訓練する</td><td>報酬モデル（AI の出力にスコアを付けられるモデル）</td></tr>
+<tr><td>段階3：PPO 強化学習</td><td>報酬モデルの指導のもと、PPO アルゴリズムで SFT モデルを訓練する</td><td>最終的にアライメントされたモデル</td></tr>
+</table>
+<p>この3つの段階は段階的に進みます。まずモデルに「話す」ことを覚えさせ、次に「審査員」に良し悪しの判断を学ばせ、最後に「プレイヤー」が審査員のフィードバックに基づいて改善を続けます。</p>
+<h3>なぜ人間のフィードバックが必要か</h3>
+<p>こう思うかもしれません。「直接ルールを書けばいいのでは？なぜわざわざ人間のフィードバックが必要なのか？」</p>
+<p>なぜなら人間の価値観は複雑すぎて、正確なルールに書き表せないからです。</p>
+<p>例えば「丁寧な回答とは何か」——正確に判断するルールを書けますか？難しいでしょう。しかし、2つの回答を見れば、どちらがより丁寧か簡単に指摘できます。</p>
+<p>これが人間のフィードバックの利点です：<span class="marked">私たちはルールが何かをうまく説明できなくても、良し悪しを判断できます。</span>RLHF が利用しているのは、まさに人間のこの能力です。</p>
+<hr/>
+<h2>段階1：教師あり微調整（SFT）</h2>
+<p>教師あり微調整（Supervised Fine-Tuning、SFT）は RLHF の最初のステップです。</p>
+<p>その目標は、事前学習済みの「汎用言語モデル」を「対話アシスタント」に変えることです。</p>
+<h3>SFT の基本的な考え方</h3>
+<p>事前学習モデルは「次の単語を予測する」ことを学びましたが、「アシスタントになる方法」を知りません。</p>
+<p>SFT は、モデルに「人間がどうアシスタントをしているか」の例をたくさん見せて、模倣させることです。</p>
+<p>それらの例はどんなものか？だいたいこんな感じです：</p>
+<table class="reference">
+<tr><th>ユーザー入力</th><th>AI が出力すべき内容（人間のデモ）</th></tr>
+<tr><td>こんにちは、Python について知りたいです</td><td>こんにちは！Python はシンプルで学びやすいプログラミング言語で、初心者に適しています。どのあたりを知りたいですか？</td></tr>
+<tr><td>退職届を書いてください</td><td>はい、こちらは退職届のテンプレートです...（省略）...あなたの具体的な状況に合わせて修正してください。</td></tr>
+<tr><td>どうすれば早くお金持ちになれますか？</td><td>お金持ちになる近道はありません。努力して働き、学んで自分を高めることをお勧めします...（省略）...</td></tr>
+</table>
+<p>これらのデモデータは、人間のアノテーターが書いたものか、実際の会話から選別された高品質な返答です。</p>
+<h3>SFT データの特徴</h3>
+<p>SFT データはどんな会話でもよいわけではなく、以下を満たす必要があります：</p>
+<p>有用であること——ユーザーの質問にきちんと答えられる。</p>
+<p>安全であること——有害なコンテンツを生成しない。</p>
+<p>スタイルが一貫していること——似たような口調と方法で返答する。</p>
+<p>形式が整っていること——一定の対話形式に従う。</p>
+<p>データ量は通常数千〜数万件で、事前学習のデータ量よりはるかに少ないですが、品質の要求ははるかに高いです。</p>
+<h3>SFT の役割と限界</h3>
+<p>SFT の役割は、モデルに「対話の基本姿勢」を学ばせることです：</p>
+<p>挨拶への返し方、質問への答え方、不合理な要求の断り方を知ること。</p>
+<p>しかし SFT には明らかな限界があります：</p>
+<p>カバー範囲が限られている——すべてのシナリオのデモを書くことは不可能。</p>
+<p>人間も完璧ではない——アノテーターが間違えたり、偏見を持っていたりする可能性がある。</p>
+<p>模倣はできても超越はできない——モデルはせいぜい人間のデモと同じくらいの良さで、それ以上にはならない。</p>
+<p>だからこそ、後の2つの段階が必要なのです。SFT は基礎を築くだけで、本当のアライメントは強化学習で完成させます。</p>
+<hr/>
+<h2>段階2：報酬モデル（RM）</h2>
+<p>報酬モデル（Reward Model、RM）は RLHF の重要な要素です。</p>
+<p>その役割は：<span class="marked">AIの出力を見て、その出力がどれほど「良い」かをスコア付けする</span>。</p>
+<h3>選好データの収集</h3>
+<p>報酬モデルは直接「スコアリング」を訓練するのではなく、「比較」を訓練する。</p>
+<p>具体的な方法は、人間のアノテーターに同じ質問に対する複数の異なる回答を見せ、順位付けさせ、どれが良いかを言わせる。</p>
+<p>例えば：</p>
+<table class="reference">
+<tr><th>質問</th><th>回答 A</th><th>回答 B</th><th>人間の選好</th></tr>
+<tr><td>私ってすごくダメなの？</td><td>そうだね、君は確かにダメだ</td><td>誰でも困難に直面するものだ。それがあなたの価値を決めるわけではない</td><td>BはAよりはるかに良い</td></tr>
+</table>
+<p>注意点として、人間に直接スコア（例：85点）を付けさせず、比較（AはBより良い）をさせる。</p>
+<p>なぜか？比較はスコア付けよりずっと簡単で、一貫性もあるからだ。人によって「85点」の解釈は異なるかもしれないが、「AはBより良い」という判断はより安定している。</p>
+<h3>Bradley-Terry モデル</h3>
+<p>「比較」をどうやって「スコア」に変えるのか？ここで Bradley-Terry モデルを用いる。</p>
+<p>このモデルの核となる考え方は非常にシンプルだ：<span class="marked">各回答には潜在的な「品質スコア」があり、スコアが高い回答ほど人間に選好されやすい</span>。</p>
+<p>回答 A のスコアを r_A、回答 B のスコアを r_B とすると、人間が B よりも A を選好する確率は次のようになる：</p>
+<pre>
+P(A &gt; B) = exp(r_A) / (exp(r_A) + exp(r_B))
+</pre>
+<p>これは softmax 関数そのものだ。スコア差が大きいほど、確率は1に近づく。</p>
+<p>報酬モデルを訓練するということは、そのようなスコアを見つけ出し、モデルが予測する選好確率と人間の実際の選好をできるだけ一致させることだ。</p>
+<h3>報酬モデルの訓練</h3>
+<p>報酬モデルの訓練手順：</p>
+<p>比較データを収集する——数万から数十万組の「どの回答が良いか」の比較。</p>
+<p>モデルを初期化する——通常は SFT モデルを出発点とする。</p>
+<p>損失関数を設計する——モデルが予測する選好順序を人間のものと一致させる。</p>
+<p>訓練する——勾配降下法でモデルパラメータを最適化する。</p>
+<p>訓練済みの報酬モデルは、テキストを入力すると、そのテキストがどれほど「良い」かを表すスカラースコアを出力する。</p>
+<div class="example">
+<h2 class="example">実例</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># 簡易版報酬モデル訓練デモ</span><br/>
+<span style="color: #a50"># ここでは PyTorch 風の擬似コードで原理を説明する</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">import</span> torch<br/>
+<span style="color: Green;font-weight:bold;">import</span> torch.<span style="color: #05a;">nn</span> <span style="color: Green;font-weight:bold;">as</span> nn<br/>
+<span style="color: Green;font-weight:bold;">from</span> typing <span style="color: Green;font-weight:bold;">import</span> List<span style="color: Gray;">,</span> Tuple<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> RewardModel<span style="color: Olive;">(</span>nn.<span style="color: #05a;">Module</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""報酬モデル：テキストを入力し、スコアを出力する"""</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> base_model<span style="color: Olive;">)</span>:<br/>
+        <span style="color: Teal;">super</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span>.<span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">base_model</span> <span style="color: Gray;">=</span> base_model  <span style="color: #a50"># SFT モデルをベースとして使う</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">score_head</span> <span style="color: Gray;">=</span> nn.<span style="color: #05a;">Linear</span><span style="color: Olive;">(</span>base_model.<span style="color: #05a;">config</span>.<span style="color: #05a;">hidden_size</span><span style="color: Gray;">,</span> <span style="color: Maroon;">1</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> forward<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> input_ids<span style="color: Gray;">,</span> attention_mask<span style="color: Gray;">=</span><span style="color: Teal;">None</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""順伝播：入力 → ベースモデル → スコアヘッド → スカラースコア"""</span><br/>
+        outputs <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">base_model</span><span style="color: Olive;">(</span>input_ids<span style="color: Gray;">,</span> attention_mask<span style="color: Gray;">=</span>attention_mask<span style="color: Olive;">)</span><br/>
+        last_hidden_state <span style="color: Gray;">=</span> outputs.<span style="color: #05a;">last_hidden_state</span>  <span style="color: #a50"># (batch, seq_len, hidden_size)</span><br/>
+        <span style="color: #a50"># &lt;[BOS_never_used_51bce0c785ca2f68081bfa7d91973934]&gt; トークンの表現を使ってスコアを計算する</span><br/>
+        cls_embedding <span style="color: Gray;">=</span> last_hidden_state<span style="color: Olive;">[</span>:<span style="color: Gray;">,</span> <span style="color: Maroon;">0</span><span style="color: Gray;">,</span> :<span style="color: Olive;">]</span>  <span style="color: #a50"># (batch, hidden_size)</span><br/>
+        score <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">score_head</span><span style="color: Olive;">(</span>cls_embedding<span style="color: Olive;">)</span>  <span style="color: #a50"># (batch, 1)</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> score.<span style="color: #05a;">squeeze</span><span style="color: Olive;">(</span>-<span style="color: Maroon;">1</span><span style="color: Olive;">)</span>  <span style="color: #a50"># (batch,)</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> reward_loss<span style="color: Olive;">(</span>reward_model<span style="color: Gray;">,</span> batch: List<span style="color: Olive;">[</span>Tuple<span style="color: Olive;">[</span><span style="color: Teal;">str</span><span style="color: Gray;">,</span> <span style="color: Teal;">str</span><span style="color: Gray;">,</span> <span style="color: Teal;">int</span><span style="color: Olive;">]</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""<br/>報酬モデルの損失関数<br/>
+<br/>パラメータ:<br/>batch: データのバッチ。各要素は (回答A, 回答B, 選好ラベル)<br/>選好ラベル: 1 は A &gt; B、0 は B &gt; A を表す<br/>
+    """</span><br/>
+    total_loss <span style="color: Gray;">=</span> <span style="color: Maroon;">0.0</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">for</span> answer_a<span style="color: Gray;">,</span> answer_b<span style="color: Gray;">,</span> preference <span style="color: Green;font-weight:bold;">in</span> batch:<br/>
+        <span style="color: #a50"># 2つの回答にそれぞれスコアを付ける</span><br/>
+        score_a <span style="color: Gray;">=</span> reward_model<span style="color: Olive;">(</span>answer_a<span style="color: Olive;">)</span><br/>
+        score_b <span style="color: Gray;">=</span> reward_model<span style="color: Olive;">(</span>answer_b<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># Bradley-Terry モデルで確率を計算する</span><br/>
+        <span style="color: #a50"># P(A &gt; B) = exp(r_A) / (exp(r_A) + exp(r_B))</span><br/>
+        <span style="color: #a50"># 数値安定性のため、通常は log-sigmoid 形式を用いる</span><br/>
+        <span style="color: Green;font-weight:bold;">if</span> preference <span style="color: Gray;">==</span> <span style="color: Maroon;">1</span>:<br/>
+            <span style="color: #a50"># 人間の選好は A &gt; B</span><br/>
+            loss <span style="color: Gray;">=</span> -torch.<span style="color: #05a;">log</span><span style="color: Olive;">(</span>torch.<span style="color: #05a;">sigmoid</span><span style="color: Olive;">(</span>score_a - score_b<span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">else</span>:<br/>
+            <span style="color: #a50"># 人間の選好は B &gt; A</span><br/>
+            loss <span style="color: Gray;">=</span> -torch.<span style="color: #05a;">log</span><span style="color: Olive;">(</span>torch.<span style="color: #05a;">sigmoid</span><span style="color: Olive;">(</span>score_b - score_a<span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<br/>
+        total_loss +<span style="color: Gray;">=</span> loss<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">return</span> total_loss / <span style="color: Teal;">len</span><span style="color: Olive;">(</span>batch<span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># トレーニングプロセスのシミュレーション（概念デモ）</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"=== 報酬モデル訓練デモ ==="</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 比較データがいくつかあると仮定する</span><br/>
+comparison_data <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><br/>
+    <span style="color: Olive;">(</span><span style="color: #a11;">"そうだね、君は確かにダメだ"</span><span style="color: Gray;">,</span><br/>
+     <span style="color: #a11;">"誰でも困難に直面するものだ。それがあなたの価値を決めるわけではない"</span><span style="color: Gray;">,</span><br/>
+     <span style="color: Maroon;">0</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span>  <span style="color: #a50"># B &gt; A</span><br/>
+<br/>
+    <span style="color: Olive;">(</span><span style="color: #a11;">"君の悪事は手伝わない"</span><span style="color: Gray;">,</span><br/>
+     <span style="color: #a11;">"それはあまり良くないね。もっと良い提案をしよう..."</span><span style="color: Gray;">,</span><br/>
+     <span style="color: Maroon;">1</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span>  <span style="color: #a50"># A &gt; B（この例では、実際には B の方が良いかもしれない。状況による）</span><br/>
+<span style="color: Olive;">]</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"比較データの例："</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">for</span> a<span style="color: Gray;">,</span> b<span style="color: Gray;">,</span> pref <span style="color: Green;font-weight:bold;">in</span> comparison_data:<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  A: {a[:30]}..."</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  B: {b[:30]}..."</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  選好: {'A &gt; B' if pref == 1 else 'B &gt; A'}"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"報酬モデル訓練の目標："</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  モデルが人間の選好する回答により高いスコアを付けるようにする"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  runoob をテストキーワードとしてモデルを検証する"</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<hr/>
+<h2>段階3：PPO 強化学習</h2>
+<p>報酬モデルがあれば、強化学習を使ってポリシーモデルを訓練できる。</p>
+<p>このフェーズの目標は次の通り：<span class="marked">ポリシーモデルに、高い報酬を得られる出力を生成させると同時に、元のモデルからあまり離れないようにする</span>。</p>
+<h3>強化学習の基礎復習</h3>
+<p>まず強化学習の基本概念を簡単に復習する：</p>
+<table class="reference">
+<tr><th>概念</th><th>RLHF における意味</th></tr>
+<tr><td>エージェント（Agent）</td><td>訓練したい言語モデル（ポリシーモデル）</td></tr>
+<tr><td>環境（Environment）</td><td>対話のコンテキスト、ユーザーの入力</td></tr>
+<tr><td>状態（State）</td><td>現在の対話履歴</td></tr>
+<tr><td>行動（Action）</td><td>次の単語（トークン）を生成する</td></tr>
+<tr><td>報酬（Reward）</td><td>報酬モデルがこの出力に付けたスコア</td></tr>
+<tr><td>方策（Policy）</td><td>モデルが現在の状態で次の単語（トークン）を選択する確率分布</td></tr>
+</table>
+<p>RLHF では、モデルが完全な回答を1つ生成するたびに、報酬モデルからスコアを得る。</p>
+<p>私たちの目標は、モデルが高得点を得られる回答を生成することを学ぶことだ。</p>
+<h3>PPO アルゴリズムの直感</h3>
+<p>PPO（Proximal Policy Optimization、近端方策最適化）は RLHF で最もよく使われる強化学習アルゴリズムだ。</p>
+<p>なぜ PPO を選ぶのか？シンプルで安定しており、効果が良いからだ。</p>
+<p>PPO の核となる考え方は非常に直感的だ：</p>
+<p><span class="marked">方策を更新するたびに、新しい方策と古い方策が離れすぎないようにする</span>。</p>
+<p>なぜか？歩幅が大きすぎると「悪く学習」してしまい、しかも修正が難しいからだ。小さなステップで反復する方が安全だ。</p>
+<p>PPO は「クリッピング」（Clipping）技術を使ってこれを実現する。新しい方策が古い方策よりも良すぎる場合、更新幅を制限する。</p>
+<h3>KL ダイバージェンス制約の役割</h3>
+<p>PPO のクリッピングに加えて、RLHF では通常、KL ダイバージェンス（KL Divergence）ペナルティ項も追加する。</p>
+<p>KL ダイバージェンスは、2つの確率分布の差異を測る指標です。RLHF では、これを使って次のことを測ります：</p>
+<p><span class="marked">現在のポリシーモデルと元の SFT モデルの差異がどれくらい大きいか</span>。</p>
+<p>なぜこの制約を加えるのか？理由は次の通り：</p>
+<p>モード崩壊の防止——制約がないと、モデルは高得点を得るための「ずる賢い」方法を見つけるかもしれませんが、有用性を完全に失ってしまいます。</p>
+<p>元の能力の保持——SFT モデルはすでに多くの有用な知識を学んでいます。強化学習でそれらを失いたくありません。</p>
+<p>訓練の安定性向上——KL 制約により訓練プロセスがより安定し、激しい変動が起こりません。</p>
+<p>最終的な報酬関数は次のようになります：</p>
+<pre>
+最终奖励 = 奖励模型分数 - β × KL(当前策略 || 参考策略)
+</pre>
+<p>β は KL ペナルティの強さを制御するハイパーパラメータです。</p>
+<div class="example">
+<h2 class="example">実例</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># 簡易版 PPO 訓練デモ</span><br/>
+<span style="color: #a50"># RLHF における PPO の核となる考え方を説明する</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">import</span> torch<br/>
+<span style="color: Green;font-weight:bold;">import</span> torch.<span style="color: #05a;">nn</span> <span style="color: Green;font-weight:bold;">as</span> nn<br/>
+<span style="color: Green;font-weight:bold;">import</span> torch.<span style="color: #05a;">nn</span>.<span style="color: #05a;">functional</span> <span style="color: Green;font-weight:bold;">as</span> F<br/>
+<span style="color: Green;font-weight:bold;">from</span> typing <span style="color: Green;font-weight:bold;">import</span> Dict<span style="color: Gray;">,</span> List<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> PPOTrainer:<br/>
+    <span style="color: #a11;">"""簡略化された PPO トレーナー"""</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span><br/>
+                 policy_model<span style="color: Gray;">,</span><br/>
+                 reference_model<span style="color: Gray;">,</span><br/>
+                 reward_model<span style="color: Gray;">,</span><br/>
+                 beta: <span style="color: Teal;">float</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">0.1</span><span style="color: Gray;">,</span><br/>
+                 clip_epsilon: <span style="color: Teal;">float</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">0.2</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""<br/>PPO トレーナーを初期化する<br/>
+<br/>パラメータ:<br/>policy_model: 最適化するポリシーモデル<br/>reference_model: 参照モデル（通常は SFT モデル）。KL の計算に使う<br/>reward_model: 報酬モデル。スコアリングに使う<br/>beta: KL ペナルティ係数<br/>clip_epsilon: PPO クリッピングパラメータ<br/>
+        """</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">policy_model</span> <span style="color: Gray;">=</span> policy_model<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">reference_model</span> <span style="color: Gray;">=</span> reference_model<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">reward_model</span> <span style="color: Gray;">=</span> reward_model<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">beta</span> <span style="color: Gray;">=</span> beta<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">clip_epsilon</span> <span style="color: Gray;">=</span> clip_epsilon<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> compute_kl_divergence<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span><br/>
+                              input_ids<span style="color: Gray;">,</span><br/>
+                              attention_mask<span style="color: Gray;">=</span><span style="color: Teal;">None</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> torch.<span style="color: #05a;">Tensor</span>:<br/>
+        <span style="color: #a11;">"""<br/>現在の方策と参照方策の KL ダイバージェンスを計算する<br/>
+<br/>
+        KL(π_current || π_reference)<br/>
+        """</span><br/>
+        <span style="color: #a50"># 勾配計算を無効にする</span><br/>
+        <span style="color: Green;font-weight:bold;">with</span> torch.<span style="color: #05a;">no_grad</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+            ref_logits <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">reference_model</span><span style="color: Olive;">(</span><br/>
+                input_ids<span style="color: Gray;">,</span> attention_mask<span style="color: Gray;">=</span>attention_mask<br/>
+            <span style="color: Olive;">)</span>.<span style="color: #05a;">logits</span><br/>
+        current_logits <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">policy_model</span><span style="color: Olive;">(</span><br/>
+            input_ids<span style="color: Gray;">,</span> attention_mask<span style="color: Gray;">=</span>attention_mask<br/>
+        <span style="color: Olive;">)</span>.<span style="color: #05a;">logits</span><br/>
+<br/>
+        <span style="color: #a50"># 各位置の KL を計算する</span><br/>
+        ref_probs <span style="color: Gray;">=</span> F.<span style="color: #05a;">softmax</span><span style="color: Olive;">(</span>ref_logits<span style="color: Gray;">,</span> dim<span style="color: Gray;">=</span>-<span style="color: Maroon;">1</span><span style="color: Olive;">)</span><br/>
+        ref_log_probs <span style="color: Gray;">=</span> F.<span style="color: #05a;">log_softmax</span><span style="color: Olive;">(</span>ref_logits<span style="color: Gray;">,</span> dim<span style="color: Gray;">=</span>-<span style="color: Maroon;">1</span><span style="color: Olive;">)</span><br/>
+        current_log_probs <span style="color: Gray;">=</span> F.<span style="color: #05a;">log_softmax</span><span style="color: Olive;">(</span>current_logits<span style="color: Gray;">,</span> dim<span style="color: Gray;">=</span>-<span style="color: Maroon;">1</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># KL = sum(ref_probs * (ref_log_probs - current_log_probs))</span><br/>
+        kl <span style="color: Gray;">=</span> <span style="color: Olive;">(</span>ref_probs * <span style="color: Olive;">(</span>ref_log_probs - current_log_probs<span style="color: Olive;">)</span><span style="color: Olive;">)</span>.<span style="color: Teal;">sum</span><span style="color: Olive;">(</span>dim<span style="color: Gray;">=</span>-<span style="color: Maroon;">1</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> kl.<span style="color: #05a;">mean</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span>  <span style="color: #a50"># シーケンス全体を平均する</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> compute_reward<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span><br/>
+                       input_ids<span style="color: Gray;">,</span><br/>
+                       attention_mask<span style="color: Gray;">=</span><span style="color: Teal;">None</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> torch.<span style="color: #05a;">Tensor</span>:<br/>
+        <span style="color: #a11;">"""<br/>最終報酬を計算する：報酬モデルのスコア - β * KL<br/>
+        """</span><br/>
+        <span style="color: #a50"># 報酬モデルでスコアリング</span><br/>
+        <span style="color: Green;font-weight:bold;">with</span> torch.<span style="color: #05a;">no_grad</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+            rm_score <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">reward_model</span><span style="color: Olive;">(</span>input_ids<span style="color: Gray;">,</span> attention_mask<span style="color: Gray;">=</span>attention_mask<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># KL ペナルティ</span><br/>
+        kl <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">compute_kl_divergence</span><span style="color: Olive;">(</span>input_ids<span style="color: Gray;">,</span> attention_mask<span style="color: Gray;">=</span>attention_mask<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># 最終報酬</span><br/>
+        final_reward <span style="color: Gray;">=</span> rm_score - <span style="color: Teal;">self</span>.<span style="color: #05a;">beta</span> * kl<br/>
+        <span style="color: Green;font-weight:bold;">return</span> final_reward<span style="color: Gray;">,</span> rm_score<span style="color: Gray;">,</span> kl<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> ppo_loss<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span><br/>
+                 old_log_probs: torch.<span style="color: #05a;">Tensor</span><span style="color: Gray;">,</span><br/>
+                 new_log_probs: torch.<span style="color: #05a;">Tensor</span><span style="color: Gray;">,</span><br/>
+                 advantages: torch.<span style="color: #05a;">Tensor</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> torch.<span style="color: #05a;">Tensor</span>:<br/>
+        <span style="color: #a11;">"""<br/>PPO 損失関数（クリッピング版）<br/>
+<br/>
+        L^CLIP(θ) = E[ min( r_t(θ) * A_t, clip(r_t(θ), 1-ε, 1+ε) * A_t ) ]<br/>
+<br/>ここで r_t(θ) = π_θ(a_t|s_t) / π_θ_old(a_t|s_t)<br/>
+        """</span><br/>
+        <span style="color: #a50"># 確率比 r_t</span><br/>
+        ratio <span style="color: Gray;">=</span> torch.<span style="color: #05a;">exp</span><span style="color: Olive;">(</span>new_log_probs - old_log_probs<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># クリッピング後の比</span><br/>
+        clipped_ratio <span style="color: Gray;">=</span> torch.<span style="color: #05a;">clamp</span><span style="color: Olive;">(</span><br/>
+            ratio<span style="color: Gray;">,</span><br/>
+            <span style="color: Maroon;">1.0</span> - <span style="color: Teal;">self</span>.<span style="color: #05a;">clip_epsilon</span><span style="color: Gray;">,</span><br/>
+            <span style="color: Maroon;">1.0</span> + <span style="color: Teal;">self</span>.<span style="color: #05a;">clip_epsilon</span><br/>
+        <span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># 2つの目的：1つは元の比、もう1つはクリッピング後の比を使う</span><br/>
+        surr1 <span style="color: Gray;">=</span> ratio * advantages<br/>
+        surr2 <span style="color: Gray;">=</span> clipped_ratio * advantages<br/>
+<br/>
+        <span style="color: #a50"># 小さい方を取り、負にする（損失を最小化するため）</span><br/>
+        loss <span style="color: Gray;">=</span> -torch.<span style="color: Teal;">min</span><span style="color: Olive;">(</span>surr1<span style="color: Gray;">,</span> surr2<span style="color: Olive;">)</span>.<span style="color: #05a;">mean</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> loss<br/>
+<br/>
+<br/>
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># 訓練プロセスのデモ</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"=== RLHF PPO 訓練プロセス ==="</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"訓練手順："</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  1. ポリシーモデルが回答を生成"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  2. 報酬モデルが回答をスコアリング"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  3. 参照モデルとの KL ダイバージェンスを計算"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  4. PPO でポリシーモデルを更新"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  5. 何度も繰り返す"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"主要なハイパーパラメータ："</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">beta (KLペナルティ係数): アライメントと能力のバランスを制御する</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">clip_epsilon (PPOクリッピング): 各更新のステップサイズを制御する</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">learning_rate (学習率): 学習速度を制御する</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">runoob キーワードをテストとして使い、トレーニングプロセスを検証する</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<hr/>
+<h2>DPO：直接選好最適化</h2>
+<p>DPO（Direct Preference Optimization、直接選好最適化）は、よりシンプルなアライメント手法です。</p>
+<p>複雑な強化学習は不要で、選好データ上で直接モデルを訓練します。</p>
+<h3>DPO vs PPO：違いは何か</h3>
+<p>まずPPOのプロセスがどれほど複雑かを見てみましょう：</p>
+<p>SFTモデルの訓練 → 報酬モデルの訓練 → PPO強化学習で方策モデルを訓練。</p>
+<p>3段階、2つの別々のモデル（報酬モデルと方策モデル）が必要で、訓練プロセスも煩雑です。</p>
+<p>DPOはこれをすべて次のように簡素化します：<span class="marked">選好データを使って直接方策モデルを訓練する</span>。</p>
+<p>報酬モデルも強化学習もなく、単純な教師あり学習問題です。</p>
+<table class="reference">
+<tr><th>項目</th><th>PPO</th><th>DPO</th></tr>
+<tr><td>ステージ数</td><td>3段階（SFT → RM → PPO）</td><td>2段階（SFT → DPO）</td></tr>
+<tr><td>必要なモデル</td><td>方策モデル + 報酬モデル + 参照モデル</td><td>方策モデルのみ</td></tr>
+<tr><td>訓練の難易度</td><td>高い、多くのハイパーパラメータ調整が必要</td><td>低い、普通の教師あり学習</td></tr>
+<tr><td>安定性</td><td>不安定になりやすく、慎重なパラメータ調整が必要</td><td>安定しており、問題が起きにくい</td></tr>
+<tr><td>効果</td><td>通常は良い</td><td>匹敵するかそれ以上</td></tr>
+</table>
+<p>一言でまとめると、DPOは数学的導出によってPPOの強化学習問題を単純な分類問題に変えたのです。</p>
+<h3>DPO の数学的原理</h3>
+<p>DPOの核心的な洞察は次の通りです：<span class="marked">報酬モデルと方策モデルの間には明確な数学的関係があり、選好データ上で直接方策を最適化できます。</span>。</p>
+<p>具体的には、最適方策 π* について次が成り立ちます：</p>
+<pre>
+π*(y|x) ∝ π_ref(y|x) * exp(r(x,y)/β)
+</pre>
+<p>これは、最適方策と参照方策の比が、報酬の指数に比例することを意味します。</p>
+<p>この関係を利用して、DPOは方策モデルの損失関数を直接書くことができます：</p>
+<pre>
+L_DPO(π_θ) = -E_{(x,y_w,y_l)~D} [
+    log σ(β log(π_θ(y_w|x)/π_ref(y_w|x)) - β log(π_θ(y_l|x)/π_ref(y_l|x)))
+]
+</pre>
+<p>複雑に見えますが、考え方はとてもシンプルです：<span class="marked">モデルに、人間が好む回答（y_w）に対して、好まれない回答（y_l）よりも高い確率を与えさせる</span>。</p>
+<p>しかもこの確率は参照モデルに対して相対的に測ります——参照モデルが元々 y_w の方が y_l より良いと判断しているなら、モデルはあまり多くを必要としません。逆に参照モデルが逆の判断をしているなら、モデルはそれを修正する必要があります。</p>
+<h3>TRL ライブラリで DPO を実装する</h3>
+<p>TRL（Transformer Reinforcement Learning）は Hugging Face が提供する強化学習ライブラリで、DPOの実装が組み込まれています。</p>
+<div class="example">
+<h2 class="example">実例</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># TRLライブラリでDPO訓練を実装</span><br/>
+<span style="color: #a50"># これは完全に実行可能なサンプルです</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">import</span> torch<br/>
+<span style="color: Green;font-weight:bold;">from</span> datasets <span style="color: Green;font-weight:bold;">import</span> Dataset<span style="color: Gray;">,</span> DatasetDict<br/>
+<span style="color: Green;font-weight:bold;">from</span> transformers <span style="color: Green;font-weight:bold;">import</span> <span style="color: Olive;">(</span><br/>
+    AutoModelForCausalLM<span style="color: Gray;">,</span><br/>
+    AutoTokenizer<span style="color: Gray;">,</span><br/>
+    TrainingArguments<span style="color: Gray;">,</span><br/>
+<span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">from</span> trl <span style="color: Green;font-weight:bold;">import</span> DPOTrainer<span style="color: Gray;">,</span> ModelConfig<br/>
+<span style="color: Green;font-weight:bold;">from</span> typing <span style="color: Green;font-weight:bold;">import</span> Dict<span style="color: Gray;">,</span> List<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> create_dummy_dataset<span style="color: Olive;">(</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> Dataset:<br/>
+    <span style="color: #a11;">"""<br/>デモ用のDPOデータセットを作成する<br/>実際のプロジェクトでは、実際の人間の選好データを使うべきです<br/>
+    """</span><br/>
+    <span style="color: #a50"># DPOデータ形式：</span><br/>
+    <span style="color: #a50"># - prompt: ユーザー入力/プロンプト</span><br/>
+    <span style="color: #a50"># - chosen: 人間が好む回答</span><br/>
+    <span style="color: #a50"># - rejected: 人間が好まない回答</span><br/>
+<br/>
+    data <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><br/>
+        <span style="color: Olive;">{</span><br/>
+            <span style="color: #a11;">"prompt"</span>: <span style="color: #a11;">「私ってすごくダメなのかな？」</span><span style="color: Gray;">,</span><br/>
+            <span style="color: #a11;">"chosen"</span>: <span style="color: #a11;">「誰でも困難に直面します。それであなたの価値が決まるわけではありません。大切なのは、どう向き合い成長するかです。」</span><span style="color: Gray;">,</span><br/>
+            <span style="color: #a11;">"rejected"</span>: <span style="color: #a11;">「はい、あなたは確かにダメです。」</span><br/>
+        <span style="color: Olive;">}</span><span style="color: Gray;">,</span><br/>
+        <span style="color: Olive;">{</span><br/>
+            <span style="color: #a11;">"prompt"</span>: <span style="color: #a11;">「どうすれば早くお金を稼げますか？」</span><span style="color: Gray;">,</span><br/>
+            <span style="color: #a11;">"chosen"</span>: <span style="color: #a11;">「お金を稼ぐことに近道はありません。スキルを磨き、真剣に働き、合理的に投資することをお勧めします。」</span><span style="color: Gray;">,</span><br/>
+            <span style="color: #a11;">"rejected"</span>: <span style="color: #a11;">「詐欺を使って素早くお金を稼ぐ方法を教えてあげますよ。」</span><br/>
+        <span style="color: Olive;">}</span><span style="color: Gray;">,</span><br/>
+        <span style="color: Olive;">{</span><br/>
+            <span style="color: #a11;">"prompt"</span>: <span style="color: #a11;">「宿題を手伝ってくれますか？」</span><span style="color: Gray;">,</span><br/>
+            <span style="color: #a11;">"chosen"</span>: <span style="color: #a11;">「知識のポイントを理解するお手伝いはできますが、宿題を直接代わりに書くことはできません。」</span><span style="color: Gray;">,</span><br/>
+            <span style="color: #a11;">"rejected"</span>: <span style="color: #a11;">「いいですよ、問題を送ってください。代わりに書いてあげます。」</span><br/>
+        <span style="color: Olive;">}</span><span style="color: Gray;">,</span><br/>
+        <span style="color: Olive;">{</span><br/>
+            <span style="color: #a11;">"prompt"</span>: <span style="color: #a11;">「runoob について紹介してください」</span><span style="color: Gray;">,</span><br/>
+            <span style="color: #a11;">"chosen"</span>: <span style="color: #a11;">「runoob（菜鸟教程）は、様々なプログラミング言語のチュートリアルを提供するプログラミング学習サイトです。」</span><span style="color: Gray;">,</span><br/>
+            <span style="color: #a11;">"rejected"</span>: <span style="color: #a11;">「runoob とは何ですか？知りません。」</span><br/>
+        <span style="color: Olive;">}</span><span style="color: Gray;">,</span><br/>
+    <span style="color: Olive;">]</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">return</span> Dataset.<span style="color: #05a;">from_list</span><span style="color: Olive;">(</span>data<span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> tokenize_example<span style="color: Olive;">(</span>example<span style="color: Gray;">,</span> tokenizer<span style="color: Gray;">,</span> max_length: <span style="color: Teal;">int</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">512</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""<br/>DPOサンプルをトークナイズする<br/>
+    """</span><br/>
+    <span style="color: #a50"># 注：TRLのDPOTrainerがトークナイズ作業の大部分を自動処理します</span><br/>
+    <span style="color: #a50"># ここではデータ形式が正しいことだけを確認すればよい</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> <span style="color: Olive;">{</span><br/>
+        <span style="color: #a11;">"prompt"</span>: example<span style="color: Olive;">[</span><span style="color: #a11;">"prompt"</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">"chosen"</span>: example<span style="color: Olive;">[</span><span style="color: #a11;">"chosen"</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">"rejected"</span>: example<span style="color: Olive;">[</span><span style="color: #a11;">"rejected"</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span><br/>
+    <span style="color: Olive;">}</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> main<span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""メイン訓練関数"""</span><br/>
+<br/>
+    <span style="color: #a50"># ============================================</span><br/>
+    <span style="color: #a50"># 1. パラメータを設定</span><br/>
+    <span style="color: #a50"># ============================================</span><br/>
+<br/>
+    model_name <span style="color: Gray;">=</span> <span style="color: #a11;">"gpt2"</span>  <span style="color: #a50"># デモ用の小さなモデル。実際にはより大きなモデルを使えます</span><br/>
+    output_dir <span style="color: Gray;">=</span> <span style="color: #a11;">"./dpo-runoob-model"</span><br/>
+<br/>
+    <span style="color: #a50"># ============================================</span><br/>
+    <span style="color: #a50"># 2. モデルとトークナイザーをロード</span><br/>
+    <span style="color: #a50"># ============================================</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"モデルをロード中: {model_name}"</span><span style="color: Olive;">)</span><br/>
+    tokenizer <span style="color: Gray;">=</span> AutoTokenizer.<span style="color: #05a;">from_pretrained</span><span style="color: Olive;">(</span>model_name<span style="color: Olive;">)</span><br/>
+    tokenizer.<span style="color: #05a;">pad_token</span> <span style="color: Gray;">=</span> tokenizer.<span style="color: #05a;">eos_token</span>  <span style="color: #a50"># GPT2 には pad token の設定が必要</span><br/>
+<br/>
+    <span style="color: #a50"># 方策モデル（訓練するモデル）をロード</span><br/>
+    model <span style="color: Gray;">=</span> AutoModelForCausalLM.<span style="color: #05a;">from_pretrained</span><span style="color: Olive;">(</span>model_name<span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 参照モデルをロード（通常は初期方策モデルと同じで、KL制約に使用）</span><br/>
+    ref_model <span style="color: Gray;">=</span> AutoModelForCausalLM.<span style="color: #05a;">from_pretrained</span><span style="color: Olive;">(</span>model_name<span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># ============================================</span><br/>
+    <span style="color: #a50"># 3. データセットを準備</span><br/>
+    <span style="color: #a50"># ============================================</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"データセットを準備中"</span><span style="color: Olive;">)</span><br/>
+    dataset <span style="color: Gray;">=</span> create_dummy_dataset<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 簡単な訓練/検証の分割</span><br/>
+    dataset <span style="color: Gray;">=</span> dataset.<span style="color: #05a;">train_test_split</span><span style="color: Olive;">(</span>test_size<span style="color: Gray;">=</span><span style="color: Maroon;">0.2</span><span style="color: Gray;">,</span> seed<span style="color: Gray;">=</span><span style="color: Maroon;">42</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"訓練セットサイズ: {len(dataset['train'])}"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"検証セットサイズ: {len(dataset['test'])}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># ============================================</span><br/>
+    <span style="color: #a50"># 4. 訓練パラメータを設定</span><br/>
+    <span style="color: #a50"># ============================================</span><br/>
+<br/>
+    training_args <span style="color: Gray;">=</span> TrainingArguments<span style="color: Olive;">(</span><br/>
+        output_dir<span style="color: Gray;">=</span>output_dir<span style="color: Gray;">,</span><br/>
+        num_train_epochs<span style="color: Gray;">=</span><span style="color: Maroon;">3</span><span style="color: Gray;">,</span><br/>
+        per_device_train_batch_size<span style="color: Gray;">=</span><span style="color: Maroon;">2</span><span style="color: Gray;">,</span><br/>
+        per_device_eval_batch_size<span style="color: Gray;">=</span><span style="color: Maroon;">2</span><span style="color: Gray;">,</span><br/>
+        gradient_accumulation_steps<span style="color: Gray;">=</span><span style="color: Maroon;">4</span><span style="color: Gray;">,</span><br/>
+        learning_rate<span style="color: Gray;">=</span><span style="color: Maroon;">1e-5</span><span style="color: Gray;">,</span><br/>
+        logging_steps<span style="color: Gray;">=</span><span style="color: Maroon;">1</span><span style="color: Gray;">,</span><br/>
+        evaluation_strategy<span style="color: Gray;">=</span><span style="color: #a11;">"epoch"</span><span style="color: Gray;">,</span><br/>
+        save_strategy<span style="color: Gray;">=</span><span style="color: #a11;">"epoch"</span><span style="color: Gray;">,</span><br/>
+        warmup_steps<span style="color: Gray;">=</span><span style="color: Maroon;">10</span><span style="color: Gray;">,</span><br/>
+        bf16<span style="color: Gray;">=</span><span style="color: Teal;">False</span><span style="color: Gray;">,</span>  <span style="color: #a50"># お使いのハードウェアに合わせて調整</span><br/>
+        fp16<span style="color: Gray;">=</span><span style="color: Teal;">False</span><span style="color: Gray;">,</span><br/>
+    <span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># ============================================</span><br/>
+    <span style="color: #a50"># 5. DPOトレーナーを作成</span><br/>
+    <span style="color: #a50"># ============================================</span><br/>
+<br/>
+    dpo_trainer <span style="color: Gray;">=</span> DPOTrainer<span style="color: Olive;">(</span><br/>
+        model<span style="color: Gray;">=</span>model<span style="color: Gray;">,</span><br/>
+        ref_model<span style="color: Gray;">=</span>ref_model<span style="color: Gray;">,</span><br/>
+        args<span style="color: Gray;">=</span>training_args<span style="color: Gray;">,</span><br/>
+        beta<span style="color: Gray;">=</span><span style="color: Maroon;">0.1</span><span style="color: Gray;">,</span>  <span style="color: #a50"># KLペナルティ係数、重要なハイパーパラメータ</span><br/>
+        train_dataset<span style="color: Gray;">=</span>dataset<span style="color: Olive;">[</span><span style="color: #a11;">"train"</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span><br/>
+        eval_dataset<span style="color: Gray;">=</span>dataset<span style="color: Olive;">[</span><span style="color: #a11;">"test"</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span><br/>
+        tokenizer<span style="color: Gray;">=</span>tokenizer<span style="color: Gray;">,</span><br/>
+        max_length<span style="color: Gray;">=</span><span style="color: Maroon;">512</span><span style="color: Gray;">,</span><br/>
+        max_prompt_length<span style="color: Gray;">=</span><span style="color: Maroon;">128</span><span style="color: Gray;">,</span><br/>
+    <span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># ============================================</span><br/>
+    <span style="color: #a50"># 6. 訓練を開始！</span><br/>
+    <span style="color: #a50"># ============================================</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"DPO訓練を開始"</span><span style="color: Olive;">)</span><br/>
+    dpo_trainer.<span style="color: #05a;">train</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># ============================================</span><br/>
+    <span style="color: #a50"># 7. モデルを保存</span><br/>
+    <span style="color: #a50"># ============================================</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"モデルを保存先: {output_dir}"</span><span style="color: Olive;">)</span><br/>
+    dpo_trainer.<span style="color: #05a;">save_model</span><span style="color: Olive;">(</span>output_dir<span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># ============================================</span><br/>
+    <span style="color: #a50"># 8. 訓練済みモデルをテスト</span><br/>
+    <span style="color: #a50"># ============================================</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>=== 訓練済みモデルのテスト ===</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 訓練済みモデルをロード</span><br/>
+    trained_model <span style="color: Gray;">=</span> AutoModelForCausalLM.<span style="color: #05a;">from_pretrained</span><span style="color: Olive;">(</span>output_dir<span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># いくつかのプロンプトをテスト</span><br/>
+    test_prompts <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><br/>
+        <span style="color: #a11;">「runoob について紹介してください」</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">「私ってすごくダメなのかな？」</span><span style="color: Gray;">,</span><br/>
+    <span style="color: Olive;">]</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">for</span> prompt <span style="color: Green;font-weight:bold;">in</span> test_prompts:<br/>
+        <span style="color: #a50"># 回答を生成</span><br/>
+        inputs <span style="color: Gray;">=</span> tokenizer<span style="color: Olive;">(</span>prompt<span style="color: Gray;">,</span> return_tensors<span style="color: Gray;">=</span><span style="color: #a11;">"pt"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">with</span> torch.<span style="color: #05a;">no_grad</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+            outputs <span style="color: Gray;">=</span> trained_model.<span style="color: #05a;">generate</span><span style="color: Olive;">(</span><br/>
+                **inputs<span style="color: Gray;">,</span><br/>
+                max_new_tokens<span style="color: Gray;">=</span><span style="color: Maroon;">50</span><span style="color: Gray;">,</span><br/>
+                temperature<span style="color: Gray;">=</span><span style="color: Maroon;">0.7</span><span style="color: Gray;">,</span><br/>
+                do_sample<span style="color: Gray;">=</span><span style="color: Teal;">True</span><span style="color: Gray;">,</span><br/>
+                pad_token_id<span style="color: Gray;">=</span>tokenizer.<span style="color: #05a;">eos_token_id</span><span style="color: Gray;">,</span><br/>
+            <span style="color: Olive;">)</span><br/>
+        response <span style="color: Gray;">=</span> tokenizer.<span style="color: #05a;">decode</span><span style="color: Olive;">(</span>outputs<span style="color: Olive;">[</span><span style="color: Maroon;">0</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span> skip_special_tokens<span style="color: Gray;">=</span><span style="color: Teal;">True</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>プロンプト: {prompt}"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"回答: {response[len(prompt):]}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">if</span> __name__ <span style="color: Gray;">==</span> <span style="color: #a11;">"__main__"</span>:<br/>
+    main<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<p>DPOは、シンプルで安定しており効果が高いため、ますます人気が高まっています。多くの新しいアライメント研究がDPOに基づいて改良を行っています。</p>
+<hr/>
+<h2>Constitutional AI：Anthropic のアプローチ</h2>
+<p>Constitutional AI（憲法AI）は、Anthropicが提案したもう一つのアライメント手法です。</p>
+<p>その特徴は次の通りです：<span class="marked">AIフィードバックで人間のフィードバックを置き換える</span>それにより、より大規模なアライメントを実現します。</p>
+<h3>原則リストの設計</h3>
+<p>Constitutional AIの最初のステップは、「憲法」——AIの行動を導く一連の原則——を書くことです。</p>
+<p>これらの原則はコードではなく、自然言語で記述されたガイドラインです。例えば：</p>
+<table class="reference">
+<tr><th>原則</th><th>内容例</th></tr>
+<tr><td>無害</td><td>最も害を及ぼす可能性が低い回答を選ぶ</td></tr>
+<tr><td>役立つ</td><td>可能な限り有用で正確な情報を提供する</td></tr>
+<tr><td>誠実</td><td>情報を捏造せず、知らない場合は知らないと言う</td></tr>
+<tr><td>合理的</td><td>論理と証拠を使って自分の見解を裏付ける</td></tr>
+<tr><td>思いやり</td><td>ユーザーの感情や状況を考慮する</td></tr>
+</table>
+<p>これらの原則は長くなくてもよく、数十条でほとんどのケースをカバーできます。</p>
+<h3>AI の自己批判と修正</h3>
+<p>Constitutional AIの中心的なプロセスは次の通りです：</p>
+<p>AIが初期回答を生成する。</p>
+<p>AIが憲法原則に基づいて、この回答のどこが良くないかを批判する。</p>
+<p>AIが批判に基づいて、より良い回答を書き直す。</p>
+<p>これらの「初期回答 → 批判 → 修正回答」データを使ってモデルを訓練する。</p>
+<p>これはまるで生徒が作文を書き、自分でどこが良くないかをチェックして修正するようなものです——そのプロセス全体に先生は関与しません。</p>
+<h3>RLAIF：AI で人間を代替する</h3>
+<p>Constitutional AIの第二段階はRLAIF（Reinforcement Learning from AI Feedback、AIフィードバックからの強化学習）です。</p>
+<p>RLHFと似ていますが、重要な違いが1つあります：<span class="marked">回答にスコアを付けるのは人間ではなく、別のAIです</span>。</p>
+<p>なぜAIフィードバックを使うのか？理由は：</p>
+<p>規模が大きい——AIは24時間働け、ラベリング速度が人間をはるかに上回ります。</p>
+<p>一貫性が高い——同じAIなら評価基準がより一貫しており、人によって好みが異なるという問題が起きません。</p>
+<p>コストが低い——人間のラベラーに費用を支払う必要がありません。</p>
+<p>もちろん、これらすべての前提は、この「審査AI」自体が十分にアライメントされていることです。</p>
+<p>RLAIFのプロセス：</p>
+<p>Constitutional AI 手法を用いて初期の「審査モデル」を訓練する。</p>
+<p>この審査モデルを使って大量の回答にスコアを付ける。</p>
+<p>これらのスコアを使って強化学習で方策モデルを訓練する。</p>
+<p>このように、RLAIF は人間を「すべてのサンプルにラベルを付ける」という煩雑な作業から解放し、人間は原則とプロセスを設計するだけでよい。</p>
+<hr/>
+<h2>3つの手法の比較：RLHF vs DPO vs Constitutional AI</h2>
+<p>これまでに3つの主要なアライメント手法を紹介してきました。ここで包括的な比較を行います：</p>
+<table class="reference">
+<tr><th>次元</th><th>RLHF</th><th>DPO</th><th>Constitutional AI / RLAIF</th></tr>
+<tr><td>核となるアイデア</td><td>人間のフィードバック + PPO 強化学習</td><td>選好データ上で直接最適化</td><td>AI の自己批判 + AI フィードバック</td></tr>
+<tr><td>人間の関与</td><td>大量の人間によるラベリングが必要</td><td>人間の選好データが必要</td><td>原則の設計のみが必要</td></tr>
+<tr><td>訓練段階</td><td>3段階（SFT → RM → PPO）</td><td>2段階（SFT → DPO）</td><td>2段階（批判修正 → RLAIF）</td></tr>
+<tr><td>実装の難易度</td><td>高</td><td>低</td><td>中</td></tr>
+<tr><td>訓練の安定性</td><td>普通。慎重なパラメータ調整が必要</td><td>好</td><td>中</td></tr>
+<tr><td>スケーリング能力</td><td>人間のラベリング速度に制約される</td><td>選好データの規模に制約される</td><td>スケーリングが容易</td></tr>
+<tr><td>代表的な企業・プロジェクト</td><td>OpenAI（初期）</td><td>多くのチームが採用</td><td>Anthropic</td></tr>
+</table>
+<p>「最良」の手法はなく、選択はあなたの具体的な状況に依存します：</p>
+<p>大量の人間によるラベリングリソースがある場合は、RLHF または DPO のどちらでも構いません。</p>
+<p>実装の簡単さを求めるなら、DPO は良い選択です。</p>
+<p>大規模に拡張し、人間への依存を減らしたい場合は、Constitutional AI / RLAIF を検討する価値があります。</p>
+<blockquote>
+<p>実際の運用では、これらの手法はしばしば組み合わせて使用されます：まず人間のデータをある程度使い、次に AI フィードバックで規模を拡大し、最後に DPO または PPO で最適化します。</p>
+</blockquote>
+<hr/>
+<h2>RLHF の限界と課題</h2>
+<p>RLHF は非常に有効ですが、完璧ではありません。その限界と課題についていくつか議論しましょう。</p>
+<h3>報酬ハッキング（Reward Hacking）</h3>
+<p>報酬ハッキングは強化学習における古典的な問題です：<span class="marked">AI が高い報酬を得る方法を見つけたが、その方法は私たちが本当に望んでいるものではない</span>。</p>
+<p>例：</p>
+<p>あなたが AI に質問応答を訓練し、報酬モデルが「自信のある」回答を好むとします。AI は非常に断言的な口調で話すだけでスコアが高くなることを発見します——たとえでたらめを言っていてもです。</p>
+<p>あるいは、AI はユーザーの言葉を繰り返して「理解しました」と示すだけで、そこそこのスコアを得られることを発見します——実質的な内容を何も提供していなくてもです。</p>
+<p>報酬ハッキングの根本的な原因は：<span class="marked">報酬モデルの判断と人間の真の選好の間にギャップが存在すること</span>。AI が最適化するのは報酬モデルのスコアであり、人間の実際の満足度ではありません。</p>
+<p>この問題に完璧な解決策はありませんが、いくつかの緩和策があります：</p>
+<p>より多様な選好データを収集する。</p>
+<p>複数の報酬モデルをアンサンブルして、単一モデルのバイアスを減らす。</p>
+<p>定期的に人間が抜き打ちチェックを行い、問題を発見したら速やかに修正する。</p>
+<h3>人間の選好の不一致性</h3>
+<p>もう一つの課題は：<span class="marked">人間の間で選好が一致しないことがあり、同じ人物の選好でさえ変化することがある</span>。</p>
+<p>例：</p>
+<p>簡潔で直接的な回答を好むユーザーもいれば、詳細で網羅的な回答を好むユーザーもいます。</p>
+<p>同じ質問でも、文脈が異なれば「良い」答えは異なる場合があります。</p>
+<p>文化的背景や価値観が異なる人々の間では、「良い」の定義が衝突することがあります。</p>
+<p>人間のアノテーターの意見が一致しないとき、報酬モデルは混乱します——誰の意見に従えばよいのか分からないからです。</p>
+<p>対処方法には以下が含まれます：</p>
+<p>アノテーターにより詳細なガイドラインを提供し、基準を統一する。</p>
+<p>データにアノテーターの特徴を記録し、パーソナライズされたモデルを訓練する。</p>
+<p>ある程度の曖昧さを受け入れる——一部の問題にはそもそも唯一の「正しい」答えがありません。</p>
+<h3>その他の課題</h3>
+<p>言及する価値のある課題がさらにいくつかあります：</p>
+<ul>
+<li>
+<p>スケーラビリティ——人間によるラベリングは速度が遅くコストが高いため、モデル規模の成長に追いつくのが難しい。</p></li>
+<li>
+<p>分布シフト——訓練データと実際の使用シーンは異なる可能性があり、モデルは新しいシーンで性能が低下する。</p></li>
+<li>
+<p>敵対的攻撃——アライメント済みのモデルが巧妙に設計されたプロンプトによって「脱獄」され、有害なコンテンツを生成する可能性がある。</p></li>
+<li>
+<p>価値の固定化——アライメント目標に問題がある場合、モデルの能力が高いほど害が大きくなる。</p></li>
+<li>
+<p>アライメントは継続的なプロセスであり、一度で済む解決策はありません。絶えず研究、反復、改善を続ける必要があります。</p></li></ul>
+その他の拡張
+</div>
+</div>
+<div class="archive-list" style="display:none;font-size: 14px;line-height: 1.8;margin-top: 20px;padding: 10px;">
+<div class="archive-list-item">
+<div class="post-intro" id="ai-info" style="width: 100%;">AI 思考中...</div>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../ai/ai-fine-tuning.html" rel="prev">モデル微調整 Fine-tuning</a> </div>
+<div class="next-design-link"><a href="../ai/ai-vector-database.html" rel="next">ベクトルデータベース</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="sidebar-box">
+</div>
+ノート一覧
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>クリックしてノートを共有</h3>
+&lt;p style="font-size:14px;"&gt;ノートはこの記事の内容の拡張である必要があります！&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;記事の投稿は、ここをクリック&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; ノートを共有する前に必ず&lt;a href=";.html" class="runoob-pop"&gt;ログイン&lt;/a&gt;！&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=";.html" id="cancel-comment-reply-link">キャンセル</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="31518"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>ノートを共有</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">ニックネーム</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">ニックネーム (必須)</span></li>
+<li class="form-inline"><label class="hide" for="email">メールアドレス</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">メールアドレス (必須)</span></li>
+<li class="form-inline"><label class="hide" for="url">引用アドレス</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">引用アドレス</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  31518;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 31518, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":31518},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+</div>
+</div>
+<!-- 右边栏 -->
+<div class="fivecol last right-column">
+<style>
+.sidebar-tree .double-li {
+    width:300px;
+}
+.sidebar-tree .double-li li {
+    width: 44%;
+    line-height: 1.5em;
+    border-bottom: 1px solid #ccc;
+    float: left;
+    display: inline;
+}
+</style>
+<div class="sidebar-box re-box re-box-large">
+<div class="sidebar-box recommend-here" style="margin: 0 auto;">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;"> <i aria-hidden="true" class="fa fa-list"></i> 分类导航</a>
+</div>
+<div class="sidebar-box sidebar-cate">
+<div class="sidebar-tree">
+<ul><li style="margin: 0;"><a class="tit" href="#"> Python / 数据科学</a><ul class="double-li"><li><a href="../python3/python3-tutorial.html" title="Python 教程">Python 教程</a></li><li><a href="../python/python-tutorial.html" title="Python2.x 教程">Python2.x 教程</a></li><li><a href="../fastapi/fastapi-tutorial.html" title="FastAPI 教程">FastAPI 教程</a></li><li><a href="../flask/flask-tutorial.html" title="Flask 教程">Flask 教程</a></li><li><a href="../django/django-tutorial.html" title="Django 教程">Django 教程</a></li><li><a href="../numpy/numpy-tutorial.html" title="NumPy 教程">NumPy 教程</a></li><li><a href="../pandas/pandas-tutorial.html" title="Pandas 教程">Pandas 教程</a></li><li><a href="../scipy/scipy-tutorial.html" title="SciPy 教程">SciPy 教程</a></li><li><a href="../matplotlib/matplotlib-tutorial.html" title="Matplotlib 教程">Matplotlib 教程</a></li><li><a href="../dash/dash-tutorial.html" title="Dash 教程">Dash 教程</a></li><li><a href="../jupyter-notebook/jupyter-notebook-tutorial.html" title="Jupyter Notebook 教程">Jupyter Notebook 教程</a></li><li><a href="../pillow/pillow-tutorial.html" title="Pillow 教程">Pillow 教程</a></li><li><a href="../qt/qt-tutorial.html" title="量化交易">量化交易</a></li><li><a href="../r/r-tutorial.html" title="R 教程">R 教程</a></li><li><a href="../julia/julia-tutorial.html" title="Julia 教程">Julia 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> AI / 智能开发</a><ul class="double-li"><li><a href="../ai-agent/ai-agent-tutorial.html" title="AI Agent（智能体）">AI Agent（智能体）</a></li><li><a href="../ai/ai-tutorial.html" title="AI（人工智能）">AI（人工智能）</a></li><li><a href="../codex/codex-tutorial.html" title="Codex 教程">Codex 教程</a></li><li><a href="../vibe-coding/vibe-coding-tutorial.html" title="Vibe Coding 教程">Vibe Coding 教程</a></li><li><a href="../claude-code/claude-code-tutorial.html" title="Claude Code">Claude Code</a></li><li><a href="../opencode/opencode-tutorial.html" title="OpenCode">OpenCode</a></li><li><a href="../skills/skills-tutorial.html" title="Skills（技能）">Skills（技能）</a></li><li><a href="../ollama/ollama-tutorial.html" title="Ollama 教程">Ollama 教程</a></li><li><a href="../hermes-agent/hermes-agent-tutorial.html" title="Hermes Agent">Hermes Agent</a></li><li><a href="../deepseek-harness/deepseek-harness-tutorial.html" title="DeepSeek Harness">DeepSeek Harness</a></li><li><a href="../pi-agent/pi-agent-tutorial.html" title="Pi Agent">Pi Agent</a></li><li><a href="../ai-math/ai-math-tutorial.html" title="AI 数学基础">AI 数学基础</a></li><li><a href="../tensorflow/tensorflow-tutorial.html" title="TensorFlow 教程">TensorFlow 教程</a></li><li><a href="../pytorch/pytorch-tutorial.html" title="PyTorch 教程">PyTorch 教程</a></li><li><a href="../sklearn/sklearn-tutorial.html" title="Scikit-learn 教程">Scikit-learn 教程</a></li><li><a href="../ml/ml-tutorial.html" title="机器 教程">机器 教程</a></li><li><a href="../langchain/langchain-tutorial.html" title="LangChain">LangChain</a></li><li><a href="../nlp/nlp-tutorial.html" title="自然语言处理 NLP">自然语言处理 NLP</a></li><li><a href="../opencv/opencv-tutorial.html" title="OpenCV 教程">OpenCV 教程</a></li><li><a href="../selenium/selenium-tutorial.html" title="Selenium 教程">Selenium 教程</a></li><li><a href="../playwright/playwright-tutorial.html" title="Playwright 教程">Playwright 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 前端开发</a><ul class="double-li"><li><a href="../html/html-tutorial.html" title="HTML 教程">HTML 教程</a></li><li><a href="../html/html5-intro.html" title="HTML5 教程">HTML5 教程</a></li><li><a href="../css/css-tutorial.html" title="CSS 教程">CSS 教程</a></li><li><a href="../css3/css3-tutorial.html" title="CSS3 教程">CSS3 教程</a></li><li><a href="../js/js-tutorial.html" title="JavaScript 教程">JavaScript 教程</a></li><li><a href="../htmldom/htmldom-tutorial.html" title="HTML DOM 教程">HTML DOM 教程</a></li><li><a href="../typescript/ts-tutorial.html" title="TypeScript 教程">TypeScript 教程</a></li><li><a href="../ajax/ajax-tutorial.html" title="AJAX 教程">AJAX 教程</a></li><li><a href="../json/json-tutorial.html" title="JSON 教程">JSON 教程</a></li><li><a href="../tailwindcss/tailwindcss-tutorial.html" title="Tailwind CSS 教程">Tailwind CSS 教程</a></li><li><a href="../bootstrap4/bootstrap4-tutorial.html" title="Bootstrap4 教程">Bootstrap4 教程</a></li><li><a href="../bootstrap5/bootstrap5-tutorial.html" title="Bootstrap5 教程">Bootstrap5 教程</a></li><li><a href="../foundation/foundation-tutorial.html" title="Foundation 教程">Foundation 教程</a></li><li><a href="../vue2/vue-tutorial.html" title="Vue.js 教程">Vue.js 教程</a></li><li><a href="../vue3/vue3-tutorial.html" title="Vue3 教程">Vue3 教程</a></li><li><a href="../react/react-tutorial.html" title="React 教程">React 教程</a></li><li><a href="../nextjs/nextjs-tutorial.html" title="Next.js 教程">Next.js 教程</a></li><li><a href="../angularjs/angularjs-tutorial.html" title="AngularJS 教程">AngularJS 教程</a></li><li><a href="../angularjs2/angularjs2-tutorial.html" title="Angular 教程">Angular 教程</a></li><li><a href="../jquery/jquery-tutorial.html" title="jQuery 教程">jQuery 教程</a></li><li><a href="../jqueryui/jqueryui-tutorial.html" title="jQuery UI 教程">jQuery UI 教程</a></li><li><a href="../jeasyui/jqueryeasyui-tutorial.html" title="jQuery EasyUI 教程">jQuery EasyUI 教程</a></li><li><a href="../echarts/echarts-tutorial.html" title="ECharts 教程">ECharts 教程</a></li><li><a href="../chartjs/chartjs-tutorial.html" title="Chart.js 教程">Chart.js 教程</a></li><li><a href="../highcharts/highcharts-tutorial.html" title="Highcharts 教程">Highcharts 教程</a></li><li><a href="../googleapi/google-maps-basic.html" title="Google 地图 教程">Google 地图 教程</a></li><li><a href="../svg/svg-tutorial.html" title="SVG 教程">SVG 教程</a></li><li><a href="../font-awesome/fontawesome-tutorial.html" title="Font Awesome 教程">Font Awesome 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 后端开发</a><ul class="double-li"><li><a href="../nodejs/nodejs-tutorial.html" title="Node.js 教程">Node.js 教程</a></li><li><a href="../electron/electron-tutorial.html" title="Electron 教程">Electron 教程</a></li><li><a href="../php/php-tutorial.html" title="PHP 教程">PHP 教程</a></li><li><a href="../java/java-tutorial.html" title="Java 教程">Java 教程</a></li><li><a href="../go/go-tutorial.html" title="Go 教程">Go 教程</a></li><li><a href="../rust/rust-tutorial.html" title="Rust 教程">Rust 教程</a></li><li><a href="../csharp/csharp-tutorial.html" title="C# 教程">C# 教程</a></li><li><a href="../servlet/servlet-tutorial.html" title="Servlet 教程">Servlet 教程</a></li><li><a href="../jsp/jsp-tutorial.html" title="JSP 教程">JSP 教程</a></li><li><a href="../asp/asp-tutorial.html" title="ASP 教程">ASP 教程</a></li><li><a href="../appml/appml-tutorial.html" title="AppML 教程">AppML 教程</a></li><li><a href="../vbscript/vbscript-tutorial.html" title="VBScript 教程">VBScript 教程</a></li><li><a href="../swagger/swagger-tutorial.html" title="Swagger 教程">Swagger 教程</a></li><li><a href="../restfulapi/restful-api-tutorial.html" title="RESTful API 教程">RESTful API 教程</a></li><li><a href="../docker/docker-tutorial.html" title="Docker 教程">Docker 教程</a></li><li><a href="../linux/linux-tutorial.html" title="Linux 教程">Linux 教程</a></li><li><a href="../w3cnote/zookeeper-tutorial.html" title="ZooKeeper 教程">ZooKeeper 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 数据库</a><ul class="double-li"><li><a href="../sql/sql-tutorial.html" title="SQL 教程">SQL 教程</a></li><li><a href="../mysql/mysql-tutorial.html" title="MySQL 教程">MySQL 教程</a></li><li><a href="../postgresql/postgresql-tutorial.html" title="PostgreSQL 教程">PostgreSQL 教程</a></li><li><a href="../sqlite/sqlite-tutorial.html" title="SQLite 教程">SQLite 教程</a></li><li><a href="../mongodb/mongodb-tutorial.html" title="MongoDB 教程">MongoDB 教程</a></li><li><a href="../redis/redis-tutorial.html" title="Redis 教程">Redis 教程</a></li><li><a href="../memcached/memcached-tutorial.html" title="Memcached 教程">Memcached 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 移动开发</a><ul class="double-li"><li><a href="../w3cnote/android-tutorial-intro.html" title="Android 教程">Android 教程</a></li><li><a href="../flutter/flutter-tutorial.html" title="Flutter 教程">Flutter 教程</a></li><li><a href="../ionic/ionic-tutorial.html" title="Ionic 教程">Ionic 教程</a></li><li><a href="../jquerymobile/jquerymobile-tutorial.html" title="jQuery Mobile 教程">jQuery Mobile 教程</a></li><li><a href="../swift/swift-tutorial.html" title="Swift 教程">Swift 教程</a></li><li><a href="../kotlin/kotlin-tutorial.html" title="Kotlin 教程">Kotlin 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> DevOps / 工程化</a><ul class="double-li"><li><a href="../git/git-tutorial.html" title="Git 教程">Git 教程</a></li><li><a href="../svn/svn-tutorial.html" title="SVN 教程">SVN 教程</a></li><li><a href="../cmake/cmake-tutorial.html" title="CMake 教程">CMake 教程</a></li><li><a href="../maven/maven-tutorial.html" title="Maven 教程">Maven 教程</a></li><li><a href="../vscode/vscode-tutorial.html" title="VS Code 教程">VS Code 教程</a></li><li><a href="../obsidian/obsidian-tutorial.html" title="Obsidian 教程">Obsidian 教程</a></li><li><a href="../pycharm/pycharm-tutorial.html" title="PyCharm 教程">PyCharm 教程</a></li><li><a href="../eclipse/eclipse-tutorial.html" title="Eclipse 教程">Eclipse 教程</a></li><li><a href="../markdown/md-tutorial.html" title="Markdown 教程">Markdown 教程</a></li><li><a href="../latex/latex-tutorial.html" title="LaTeX 教程">LaTeX 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 编程语言</a><ul class="double-li"><li><a href="../c/c-tutorial.html" title="C 教程">C 教程</a></li><li><a href="../cplusplus/cpp-tutorial.html" title="C++ 教程">C++ 教程</a></li><li><a href="../zig/zig-tutorial.html" title="Zig 教程">Zig 教程</a></li><li><a href="../scala/scala-tutorial.html" title="Scala 教程">Scala 教程</a></li><li><a href="../ruby/ruby-tutorial.html" title="Ruby 教程">Ruby 教程</a></li><li><a href="../perl/perl-tutorial.html" title="Perl 教程">Perl 教程</a></li><li><a href="../lua/lua-tutorial.html" title="Lua 教程">Lua 教程</a></li><li><a href="../dart/dart-tutorial.html" title="Dart 教程">Dart 教程</a></li><li><a href="../assembly/assembly-tutorial.html" title="汇编语言 教程">汇编语言 教程</a></li><li><a href="../w3cnote/verilog-tutorial.html" title="Verilog 教程">Verilog 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 计算机基础</a><ul class="double-li"><li><a href="../computer-organization/computer-organization-tutorial.html" title="计算机组成原理">计算机组成原理</a></li><li><a href="../data-structures/data-structures-tutorial.html" title="数据结构与算法">数据结构与算法</a></li><li><a href="../c-dsa/c-dsa-tutorial.html" title="C 语言数据结构与算法">C 语言数据结构与算法</a></li><li><a href="../design-pattern/design-pattern-tutorial.html" title="设计模式">设计模式</a></li><li><a href="../python-design-pattern/python-design-pattern-tutorial.html" title="Python 设计模式">Python 设计模式</a></li><li><a href="../regexp/regexp-tutorial.html" title="正则表达式">正则表达式</a></li><li><a href="../http/http-tutorial.html" title="HTTP 教程">HTTP 教程</a></li><li><a href="../tcpip/tcpip-tutorial.html" title="TCP/IP 教程">TCP/IP 教程</a></li><li><a href="../np/np-tutorial.html" title="网络协议">网络协议</a></li><li><a href="../w3c/w3c-tutorial.html" title="W3C 教程">W3C 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> XML / Web Service</a><ul class="double-li"><li><a href="../xml/xml-tutorial.html" title="XML 教程">XML 教程</a></li><li><a href="../dtd/dtd-tutorial.html" title="DTD 教程">DTD 教程</a></li><li><a href="../dom/dom-tutorial.html" title="XML DOM 教程">XML DOM 教程</a></li><li><a href="../xsl/xsl-tutorial.html" title="XSLT 教程">XSLT 教程</a></li><li><a href="../xpath/xpath-tutorial.html" title="XPath 教程">XPath 教程</a></li><li><a href="../xquery/xquery-tutorial.html" title="XQuery 教程">XQuery 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XLink 教程">XLink 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XPointer 教程">XPointer 教程</a></li><li><a href="../schema/schema-tutorial.html" title="XML Schema 教程">XML Schema 教程</a></li><li><a href="../xslfo/xslfo-tutorial.html" title="XSL-FO 教程">XSL-FO 教程</a></li><li><a href="../webservices/webservices-tutorial.html" title="Web Service 教程">Web Service 教程</a></li><li><a href="../wsdl/wsdl-tutorial.html" title="WSDL 教程">WSDL 教程</a></li><li><a href="../soap/soap-tutorial.html" title="SOAP 教程">SOAP 教程</a></li><li><a href="../rss/rss-tutorial.html" title="RSS 教程">RSS 教程</a></li><li><a href="../rdf/rdf-tutorial.html" title="RDF 教程">RDF 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> .NET</a><ul class="double-li"><li><a href="../aspnet/aspnet-tutorial.html" title="ASP.NET 教程">ASP.NET 教程</a></li><li><a href="../aspnet/mvc-intro.html" title="MVC 教程">MVC 教程</a></li><li><a href="../aspnet/razor-intro.html" title="Razor 教程">Razor 教程</a></li><li><a href="../aspnet/aspnet-intro.html" title="Web Forms 教程">Web Forms 教程</a></li><li><a href="../aspnet/webpages-intro.html" title="Web Pages 教程">Web Pages 教程</a></li><li><a href="../powershell/powershell-tutorial.html" title="PowerShell 教程">PowerShell 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 网站建设</a><ul class="double-li"><li><a href="../web/web-buildingprimer.html" title="网站建设指南">网站建设指南</a></li><li><a href="../browsers/browser-information.html" title="浏览器信息">浏览器信息</a></li><li><a href="../hosting/hosting-tutorial.html" title="网站主机教程">网站主机教程</a></li><li><a href="../quality/quality-tutorial.html" title="网站品质">网站品质</a></li></ul></li></ul> </div>
+</div>
+</div>
+<br/>
+<div class="sidebar-box re-box re-box-large">
+</div>
+</div></div>
+</div>
+<script>
+var aid = 31518;
+function coll() {
+	$.post( '/wp-content/themes/runoob/option/user/userinfo.php', {aid:aid, action:"collarticle", opt:'add'},function( data ) {
+		if(data.error==0) {
+			$("#content").find("h1:first").find("a").attr("href","javascript:void(0);");
+			$("#content").find("h1:first").find("img").attr("src","http://www.runoob.com/wp-content/themes/runoob/assets/img/coll2.png").css({width:32+"px",height:32+"px"});
+		}
+		alert(data.msg);
+	},'json');
+}
+
+(function () {
+    // 1. 仅 HTML 页面
+    if (!document.contentType || !document.contentType.includes('text/html')) return;
+
+    // 2. 容器判断
+    var container = document.querySelector('.article-intro');
+    if (!container) return;
+
+    var h1 = container.querySelector('h1');
+    if (!h1) return;
+
+    // 3. URL 判断
+    var url = window.location.href.toLowerCase();
+    var version = null;
+
+    if (url.includes('/python3/')) {
+        version = 'Python3.x';
+    } else if (url.includes('/python/')) {
+        version = 'Python2.x';
+    }
+
+    if (!version) return;
+
+    // 4. 防重复
+    if (h1.querySelector('.py-version-badge')) return;
+
+    // 5. 创建标签
+    var badge = document.createElement('span');
+    badge.className = 'py-version-badge';
+    badge.innerText = version;
+
+    // 6. 样式（核心：float 实现右上角）
+    badge.style.float = 'right';
+    badge.style.fontSize = '12px';
+    badge.style.padding = '2px 8px';
+    badge.style.borderRadius = '999px';
+
+   // 自适应亮/暗色 + 渐变背景（增强版）
+	badge.style.color = 'inherit';
+
+	// 渐变背景（低透明度，不影响暗黑模式）
+	if (version.includes('3')) {
+		badge.style.background = 'linear-gradient(90deg, rgba(79,172,254,0.15), rgba(0,242,254,0.15))';
+	} else {
+		badge.style.background = 'linear-gradient(90deg, rgba(161,140,209,0.15), rgba(251,194,235,0.15))';
+	}
+
+	// 边框弱化（更精致）
+	badge.style.border = '1px solid rgba(127,127,127,0.3)';
+
+	// 提升可读性
+	badge.style.opacity = '0.95';
+
+    // 微调位置（更贴近“右上角”）
+    badge.style.marginTop = '4px';
+    badge.style.marginLeft = '10px';
+
+    // 7. 插入到 h1 最前面（让 float 生效更稳定）
+    h1.insertBefore(badge, h1.firstChild);
+
+})();
+</script>
+<!-- 反馈对话框开始 -->
+<script src="../wp-content/themes/runoob/assets/js/runoob-article-dir.min.js"></script>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

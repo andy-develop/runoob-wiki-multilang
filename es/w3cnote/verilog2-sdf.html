@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>3.5 Verilog Retroanotación de retardos | Tutorial de novatos</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="./verilog2-sdf.html" rel="canonical"/>
+<meta content="3.5 Verilog 延迟反标注" name="keywords"/>
+<meta content="关键词： 延迟反标注， SDF 延迟反标注是设计者根据单元库工艺、门级网表、版图中的电容电阻等信息，借助数字设计工具将延迟信息标注到门级网表中的过程。利用延迟反标注后的网表，就可以进行精确的时序仿真，使仿真更接近实际工作的数字电路。  延迟反标注过程 前面教程中的仿真基本都是功能性的仿真。无论是进行 IC 设计还是 FPGA 开发，时序仿真都是必不可少的。《Verilog 教程》的《1.4 Verilog 设计方法》章节中也描述了完整的.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div><!-- 导航栏 -->
+<!--  内容  -->
+<div class="container main">
+<div class="row">
+<!--  Android 基础入门教程 start  -->
+<div class="col left-column" style="display:none;">
+<div class="tab">Verilog 高级教程</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+</div>
+</div>
+</div>
+<!--  Android 基础入门教程 end  -->
+<div class="col middle-column big-middle-column">
+<div class="article">
+<div class="article-heading">
+<h2>3.5 Verilog Retroanotación de retardos</h2> <h3><em>Categoría</em> <a href="../w3cnote_genre/verilog2.html" title="Verilog 教程高级篇">Tutorial de Verilog: Nivel avanzado</a> </h3>
+</div>
+<div class="article-body note-body">
+<div class="article-intro">
+<!-- ad start-->
+<!-- ad end-->
+<h3>Palabras clave: retroanotación de retardos, SDF</h3>
+<p>La retroanotación de retardos es el proceso por el cual el diseñador, basándose en la tecnología de la biblioteca de celdas, la lista de conexiones a nivel de compuerta, la información de capacitancias y resistencias del diseño físico, etc., utiliza herramientas de diseño digital para anotar la información de retardo en la lista de conexiones a nivel de compuerta. Con la lista de conexiones después de la retroanotación de retardos, se puede realizar una simulación de temporización precisa, haciendo que la simulación se acerque más al circuito digital real en funcionamiento.</p>
+<h3>Proceso de retroanotación de retardos</h3>
+<p>Las simulaciones de los tutoriales anteriores son principalmente funcionales. Ya sea para diseño de IC o desarrollo de FPGA, la simulación de temporización es indispensable. En la sección «1.4 Métodos de diseño Verilog» del «Tutorial de Verilog» también se describe el flujo completo de desarrollo de diseño digital.</p><p>A continuación, se explica cómo se utiliza la retroanotación de retardos en este flujo, a modo de repaso y consolidación.</p>
+<ul><li>(1) Utilizar el lenguaje de descripción de hardware para completar la descripción a nivel RTL y realizar una simulación funcional.</li><li>(2) Aplicar ciertas restricciones de temporización a señales como el reloj, el reset y los puertos de salida, incluyendo la configuración de frecuencia de reloj, comprobaciones de temporización, retardos, etc., y utilizarlas para la síntesis lógica.</li><li>(3) La lista de conexiones a nivel de compuerta sintetizada contiene información de retardo estimada de forma aproximada. En este punto, se pueden eliminar las informaciones de retardo como hold, recovery, removal e interconnect (líneas de interconexión) para realizar una simulación de temporización preliminar y un análisis de temporización estático (STA), verificando preliminarmente si la temporización de setup, entre otras, cumple los requisitos. Muchas empresas o personas también omiten esta simulación.</li><li>(4) Realizar la colocación y el enrutamiento de la lista de conexiones a nivel de compuerta para convertirla en una lista de conexiones a nivel de diseño físico. Según la información de las formas geométricas de los componentes y el proceso de fabricación, se pueden extraer las capacitancias y resistencias del circuito del diseño físico, y con esta información se pueden calcular los valores de retardo en el diseño físico.</li><li>(5) Retroanotar la información de retardo del diseño físico tras la colocación y el enrutamiento en la lista de conexiones a nivel de diseño físico, para así modificar con precisión los valores de retardo en la lista. En este momento se realiza nuevamente la simulación de temporización y STA para verificar si la temporización cumple los requisitos.</li><li>(6) Si todas las verificaciones pasan, se puede proceder a la descarga, implementación o producción. Si hay violaciones de temporización, primero es necesario revisar la configuración de las restricciones de temporización, por ejemplo, si los parámetros de retardo, la frecuencia de reloj, las relaciones entre señales, etc., tienen problemas, y luego volver a realizar la colocación y el enrutamiento para verificar si se pueden eliminar las violaciones. Si las medidas anteriores no pueden eliminar las violaciones, es necesario regresar al inicio del diseño y optimizar la descripción RTL.</li></ul>
+<p>El diagrama esquemático del proceso es el siguiente; la parte resaltada en amarillo indica las instrucciones de operación que se pueden añadir en el flujo de diseño digital.</p>
+<p><img decoding="async" src="../wp-content/uploads/2021/05/v-sdf-1.png"/></p>
+<hr/>
+<h2>Archivo SDF</h2><p>SDF (Standard Delay Format), archivo de formato de retardo estándar, se usa comúnmente para la retroanotación de retardos. Este archivo contiene todos los parámetros de tiempos de retardo y restricciones de temporización utilizados en la simulación, como IOPATH, INTERCONNECT, TIMING CHECK, etc. A continuación se presenta brevemente el archivo SDF.</p>
+<h3>Formato de archivo</h3><p>El archivo SDF se declara con la palabra clave DELAYFILE e incluye información de palabras clave como DESIGN, DATE, etc.</p><p>Los parámetros de tiempo de retardo y restricciones de temporización se especifican dentro de CELL.</p><p>El archivo SDF está compuesto por la información de declaración del archivo y muchos CELL diferentes, con el siguiente formato.</p>
+<div class="example"> <div class="example_code">
+<span style="color: #9F79EE;">(</span>DELAYFILE<br/>
+<span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">DESIGN</span> <span style="color: #FF00FF;">"top"</span><span style="color: #9F79EE;">)</span><br/>
+<span style="color: #9F79EE;">(</span>DATE <span style="color: #FF00FF;">"Love Sep 7 11:11:11 2017"</span><span style="color: #9F79EE;">)</span><br/>
+......<br/>
+<span style="color: #9F79EE;">(</span>TIMESCALE <span style="color: #ff0055;">1ns</span><span style="color: #9F79EE;">)</span><br/>
+<span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">CELL</span><br/>
+  ......<br/>
+<span style="color: #9F79EE;">)</span><br/>
+<span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">CELL</span><br/>
+  ......<br/>
+<span style="color: #9F79EE;">)</span><br/>
+......<br/>
+<span style="color: #9F79EE;">)</span><br/>
+</div></div>
+<h3>Tipos de retardo</h3><p>Los tipos de retardo en el archivo SDF incluyen cell delay y wire delay. cell delay se refiere al retardo interno del dispositivo de la celda de puerta lógica, y wire delay se refiere al retardo causado por la interconexión entre dispositivos a través de wires.</p><p>La descripción de cell delay es la siguiente; define los retardos de subida y bajada entre los puertos de entrada (A/B) y el puerto de salida (Z) del module "and_gate", y especifica los valores mínimo y máximo.</p>
+<div class="example"> <div class="example_code">
+<span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">CELL</span><br/>
+  <span style="color: #9F79EE;">(</span>CELLTYPE <span style="color: #FF00FF;">"and_gate"</span><span style="color: #9F79EE;">)</span>  <span style="color: #00008B; font-style: italic;">//nombre del module</span><br/>
+  <span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">INSTANCE</span> u_and<span style="color: #9F79EE;">)</span>       <span style="color: #00008B; font-style: italic;">//nombre de instanciación; si se requiere acceso a múltiples niveles, se debe especificar la jerarquía de acceso</span><br/>
+  <span style="color: #9F79EE;">(</span>DELAY<br/>
+    <span style="color: #9F79EE;">(</span>ABSOLUTE<br/>
+    <span style="color: #9F79EE;">(</span>IOPATH A Z <span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1.5</span><span style="color: #5D478B;">::</span><span style="color: #ff0055;">1.8</span><span style="color: #9F79EE;">)</span> <span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1.3</span><span style="color: #5D478B;">::</span><span style="color: #ff0055;">1.7</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span>  <span style="color: #00008B; font-style: italic;">//retardo de subida: mínimo 1.5, máximo 1.8</span><br/>
+    <span style="color: #9F79EE;">(</span>IOPATH B Z <span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1.5</span><span style="color: #5D478B;">::</span><span style="color: #ff0055;">1.8</span><span style="color: #9F79EE;">)</span> <span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1.3</span><span style="color: #5D478B;">::</span><span style="color: #ff0055;">1.7</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span>  <span style="color: #00008B; font-style: italic;">//retardo de bajada: mínimo 1.3, máximo 1.7</span><br/>
+    <span style="color: #9F79EE;">)</span><br/>
+  <span style="color: #9F79EE;">)</span><br/>
+<span style="color: #9F79EE;">)</span><br/>
+</div></div>
+<p>La descripción de wire delay es la siguiente; define los retardos de subida y bajada desde la salida de u_and hasta la entrada de u_dt en el module "top", y especifica los valores mínimo y máximo.</p><p>Generalmente, en la simulación a nivel RTL o en la lista de conexiones a nivel de compuerta sintetizada se puede ignorar el wire delay, porque en el backend se debe realizar nuevamente la colocación y el enrutamiento. La lista de conexiones después de la colocación y el enrutamiento se acerca más al circuito real, por lo que en ese momento se debe considerar el wire delay.</p>
+<div class="example"><div class="example_code">
+<span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">CELL</span><br/>
+  <span style="color: #9F79EE;">(</span>CELLTYPE <span style="color: #FF00FF;">"top"</span><span style="color: #9F79EE;">)</span> <span style="color: #00008B; font-style: italic;">//nombre del module</span><br/>
+  <span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">INSTANCE</span><span style="color: #9F79EE;">)</span>       <span style="color: #00008B; font-style: italic;">//si es el módulo de diseño de nivel superior, se puede omitir el nombre de instanciación</span><br/>
+  <span style="color: #9F79EE;">(</span>DELAY<br/>
+    <span style="color: #9F79EE;">(</span>ABSOLUTE<br/>
+    <span style="color: #9F79EE;">(</span>INTERCONNECT u_and.Z u_dt.D <span style="color: #9F79EE;">(</span><span style="color: #ff0055;">0.500</span><span style="color: #5D478B;">::</span><span style="color: #ff0055;">0.751</span><span style="color: #9F79EE;">)</span> <span style="color: #9F79EE;">(</span><span style="color: #ff0055;">0.400</span><span style="color: #5D478B;">::</span><span style="color: #ff0055;">0.551</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><br/>
+    <span style="color: #00008B; font-style: italic;">//(INTERCONNECT u_and/Z u_dt/D (0.500::0.751) (0.400::0.551))</span><br/>
+    <span style="color: #00008B; font-style: italic;">//símbolo de acceso jerárquico; algunos compiladores admiten ".", otros admiten "/", hay que prestar atención aquí</span><br/>
+    <span style="color: #9F79EE;">)</span><br/>
+  <span style="color: #9F79EE;">)</span><br/>
+<span style="color: #9F79EE;">)</span><br/>
+</div></div>
+<h3>Retardo condicional y comprobación de temporización</h3><p>Dentro de CELL también se puede usar la palabra clave COND para especificar retardos condicionales.</p><p>Al mismo tiempo, también se pueden realizar comprobaciones de temporización dentro de CELL.</p><p>Un ejemplo de la especificación de retardos y la comprobación de temporización de un flip-flop D es el siguiente.</p>
+<div class="example"> <div class="example_code">
+<span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">CELL</span><br/>
+  <span style="color: #9F79EE;">(</span>CELLTYPE <span style="color: #FF00FF;">"d_gate"</span><span style="color: #9F79EE;">)</span><br/>
+  <span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">INSTANCE</span> u_dt<span style="color: #9F79EE;">)</span><br/>
+  <span style="color: #9F79EE;">(</span>DELAY<br/>
+    <span style="color: #9F79EE;">(</span>ABSOLUTE<br/>
+    <span style="color: #00008B; font-style: italic;">//cuando D=1, el retardo de subida es 1.3-2.3, el retardo de bajada es 1.5-2.2</span><br/>
+    <span style="color: #9F79EE;">(</span>COND D<span style="color: #5D478B;">==</span><span style="color: #ff0055;">1'b1</span> <span style="color: #9F79EE;">(</span>IOPATH CP Q <span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1.3</span><span style="color: #5D478B;">::</span><span style="color: #ff0055;">2.3</span><span style="color: #9F79EE;">)</span> <span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1.5</span><span style="color: #5D478B;">::</span><span style="color: #ff0055;">2.2</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><br/>
+    <span style="color: #00008B; font-style: italic;">//cuando D=0, el retardo de subida es 1.2-2.1, el retardo de bajada es 1.4-2.0</span><br/>
+    <span style="color: #00008B; font-style: italic;">//aquí solo es para ilustrar el uso de COND; el parámetro de retardo de bajada cuando D=1 no es realmente utilizable</span><br/>
+    <span style="color: #00008B; font-style: italic;">//                         el parámetro de retardo de subida cuando D=0 tampoco es utilizable</span><br/>
+    <span style="color: #9F79EE;">(</span>COND D<span style="color: #5D478B;">==</span><span style="color: #ff0055;">1'b0</span> <span style="color: #9F79EE;">(</span>IOPATH CP Q <span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1.2</span><span style="color: #5D478B;">::</span><span style="color: #ff0055;">2.1</span><span style="color: #9F79EE;">)</span> <span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1.4</span><span style="color: #5D478B;">::</span><span style="color: #ff0055;">2.0</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><br/>
+    <span style="color: #9F79EE;">)</span><br/>
+  <span style="color: #9F79EE;">)</span><br/>
+  <span style="color: #9F79EE;">(</span>TIMINGCHECK<br/>
+  <span style="color: #9F79EE;">(</span>SETUP D <span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">posedge</span> CP<span style="color: #9F79EE;">)</span> <span style="color: #9F79EE;">(</span><span style="color: #ff0055;">0.8</span><span style="color: #5D478B;">::</span><span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span> <br/>
+  <span style="color: #00008B; font-style: italic;">//comprobación de setup: si el tiempo D-CP es menor que 0.8 o 1, se imprime violation</span><br/>
+  <span style="color: #9F79EE;">)</span><br/>
+<span style="color: #9F79EE;">)</span><br/>
+</div></div>
+<h3>Método de uso</h3><p>Verilog proporciona la función de sistema $sdf_annotate para invocar el archivo SDF y completar el proceso de retroanotación de retardos.</p>
+<p>El formato de uso es el siguiente:</p>
+<pre>$sdf_annotate ('sdf_file'[, module_instance] [,'sdf_configfile'][,'sdf_logfile'][,'mtm_spec'] [,'scale_factors'][,'scale_type']);</pre>
+<p>Aquí, sdf_file debe especificarse; los demás parámetros son opcionales.</p><p>Aquí solo se explican los primeros parámetros de uso común.</p><ul><li>sdf_file: nombre del archivo SDF, incluye la información de la ruta.</li><li>module_instance: nombre del módulo de diseño instanciado, generalmente el nombre del módulo de diseño digital instanciado en el testbench; tenga en cuenta mantener la coherencia jerárquica con la declaración en el contenido del archivo SDF.</li><li>log_file: registro sobre el SDF durante la compilación, para facilitar su consulta.</li><li>mtm_spec: especifica el tipo de retardo a utilizar; las opciones incluyen MAXIMUM, MINIMUM, TYPICAL, que indican respectivamente el uso del valor máximo, mínimo o típico anotado en el archivo SDF. Por supuesto, en el ejemplo anterior del archivo SDF no se proporcionan valores típicos.</li></ul>
+<h3>Simulación con specify</h3><p>A continuación se utiliza specify para realizar una simulación de temporización simple, con el fin de compararla con la simulación de temporización que usa el archivo SDF.</p>
+<p>La descripción lógica de una puerta AND con retardos especificados mediante specify es la siguiente:</p>
+<div class="example"> <div class="example_code">
+<span style="color: #A52A2A; font-weight: bold;">module</span> and_gate<span style="color: #9F79EE;">(</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">output</span>  Z<span style="color: #5D478B;">,</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">input</span>   A<span style="color: #5D478B;">,</span> B<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+<br/>
+   <span style="color: #A52A2A; font-weight: bold;">assign</span> Z <span style="color: #5D478B;">=</span> A <span style="color: #5D478B;">&amp;</span> B <span style="color: #5D478B;">;</span><br/>
+<br/>
+   <span style="color: #A52A2A; font-weight: bold;">specify</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">specparam</span> t_rise <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1.3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">1.5</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">1.7</span> <span style="color: #5D478B;">;</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">specparam</span> t_fall <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1.1</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">1.3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">1.6</span> <span style="color: #5D478B;">;</span><br/>
+      <span style="color: #9F79EE;">(</span>A<span style="color: #5D478B;">,</span> B  <span style="color: #5D478B;">*&gt;</span> Z<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">=</span> <span style="color: #9F79EE;">(</span>t_rise<span style="color: #5D478B;">,</span> t_fall<span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">endspecify</span><br/>
+<br/>
+ <span style="color: #A52A2A; font-weight: bold;">endmodule</span><br/>
+</div></div>
+<p>La descripción de un flip-flop D con retardos especificados mediante specify es la siguiente:</p>
+<div class="example"><h2 class="example">Ejemplo</h2> <div class="example_code">
+<span style="color: #A52A2A; font-weight: bold;">module</span> d_gate<span style="color: #9F79EE;">(</span><br/>
+            <span style="color: #A52A2A; font-weight: bold;">output</span>      Q <span style="color: #5D478B;">,</span><br/>
+            <span style="color: #A52A2A; font-weight: bold;">input</span>       D<span style="color: #5D478B;">,</span> CP<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+<br/>
+   <span style="color: #A52A2A; font-weight: bold;">reg</span>                  Q_r <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">always</span> <span style="color: #5D478B;">@</span><span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">posedge</span> CP<span style="color: #9F79EE;">)</span><br/>
+     Q_r <span style="color: #5D478B;">&lt;=</span> D <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">assign</span>       Q <span style="color: #5D478B;">=</span> Q_r <span style="color: #5D478B;">;</span><br/>
+<br/>
+   <span style="color: #A52A2A; font-weight: bold;">specify</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span>D <span style="color: #5D478B;">==</span> <span style="color: #ff0055;">1'b1</span><span style="color: #9F79EE;">)</span><br/>
+        <span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">posedge</span> CP <span style="color: #5D478B;">=&gt;</span> <span style="color: #9F79EE;">(</span>Q <span style="color: #5D478B;">+:</span> D<span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">=</span> <span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1.3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">1.5</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">1.7</span><span style="color: #5D478B;">,</span> <span style="color: #ff0055;">1.1</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">1.4</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">1.9</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span>D <span style="color: #5D478B;">==</span> <span style="color: #ff0055;">1'b0</span><span style="color: #9F79EE;">)</span><br/>
+        <span style="color: #9F79EE;">(</span><span style="color: #A52A2A; font-weight: bold;">posedge</span> CP <span style="color: #5D478B;">=&gt;</span> <span style="color: #9F79EE;">(</span>Q <span style="color: #5D478B;">+:</span> D<span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">=</span> <span style="color: #9F79EE;">(</span><span style="color: #ff0055;">1.2</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">1.4</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">1.6</span><span style="color: #5D478B;">,</span> <span style="color: #ff0055;">1.0</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">1.3</span><span style="color: #5D478B;">:</span><span style="color: #ff0055;">1.8</span><span style="color: #9F79EE;">)</span> <span style="color: #5D478B;">;</span><br/>
+      $setup<span style="color: #9F79EE;">(</span>D<span style="color: #5D478B;">,</span> <span style="color: #A52A2A; font-weight: bold;">posedge</span> CP<span style="color: #5D478B;">,</span> <span style="color: #ff0055;">1</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">endspecify</span><br/>
+<br/>
+<span style="color: #A52A2A; font-weight: bold;">endmodule</span><br/>
+</div></div>
+<p>La descripción del módulo de nivel superior es la siguiente; su función principal es introducir el resultado de la lógica AND al flip-flop D para almacenarlo en caché.</p>
+<div class="example"><h2 class="example">Ejemplo</h2> <div class="example_code">
+<span style="color: #A52A2A; font-weight: bold;">module</span> top<span style="color: #9F79EE;">(</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">output</span>  and_out<span style="color: #5D478B;">,</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">input</span>   in1<span style="color: #5D478B;">,</span> in2<span style="color: #5D478B;">,</span> clk<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+<br/>
+   <span style="color: #A52A2A; font-weight: bold;">wire</span>    res_tmp <span style="color: #5D478B;">;</span><br/>
+   and_gate u_and<span style="color: #9F79EE;">(</span>res_tmp<span style="color: #5D478B;">,</span> in1<span style="color: #5D478B;">,</span> in2<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+   d_gate   u_dt<span style="color: #9F79EE;">(</span>and_out<span style="color: #5D478B;">,</span> res_tmp<span style="color: #5D478B;">,</span> clk<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+<br/>
+<span style="color: #A52A2A; font-weight: bold;">endmodule</span><br/>
+</div></div>
+<p>La descripción del testbench es la siguiente; durante la simulación se establece "+maxdelays" para usar los valores máximos de retardo.</p>
+<div class="example"><h2 class="example">Ejemplo</h2> <div class="example_code">
+<span style="color: #008800;">`timescale</span> <span style="color: #ff0055;">1ns</span><span style="color: #5D478B;">/</span><span style="color: #ff0055;">1ps</span><br/>
+<span style="color: #A52A2A; font-weight: bold;">module</span> test <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">wire</span>         and_out <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">reg</span>          in1<span style="color: #5D478B;">,</span> in2 <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">reg</span>          clk <span style="color: #5D478B;">;</span><br/>
+<br/>
+   <span style="color: #A52A2A; font-weight: bold;">initial</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+      clk <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">0</span> <span style="color: #5D478B;">;</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">forever</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+          <span style="color: #5D478B;">#</span><span style="color: #9F79EE;">(</span><span style="color: #ff0055;">10</span><span style="color: #5D478B;">/</span><span style="color: #ff0055;">2</span><span style="color: #9F79EE;">)</span> clk <span style="color: #5D478B;">=</span> <span style="color: #5D478B;">~</span>clk <span style="color: #5D478B;">;</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+<br/>
+   <span style="color: #A52A2A; font-weight: bold;">initial</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+      in1 <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">0</span> <span style="color: #5D478B;">;</span> in2 <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">0</span> <span style="color: #5D478B;">;</span><br/>
+      <span style="color: #5D478B;">#</span> <span style="color: #ff0055;">32</span> <span style="color: #5D478B;">;</span><br/>
+      in1 <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1</span> <span style="color: #5D478B;">;</span> in2 <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1</span> <span style="color: #5D478B;">;</span><br/>
+      <span style="color: #5D478B;">#</span> <span style="color: #ff0055;">13</span> <span style="color: #5D478B;">;</span><br/>
+      in1 <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">1</span> <span style="color: #5D478B;">;</span> in2 <span style="color: #5D478B;">=</span> <span style="color: #ff0055;">0</span> <span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+<br/>
+   top   u_top<span style="color: #9F79EE;">(</span><br/>
+               .and_out <span style="color: #9F79EE;">(</span>and_out<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .in1     <span style="color: #9F79EE;">(</span>in1<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .in2     <span style="color: #9F79EE;">(</span>in2<span style="color: #9F79EE;">)</span><span style="color: #5D478B;">,</span><br/>
+               .clk     <span style="color: #9F79EE;">(</span>clk<span style="color: #9F79EE;">)</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+<br/>
+   <span style="color: #A52A2A; font-weight: bold;">initial</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">forever</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+         <span style="color: #5D478B;">#</span><span style="color: #ff0055;">100</span><span style="color: #5D478B;">;</span><br/>
+         <span style="color: #A52A2A; font-weight: bold;">if</span> <span style="color: #9F79EE;">(</span><span style="color: #9932CC;">$time</span> <span style="color: #5D478B;">&gt;=</span> <span style="color: #ff0055;">1000</span><span style="color: #9F79EE;">)</span>  <span style="color: #9932CC;">$finish</span> <span style="color: #5D478B;">;</span><br/>
+      <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+<br/>
+<span style="color: #A52A2A; font-weight: bold;">endmodule</span> <span style="color: #00008B; font-style: italic;">// test</span><br/>
+</div></div>
+<p>La temporización de la simulación se muestra a continuación; de la figura se puede observar:</p><ul><li>(1) El retardo de subida desde las entradas A/B de la puerta AND hasta la salida Z es 33.7-32=1.7ns;</li><li>(2) El retardo de interconexión desde la salida Z de la puerta AND hasta la entrada D del flip-flop es 0;</li><li>(3) La diferencia de tiempo entre el terminal D y el terminal CP del flip-flop es 35-33.7=1.3ns, mayor que el 1ns establecido en la comprobación de setup, por lo que la temporización cumple los requisitos y no existe violation.</li><li>(4) El retardo de subida desde el terminal CP del flip-flop hasta la salida Q es 36.7-35=1.7ns.</li></ul>
+<p>En resumen, los resultados de la simulación coinciden con los parámetros de diseño.</p>
+<p><img decoding="async" src="../wp-content/uploads/2021/05/v-sdf-2.png"/></p>
+<h3>Simulación con SDF</h3><p>Manteniendo sin cambios los parámetros involucrados en el ejemplo del archivo SDF, se integran las descripciones de múltiples CELL en un archivo SDF completo, denominado "simple_test.sdf".</p><p>Agregue las siguientes sentencias en el testbench para retroanotar la información de retardo del archivo SDF en el módulo top del diseño y realizar nuevamente la simulación de temporización.</p>
+<div class="example"> <div class="example_code">
+   <span style="color: #A52A2A; font-weight: bold;">initial</span> <span style="color: #A52A2A; font-weight: bold;">begin</span><br/>
+      $sdf_annotate<span style="color: #9F79EE;">(</span><span style="color: #FF00FF;">"../rtl/simple_test.sdf"</span><span style="color: #5D478B;">,</span> u_top<span style="color: #5D478B;">,</span> <span style="color: #5D478B;">,</span> <span style="color: #FF00FF;">"sdf.log"</span><span style="color: #5D478B;">,</span> <span style="color: #FF00FF;">"MAXIMUM"</span><span style="color: #5D478B;">,</span> <span style="color: #5D478B;">,</span><span style="color: #9F79EE;">)</span><span style="color: #5D478B;">;</span><br/>
+   <span style="color: #A52A2A; font-weight: bold;">end</span><br/>
+</div></div>
+<p>La temporización de la simulación y la información impresa en el log son las siguientes; de la figura se puede observar:</p><ul><li>(1) El retardo de subida desde las entradas A/B de la puerta AND hasta la salida Z es 33.8-32=1.8ns;</li><li>(2) El retardo de interconexión desde la salida Z de la puerta AND hasta la entrada D del flip-flop es 34.551-33.8=0.751ns, ya no es 0.</li><li>(3) La diferencia de tiempo entre el terminal D del flip-flop y el terminal CP es 35-34.551=0.449ns, menor que el 1ns establecido en el setup check, por lo que el timing no cumple el requisito y se imprimirá información de que existe una violation.</li><li>(4) El retardo de subida desde el terminal CP del flip-flop hasta la salida Q es 37.3-35=2.3ns;</li></ul>
+<p>En resumen, los resultados de simulación cumplen con los parámetros de diseño, pero el timing presenta una violation. La razón principal es que los datos en la entrada de la compuerta AND y el reloj del flip-flop son asíncronos y no están correlacionados. Para resolver este tipo de problemas asíncronos, consulte el siguiente capítulo «Capítulo 4: Síncrono y asíncrono».</p>
+<p><img decoding="async" src="../wp-content/uploads/2021/05/v-sdf-3.png"/></p>
+<p><img decoding="async" src="../wp-content/uploads/2021/05/v-sdf-4.png"/></p>
+<p>
+<strong>Cabe señalar que:</strong></p>
+<p>En comparación con las declaraciones de bloque specify, los archivos SDF también pueden especificar el retardo de cable (wire delay) entre módulos.</p>
+<p>En general, usar archivos SDF para especificar la información de timing de una netlist a nivel de layout es lo más cercano al circuito digital real; en comparación con la netlist rtl o la netlist de compuertas sintetizada, el timing de esta versión es el peor.</p>
+<p>Cuando el archivo SDF especifica retardos de ruta dentro de un módulo, el bloque specify del módulo original debe conservarse, y las condiciones, tipos, etc. de los retardos especificados en el bloque specify y en el archivo SDF deben ser consistentes; los valores de retardo pueden ser diferentes. Por ejemplo, en el bloque specify se especifica un retardo incondicional:</p>
+<pre>(A =&gt; Z) = (1.3, 1.7) ;</pre><p>En el archivo SDF se especifica un retardo condicional:</p>
+<pre>(COND A==1'b1&amp;&amp;B==1'b1 (IOPATH A Z (1.5::1.8) (1.3::1.7)))</pre><p>Entonces, en la etapa de compilación se reportará la SDF Warning "IOPATH from A to Z is not found.". Los retardos establecidos por el archivo SDF no son válidos. Aquí, el archivo SDF también debería usar el método incondicional para especificar los retardos de ruta.</p>
+<p>Esta vez, el archivo SDF fue escrito manualmente solo para presentar el archivo SDF y su uso. En la práctica, los archivos SDF son generados por los diseñadores con la ayuda de herramientas de diseño IC (por ejemplo, PrimeTime), y no hay que preocuparse demasiado por la nota anterior; solo preste atención al depurar. En general, la cantidad de netlists de compuertas en el diseño digital es enorme, y no es práctico escribir manualmente archivos SDF.</p>
+<h3>Descarga del código fuente de este capítulo</h3><p>
+<a class="download" href="../wp-content/uploads/2021/05/v3.5_sdf.zip">Download</a> </p> </div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link">← <a href="./verilog2-timing-check.html" rel="prev">3.4 Verificación de timing en Verilog</a> </div>
+<div class="next-design-link"><a href="./verilog-sync.html" rel="next">4.1 Síncrono y asíncrono en Verilog</a> →</div>
+</div>
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>Haz clic para compartir notas</h3>
+&lt;p style="font-size:14px;"&gt;¡La nota debe ser una extensión del contenido de este artículo!&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;Contribución de artículos, haga clic aquí&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;Cómo obtener el código de invitación de registro&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; ¡Debe &lt;a href=".." class="runoob-pop"&gt;iniciar sesión&lt;/a&gt; antes de compartir notas!&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;Cómo obtener el código de invitación de registro&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=".." id="cancel-comment-reply-link">Cancelar</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="23708"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>Compartir notas</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">Apodo</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">Apodo (obligatorio)</span></li>
+<li class="form-inline"><label class="hide" for="email">Correo electrónico</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">Correo electrónico (obligatorio)</span></li>
+<li class="form-inline"><label class="hide" for="url">URL de referencia</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">URL de referencia</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  23708;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 23708, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":23708},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+<style>
+@media screen and (max-width: 768px) {
+	#w3cnote-ad728 {
+		display: none;
+	}
+}
+p.note-author {
+    border-bottom: 1px solid #ddd;
+    font-size: 18px;
+    font-weight: bold;
+    color: #78a15a;
+    padding-bottom: 2px;
+    margin-bottom: 4px;
+}
+</style>
+<script>
+var aid = 23708;
+</script>
+</div>
+</div>
+<div class="listcol last right-column">
+<script type="text/javascript">
+jQuery(document).ready(function ($){
+	var total = $(".membership li").length;
+	var left_list = '';
+	href = window.location.href;
+	
+	$(".membership li").each(function(index, value){
+
+		left_list += $(this).html();
+
+		cur_href = $(this).find("a").attr("href");
+		cur_obj = $(this);
+		
+		if(href.match(cur_href) != null) {
+			if(index==0) {
+				$(".previous-design-link").hide();
+			}
+			if(index==(total-1)) {
+				$(".next-design-link").hide();
+			}
+			prev_href = cur_obj.prev("li").find("a").attr("href");
+			prev_title = cur_obj.prev("li").find("a").attr("title");
+
+			next_href = cur_obj.next("li").find("a").attr("href");
+			next_title = cur_obj.next("li").find("a").attr("title");
+			if(prev_title) {
+				$(".previous-design-link a").attr("href", prev_href);
+				$(".previous-design-link a").attr("title", prev_title);
+				$(".previous-design-link a").text(prev_title);
+			} else {
+				$(".previous-design-link").html("");
+			}
+
+			if(next_title) {
+				$(".next-design-link a").attr("href", next_href);
+				$(".next-design-link a").attr("title", next_title);
+				$(".next-design-link a").text(next_title);
+			} else {
+				$(".next-design-link").html("");
+			}
+		}
+	});
+
+	$("#leftcolumn").html(left_list);
+});
+	</script>
+<div class="sidebar-box cate-list">
+<div class="sidebar-box recommend-here list-link">
+<a href="#">Verilog 高级教程</a> </div>
+<ul class="membership">
+<li><a data-id="23639" href="./verilog2-tutorial.html" target="_top" title="0.1 数字逻辑设计">0.1 数字逻辑设计</a></li>
+<li><a data-id="23641" href="./verilog2-codestyle.html" target="_top" title="0.2 Verilog 编码风格">0.2 Verilog 编码风格</a></li>
+<li><a data-id="23644" href="./verilog2-codeguide.html" target="_top" title="0.3 Verilog 代码规范">0.3 Verilog 代码规范</a></li>
+<li><a data-id="23645" href="./verilog2-gate.html" target="_top" title="1.1 Verilog 门的类型">1.1 Verilog 门的类型</a></li>
+<li><a data-id="23648" href="./verilog2-level-modeling.html" target="_top" title="1.2 Verilog 开关级建模">1.2 Verilog 开关级建模</a></li>
+<li><a data-id="23656" href="./verilog2-gate-delay.html" target="_top" title="1.3 Verilog 门延迟">1.3 Verilog 门延迟</a></li>
+<li><a data-id="23673" href="./verilog2-udp.html" target="_top" title="2.1 Verilog UDP 基础知识">2.1 Verilog UDP 基础知识</a></li>
+<li><a data-id="23674" href="./verilog2-udp-logic.html" target="_top" title="2.2 Verilog 组合逻辑 UDP">2.2 Verilog 组合逻辑 UDP</a></li>
+<li><a data-id="23677" href="./verilog2-udp-timing.html" target="_top" title="2.3 Verilog 时序逻辑 UDP">2.3 Verilog 时序逻辑 UDP</a></li>
+<li><a data-id="23685" href="./verilog2-delay-type.html" target="_top" title="3.1 Verilog 延迟模型">3.1 Verilog 延迟模型</a></li>
+<li><a data-id="23690" href="./verilog2-specify.html" target="_top" title="3.2 Verilog specify 块语句">3.2 Verilog specify 块语句</a></li>
+<li><a data-id="23692" href="./verilog2-setup-hold-time.html" target="_top" title="3.3 Verilog 建立时间和保持时间">3.3 Verilog 建立时间和保持时间</a></li>
+<li><a data-id="23701" href="./verilog2-timing-check.html" target="_top" title="3.4 Verilog 时序检查">3.4 Verilog 时序检查</a></li>
+<li>
+	3.5 Verilog 延迟反标注	</li>
+<li><a data-id="23714" href="./verilog-sync.html" target="_top" title="4.1 Verilog 同步与异步">4.1 Verilog 同步与异步</a></li>
+<li><a data-id="23725" href="./verilog2-slow2fast.html" target="_top" title="4.2 Verilog 跨时钟域传输：慢到快">4.2 Verilog 跨时钟域传输：慢到快</a></li>
+<li><a data-id="23729" href="./verilog2-fast2slow.html" target="_top" title="4.3 Verilog 跨时钟域传输：快到慢">4.3 Verilog 跨时钟域传输：快到慢</a></li>
+<li><a data-id="23731" href="./verilog2-fifo.html" target="_top" title="4.4 Verilog FIFO 设计">4.4 Verilog FIFO 设计</a></li>
+<li><a data-id="23739" href="./verilog2-reset.html" target="_top" title="5.1 Verilog 复位简介">5.1 Verilog 复位简介</a></li>
+<li><a data-id="23743" href="./verilog2-clock.html" target="_top" title="5.2 Verilog 时钟简介">5.2 Verilog 时钟简介</a></li>
+<li><a data-id="23757" href="./verilog2-clock-division.html" target="_top" title="5.3 Verilog 时钟分频">5.3 Verilog 时钟分频</a></li>
+<li><a data-id="23768" href="./verilog2-clock-switch.html" target="_top" title="5.4 Verilog 时钟切换">5.4 Verilog 时钟切换</a></li>
+<li><a data-id="23779" href="./verilog2-low-power.html" target="_top" title="6.1 Verilog 低功耗简介">6.1 Verilog 低功耗简介</a></li>
+<li><a data-id="23788" href="./verilog2-lower-power-design.html" target="_top" title="6.2 Verilog 系统级低功耗设计">6.2 Verilog 系统级低功耗设计</a></li>
+<li><a data-id="23792" href="./verilog2-rtl-low-power-design-1.html" target="_top" title="6.3 Verilog  RTL 级低功耗设计（上）">6.3 Verilog  RTL 级低功耗设计（上）</a></li>
+<li><a data-id="23796" href="./verilog2-rtl-low-power-design-2.html" target="_top" title="6.4 Verilog RTL 级低功耗设计（下）">6.4 Verilog RTL 级低功耗设计（下）</a></li>
+<li><a data-id="23806" href="./verilog2-display.html" target="_top" title="7.1 Verilog 显示任务">7.1 Verilog 显示任务</a></li>
+<li><a data-id="23813" href="./verilog2-file.html" target="_top" title="7.2 Verilog 文件操作">7.2 Verilog 文件操作</a></li>
+<li><a data-id="23825" href="./verilog2-random.html" target="_top" title="7.3 Verilog 随机数及概率分布">7.3 Verilog 随机数及概率分布</a></li>
+<li><a data-id="23847" href="./verilog2-real2int.html" target="_top" title="7.4 Verilog 实数整数转换">7.4 Verilog 实数整数转换</a></li>
+<li><a data-id="23851" href="./verilog2-other-task.html" target="_top" title="7.5 Verilog 其他系统任务">7.5 Verilog 其他系统任务</a></li>
+<li><a data-id="23862" href="./verilog2-pli-intro.html" target="_top" title="8.1 Verilog  PLI 简介">8.1 Verilog  PLI 简介</a></li>
+<li><a data-id="23865" href="./verilog2-tf.html" target="_top" title="8.2 Verilog TF 子程序">8.2 Verilog TF 子程序</a></li>
+<li><a data-id="23869" href="./verilog2-tf-sub.html" target="_top" title="8.3 Verilog TF 子程序列表">8.3 Verilog TF 子程序列表</a></li>
+<li><a data-id="23870" href="./verilog2-acc.html" target="_top" title="8.4 Verilog ACC 子程序">8.4 Verilog ACC 子程序</a></li>
+<li><a data-id="23872" href="./verilog2-acc-sub.html" target="_top" title="8.5 Verilog ACC 子程序列表">8.5 Verilog ACC 子程序列表</a></li>
+<li><a data-id="23876" href="./verilog2-logic-sumarry.html" target="_top" title="9.1 Verilog 逻辑综合">9.1 Verilog 逻辑综合</a></li>
+<li><a data-id="23882" href="./verilog2-integrated-design.html" target="_top" title="9.2 Verilog 可综合性设计">9.2 Verilog 可综合性设计</a></li>
+</ul></div> </div>
+</div>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+</div><script src="../../lang-switcher.js"></script>
+</body>
+</html>

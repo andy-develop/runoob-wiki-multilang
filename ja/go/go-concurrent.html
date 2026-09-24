@@ -1,0 +1,1334 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Go 並行処理 | 初心者向けチュートリアル</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<link href="../manifest.webmanifest.html" rel="manifest"/>
+<meta content="#10151c" name="theme-color"/>
+<link href="../pwa/icon-192.png.html" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="application-name"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="../go/go-concurrent.html" rel="canonical"/>
+<meta content="Go 并发" name="keywords"/>
+<meta content="Go 并发  并发是指程序同时执行多个任务的能力。 Go 语言支持并发，通过 goroutines 和 channels 提供了一种简洁且高效的方式来实现并发。 Goroutines：Go 中的并发执行单位，类似于轻量级的线程。Goroutine 的调度由 Go 运行时管理，用户无需手动分配线程。使用 go 关键字启动 Goroutine。Goroutine 是非阻塞的，可以高效地运行成千上万个 Goroutine。 Channel：G.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div>
+<!-- 导航栏 -->
+<style>
+/* 主题切换按钮 */
+/* ===== 主题变量（核心）===== */
+:root {
+  --theme-bg: #ffffff;
+  --theme-border: #e5e7eb;
+  --theme-icon: #333;
+  --theme-hover: #f3f4f6;
+}
+
+.dark {
+  --theme-bg: #1f2937;
+  --theme-border: #374151;
+  --theme-icon: #e5e7eb;
+  --theme-hover: #374151;
+}
+
+/* ===== 按钮容器 ===== */
+.nav-theme-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== 按钮本体 ===== */
+.nav-theme-toggle button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  border-radius: 6px;
+  border: 1px solid var(--theme-border);
+
+  background: var(--theme-bg);
+  color: var(--theme-icon);
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* ===== 图标大小 ===== */
+.nav-theme-toggle i {
+  font-size: 14px;
+}
+
+/* ===== hover 效果 ===== */
+.nav-theme-toggle button:hover {
+  background: var(--theme-hover);
+  transform: translateY(-1px);
+}
+
+/* ===== 点击反馈 ===== */
+.nav-theme-toggle button:active {
+  transform: scale(0.95);
+}
+
+/* ===== 当前激活态（可选）===== */
+.nav-theme-toggle button.active {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+</style>
+<!-- 导航栏 -->
+<nav aria-label="主导航" class="container navigation">
+<div class="row">
+<div class="col nav">
+<!-- PC 导航 -->
+<ul class="pc-nav" id="runoob-detail-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../js/js-tutorial.html">JavaScript</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a data-id="vue" href="#">Vue</a></li>
+<li><a href="../react/react-tutorial.html">React</a></li>
+<li><a href="../python3/python3-tutorial.html">Python3</a></li>
+<li><a href="../java/java-tutorial.html">Java</a></li>
+<li><a href="../cprogramming/c-tutorial.html">C</a></li>
+<li><a href="../cplusplus/cpp-tutorial.html">C++</a></li>
+<li><a href="../csharp/csharp-tutorial.html">C#</a></li>
+<li><a data-id="aiNav" href="#">AI</a></li>
+<li><a href="../go/go-tutorial.html">Go</a></li>
+<li><a href="../sql/sql-tutorial.html">SQL</a></li>
+<li><a href="../linux/linux-tutorial.html">Linux</a></li>
+<li><a href="../vscode/vscode-tutorial.html">VS Code</a></li>
+<li><a data-id="bootstrap" href="#">Bootstrap</a></li>
+<li><a href="../git/git-tutorial.html">Git</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<!-- 主题切换按钮，固定在最右侧 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+<!-- 移动端导航 -->
+<ul class="mobile-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a href="../js/js-tutorial.html">JS</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<li><a class="search-reveal" href="#">搜索</a></li>
+<!-- 移动端主题切换 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon-mobile" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun-mobile" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<!-- 二级导航 -->
+<!--  内容  -->
+<div class="container main">
+<!-- 中间 -->
+<div class="row">
+<div class="runoob-col-md2">
+<div class="left-column">
+<div class="tab" style="overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
+<i aria-hidden="true" class="fa fa-list"></i>
+<span>Go 语言教程</span>
+</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+<a data-p="par" href="../go/go-tutorial.html" target="_top" title="Go 语言教程">
+			Go 语言教程			</a>
+<a href="../go/go-intro.html" target="_top" title="Go 简介">Go 简介</a> <a data-p="par" href="../go/go-environment.html" target="_top" title="Go 语言环境安装">
+			Go 语言环境安装			</a>
+<a data-p="par" href="../go/go-vscode.html" target="_top" title="Go 开发工具">Go 开发工具</a> <a data-p="par" href="../go/go-program-structure.html" target="_top" title="Go 语言结构">
+			Go 语言结构			</a>
+<a data-p="par" href="../go/go-basic-syntax.html" target="_top" title="Go 语言基础语法">
+			Go 语言基础语法			</a>
+<a data-p="par" href="../go/go-data-types.html" target="_top" title="Go 语言数据类型">
+			Go 语言数据类型			</a>
+<a data-p="par" href="../go/go-variables.html" target="_top" title="Go 语言变量">
+			Go 语言变量			</a>
+<a data-p="par" href="../go/go-constants.html" target="_top" title="Go 语言常量">
+			Go 语言常量			</a>
+<a data-p="par" href="../go/go-operators.html" target="_top" title="Go 语言运算符">
+			Go 语言运算符			</a>
+<a data-p="par" href="../go/go-decision-making.html" target="_top" title="Go 语言条件语句">
+			Go 语言条件语句			</a>
+<a data-p="par" href="../go/go-loops.html" target="_top" title="Go 语言循环语句">
+			Go 语言循环语句			</a>
+<a data-p="par" href="../go/go-functions.html" target="_top" title="Go 语言函数">
+			Go 语言函数			</a>
+<a data-p="par" href="../go/go-scope-rules.html" target="_top" title="Go 语言变量作用域">
+			Go 语言变量作用域			</a>
+<a data-p="par" href="../go/go-arrays.html" target="_top" title="Go 语言数组">
+			Go 语言数组			</a>
+<a data-p="par" href="../go/go-pointers.html" target="_top" title="Go 语言指针">
+			Go 语言指针			</a>
+<a data-p="par" href="../go/go-structures.html" target="_top" title="Go 语言结构体">
+			Go 语言结构体			</a>
+<a data-p="par" href="../go/go-slice.html" target="_top" title="Go 语言切片(Slice)">
+			Go 语言切片(Slice)			</a>
+<a data-p="par" href="../go/go-range.html" target="_top" title="Go 语言范围(Range)">
+			Go 语言范围(Range)			</a>
+<a data-p="par" href="../go/go-map.html" target="_top" title="Go 语言 Map(集合)">
+			Go 语言 Map(集合)			</a>
+<a data-p="par" href="../go/go-recursion.html" target="_top" title="Go 语言递归函数">
+			Go 语言递归函数			</a>
+<a data-p="par" href="../go/go-type-casting.html" target="_top" title="Go 语言类型转换">
+			Go 语言类型转换			</a>
+<a data-p="par" href="../go/go-interfaces.html" target="_top" title="Go 语言接口">
+			Go 语言接口			</a>
+<a href="../go/go-generics.html" target="_top" title="Go 语言泛型">Go 语言泛型</a> <a data-p="par" href="../go/go-error-handling.html" target="_top" title="Go 错误处理">
+			Go 错误处理			</a>
+<a href="../go/go-concurrent.html" target="_top" title="Go 并发">Go 并发</a>
+<a href="../go/go-file-handle.html" target="_top" title="Go 文件处理">Go 文件处理</a>
+<a href="../go/go-regex.html" target="_top" title="Go 语言正则表达式">Go 语言正则表达式</a>
+<a href="../go/go-type-assertion.html" target="_top" title="Go 类型断言">Go 类型断言</a>
+<a href="../go/go-inheritance.html" target="_top" title="Go 继承">Go 继承</a> <a data-p="par" href="../go/go-ide.html" target="_top" title="Go 语言开发工具">
+			Go 语言开发工具			</a>
+<a data-p="par" href="../go/go-quiz.html" target="_top" title="Go 语言测验">
+			Go 语言测验			</a>
+<a data-p="par" href="../go/go-modules.html" target="_top" title="Go Modules">
+			Go Modules			</a>
+<a data-p="par" href="../go/go-vscode.html" target="_top" title="使用 VSCode 开发 Go">
+			使用 VSCode 开发 Go			</a>
+</div>
+</div>
+</div>
+</div> <div class="col middle-column">
+<div class="article">
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../go/go-ide.html" rel="prev">Go 言語開発ツール</a> </div>
+<div class="next-design-link"><a href="../go/go-fmt-sprintf.html" rel="next">Go fmt.Sprintf による文字列の書式設定</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="article-body">
+<div class="article-intro" id="content">
+<h1>Go 並行処理</h1>
+<p>並行処理とは、プログラムが同時に複数のタスクを実行する能力のことです。</p>
+<p>Go 言語は並行処理をサポートし、goroutines と channels を通じて、シンプルで効率的な並行処理の実装方法を提供します。</p>
+<p><strong>Goroutines：</strong></p><ul><li>Go における並行処理の実行単位で、軽量なスレッドに似ています。</li><li>Goroutine のスケジューリングは Go ランタイムによって管理され、ユーザーが手動でスレッドを割り当てる必要はありません。</li><li>go キーワードを使用して<code>go</code>Goroutine を起動します。</li><li>Goroutine はノンブロッキングであり、何千何万もの Goroutine を効率的に実行できます。</li></ul>
+<p><strong>Channel：</strong></p><ul><li>Go において Goroutine 間で通信するための仕組みです。</li><li>同期とデータ共有をサポートし、明示的なロック機構を避けます。</li><li>chan キーワードを使用して<code>chan</code>作成し、&lt;- 演算子で<code>&lt;-</code>データを送受信します。</li></ul>
+<p><strong>Scheduler（スケジューラ）：</strong></p>
+<p>Go のスケジューラは GMP モデルに基づいており、Goroutine をシステムスレッドに割り当てて実行し、M と P の連携によって並行処理を効率的に管理します。</p>
+<ul><li><strong>G</strong>：Goroutine。</li><li><strong>M</strong>：システムスレッド（Machine）。</li><li><strong>P</strong>：論理プロセッサ（Processor）。</li></ul>
+<hr/><h2>Goroutine</h2>
+<p>goroutine は軽量なスレッドであり、goroutine のスケジューリングは Golang ランタイムによって管理されます。</p>
+<p>goroutine の構文形式：</p>
+<pre>go 函数名( 参数列表 )</pre>
+<p>例：</p>
+<pre>go f(x, y, z)</pre>
+<p>新しい goroutine を起動する：</p>
+<pre>f(x, y, z)</pre>
+<p>Go では、go 文を使用して新しい実行時スレッド、すなわち goroutine を起動し、新しく作成された別の goroutine で関数を実行できます。同じプログラム内のすべての goroutine は同じアドレス空間を共有します。</p>
+<div class="example"><h2 class="example">例</h2><div class="example_code">
+<span style="color: #b1b100; font-weight: bold;">package</span> main<br/>
+<br/>
+<span style="color: #b1b100; font-weight: bold;">import</span> <span style="color: #339933;">(</span><br/>
+        <span style="color: #cc66cc;">"fmt"</span><br/>
+        <span style="color: #cc66cc;">"time"</span><br/>
+<span style="color: #339933;">)</span><br/>
+<br/>
+<span style="color: #993333;">func</span> sayHello<span style="color: #339933;">()</span> <span style="color: #339933;">{</span><br/>
+        <span style="color: #b1b100; font-weight: bold;">for</span> <span style="">i</span> <span style="color: #339933;">:=</span> <span style="color: #cc66cc;">0</span><span style="color: #339933;">;</span> <span style="">i</span> &lt; <span style="color: #cc66cc;">5</span><span style="color: #339933;">;</span> <span style="">i</span><span style="color: #339933;">++</span> <span style="color: #339933;">{</span><br/>
+                fmt<span style="color: #339933;">.</span>Println<span style="color: #339933;">(</span><span style="color: #cc66cc;">"Hello"</span><span style="color: #339933;">)</span><br/>
+                time<span style="color: #339933;">.</span>Sleep<span style="color: #339933;">(</span><span style="color: #cc66cc;">100</span> <span style="color: #339933;">*</span> time<span style="color: #339933;">.</span>Millisecond<span style="color: #339933;">)</span><br/>
+        <span style="color: #339933;">}</span><br/>
+<span style="color: #339933;">}</span><br/>
+<br/>
+<span style="color: #993333;">func</span> main<span style="color: #339933;">()</span> <span style="color: #339933;">{</span><br/>
+        <span style="color: #b1b100; font-weight: bold;">go</span> sayHello<span style="color: #339933;">()</span> <span style="color: #666666; font-style: italic;">// Goroutine を起動</span><br/>
+        <span style="color: #b1b100; font-weight: bold;">for</span> <span style="">i</span> <span style="color: #339933;">:=</span> <span style="color: #cc66cc;">0</span><span style="color: #339933;">;</span> <span style="">i</span> &lt; <span style="color: #cc66cc;">5</span><span style="color: #339933;">;</span> <span style="">i</span><span style="color: #339933;">++</span> <span style="color: #339933;">{</span><br/>
+                fmt<span style="color: #339933;">.</span>Println<span style="color: #339933;">(</span><span style="color: #cc66cc;">"Main"</span><span style="color: #339933;">)</span><br/>
+                time<span style="color: #339933;">.</span>Sleep<span style="color: #339933;">(</span><span style="color: #cc66cc;">100</span> <span style="color: #339933;">*</span> time<span style="color: #339933;">.</span>Millisecond<span style="color: #339933;">)</span><br/>
+        <span style="color: #339933;">}</span><br/>
+<span style="color: #339933;">}</span><br/>
+</div></div>
+<p>上記のコードを実行すると、出力に Main と Hello が表示されます。出力には固定された順序はありません。これらは 2 つの goroutine によって実行されるためです：</p>
+<pre>Main
+Hello
+Main
+Hello
+...
+</pre>
+<hr/>
+<h2>チャネル（Channel）</h2>
+<p>チャネル（Channel）は Goroutine 間のデータ受け渡しに使用されます。</p>
+<p>チャネルは、指定された型の値を渡すことで、2 つの goroutine 間の同期実行と通信に使用できます。</p>
+<p>make 関数を使用して<code>make</code>channel を作成し、&lt;- 演算子で<code>&lt;-</code>データを送受信します。方向が指定されていない場合は、双方向チャネルになります。</p>
+<pre>ch &lt;- v    // 把 v 发送到通道 ch
+v := &lt;-ch  // 从 ch 接收数据
+           // 并把值赋给 v</pre>
+<p>チャネルの宣言はとても簡単で、chan キーワードを使用するだけです。チャネルは使用する前に必ず作成する必要があります：</p>
+<pre>ch := make(chan int)</pre>
+<p>
+<strong>注意</strong>：デフォルトでは、チャネルにはバッファがありません。送信側がデータを送信するとき、同時に受信側が対応するデータを受信する必要があります。</p>
+<p>次の例では、2 つの goroutine を使用して数値の合計を計算しています。各 goroutine が計算を完了した後、2 つの結果の合計を計算します：</p>
+<div class="example"><h2 class="example">例</h2><div class="example_code">
+<span style="color: #b1b100; font-weight: bold;">package</span> main<br/>
+<br/>
+<span style="color: #b1b100; font-weight: bold;">import</span> <span style="color: #cc66cc;">"fmt"</span><br/>
+<br/>
+<span style="color: #993333;">func</span> sum<span style="color: #339933;">(</span>s <span style="color: #339933;">[]</span><span style="color: #993333;">int</span><span style="color: #339933;">,</span> c <span style="color: #993333;">chan</span> <span style="color: #993333;">int</span><span style="color: #339933;">)</span> <span style="color: #339933;">{</span><br/>
+    sum <span style="color: #339933;">:=</span> <span style="color: #cc66cc;">0</span><br/>
+    <span style="color: #b1b100; font-weight: bold;">for</span> _<span style="color: #339933;">,</span> v <span style="color: #339933;">:=</span> <span style="color: #b1b100; font-weight: bold;">range</span> s <span style="color: #339933;">{</span><br/>
+        sum <span style="color: #339933;">+=</span> v<br/>
+    <span style="color: #339933;">}</span><br/>
+    c &lt;<span style="color: #339933;">-</span> sum <span style="color: #666666; font-style: italic;">// sum をチャネル c に送信</span><br/>
+<span style="color: #339933;">}</span><br/>
+<br/>
+<span style="color: #993333;">func</span> main<span style="color: #339933;">()</span> <span style="color: #339933;">{</span><br/>
+    s <span style="color: #339933;">:=</span> <span style="color: #339933;">[]</span><span style="color: #993333;">int</span><span style="color: #339933;">{</span><span style="color: #cc66cc;">7</span><span style="color: #339933;">,</span> <span style="color: #cc66cc;">2</span><span style="color: #339933;">,</span> <span style="color: #cc66cc;">8</span><span style="color: #339933;">,</span> <span style="color: #339933;">-</span><span style="color: #cc66cc;">9</span><span style="color: #339933;">,</span> <span style="color: #cc66cc;">4</span><span style="color: #339933;">,</span> <span style="color: #cc66cc;">0</span><span style="color: #339933;">}</span><br/>
+<br/>
+    c <span style="color: #339933;">:=</span> <span style="color: #000066;">make</span><span style="color: #339933;">(</span><span style="color: #993333;">chan</span> <span style="color: #993333;">int</span><span style="color: #339933;">)</span><br/>
+    <span style="color: #b1b100; font-weight: bold;">go</span> sum<span style="color: #339933;">(</span>s<span style="color: #339933;">[:</span><span style="color: #000066;">len</span><span style="color: #339933;">(</span>s<span style="color: #339933;">)</span><span style="color: #339933;">/</span><span style="color: #cc66cc;">2</span><span style="color: #339933;">],</span> c<span style="color: #339933;">)</span><br/>
+    <span style="color: #b1b100; font-weight: bold;">go</span> sum<span style="color: #339933;">(</span>s<span style="color: #339933;">[</span><span style="color: #000066;">len</span><span style="color: #339933;">(</span>s<span style="color: #339933;">)</span><span style="color: #339933;">/</span><span style="color: #cc66cc;">2</span><span style="color: #339933;">:],</span> c<span style="color: #339933;">)</span><br/>
+    x<span style="color: #339933;">,</span> y <span style="color: #339933;">:=</span> &lt;<span style="color: #339933;">-</span>c<span style="color: #339933;">,</span> &lt;<span style="color: #339933;">-</span>c <span style="color: #666666; font-style: italic;">// チャネル c から受信</span><br/>
+<br/>
+    fmt<span style="color: #339933;">.</span><span style="">Println</span><span style="color: #339933;">(</span>x<span style="color: #339933;">,</span> y<span style="color: #339933;">,</span> x<span style="color: #339933;">+</span>y<span style="color: #339933;">)</span><br/>
+<span style="color: #339933;">}</span><br/>
+</div></div>
+<p>出力結果は次のとおりです：</p>
+<pre>-5 17 12</pre>
+<h3>チャネルのバッファ</h3>
+<p>チャネルにはバッファを設定できます。make の 2 番目のパラメータでバッファサイズを指定します：</p>
+<pre>ch := make(chan int, 100)</pre>
+<p>バッファ付きチャネルでは、送信側のデータ送信と受信側のデータ取得を非同期にできます。つまり、送信側が送信したデータはバッファに格納され、受信側がデータを取得するのを待つことができます。受信側がすぐにデータを取得する必要はありません。</p>
+<p>ただし、バッファのサイズは有限であるため、受信側がデータを受信する必要があります。そうしないと、バッファがいっぱいになると、送信側はデータを送信できなくなります。</p>
+<p><strong>注意</strong>：バッファがないチャネルの場合、送信側は受信側がチャネルから値を受信するまでブロックされます。バッファ付きチャネルの場合、送信側は送信された値がバッファにコピーされるまでブロックされます。バッファが満杯の場合は、いずれかの受信側が値を受け取るまで待つ必要があることを意味します。受信側は、受信できる値があるまでブロックされ続けます。</p>
+<div class="example"><h2 class="example">例</h2><div class="example_code">
+<span style="color: #b1b100; font-weight: bold;">package</span> main<br/>
+<br/>
+<span style="color: #b1b100; font-weight: bold;">import</span> <span style="color: #cc66cc;">"fmt"</span><br/>
+<br/>
+<span style="color: #993333;">func</span> main<span style="color: #339933;">()</span> <span style="color: #339933;">{</span><br/>
+    <span style="color: #666666; font-style: italic;">// ここでは整数型を格納できるバッファ付きチャネルを定義します</span><br/>
+    <span style="color: #666666; font-style: italic;">// バッファサイズは 2</span><br/>
+    ch <span style="color: #339933;">:=</span> <span style="color: #000066;">make</span><span style="color: #339933;">(</span><span style="color: #993333;">chan</span> <span style="color: #993333;">int</span><span style="color: #339933;">,</span> <span style="color: #cc66cc;">2</span><span style="color: #339933;">)</span><br/>
+<br/>
+    <span style="color: #666666; font-style: italic;">// ch はバッファ付きチャネルなので、2 つのデータを同時に送信できます</span><br/>
+    <span style="color: #666666; font-style: italic;">// すぐに同期読み取りをする必要はありません</span><br/>
+    ch &lt;<span style="color: #339933;">-</span> <span style="color: #cc66cc;">1</span><br/>
+    ch &lt;<span style="color: #339933;">-</span> <span style="color: #cc66cc;">2</span><br/>
+<br/>
+    <span style="color: #666666; font-style: italic;">// この 2 つのデータを取得します</span><br/>
+    fmt<span style="color: #339933;">.</span><span style="">Println</span><span style="color: #339933;">(</span><span style="color: #339933;">&lt;-</span>ch<span style="color: #339933;">)</span><br/>
+    fmt<span style="color: #339933;">.</span><span style="">Println</span><span style="color: #339933;">(</span><span style="color: #339933;">&lt;-</span>ch<span style="color: #339933;">)</span><br/>
+<span style="color: #339933;">}</span><br/>
+</div></div>
+<p>実行した出力結果は次のとおりです：</p>
+<pre>1
+2</pre>
+<h3>Go でのチャネル走査とチャネルのクローズ</h3>
+<p>Go は range キーワードを使用して受信したデータを走査します。これは配列やスライスと同様です。形式は次のとおりです：</p>
+<pre>v, ok := &lt;-ch</pre>
+<p>チャネルがデータを受信できず ok が false になる場合、チャネルは close 関数を使用して<span class="marked">close()</span>閉じることができます。</p>
+<div class="example"><h2 class="example">例</h2><div class="example_code">
+<span style="color: #b1b100; font-weight: bold;">package</span> main<br/>
+<br/>
+<span style="color: #b1b100; font-weight: bold;">import</span> <span style="color: #339933;">(</span><br/>
+    <span style="color: #cc66cc;">"fmt"</span><br/>
+<span style="color: #339933;">)</span><br/>
+<br/>
+<span style="color: #993333;">func</span> fibonacci<span style="color: #339933;">(</span>n <span style="color: #993333;">int</span><span style="color: #339933;">,</span> c <span style="color: #993333;">chan</span> <span style="color: #993333;">int</span><span style="color: #339933;">)</span> <span style="color: #339933;">{</span><br/>
+    x<span style="color: #339933;">,</span> y <span style="color: #339933;">:=</span> <span style="color: #cc66cc;">0</span><span style="color: #339933;">,</span> <span style="color: #cc66cc;">1</span><br/>
+    <span style="color: #b1b100; font-weight: bold;">for</span> <span style="">i</span> <span style="color: #339933;">:=</span> <span style="color: #cc66cc;">0</span><span style="color: #339933;">;</span> <span style="">i</span> &lt; n<span style="color: #339933;">;</span> <span style="">i</span><span style="color: #339933;">++</span> <span style="color: #339933;">{</span><br/>
+        c &lt;<span style="color: #339933;">-</span> x<br/>
+        x<span style="color: #339933;">,</span> y <span style="color: #339933;">=</span> y<span style="color: #339933;">,</span> x<span style="color: #339933;">+</span>y<br/>
+    <span style="color: #339933;">}</span><br/>
+    <span style="color: #000066;">close</span><span style="color: #339933;">(</span>c<span style="color: #339933;">)</span><br/>
+<span style="color: #339933;">}</span><br/>
+<br/>
+<span style="color: #993333;">func</span> main<span style="color: #339933;">()</span> <span style="color: #339933;">{</span><br/>
+    c <span style="color: #339933;">:=</span> <span style="color: #000066;">make</span><span style="color: #339933;">(</span><span style="color: #993333;">chan</span> <span style="color: #993333;">int</span><span style="color: #339933;">,</span> <span style="color: #cc66cc;">10</span><span style="color: #339933;">)</span><br/>
+    <span style="color: #b1b100; font-weight: bold;">go</span> fibonacci<span style="color: #339933;">(</span><span style="color: #000066;">cap</span><span style="color: #339933;">(</span>c<span style="color: #339933;">),</span> c<span style="color: #339933;">)</span><br/>
+    <span style="color: #666666; font-style: italic;">// range 関数はチャネルから受信した各データを走査します。c は 10 個のデータを送信し終えた後</span><br/>
+    <span style="color: #666666; font-style: italic;">// チャネルを閉じたため、この range 関数は 10 個のデータを受信した時点で</span><br/>
+    <span style="color: #666666; font-style: italic;">// 終了します。上記の c チャネルを閉じない場合、range 関数は</span><br/>
+    <span style="color: #666666; font-style: italic;">// 終了せず、11 個目のデータを受信するときにブロックされます。</span><br/>
+    <span style="color: #b1b100; font-weight: bold;">for</span> <span style="">i</span> <span style="color: #339933;">:=</span> <span style="color: #b1b100; font-weight: bold;">range</span> c <span style="color: #339933;">{</span><br/>
+        fmt<span style="color: #339933;">.</span>Println<span style="color: #339933;">(</span><span style="">i</span><span style="color: #339933;">)</span><br/>
+    <span style="color: #339933;">}</span><br/>
+<span style="color: #339933;">}</span><br/>
+</div></div>
+<p>実行した出力結果は次のとおりです：</p>
+<pre>0
+1
+1
+2
+3
+5
+8
+13
+21
+34</pre>
+<h3>Select 文</h3>
+<p><code>select</code>Select 文により、1 つの goroutine が複数の通信操作を待機できるようになります。<code>select</code>いずれかの case が実行可能になるまでブロックされます：</p>
+<div class="example"><h2 class="example">例</h2> <div class="example_code">
+<span style="color: #b1b100; font-weight: bold;">package</span> main<br/>
+<br/>
+<span style="color: #b1b100; font-weight: bold;">import</span> <span style="color: #cc66cc;">"fmt"</span><br/>
+<br/>
+<span style="color: #993333;">func</span> fibonacci<span style="color: #339933;">(</span>c<span style="color: #339933;">,</span> quit <span style="color: #993333;">chan</span> <span style="color: #993333;">int</span><span style="color: #339933;">)</span> <span style="color: #339933;">{</span><br/>
+    x<span style="color: #339933;">,</span> y <span style="color: #339933;">:=</span> <span style="color: #cc66cc;">0</span><span style="color: #339933;">,</span> <span style="color: #cc66cc;">1</span><br/>
+    <span style="color: #b1b100; font-weight: bold;">for</span> <span style="color: #339933;">{</span><br/>
+        <span style="color: #b1b100; font-weight: bold;">select</span> <span style="color: #339933;">{</span><br/>
+        <span style="color: #b1b100; font-weight: bold;">case</span> c &lt;<span style="color: #339933;">-</span> x<span style="color: #339933;">:</span><br/>
+            x<span style="color: #339933;">,</span> y <span style="color: #339933;">=</span> y<span style="color: #339933;">,</span> x<span style="color: #339933;">+</span>y<br/>
+        <span style="color: #b1b100; font-weight: bold;">case</span> &lt;<span style="color: #339933;">-</span>quit<span style="color: #339933;">:</span><br/>
+            fmt<span style="color: #339933;">.</span>Println<span style="color: #339933;">(</span><span style="color: #cc66cc;">"quit"</span><span style="color: #339933;">)</span><br/>
+            <span style="color: #b1b100; font-weight: bold;">return</span><br/>
+        <span style="color: #339933;">}</span><br/>
+    <span style="color: #339933;">}</span><br/>
+<span style="color: #339933;">}</span><br/>
+<br/>
+<span style="color: #993333;">func</span> main<span style="color: #339933;">()</span> <span style="color: #339933;">{</span><br/>
+    c <span style="color: #339933;">:=</span> <span style="color: #000066;">make</span><span style="color: #339933;">(</span><span style="color: #993333;">chan</span> <span style="color: #993333;">int</span><span style="color: #339933;">)</span><br/>
+    quit <span style="color: #339933;">:=</span> <span style="color: #000066;">make</span><span style="color: #339933;">(</span><span style="color: #993333;">chan</span> <span style="color: #993333;">int</span><span style="color: #339933;">)</span><br/>
+<br/>
+    <span style="color: #b1b100; font-weight: bold;">go</span> <span style="color: #993333;">func</span><span style="color: #339933;">()</span> <span style="color: #339933;">{</span><br/>
+        <span style="color: #b1b100; font-weight: bold;">for</span> <span style="">i</span> <span style="color: #339933;">:=</span> <span style="color: #cc66cc;">0</span><span style="color: #339933;">;</span> <span style="">i</span> &lt; <span style="color: #cc66cc;">10</span><span style="color: #339933;">;</span> <span style="">i</span><span style="color: #339933;">++</span> <span style="color: #339933;">{</span><br/>
+            fmt<span style="color: #339933;">.</span>Println<span style="color: #339933;">(</span>&lt;<span style="color: #339933;">-</span>c<span style="color: #339933;">)</span><br/>
+        <span style="color: #339933;">}</span><br/>
+        quit &lt;<span style="color: #339933;">-</span> <span style="color: #cc66cc;">0</span><br/>
+    <span style="color: #339933;">}()</span><br/>
+    fibonacci<span style="color: #339933;">(</span>c<span style="color: #339933;">,</span> quit<span style="color: #339933;">)</span><br/>
+<span style="color: #339933;">}</span><br/>
+</div></div>
+<p>上記のコードでは、<code>fibonacci</code>goroutine はチャネル<code>c</code>上でフィボナッチ数列を送信し、チャネルから<code>quit</code>シグナルを受信すると終了します。</p><p>実行した出力結果は次のとおりです：</p>
+<pre>0
+1
+1
+2
+3
+5
+8
+13
+21
+34
+quit</pre>
+<hr/>
+<h2>WaitGroup の使用</h2>
+<p>sync.WaitGroup は、複数の Goroutine の完了を待機するために使用されます。</p><p>
+<strong>複数の Goroutine を同期する：</strong></p>
+<div class="example"><h2 class="example">例</h2> <div class="example_code">
+<span style="color: #b1b100; font-weight: bold;">package</span> main<br/>
+<br/>
+<span style="color: #b1b100; font-weight: bold;">import</span> <span style="color: #339933;">(</span><br/>
+        <span style="color: #cc66cc;">"fmt"</span><br/>
+        <span style="color: #cc66cc;">"sync"</span><br/>
+<span style="color: #339933;">)</span><br/>
+<br/>
+<span style="color: #993333;">func</span> worker<span style="color: #339933;">(</span>id <span style="color: #993333;">int</span><span style="color: #339933;">,</span> wg <span style="color: #339933;">*</span>sync<span style="color: #339933;">.</span>WaitGroup<span style="color: #339933;">)</span> <span style="color: #339933;">{</span><br/>
+        <span style="color: #b1b100; font-weight: bold;">defer</span> wg<span style="color: #339933;">.</span>Done<span style="color: #339933;">()</span> <span style="color: #666666; font-style: italic;">// Goroutine が完了したら Done() を呼び出す</span><br/>
+        fmt<span style="color: #339933;">.</span><span style="">Printf</span><span style="color: #339933;">(</span><span style="color: #cc66cc;">"Worker %d started<span style="color: #000099; font-weight: bold;">\n</span>"</span><span style="color: #339933;">,</span> id<span style="color: #339933;">)</span><br/>
+        fmt<span style="color: #339933;">.</span><span style="">Printf</span><span style="color: #339933;">(</span><span style="color: #cc66cc;">"Worker %d finished<span style="color: #000099; font-weight: bold;">\n</span>"</span><span style="color: #339933;">,</span> id<span style="color: #339933;">)</span><br/>
+<span style="color: #339933;">}</span><br/>
+<br/>
+<span style="color: #993333;">func</span> main<span style="color: #339933;">()</span> <span style="color: #339933;">{</span><br/>
+        <span style="color: #b1b100; font-weight: bold;">var</span> wg sync<span style="color: #339933;">.</span>WaitGroup<br/>
+<br/>
+        <span style="color: #b1b100; font-weight: bold;">for</span> <span style="">i</span> <span style="color: #339933;">:=</span> <span style="color: #cc66cc;">1</span><span style="color: #339933;">;</span> <span style="">i</span> &lt;<span style="color: #339933;">=</span> <span style="color: #cc66cc;">3</span><span style="color: #339933;">;</span> <span style="">i</span><span style="color: #339933;">++</span> <span style="color: #339933;">{</span><br/>
+                wg<span style="color: #339933;">.</span>Add<span style="color: #339933;">(</span><span style="color: #cc66cc;">1</span><span style="color: #339933;">)</span> <span style="color: #666666; font-style: italic;">// カウンタを増加させる</span><br/>
+                <span style="color: #b1b100; font-weight: bold;">go</span> worker<span style="color: #339933;">(</span><span style="">i</span><span style="color: #339933;">,</span> &amp;wg<span style="color: #339933;">)</span><br/>
+        <span style="color: #339933;">}</span><br/>
+<br/>
+        wg<span style="color: #339933;">.</span>Wait<span style="color: #339933;">()</span> <span style="color: #666666; font-style: italic;">// すべての Goroutine の完了を待つ</span><br/>
+        fmt<span style="color: #339933;">.</span><span style="">Println</span><span style="color: #339933;">(</span><span style="color: #cc66cc;">"All workers done"</span><span style="color: #339933;">)</span><br/>
+<span style="color: #339933;">}</span><br/>
+</div></div><p>上記のコードを実行した出力結果は次のとおりです：</p>
+<pre>Worker 1 started
+Worker 1 finished
+Worker 2 started
+Worker 2 finished
+Worker 3 started
+Worker 3 finished
+All workers done</pre>
+<hr/>
+<h2>高度な機能</h2>
+<p>
+<strong>
+Buffered Channel：</strong></p>
+<p>バッファ付き Channel を作成します。</p>
+<pre>ch := make(chan int, 2)</pre>
+<p><strong>Context：</strong></p>
+<p>Goroutine のライフサイクルを制御するために使用します。</p>
+<pre>context.WithCancel、context.WithTimeout。</pre>
+<p><strong>Mutex と RWMutex：</strong></p>
+<p>sync.Mutex は相互排他ロックを提供し、共有リソースを保護するために使用します。</p>
+<pre>var mu sync.Mutex
+mu.Lock()
+// critical section
+mu.Unlock()</pre>
+<hr/>
+<h2>並行プログラミングのまとめ</h2><p>Go 言語は Goroutine と Channel を通じて強力な並行処理サポートを提供し、従来のスレッドモデルの複雑さを簡素化します。スケジューラと同期ツールを組み合わせることで、高性能な並行プログラムを簡単に実装できます。</p>
+<ul><li><strong>Goroutines</strong>は軽量なスレッドであり、go キーワードを使用して<code>go</code>起動します。</li><li><strong>Channels</strong>goroutines 間の通信に使用します。</li><li><strong>Select 文</strong>複数の channel 操作を待機するために使用します。</li></ul>
+<h3>よくある質問</h3><p>
+<strong>デッドロック (Deadlock)：</strong></p>
+<ul><li>例：すべての Goroutine が待機中であるが、利用可能なデータがありません。</li><li>解決策：無限待機を避け、チャネルを正しく閉じる。</li></ul>
+<p><strong>データ競合 (Data Race)：</strong></p>
+<ul><li>例：複数の Goroutine が同じ変数に同時にアクセスします。</li><li>解決策：Mutex または Channel を使用してアクセスを同期する。</li></ul>
+その他の拡張
+</div>
+</div>
+<div class="archive-list" style="display:none;font-size: 14px;line-height: 1.8;margin-top: 20px;padding: 10px;">
+<div class="archive-list-item">
+<div class="post-intro" id="ai-info" style="width: 100%;">AI が思考中...</div>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../go/go-ide.html" rel="prev">Go 言語開発ツール</a> </div>
+<div class="next-design-link"><a href="../go/go-fmt-sprintf.html" rel="next">Go fmt.Sprintf による文字列の書式設定</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="sidebar-box">
+</div>
+ノート一覧
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="title" id="comments">
+<h2 class="">
+<div class="altblock">
+<i aria-hidden="true" class="fa fa-plus-square" style="font-size:28px;margin-top: 8px;"></i>
+</div>
+<span class="mw-headline" id="qa_headline">9 件のノート</span>
+<span class="mw-headline" id="user_add_note" style="float:right;line-height: 62px;padding-right: 14px;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>ノートを書く</span>
+</h2>
+</div>
+<div id="postcomments" style="display:none;">
+<ol class="commentlist">
+<li class="comment byuser comment-author-tianqixin bypostauthor even thread-even depth-1" id="comment-38425"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>   funquiz</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  fun***z@163.com</p><p><i aria-hidden="true" class="fa fa-external-link"></i> <a href="https://bbs.csdn.net/topics/391922084" rel="nofollow" target="_blank">参考URL</a></p></div><div class="upvotejs" data-commid="38425" id="runoobvote-id-38425"><a class="upvote"></a> <span class="count">40</span></div></div><div class="comt-main" id="div-comment-38425"><p>goroutine は golang において言語レベルで実装された軽量なスレッドであり、go を使うだけで即座に新しいスレッドを起動できます。マルチスレッドではスレッド間の同期問題が発生しますが、golang では channel を同期ツールとして使用できます。</p>
+<p>channel を通じて、2 つの goroutine 間の通信を実現できます。</p>
+<p>channel を作成するには、make(chan TYPE {, NUM}) を使用します。TYPE は channel でやり取りするデータ型を指し、2 番目のパラメータは省略可能で、channel の容量サイズを指します。</p>
+<p>channel にデータを送信する、CHAN &lt;- DATA 。CHAN は目的の channel、つまりデータを受け取る側を指し、DATA は送信するデータです。</p>
+<p>channel からデータを受信する、DATA := &lt;-CHAN 。channel へのデータ送信とは逆に、データ送信の矢印の右側にあるのが channel で、データがトンネルから変数に流れ出る様子を表しています。</p><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">funquiz</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>   funquiz</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  fun***z@163.com</p><p><i aria-hidden="true" class="fa fa-external-link"></i> <a href="https://bbs.csdn.net/topics/391922084" rel="nofollow" target="_blank">参考アドレス</a></p></div></span>8年前 (2018-12-28)</div></div></li><!-- #comment-## -->
+<li class="comment odd alt thread-odd thread-alt depth-1" id="comment-39387"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>   qianyang</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  qia***ng.wang@gmail.com</p></div><div class="upvotejs" data-commid="39387" id="runoobvote-id-39387"><a class="upvote"></a> <span class="count">170</span></div></div><div class="comt-main" id="div-comment-39387"> <p>goroutine を実行するために say2 関数を別に書き、Sleep 時間を長めの150ミリ秒に設定して、何が起こるか見てみましょう：</p>
+<pre>package main
+import (
+    "fmt"
+    "time"
+)
+func say(s string) {
+    for i := 0; i &lt; 5; i++ {
+        time.Sleep(100 * time.Millisecond)
+        fmt.Println(s, (i+1)*100)
+    }
+}
+func say2(s string) {
+    for i := 0; i &lt; 5; i++ {
+        time.Sleep(150 * time.Millisecond)
+        fmt.Println(s, (i+1)*150)
+    }
+}
+func main() {
+    go say2("world")
+    say("hello")
+}</pre>
+<p>出力結果：</p>
+<pre>hello 100
+world 150
+hello 200
+hello 300
+world 300
+hello 400
+world 450
+hello 500
+
+[Done] exited with code=0 in 2.066 seconds</pre>
+<p>問題が発生しました。say2 は想定していた5回ではなく、3回しか実行されませんでした。なぜでしょうか？</p>
+<p>実は、goroutine が5回実行し終わる前に、メイン関数がすでに終了していたのです。</p>
+<p>メイン関数の終了を防ぐ方法を考えましょう。goroutine の実行が完了するのを待ってから、メイン関数を終了する必要があります：</p>
+<pre>package main
+
+import (
+    "fmt"
+    "time"
+)
+
+func say(s string) {
+    for i := 0; i &lt; 5; i++ {
+        time.Sleep(100 * time.Millisecond)
+        fmt.Println(s, (i+1)*100)
+    }
+}
+func say2(s string, ch chan int) {
+    for i := 0; i &lt; 5; i++ {
+        time.Sleep(150 * time.Millisecond)
+        fmt.Println(s, (i+1)*150)
+    }
+    ch &lt;- 0
+    close(ch)
+}
+
+func main() {
+    ch := make(chan int)
+    go say2("world", ch)
+    say("hello")
+    fmt.Println(&lt;-ch)
+}</pre>
+<p>チャネルを導入します。デフォルトでは、チャネルへのメッセージの送信と受信はどちらもブロッキングです。goroutine 内で実行が完了したらチャネルに値 0 を送ります。するとメイン関数はチャネル内の値を待ち続け、チャネルに値が入るとメイン関数は終了します。</p><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">qianyang</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>   qianyang</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  qia***ng.wang@gmail.com</p></div></span>8年前 (2019-01-28)</div></div></li><!-- #comment-## -->
+<li class="comment even thread-even depth-1" id="comment-39732"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>   ghppph</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  158***02109@163.com</p></div><div class="upvotejs" data-commid="39732" id="runoobvote-id-39732"><a class="upvote"></a> <span class="count">14</span></div></div><div class="comt-main" id="div-comment-39732"><p>同時に入出力を行う概念をよりわかりやすく示します：</p>
+<pre>package main
+
+import (
+    "fmt"
+    "time"
+)
+
+func main() {
+    
+    c := make(chan int, 10)
+    
+    go fibonacci(cap(c), c)
+    
+    for v := range c {
+        fmt.Println("out:", time.Now())
+        fmt.Println(v)
+    }
+}
+
+func fibonacci(n int, c chan int) {
+    x, y := 0, 1
+    
+    for i :=0; i &lt; n; i++ {
+        c &lt;- x
+        fmt.Println("in:",time.Now())
+        time.Sleep(100)
+        x, y = y, x+y
+    }
+    
+    close(c)
+}</pre><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">ghppph</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>   ghppph</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  158***02109@163.com</p></div></span>8年前 (2019-02-13)</div></div></li><!-- #comment-## -->
+<li class="comment odd alt thread-odd thread-alt depth-1" id="comment-42260"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>杨毅</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  yan***tl@163.com</p></div><div class="upvotejs" data-commid="42260" id="runoobvote-id-42260"><a class="upvote"></a> <span class="count">77</span></div></div><div class="comt-main" id="div-comment-42260"><p>チャネルを閉じても中のデータは失われません。ただ、チャネルからデータを読み取るときに、読み終わった後も新しいデータの書き込みを待ってブロックし続けることがなくなるだけです。</p><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">杨毅</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>杨毅</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  yan***tl@163.com</p></div></span>7年前 (2019-04-27)</div></div></li><!-- #comment-## -->
+<li class="comment even thread-even depth-1" id="comment-42304"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>   Azz</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  azz***cret.com</p></div><div class="upvotejs" data-commid="42304" id="runoobvote-id-42304"><a class="upvote"></a> <span class="count">75</span></div></div><div class="comt-main" id="div-comment-42304"><p>Channel は読み書きの権限を制御できます。具体的には次のとおりです:</p>
+<pre>go func(c chan int) { //读写均可的channel c } (a)
+go func(c &lt;- chan int) { //只读的Channel } (a)
+go func(c chan &lt;- int) {  //只写的Channel } (a)</pre><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">Azz</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>   Azz</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  azz***cret.com</p></div></span>7年前 (2019-04-28)</div></div></li><!-- #comment-## -->
+<li class="comment odd alt thread-odd thread-alt depth-1" id="comment-43083"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>   gibson1112</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  185***72536@163.com</p></div><div class="upvotejs" data-commid="43083" id="runoobvote-id-43083"><a class="upvote"></a> <span class="count">69</span></div></div><div class="comt-main" id="div-comment-43083"><p data-title="Go  channel 无缓冲和有缓冲的区别"><strong>バッファなしとバッファありの違いを分かりやすく説明します：</strong></p>
+<p>バッファなしは同期です。例えば<span class="marked">make(chan int)</span>、配達人があなたの家の玄関まで手紙を届けに行き、あなたが家にいなければ彼は立ち去りません。あなたが必ず手紙を受け取って初めて彼は立ち去ります。バッファなしは手紙が確実にあなたの手に届くことを保証します。</p>
+<p>バッファありは非同期です。例えば<span class="marked">make(chan int, 1)</span>、配達人があなたの家の郵便受けに手紙を投函して、すぐに立ち去ります。郵便受けが満杯でない限り、彼は郵便受けに空きができるのを待つ必要はありません。バッファありは手紙があなたの家の郵便受けに入ることを保証します。</p>
+<p>上記のノートのプログラムを次のように修正します：</p>
+<pre>package main
+import (
+    "fmt"
+    "time"
+)
+
+func sum(s []int, c chan int) {
+    sum := 0
+    for _, v := range s {
+        sum += v
+    }
+    fmt.Printf("sum:")
+    fmt.Printf("%#v\n", sum)
+    c &lt;- sum // 把 sum 发送到通道 c
+    fmt.Println("after channel pro")
+}
+
+// 通道不带缓冲，表示是同步的，只能向通道 c 发送一个数据，只要这个数据没被接收然后所有的发送就被阻塞
+func main() {
+    s := []int{7, 2, 8, -9, 4, 0}
+    c := make(chan int)
+    fmt.Println("go [0,3]")
+    go sum(s[:len(s)/2], c) //a
+
+    //这里开启一个新的运行期线程，这个是需要时间的，本程序继续往下走
+
+    fmt.Println("go [3,6]")
+    go sum(s[len(s)/2:], c) //b
+    fmt.Println("go2 [0,3]")
+    go sum(s[:len(s)/2], c) //c
+    fmt.Println("go2 [3,6]")
+    go sum(s[len(s)/2:], c) //d
+
+    /*
+    a b c d和main一起争夺cpu的，他们的执行顺序完全无序，甚至里面不同的语句都相互穿插
+    但无缓冲的等待是同步的，所以接下来a b c d都会执行，一直执行到c &lt;- sum后，开始同步阻塞
+    因此after channel pro是打印不出来的, 等要打印after channel pro的时候，main就结束了
+    */
+
+    fmt.Println("go3 start waiting...")
+    time.Sleep(1000 * time.Millisecond)
+    fmt.Println("go3 waited 1000 ms")
+
+    //因为a b c d都在管道门口等着，这里度一个，a b c d就继续一个，这个结果的顺序可能是acbd
+    aa := &lt;-c
+    bb := &lt;-c
+    fmt.Println(aa)
+    fmt.Println(bb)
+    x, y := &lt;-c, &lt;-c
+    fmt.Println(x, y, x+y)
+}</pre>
+<p>結果：</p>
+<pre>go [0,3]
+go [3,6]
+go2 [0,3]
+go2 [3,6]
+sum:sum:sum:17
+go3 start waiting...
+17
+-5
+sum:-5
+go3 waited 1000 ms
+17
+17
+-5 -5 -10</pre>
+<p>次のように変更する<span class="marked">make(chan int, 2)</span>、同時にマージ：</p>
+<pre>fmt.Printf("sum:")
+fmt.Printf("%#v\n", sum) </pre>
+<p>とする：</p>
+<pre>fmt.Printf("sum:%#v\n", sum)</pre>
+<p>after channel pro がブロックされなくなったのがわかります。</p>
+<p>結果：</p>
+<pre>go [0,3]
+go [3,6]
+go2 [0,3]
+go2 [3,6]
+go3 start waiting...
+sum:-5
+sum:17
+after channel pro
+after channel pro
+sum:17
+sum:-5
+go3 waited 1000 ms
+-5
+17
+17 -5 12</pre><div class="comt-meta wrapper"><span class="comt-author"><a href="../note/43083.html" target="_blank">gibson1112</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>   gibson1112</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  185***72536@163.com</p></div></span>7年前 (2019-05-24)</div></div></li><!-- #comment-## -->
+<li class="comment even thread-even depth-1" id="comment-43565"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>酷神oL</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  916***937@qq.com</p></div><div class="upvotejs" data-commid="43565" id="runoobvote-id-43565"><a class="upvote"></a> <span class="count">14</span></div></div><div class="comt-main" id="div-comment-43565"><pre>package main
+
+import "fmt"
+
+func main() {
+    ch := make(chan int, 2)
+
+    ch &lt;- 1
+    a := &lt;-ch
+    ch &lt;- 2
+    ch &lt;- 3
+
+    fmt.Println(&lt;-ch)
+    fmt.Println(&lt;-ch)
+    fmt.Println(a)
+}</pre>
+<p>チャネルは先入れ先出し（FIFO）の原則に従います。</p>
+<p>バッファなしのチャネルに値を送信する場合は、すぐに受信しなければならず、かつ一度で受信し終える必要があります。</p>
+<p>一方、バッファありのチャネルはバッファが満杯になるとブロックされ、先にチャネルに送信された値がチャネルから受信されるまで、さらにチャネルに値を送信できません。ちょうど水道管に小さな鋼球を押し込むようなもので、鋼球が満杯になって反対側から出していなければ、こちら側からはもう押し込めないのと同じ理屈です。例えば上記の例では、チャネル内に同時に最大2つの値しか置けません。さらに値を送信したい場合は、前の値を先にチャネルから受信して取り出す必要があります。</p>
+<p>したがって、上記の出力結果は次のようになります：</p>
+<pre>2
+3
+1</pre><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">酷神oL</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>酷神oL</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  916***937@qq.com</p></div></span>7年前 (2019-06-12)</div></div></li><!-- #comment-## -->
+<li class="comment odd alt thread-odd thread-alt depth-1" id="comment-49597"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>   xiaoxunnn</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  860***203@qq.com</p></div><div class="upvotejs" data-commid="49597" id="runoobvote-id-49597"><a class="upvote"></a> <span class="count">10</span></div></div><div class="comt-main" id="div-comment-49597"><p>Go でチャネルの走査とチャネルのクローズの例を次のように変更すると、より明確になります：</p>
+<pre>package main
+import (
+   "fmt"
+   "time"
+)
+func fibonacci(n int, c chan int) {
+   x, y := 0, 1
+   for i := 0; i &lt; n; i++ {
+      c &lt;- x
+      x, y = y, x+y
+      time.Sleep(1000*time.Millisecond)   
+   }
+   close(c)
+}
+func main() {
+   c := make(chan int, 10)
+   go fibonacci(cap(c), c)   
+   // range 函数遍历每个从通道接收到的数据，因为 c 在发送完 10 个   
+   // 数据之后就关闭了通道，所以这里我们 range 函数在接收到 10 个数据   
+   // 之后就结束了。如果上面的 c 通道不关闭，那么 range 函数就不   
+   // 会结束，从而在接收第 11 个数据的时候就阻塞了。   
+   for i := range c {
+      fmt.Println(i)
+   }
+}</pre>
+<div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">xiaoxunnn</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>   xiaoxunnn</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  860***203@qq.com</p></div></span>7年前 (2019-12-26)</div></div></li><!-- #comment-## -->
+<li class="comment even thread-even depth-1" id="comment-69143"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>   wsx</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  113***0208@qq.com</p></div><div class="upvotejs" data-commid="69143" id="runoobvote-id-69143"><a class="upvote"></a> <span class="count">35</span></div></div><div class="comt-main" id="div-comment-69143"><p><strong>バッファ付き channel による非同期アクセスを実演します。</strong></p>
+<p>サンプルコード：</p>
+<pre>package main
+import (   
+  "fmt"   
+  "time"
+)
+func put(c chan int) {   
+  for i := 0; i &lt; 10; i++ {      
+    c &lt;- i      
+    time.Sleep(100 * time.Millisecond)      
+    fmt.Println("-&gt;放入", i)   
+  }   
+  fmt.Println("=所有的都放进去了！关闭缓冲区，但是里面的数据不会丢失，还能取出。")   
+  close(c)
+}
+func main() {   
+  ch := make(chan int, 5)  
+  go put(ch)  
+  for {     
+    time.Sleep(1000 * time.Millisecond)  
+    data, ok := &lt;-ch   
+    if ok == true {     
+      fmt.Println("&lt;-取出", data)   
+    } else {  
+      break 
+    }  
+  }
+}</pre>
+<p>出力結果：</p>
+<pre>-&gt;放入 0
+-&gt;放入 1
+-&gt;放入 2
+-&gt;放入 3
+-&gt;放入 4
+&lt;-取出 0
+-&gt;放入 5
+&lt;-取出 1
+-&gt;放入 6
+&lt;-取出 2
+-&gt;放入 7
+&lt;-取出 3
+-&gt;放入 8
+&lt;-取出 4
+-&gt;放入 9
+=所有的都放进去了！关闭缓冲区，但是里面的数据不会丢失，还能取出。
+&lt;-取出 5
+&lt;-取出 6
+&lt;-取出 7
+&lt;-取出 8
+&lt;-取出 9</pre>
+<p>送信する速度が速く、最初に4つ満たされてブロックされます；</p>
+<p>受信する速度が遅く、4つ送信してから受信を始めます。バッファがすでに満杯のため、1つ取り出した後でなければ、再度送信できません；</p>
+<p>送信が完了した後、バッファは閉じられましたが、バッファの内容は残っているので、引き続き取り出すことができます；</p><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">wsx</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>   wsx</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  113***0208@qq.com</p></div></span>5年前 (2021-12-23)</div></div></li><!-- #comment-## -->
+</ol>
+<div class="pagenav">
+</div>
+</div>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style="display:none; padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>クリックしてノートを共有</h3>
+&lt;p style="font-size:14px;"&gt;ノートはこの記事の内容を拡張したものである必要があります！&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;記事投稿は、ここをクリック&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; ノートを共有する前に&lt;a href=";.html" class="runoob-pop"&gt;ログイン&lt;/a&gt;が必要です！&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=";.html" id="cancel-comment-reply-link">キャンセル</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="21123"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>ノートを共有</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">ニックネーム</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">ニックネーム (必須)</span></li>
+<li class="form-inline"><label class="hide" for="email">メールアドレス</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">メールアドレス (必須)</span></li>
+<li class="form-inline"><label class="hide" for="url">引用アドレス</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">引用アドレス</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  21123;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 21123, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":21123},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+</div>
+</div>
+<!-- 右边栏 -->
+<div class="fivecol last right-column">
+<style>
+.sidebar-tree .double-li {
+    width:300px;
+}
+.sidebar-tree .double-li li {
+    width: 44%;
+    line-height: 1.5em;
+    border-bottom: 1px solid #ccc;
+    float: left;
+    display: inline;
+}
+</style>
+<div class="sidebar-box re-box re-box-large">
+<div class="sidebar-box recommend-here" style="margin: 0 auto;">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;"> <i aria-hidden="true" class="fa fa-list"></i> 分类导航</a>
+</div>
+<div class="sidebar-box sidebar-cate">
+<div class="sidebar-tree">
+<ul><li style="margin: 0;"><a class="tit" href="#"> Python / 数据科学</a><ul class="double-li"><li><a href="../python3/python3-tutorial.html" title="Python 教程">Python 教程</a></li><li><a href="../python/python-tutorial.html" title="Python2.x 教程">Python2.x 教程</a></li><li><a href="../fastapi/fastapi-tutorial.html" title="FastAPI 教程">FastAPI 教程</a></li><li><a href="../flask/flask-tutorial.html" title="Flask 教程">Flask 教程</a></li><li><a href="../django/django-tutorial.html" title="Django 教程">Django 教程</a></li><li><a href="../numpy/numpy-tutorial.html" title="NumPy 教程">NumPy 教程</a></li><li><a href="../pandas/pandas-tutorial.html" title="Pandas 教程">Pandas 教程</a></li><li><a href="../scipy/scipy-tutorial.html" title="SciPy 教程">SciPy 教程</a></li><li><a href="../matplotlib/matplotlib-tutorial.html" title="Matplotlib 教程">Matplotlib 教程</a></li><li><a href="../dash/dash-tutorial.html" title="Dash 教程">Dash 教程</a></li><li><a href="../jupyter-notebook/jupyter-notebook-tutorial.html" title="Jupyter Notebook 教程">Jupyter Notebook 教程</a></li><li><a href="../pillow/pillow-tutorial.html" title="Pillow 教程">Pillow 教程</a></li><li><a href="../qt/qt-tutorial.html" title="量化交易">量化交易</a></li><li><a href="../r/r-tutorial.html" title="R 教程">R 教程</a></li><li><a href="../julia/julia-tutorial.html" title="Julia 教程">Julia 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> AI / 智能开发</a><ul class="double-li"><li><a href="../ai-agent/ai-agent-tutorial.html" title="AI Agent（智能体）">AI Agent（智能体）</a></li><li><a href="../ai/ai-tutorial.html" title="AI（人工智能）">AI（人工智能）</a></li><li><a href="../codex/codex-tutorial.html" title="Codex 教程">Codex 教程</a></li><li><a href="../vibe-coding/vibe-coding-tutorial.html" title="Vibe Coding 教程">Vibe Coding 教程</a></li><li><a href="../claude-code/claude-code-tutorial.html" title="Claude Code">Claude Code</a></li><li><a href="../opencode/opencode-tutorial.html" title="OpenCode">OpenCode</a></li><li><a href="../skills/skills-tutorial.html" title="Skills（技能）">Skills（技能）</a></li><li><a href="../ollama/ollama-tutorial.html" title="Ollama 教程">Ollama 教程</a></li><li><a href="../hermes-agent/hermes-agent-tutorial.html" title="Hermes Agent">Hermes Agent</a></li><li><a href="../deepseek-harness/deepseek-harness-tutorial.html" title="DeepSeek Harness">DeepSeek Harness</a></li><li><a href="../pi-agent/pi-agent-tutorial.html" title="Pi Agent">Pi Agent</a></li><li><a href="../ai-math/ai-math-tutorial.html" title="AI 数学基础">AI 数学基础</a></li><li><a href="../tensorflow/tensorflow-tutorial.html" title="TensorFlow 教程">TensorFlow 教程</a></li><li><a href="../pytorch/pytorch-tutorial.html" title="PyTorch 教程">PyTorch 教程</a></li><li><a href="../sklearn/sklearn-tutorial.html" title="Scikit-learn 教程">Scikit-learn 教程</a></li><li><a href="../ml/ml-tutorial.html" title="机器 教程">机器 教程</a></li><li><a href="../langchain/langchain-tutorial.html" title="LangChain">LangChain</a></li><li><a href="../nlp/nlp-tutorial.html" title="自然语言处理 NLP">自然语言处理 NLP</a></li><li><a href="../opencv/opencv-tutorial.html" title="OpenCV 教程">OpenCV 教程</a></li><li><a href="../selenium/selenium-tutorial.html" title="Selenium 教程">Selenium 教程</a></li><li><a href="../playwright/playwright-tutorial.html" title="Playwright 教程">Playwright 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 前端开发</a><ul class="double-li"><li><a href="../html/html-tutorial.html" title="HTML 教程">HTML 教程</a></li><li><a href="../html/html5-intro.html" title="HTML5 教程">HTML5 教程</a></li><li><a href="../css/css-tutorial.html" title="CSS 教程">CSS 教程</a></li><li><a href="../css3/css3-tutorial.html" title="CSS3 教程">CSS3 教程</a></li><li><a href="../js/js-tutorial.html" title="JavaScript 教程">JavaScript 教程</a></li><li><a href="../htmldom/htmldom-tutorial.html" title="HTML DOM 教程">HTML DOM 教程</a></li><li><a href="../typescript/ts-tutorial.html" title="TypeScript 教程">TypeScript 教程</a></li><li><a href="../ajax/ajax-tutorial.html" title="AJAX 教程">AJAX 教程</a></li><li><a href="../json/json-tutorial.html" title="JSON 教程">JSON 教程</a></li><li><a href="../tailwindcss/tailwindcss-tutorial.html" title="Tailwind CSS 教程">Tailwind CSS 教程</a></li><li><a href="../bootstrap4/bootstrap4-tutorial.html" title="Bootstrap4 教程">Bootstrap4 教程</a></li><li><a href="../bootstrap5/bootstrap5-tutorial.html" title="Bootstrap5 教程">Bootstrap5 教程</a></li><li><a href="../foundation/foundation-tutorial.html" title="Foundation 教程">Foundation 教程</a></li><li><a href="../vue2/vue-tutorial.html" title="Vue.js 教程">Vue.js 教程</a></li><li><a href="../vue3/vue3-tutorial.html" title="Vue3 教程">Vue3 教程</a></li><li><a href="../react/react-tutorial.html" title="React 教程">React 教程</a></li><li><a href="../nextjs/nextjs-tutorial.html" title="Next.js 教程">Next.js 教程</a></li><li><a href="../angularjs/angularjs-tutorial.html" title="AngularJS 教程">AngularJS 教程</a></li><li><a href="../angularjs2/angularjs2-tutorial.html" title="Angular 教程">Angular 教程</a></li><li><a href="../jquery/jquery-tutorial.html" title="jQuery 教程">jQuery 教程</a></li><li><a href="../jqueryui/jqueryui-tutorial.html" title="jQuery UI 教程">jQuery UI 教程</a></li><li><a href="../jeasyui/jqueryeasyui-tutorial.html" title="jQuery EasyUI 教程">jQuery EasyUI 教程</a></li><li><a href="../echarts/echarts-tutorial.html" title="ECharts 教程">ECharts 教程</a></li><li><a href="../chartjs/chartjs-tutorial.html" title="Chart.js 教程">Chart.js 教程</a></li><li><a href="../highcharts/highcharts-tutorial.html" title="Highcharts 教程">Highcharts 教程</a></li><li><a href="../googleapi/google-maps-basic.html" title="Google 地图 教程">Google 地图 教程</a></li><li><a href="../svg/svg-tutorial.html" title="SVG 教程">SVG 教程</a></li><li><a href="../font-awesome/fontawesome-tutorial.html" title="Font Awesome 教程">Font Awesome 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 后端开发</a><ul class="double-li"><li><a href="../nodejs/nodejs-tutorial.html" title="Node.js 教程">Node.js 教程</a></li><li><a href="../electron/electron-tutorial.html" title="Electron 教程">Electron 教程</a></li><li><a href="../php/php-tutorial.html" title="PHP 教程">PHP 教程</a></li><li><a href="../java/java-tutorial.html" title="Java 教程">Java 教程</a></li><li><a href="../go/go-tutorial.html" title="Go 教程">Go 教程</a></li><li><a href="../rust/rust-tutorial.html" title="Rust 教程">Rust 教程</a></li><li><a href="../csharp/csharp-tutorial.html" title="C# 教程">C# 教程</a></li><li><a href="../servlet/servlet-tutorial.html" title="Servlet 教程">Servlet 教程</a></li><li><a href="../jsp/jsp-tutorial.html" title="JSP 教程">JSP 教程</a></li><li><a href="../asp/asp-tutorial.html" title="ASP 教程">ASP 教程</a></li><li><a href="../appml/appml-tutorial.html" title="AppML 教程">AppML 教程</a></li><li><a href="../vbscript/vbscript-tutorial.html" title="VBScript 教程">VBScript 教程</a></li><li><a href="../swagger/swagger-tutorial.html" title="Swagger 教程">Swagger 教程</a></li><li><a href="../restfulapi/restful-api-tutorial.html" title="RESTful API 教程">RESTful API 教程</a></li><li><a href="../docker/docker-tutorial.html" title="Docker 教程">Docker 教程</a></li><li><a href="../linux/linux-tutorial.html" title="Linux 教程">Linux 教程</a></li><li><a href="../w3cnote/zookeeper-tutorial.html" title="ZooKeeper 教程">ZooKeeper 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 数据库</a><ul class="double-li"><li><a href="../sql/sql-tutorial.html" title="SQL 教程">SQL 教程</a></li><li><a href="../mysql/mysql-tutorial.html" title="MySQL 教程">MySQL 教程</a></li><li><a href="../postgresql/postgresql-tutorial.html" title="PostgreSQL 教程">PostgreSQL 教程</a></li><li><a href="../sqlite/sqlite-tutorial.html" title="SQLite 教程">SQLite 教程</a></li><li><a href="../mongodb/mongodb-tutorial.html" title="MongoDB 教程">MongoDB 教程</a></li><li><a href="../redis/redis-tutorial.html" title="Redis 教程">Redis 教程</a></li><li><a href="../memcached/memcached-tutorial.html" title="Memcached 教程">Memcached 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 移动开发</a><ul class="double-li"><li><a href="../w3cnote/android-tutorial-intro.html" title="Android 教程">Android 教程</a></li><li><a href="../flutter/flutter-tutorial.html" title="Flutter 教程">Flutter 教程</a></li><li><a href="../ionic/ionic-tutorial.html" title="Ionic 教程">Ionic 教程</a></li><li><a href="../jquerymobile/jquerymobile-tutorial.html" title="jQuery Mobile 教程">jQuery Mobile 教程</a></li><li><a href="../swift/swift-tutorial.html" title="Swift 教程">Swift 教程</a></li><li><a href="../kotlin/kotlin-tutorial.html" title="Kotlin 教程">Kotlin 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> DevOps / 工程化</a><ul class="double-li"><li><a href="../git/git-tutorial.html" title="Git 教程">Git 教程</a></li><li><a href="../svn/svn-tutorial.html" title="SVN 教程">SVN 教程</a></li><li><a href="../cmake/cmake-tutorial.html" title="CMake 教程">CMake 教程</a></li><li><a href="../maven/maven-tutorial.html" title="Maven 教程">Maven 教程</a></li><li><a href="../vscode/vscode-tutorial.html" title="VS Code 教程">VS Code 教程</a></li><li><a href="../obsidian/obsidian-tutorial.html" title="Obsidian 教程">Obsidian 教程</a></li><li><a href="../pycharm/pycharm-tutorial.html" title="PyCharm 教程">PyCharm 教程</a></li><li><a href="../eclipse/eclipse-tutorial.html" title="Eclipse 教程">Eclipse 教程</a></li><li><a href="../markdown/md-tutorial.html" title="Markdown 教程">Markdown 教程</a></li><li><a href="../latex/latex-tutorial.html" title="LaTeX 教程">LaTeX 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 编程语言</a><ul class="double-li"><li><a href="../c/c-tutorial.html" title="C 教程">C 教程</a></li><li><a href="../cplusplus/cpp-tutorial.html" title="C++ 教程">C++ 教程</a></li><li><a href="../zig/zig-tutorial.html" title="Zig 教程">Zig 教程</a></li><li><a href="../scala/scala-tutorial.html" title="Scala 教程">Scala 教程</a></li><li><a href="../ruby/ruby-tutorial.html" title="Ruby 教程">Ruby 教程</a></li><li><a href="../perl/perl-tutorial.html" title="Perl 教程">Perl 教程</a></li><li><a href="../lua/lua-tutorial.html" title="Lua 教程">Lua 教程</a></li><li><a href="../dart/dart-tutorial.html" title="Dart 教程">Dart 教程</a></li><li><a href="../assembly/assembly-tutorial.html" title="汇编语言 教程">汇编语言 教程</a></li><li><a href="../w3cnote/verilog-tutorial.html" title="Verilog 教程">Verilog 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 计算机基础</a><ul class="double-li"><li><a href="../computer-organization/computer-organization-tutorial.html" title="计算机组成原理">计算机组成原理</a></li><li><a href="../data-structures/data-structures-tutorial.html" title="数据结构与算法">数据结构与算法</a></li><li><a href="../c-dsa/c-dsa-tutorial.html" title="C 语言数据结构与算法">C 语言数据结构与算法</a></li><li><a href="../design-pattern/design-pattern-tutorial.html" title="设计模式">设计模式</a></li><li><a href="../python-design-pattern/python-design-pattern-tutorial.html" title="Python 设计模式">Python 设计模式</a></li><li><a href="../regexp/regexp-tutorial.html" title="正则表达式">正则表达式</a></li><li><a href="../http/http-tutorial.html" title="HTTP 教程">HTTP 教程</a></li><li><a href="../tcpip/tcpip-tutorial.html" title="TCP/IP 教程">TCP/IP 教程</a></li><li><a href="../np/np-tutorial.html" title="网络协议">网络协议</a></li><li><a href="../w3c/w3c-tutorial.html" title="W3C 教程">W3C 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> XML / Web Service</a><ul class="double-li"><li><a href="../xml/xml-tutorial.html" title="XML 教程">XML 教程</a></li><li><a href="../dtd/dtd-tutorial.html" title="DTD 教程">DTD 教程</a></li><li><a href="../dom/dom-tutorial.html" title="XML DOM 教程">XML DOM 教程</a></li><li><a href="../xsl/xsl-tutorial.html" title="XSLT 教程">XSLT 教程</a></li><li><a href="../xpath/xpath-tutorial.html" title="XPath 教程">XPath 教程</a></li><li><a href="../xquery/xquery-tutorial.html" title="XQuery 教程">XQuery 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XLink 教程">XLink 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XPointer 教程">XPointer 教程</a></li><li><a href="../schema/schema-tutorial.html" title="XML Schema 教程">XML Schema 教程</a></li><li><a href="../xslfo/xslfo-tutorial.html" title="XSL-FO 教程">XSL-FO 教程</a></li><li><a href="../webservices/webservices-tutorial.html" title="Web Service 教程">Web Service 教程</a></li><li><a href="../wsdl/wsdl-tutorial.html" title="WSDL 教程">WSDL 教程</a></li><li><a href="../soap/soap-tutorial.html" title="SOAP 教程">SOAP 教程</a></li><li><a href="../rss/rss-tutorial.html" title="RSS 教程">RSS 教程</a></li><li><a href="../rdf/rdf-tutorial.html" title="RDF 教程">RDF 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> .NET</a><ul class="double-li"><li><a href="../aspnet/aspnet-tutorial.html" title="ASP.NET 教程">ASP.NET 教程</a></li><li><a href="../aspnet/mvc-intro.html" title="MVC 教程">MVC 教程</a></li><li><a href="../aspnet/razor-intro.html" title="Razor 教程">Razor 教程</a></li><li><a href="../aspnet/aspnet-intro.html" title="Web Forms 教程">Web Forms 教程</a></li><li><a href="../aspnet/webpages-intro.html" title="Web Pages 教程">Web Pages 教程</a></li><li><a href="../powershell/powershell-tutorial.html" title="PowerShell 教程">PowerShell 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 网站建设</a><ul class="double-li"><li><a href="../web/web-buildingprimer.html" title="网站建设指南">网站建设指南</a></li><li><a href="../browsers/browser-information.html" title="浏览器信息">浏览器信息</a></li><li><a href="../hosting/hosting-tutorial.html" title="网站主机教程">网站主机教程</a></li><li><a href="../quality/quality-tutorial.html" title="网站品质">网站品质</a></li></ul></li></ul> </div>
+</div>
+</div>
+<br/>
+<div class="sidebar-box re-box re-box-large">
+</div>
+</div></div>
+</div>
+<script>
+var aid = 21123;
+function coll() {
+	$.post( '/wp-content/themes/runoob/option/user/userinfo.php', {aid:aid, action:"collarticle", opt:'add'},function( data ) {
+		if(data.error==0) {
+			$("#content").find("h1:first").find("a").attr("href","javascript:void(0);");
+			$("#content").find("h1:first").find("img").attr("src","http://www.runoob.com/wp-content/themes/runoob/assets/img/coll2.png").css({width:32+"px",height:32+"px"});
+		}
+		alert(data.msg);
+	},'json');
+}
+
+(function () {
+    // 1. 仅 HTML 页面
+    if (!document.contentType || !document.contentType.includes('text/html')) return;
+
+    // 2. 容器判断
+    var container = document.querySelector('.article-intro');
+    if (!container) return;
+
+    var h1 = container.querySelector('h1');
+    if (!h1) return;
+
+    // 3. URL 判断
+    var url = window.location.href.toLowerCase();
+    var version = null;
+
+    if (url.includes('/python3/')) {
+        version = 'Python3.x';
+    } else if (url.includes('/python/')) {
+        version = 'Python2.x';
+    }
+
+    if (!version) return;
+
+    // 4. 防重复
+    if (h1.querySelector('.py-version-badge')) return;
+
+    // 5. 创建标签
+    var badge = document.createElement('span');
+    badge.className = 'py-version-badge';
+    badge.innerText = version;
+
+    // 6. 样式（核心：float 实现右上角）
+    badge.style.float = 'right';
+    badge.style.fontSize = '12px';
+    badge.style.padding = '2px 8px';
+    badge.style.borderRadius = '999px';
+
+   // 自适应亮/暗色 + 渐变背景（增强版）
+	badge.style.color = 'inherit';
+
+	// 渐变背景（低透明度，不影响暗黑模式）
+	if (version.includes('3')) {
+		badge.style.background = 'linear-gradient(90deg, rgba(79,172,254,0.15), rgba(0,242,254,0.15))';
+	} else {
+		badge.style.background = 'linear-gradient(90deg, rgba(161,140,209,0.15), rgba(251,194,235,0.15))';
+	}
+
+	// 边框弱化（更精致）
+	badge.style.border = '1px solid rgba(127,127,127,0.3)';
+
+	// 提升可读性
+	badge.style.opacity = '0.95';
+
+    // 微调位置（更贴近“右上角”）
+    badge.style.marginTop = '4px';
+    badge.style.marginLeft = '10px';
+
+    // 7. 插入到 h1 最前面（让 float 生效更稳定）
+    h1.insertBefore(badge, h1.firstChild);
+
+})();
+</script>
+<!-- 反馈对话框开始 -->
+<script src="../wp-content/themes/runoob/assets/js/runoob-article-dir.min.js"></script>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

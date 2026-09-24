@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>1.4 Android6.0権限管理-オープンソースフレームワークソースコード分析 | 菜鸟教程</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="./android-advance-authority-management.html" rel="canonical"/>
+<meta content="1.4 Android6.0权限管理-开源框架源码分析" name="keywords"/>
+<meta content="1.4 Android6.0权限管理-开源框架源码分析 引言 Android6.0这个系统中迎来的最大的特征莫过于就是它的权限管理，因为小猪在写教程的时候应该6.0还没出，但是我感觉随着Android6.0的普及，对于它的权限管理是开发中必备的技能，同时也是基础。 乱入一些话 对于这种开发中所必备的技能，已经系统对此的简化操作，很多博主已经写了类似的博客。这里感觉我再废话一篇文章依旧是废话。   Android 6.0 运行时权限处理完.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div><!-- 导航栏 -->
+<!--  内容  -->
+<div class="container main">
+<div class="row">
+<div class="col middle-column big-middle-column">
+<div class="article">
+<div class="article-heading">
+<h2>1.4 Android6.0権限管理-オープンソースフレームワークソースコード分析</h2> <h3><em>分類</em> <a href="../w3cnote_genre/android-advance.html" title="Android 扩展教程">Android 拡張チュートリアル</a> </h3>
+</div>
+<div class="article-body note-body">
+<div class="article-intro">
+<!-- ad start-->
+<!-- ad end-->
+<h1>1.4 Android6.0権限管理-オープンソースフレームワークソースコード分析</h1>
+<h2>はじめに</h2>
+<p>Android6.0というシステムにおいて迎えた最大の特徴は、何と言ってもその権限管理です。なぜなら、小猪がチュートリアルを書いた時点では6.0はまだ出ていなかったはずですが、Android6.0の普及に伴い、その権限管理は開発に必須のスキルであり、基礎でもあると感じているからです。</p>
+<h3>余談</h3>
+<p>このような開発に必須のスキルや、システムによるその簡略化操作については、多くのブロガーがすでに類似したブログを書いています。ここで私がまた冗長な話を書いても、やはり駄文になってしまう気がします。</p>
+<blockquote>
+<ul>
+<li><p><a href="http://blog.csdn.net/lmj623565791/article/details/50709663" target="_blank">Android 6.0 実行時権限処理の完全解析</a></p></li>
+<li><p><a href="http://blog.csdn.net/caroline_wendy/article/details/50587230" target="_blank">Android 6.0: 動的権限管理の解決策</a></p>
+<p>...</p></li>
+</ul>
+</blockquote>
+<p>しかし、同じく基礎であり、同じく皆がAndroid6.0の権限管理に直面している中で、人によってその解決策は異なります。そこでこの記事では、GitHub上のいくつかのオープンソースフレームワークがどのようにこの権限管理を解決（カプセル化）しているかを、皆さんと一緒に分析してみましょう。</p>
+<hr/>
+<h2>PermissionGen</h2>
+<p>鸿神の記事で比較的基本的な権限管理フレームワークが紹介されていました。それでは、このフレームワークを中心に探求し、他の人がどのように権限管理の問題を解決しているかを学びましょう。</p>
+<p><a href="https://github.com/lovedise/PermissionGen" target="_balnk">GitHubへのポータル</a></p>
+<h3>使用方法</h3>
+<p><strong>1. 以下のいずれかの方法で必要な権限を取得します</strong></p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-identifier">PermissionGen</span><span class="hl-code">.</span><span class="hl-identifier">with</span><span class="hl-brackets">(</span><span class="hl-identifier">MainActivity</span><span class="hl-code">.</span><span class="hl-reserved">this</span><span class="hl-brackets">)</span><span class="hl-code">
+    .</span><span class="hl-identifier">addRequestCode</span><span class="hl-brackets">(</span><span class="hl-number">100</span><span class="hl-brackets">)</span><span class="hl-code">
+    .</span><span class="hl-identifier">permissions</span><span class="hl-brackets">(</span><span class="hl-code">
+</span><span class="hl-identifier">Manifest</span><span class="hl-code">.</span><span class="hl-identifier">permission</span><span class="hl-code">.</span><span class="hl-identifier">READ_CONTACTS</span><span class="hl-code">,
+        </span><span class="hl-identifier">Manifest</span><span class="hl-code">.</span><span class="hl-identifier">permission</span><span class="hl-code">.</span><span class="hl-identifier">RECEIVE_SMS</span><span class="hl-code">,
+        </span><span class="hl-identifier">Manifest</span><span class="hl-code">.</span><span class="hl-identifier">permission</span><span class="hl-code">.</span><span class="hl-identifier">WRITE_CONTACTS</span><span class="hl-brackets">)</span><span class="hl-code">
+    .</span><span class="hl-identifier">request</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;</span></div>
+</div>
+</div><p>or</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-identifier">PermissionGen</span><span class="hl-code">.</span><span class="hl-identifier">needPermission</span><span class="hl-brackets">(</span><span class="hl-identifier">ContactFragment</span><span class="hl-code">.</span><span class="hl-reserved">this</span><span class="hl-code">, </span><span class="hl-number">100</span><span class="hl-code">, 
+    </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">String</span><span class="hl-brackets">[</span><span class="hl-brackets">]</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">Manifest</span><span class="hl-code">.</span><span class="hl-identifier">permission</span><span class="hl-code">.</span><span class="hl-identifier">READ_CONTACTS</span><span class="hl-code">, 
+        </span><span class="hl-identifier">Manifest</span><span class="hl-code">.</span><span class="hl-identifier">permission</span><span class="hl-code">.</span><span class="hl-identifier">RECEIVE_SMS</span><span class="hl-code">,
+        </span><span class="hl-identifier">Manifest</span><span class="hl-code">.</span><span class="hl-identifier">permission</span><span class="hl-code">.</span><span class="hl-identifier">WRITE_CONTACTS</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">)</span><span class="hl-code">;</span></div>
+</div>
+</div>
+<p><strong>2. オーバーライド<b>onRequestPermissionsResult</b>メソッド</strong></p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-code">@</span><span class="hl-identifier">Override</span><span class="hl-code"> </span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">onRequestPermissionsResult</span><span class="hl-brackets">(</span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">requestCode</span><span class="hl-code">, </span><span class="hl-identifier">String</span><span class="hl-brackets">[</span><span class="hl-brackets">]</span><span class="hl-code"> </span><span class="hl-identifier">permissions</span><span class="hl-code">,
+      </span><span class="hl-types">int</span><span class="hl-brackets">[</span><span class="hl-brackets">]</span><span class="hl-code"> </span><span class="hl-identifier">grantResults</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">PermissionGen</span><span class="hl-code">.</span><span class="hl-identifier">onRequestPermissionsResult</span><span class="hl-brackets">(</span><span class="hl-reserved">this</span><span class="hl-code">, </span><span class="hl-identifier">requestCode</span><span class="hl-code">, </span><span class="hl-identifier">permissions</span><span class="hl-code">, </span><span class="hl-identifier">grantResults</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span></div>
+</div>
+</div><p><strong>3. コールバック</strong></p>
+<p>正しい場合：</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-code">@</span><span class="hl-identifier">PermissionSuccess</span><span class="hl-brackets">(</span><span class="hl-identifier">requestCode</span><span class="hl-code"> = </span><span class="hl-number">100</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">doSomething</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">Toast</span><span class="hl-code">.</span><span class="hl-identifier">makeText</span><span class="hl-brackets">(</span><span class="hl-reserved">this</span><span class="hl-code">, </span><span class="hl-quotes">"</span><span class="hl-string">Contact permission is granted</span><span class="hl-quotes">"</span><span class="hl-code">, </span><span class="hl-identifier">Toast</span><span class="hl-code">.</span><span class="hl-identifier">LENGTH_SHORT</span><span class="hl-brackets">)</span><span class="hl-code">.</span><span class="hl-identifier">show</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span></div>
+</div>
+</div>
+<p>誤りの場合：</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-code">@</span><span class="hl-identifier">PermissionFail</span><span class="hl-brackets">(</span><span class="hl-identifier">requestCode</span><span class="hl-code"> = </span><span class="hl-number">100</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">doFailSomething</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">Toast</span><span class="hl-code">.</span><span class="hl-identifier">makeText</span><span class="hl-brackets">(</span><span class="hl-reserved">this</span><span class="hl-code">, </span><span class="hl-quotes">"</span><span class="hl-string">Contact permission is not granted</span><span class="hl-quotes">"</span><span class="hl-code">, </span><span class="hl-identifier">t</span><span class="hl-code">.</span><span class="hl-identifier">LENGTH_SHORT</span><span class="hl-brackets">)</span><span class="hl-code">.</span><span class="hl-identifier">show</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span></div>
+</div>
+</div>
+<p>あるフレームワークは、シンプルな使い方の背後に、多くの場合非常に複雑なアーキテクチャやデザインパターンが隠されています。このアーキテクチャのコード量や難易度はそれほど大きくないので、ソースコードと合わせて読むとより良いでしょう。</p>
+<h3>基本分析</h3><p><strong>メンバー変数</strong></p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-comment">//</span><span class="hl-comment">必要な権限を保存する</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-identifier">String</span><span class="hl-brackets">[</span><span class="hl-brackets">]</span><span class="hl-code"> </span><span class="hl-identifier">mPermissions</span><span class="hl-code">;
+</span><span class="hl-comment">//</span><span class="hl-comment">リクエストコード</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">mRequestCode</span><span class="hl-code">;
+</span><span class="hl-comment">//</span><span class="hl-comment">Activity または Fragment を保存する</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-identifier">Object</span><span class="hl-code"> </span><span class="hl-identifier">object</span><span class="hl-code">;</span></div>
+</div>
+</div><p><strong>コンストラクタ</strong></p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-comment">//</span><span class="hl-comment">コンストラクタをプライベート化しています</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-identifier">PermissionGen</span><span class="hl-brackets">(</span><span class="hl-identifier">Object</span><span class="hl-code"> </span><span class="hl-identifier">object</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">this</span><span class="hl-code">.</span><span class="hl-identifier">object</span><span class="hl-code"> = </span><span class="hl-identifier">object</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span></div>
+</div>
+</div>
+<p><strong>with メソッド</strong></p><p>多くのオープンソースライブラリでよく使われる手法で、Activity や Fragment を渡すメソッドであり、コンストラクタを呼び出します。これは皆さんも簡単に理解できるはずです。</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">static</span><span class="hl-code"> </span><span class="hl-identifier">PermissionGen</span><span class="hl-code"> </span><span class="hl-identifier">with</span><span class="hl-brackets">(</span><span class="hl-identifier">Activity</span><span class="hl-code"> </span><span class="hl-identifier">activity</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">PermissionGen</span><span class="hl-brackets">(</span><span class="hl-identifier">activity</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">static</span><span class="hl-code"> </span><span class="hl-identifier">PermissionGen</span><span class="hl-code"> </span><span class="hl-identifier">with</span><span class="hl-brackets">(</span><span class="hl-identifier">Fragment</span><span class="hl-code"> </span><span class="hl-identifier">fragment</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">PermissionGen</span><span class="hl-brackets">(</span><span class="hl-identifier">fragment</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span></div>
+</div>
+</div>
+<p><strong>代入</strong></p>
+<p>オブジェクトができたので、次はオブジェクトのメンバー変数に値を代入します。</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-comment">//</span><span class="hl-comment">もちろん、permissions を追加するもう一つの方法として needPermission がありますが、それは皆さん自身で考えてみてくださいね。</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-identifier">PermissionGen</span><span class="hl-code"> </span><span class="hl-identifier">permissions</span><span class="hl-brackets">(</span><span class="hl-identifier">String</span><span class="hl-code">... </span><span class="hl-identifier">permissions</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">this</span><span class="hl-code">.</span><span class="hl-identifier">mPermissions</span><span class="hl-code"> = </span><span class="hl-identifier">permissions</span><span class="hl-code">;
+    </span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-reserved">this</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-identifier">PermissionGen</span><span class="hl-code"> </span><span class="hl-identifier">addRequestCode</span><span class="hl-brackets">(</span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">requestCode</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">this</span><span class="hl-code">.</span><span class="hl-identifier">mRequestCode</span><span class="hl-code"> = </span><span class="hl-identifier">requestCode</span><span class="hl-code">;
+    </span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-reserved">this</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span></div>
+</div>
+</div><blockquote>
+<p>上記のいくつかの流れは非常にシンプルです。既存のライブラリを解析することに慣れているなら、こうした手法はもう珍しくないでしょう。次に、アノテーションとリフレクションを通じて権限申請とコールバックをどのように行っているのかを説明します。</p>
+</blockquote>
+<h3>核心分析</h3><p><strong>requestResult</strong></p><p>使用方法の2番目のステップで呼び出したのは、<b>PermissionGen.onRequestPermissionsResult(this, requestCode, permissions, grantResults);</b>これはオーバーロードされたメソッドで、主に最初のパラメータが異なります。this は Fragment または Activity のオブジェクトを指すことができますが、最終的にはすべて1つのメソッドにコールバックされます。</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">static</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">onRequestPermissionsResult</span><span class="hl-brackets">(</span><span class="hl-identifier">Activity</span><span class="hl-code"> </span><span class="hl-identifier">activity</span><span class="hl-code">, </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">requestCode</span><span class="hl-code">, </span><span class="hl-identifier">String</span><span class="hl-brackets">[</span><span class="hl-brackets">]</span><span class="hl-code"> </span><span class="hl-identifier">permissions</span><span class="hl-code">,</span><span class="hl-types">int</span><span class="hl-brackets">[</span><span class="hl-brackets">]</span><span class="hl-code"> </span><span class="hl-identifier">grantResults</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">requestResult</span><span class="hl-brackets">(</span><span class="hl-identifier">activity</span><span class="hl-code">, </span><span class="hl-identifier">requestCode</span><span class="hl-code">, </span><span class="hl-identifier">permissions</span><span class="hl-code">, </span><span class="hl-identifier">grantResults</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">static</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">onRequestPermissionsResult</span><span class="hl-brackets">(</span><span class="hl-identifier">Fragment</span><span class="hl-code"> </span><span class="hl-identifier">fragment</span><span class="hl-code">, </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">requestCode</span><span class="hl-code">, </span><span class="hl-identifier">String</span><span class="hl-brackets">[</span><span class="hl-brackets">]</span><span class="hl-code"> </span><span class="hl-identifier">permissions</span><span class="hl-code">,</span><span class="hl-types">int</span><span class="hl-brackets">[</span><span class="hl-brackets">]</span><span class="hl-code"> </span><span class="hl-identifier">grantResults</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">requestResult</span><span class="hl-brackets">(</span><span class="hl-identifier">fragment</span><span class="hl-code">, </span><span class="hl-identifier">requestCode</span><span class="hl-code">, </span><span class="hl-identifier">permissions</span><span class="hl-code">, </span><span class="hl-identifier">grantResults</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span></div>
+</div>
+</div><p>最終的には以下のメソッドを呼び出します：</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-types">static</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">requestResult</span><span class="hl-brackets">(</span><span class="hl-identifier">Object</span><span class="hl-code"> </span><span class="hl-identifier">obj</span><span class="hl-code">, </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">requestCode</span><span class="hl-code">, </span><span class="hl-identifier">String</span><span class="hl-brackets">[</span><span class="hl-brackets">]</span><span class="hl-code"> </span><span class="hl-identifier">permissions</span><span class="hl-code">,</span><span class="hl-types">int</span><span class="hl-brackets">[</span><span class="hl-brackets">]</span><span class="hl-code"> </span><span class="hl-identifier">grantResults</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">List</span><span class="hl-code">&lt;</span><span class="hl-identifier">String</span><span class="hl-code">&gt; </span><span class="hl-identifier">deniedPermissions</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">ArrayList</span><span class="hl-code">&lt;&gt;</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+    </span><span class="hl-reserved">for</span><span class="hl-brackets">(</span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">i</span><span class="hl-code">=</span><span class="hl-number">0</span><span class="hl-code">; </span><span class="hl-identifier">i</span><span class="hl-code">&lt;</span><span class="hl-identifier">grantResults</span><span class="hl-code">.</span><span class="hl-identifier">length</span><span class="hl-code">; </span><span class="hl-identifier">i</span><span class="hl-code">++</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">通過した各権限</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-reserved">if</span><span class="hl-brackets">(</span><span class="hl-identifier">grantResults</span><span class="hl-brackets">[</span><span class="hl-identifier">i</span><span class="hl-brackets">]</span><span class="hl-code"> != </span><span class="hl-identifier">PackageManager</span><span class="hl-code">.</span><span class="hl-identifier">PERMISSION_GRANTED</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">deniedPermissions</span><span class="hl-code">.</span><span class="hl-identifier">add</span><span class="hl-brackets">(</span><span class="hl-identifier">permissions</span><span class="hl-brackets">[</span><span class="hl-identifier">i</span><span class="hl-brackets">]</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">通過していない権限があれば失敗</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-reserved">if</span><span class="hl-brackets">(</span><span class="hl-identifier">deniedPermissions</span><span class="hl-code">.</span><span class="hl-identifier">size</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code"> &gt; </span><span class="hl-number">0</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">doExecuteFail</span><span class="hl-brackets">(</span><span class="hl-identifier">obj</span><span class="hl-code">, </span><span class="hl-identifier">requestCode</span><span class="hl-brackets">)</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code"> </span><span class="hl-reserved">else</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">doExecuteSuccess</span><span class="hl-brackets">(</span><span class="hl-identifier">obj</span><span class="hl-code">, </span><span class="hl-identifier">requestCode</span><span class="hl-brackets">)</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span></div>
+</div>
+</div>
+<h3>アノテーションを使用したコールバック</h3><p><strong>成功時のコールバックメソッド</strong></p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-types">static</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">doExecuteFail</span><span class="hl-brackets">(</span><span class="hl-identifier">Object</span><span class="hl-code"> </span><span class="hl-identifier">activity</span><span class="hl-code">, </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">requestCode</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">方法1</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">Method</span><span class="hl-code"> </span><span class="hl-identifier">executeMethod</span><span class="hl-code"> = </span><span class="hl-identifier">Utils</span><span class="hl-code">.</span><span class="hl-identifier">findMethodWithRequestCode</span><span class="hl-brackets">(</span><span class="hl-identifier">activity</span><span class="hl-code">.</span><span class="hl-identifier">getClass</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">,</span><span class="hl-identifier">PermissionFail</span><span class="hl-code">.</span><span class="hl-reserved">class</span><span class="hl-code">, </span><span class="hl-identifier">requestCode</span><span class="hl-brackets">)</span><span class="hl-code">;
+    </span><span class="hl-comment">//</span><span class="hl-comment">方法2</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">executeMethod</span><span class="hl-brackets">(</span><span class="hl-identifier">activity</span><span class="hl-code">, </span><span class="hl-identifier">executeMethod</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span></div>
+</div>
+</div><p><strong>方法1：</strong></p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">static</span><span class="hl-code"> &lt;</span><span class="hl-identifier">A</span><span class="hl-code"> </span><span class="hl-reserved">extends</span><span class="hl-code"> </span><span class="hl-identifier">Annotation</span><span class="hl-code">&gt; </span><span class="hl-identifier">Method</span><span class="hl-code"> </span><span class="hl-identifier">findMethodWithRequestCode</span><span class="hl-brackets">(</span><span class="hl-identifier">Class</span><span class="hl-code"> </span><span class="hl-identifier">clazz</span><span class="hl-code">,</span><span class="hl-identifier">Class</span><span class="hl-code">&lt;</span><span class="hl-identifier">A</span><span class="hl-code">&gt; </span><span class="hl-identifier">annotation</span><span class="hl-code">, </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">requestCode</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">このオブジェクト内のメソッドをループする</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-reserved">for</span><span class="hl-brackets">(</span><span class="hl-identifier">Method</span><span class="hl-code"> </span><span class="hl-identifier">method</span><span class="hl-code"> : </span><span class="hl-identifier">clazz</span><span class="hl-code">.</span><span class="hl-identifier">getDeclaredMethods</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">各メソッドのアノテーションが annotation（PermissionSuccess または PermissionFail）に一致するかどうかを判断する</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-reserved">if</span><span class="hl-brackets">(</span><span class="hl-identifier">method</span><span class="hl-code">.</span><span class="hl-identifier">isAnnotationPresent</span><span class="hl-brackets">(</span><span class="hl-identifier">annotation</span><span class="hl-brackets">)</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-comment">//</span><span class="hl-comment">最終的にこのメソッドを呼び出します。ここではコピーしません。非常にシンプルで、その requestCode を判断します。</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-reserved">if</span><span class="hl-brackets">(</span><span class="hl-identifier">isEqualRequestCodeFromAnntation</span><span class="hl-brackets">(</span><span class="hl-identifier">method</span><span class="hl-code">, </span><span class="hl-identifier">annotation</span><span class="hl-code">, </span><span class="hl-identifier">requestCode</span><span class="hl-brackets">)</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-identifier">method</span><span class="hl-code">;
+            </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-reserved">null</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span></div>
+</div>
+</div>
+<p><strong>方法2：</strong></p>
+<p>リフレクションを通じて必要なメソッドを取得し、次にそのメソッドを実行します。</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-types">static</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">executeMethod</span><span class="hl-brackets">(</span><span class="hl-identifier">Object</span><span class="hl-code"> </span><span class="hl-identifier">activity</span><span class="hl-code">, </span><span class="hl-identifier">Method</span><span class="hl-code"> </span><span class="hl-identifier">executeMethod</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">if</span><span class="hl-brackets">(</span><span class="hl-identifier">executeMethod</span><span class="hl-code"> != </span><span class="hl-reserved">null</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">try</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">if</span><span class="hl-brackets">(</span><span class="hl-code">!</span><span class="hl-identifier">executeMethod</span><span class="hl-code">.</span><span class="hl-identifier">isAccessible</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-identifier">executeMethod</span><span class="hl-code">.</span><span class="hl-identifier">setAccessible</span><span class="hl-brackets">(</span><span class="hl-reserved">true</span><span class="hl-brackets">)</span><span class="hl-code">;
+            </span><span class="hl-comment">//</span><span class="hl-comment">このメソッドを実行する</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-identifier">executeMethod</span><span class="hl-code">.</span><span class="hl-identifier">invoke</span><span class="hl-brackets">(</span><span class="hl-identifier">activity</span><span class="hl-code">, </span><span class="hl-reserved">null</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-brackets">}</span><span class="hl-code"> </span><span class="hl-reserved">catch</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-identifier">IllegalAccessException</span><span class="hl-code"> </span><span class="hl-identifier">e</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">e</span><span class="hl-code">.</span><span class="hl-identifier">printStackTrace</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-brackets">}</span><span class="hl-code"> </span><span class="hl-reserved">catch</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-identifier">InvocationTargetException</span><span class="hl-code"> </span><span class="hl-identifier">e</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">e</span><span class="hl-code">.</span><span class="hl-identifier">printStackTrace</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span></div>
+</div>
+</div><p>とてもシンプルですよね。明快な数ステップです。そしてもう一度少し眺めてみましょう。<b>PermisstionSuccess</b> 与 <b>PermisstionFail</b>2つのクラス</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-code">@</span><span class="hl-identifier">Target</span><span class="hl-brackets">(</span><span class="hl-identifier">ElementType</span><span class="hl-code">.</span><span class="hl-identifier">METHOD</span><span class="hl-brackets">)</span><span class="hl-code">
+@</span><span class="hl-identifier">Retention</span><span class="hl-brackets">(</span><span class="hl-identifier">RetentionPolicy</span><span class="hl-code">.</span><span class="hl-identifier">RUNTIME</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> @</span><span class="hl-reserved">interface</span><span class="hl-code"> </span><span class="hl-identifier">PermissionFail</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">requestCode</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span></div>
+</div>
+</div><p>与</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-code">@</span><span class="hl-identifier">Retention</span><span class="hl-brackets">(</span><span class="hl-identifier">RetentionPolicy</span><span class="hl-code">.</span><span class="hl-identifier">RUNTIME</span><span class="hl-brackets">)</span><span class="hl-code">
+@</span><span class="hl-identifier">Target</span><span class="hl-brackets">(</span><span class="hl-identifier">ElementType</span><span class="hl-code">.</span><span class="hl-identifier">METHOD</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> @</span><span class="hl-reserved">interface</span><span class="hl-code"> </span><span class="hl-identifier">PermissionSuccess</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">requestCode</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span></div>
+</div>
+</div><blockquote>
+<p>要するに、2つの実行時アノテーションであり、パラメータは int 型です。ここまでで PermisstionGen フレームワークの解説は終了です。次は鸿神のフレームワークについて話しましょう。<a href="https://github.com/hongyangAndroid/MPermissions" target="_blank">GitHubへのポータル</a></p>
+</blockquote>
+<hr/><h2>MPermissions</h2><p>考え方は大同小異です。最大の違いは、後者がコンパイル時アノテーションを使用している点です。この特徴は多くのオープンソースフレームワークが採用しており、そのおかげでリフレクションによる効率低下の問題がありません。</p>
+<h3>使用方法</h3>
+<p>すべての<b>Permisstion</b>関連するフレームワークの使い方は皆同じで、必要な権限を<b>onRequestPermissionsResult</b>その中で静的メソッドを呼び出し、最後にコールバックします。ですから、ここでは他人のコードをコピーして文字数を稼ぐようなことはせず、直接本題に入りましょう。</p>
+<h3>分析</h3><p><strong>依存関係</strong>コンパイル時アノテーションを使用しているため、依存関係が生じます。</p>
+<p><img decoding="async" src="../wp-content/uploads/2016/12/15.png"/></p>
+<blockquote>
+<p>permission-sample は permission-api（つまりlib）に依存  
+ permission-lib は permission-annotation に依存  
+ compile は permission-annotation に依存</p>
+</blockquote>
+<p><strong>アノテーションクラス</strong></p><p>在 <b>permission-annotation</b>以下に3つのアノテーションクラスがあります</p>
+<ul>
+<li><p>権限付与成功<b>PermissionGrant</b></p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-code">@</span><span class="hl-identifier">Target</span><span class="hl-brackets">(</span><span class="hl-identifier">ElementType</span><span class="hl-code">.</span><span class="hl-identifier">METHOD</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> @</span><span class="hl-reserved">interface</span><span class="hl-code"> </span><span class="hl-identifier">PermissionGrant</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">value</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span></div>
+</div>
+</div></li>
+<li><p>権限付与失敗<b>PermissionDenied</b></p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-code">@</span><span class="hl-identifier">Target</span><span class="hl-brackets">(</span><span class="hl-identifier">ElementType</span><span class="hl-code">.</span><span class="hl-identifier">METHOD</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> @</span><span class="hl-reserved">interface</span><span class="hl-code"> </span><span class="hl-identifier">PermissionDenied</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">value</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span></div>
+</div>
+</div></li>
+<li><p>拒否されたらリマインドする</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-code">@</span><span class="hl-identifier">Target</span><span class="hl-brackets">(</span><span class="hl-identifier">ElementType</span><span class="hl-code">.</span><span class="hl-identifier">METHOD</span><span class="hl-brackets">)</span><span class="hl-code">
+@</span><span class="hl-identifier">Retention</span><span class="hl-brackets">(</span><span class="hl-identifier">RetentionPolicy</span><span class="hl-code">.</span><span class="hl-identifier">CLASS</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> @</span><span class="hl-reserved">interface</span><span class="hl-code"> </span><span class="hl-identifier">ShowRequestPermissionRationale</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">value</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span></div>
+</div>
+</div></li>
+</ul>
+<blockquote>
+<p>上記のアノテーションプロセッサを完成させたら、次は [それ] に<b>permission-lib</b>依存関係を追加します。依存関係を追加したら、[それ] を見てみましょう。<b>permission-lib</b>のメインクラスです。【注：compileについては解説を省略しました。少し複雑なので、後日別の記事でコンパイル時アノテーションについて詳しく説明します】</p>
+</blockquote><p><strong>requestPermissions</strong></p><p>前のフレームワークと非常によく似たメソッドですが、チェーン式プログラミングを完全にやめて、3つのパラメータをまとめて渡しています。</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">static</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">requestPermissions</span><span class="hl-brackets">(</span><span class="hl-identifier">Activity</span><span class="hl-code"> </span><span class="hl-identifier">object</span><span class="hl-code">, </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">requestCode</span><span class="hl-code">, </span><span class="hl-identifier">String</span><span class="hl-code">... </span><span class="hl-identifier">permissions</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">_requestPermissions</span><span class="hl-brackets">(</span><span class="hl-identifier">object</span><span class="hl-code">, </span><span class="hl-identifier">requestCode</span><span class="hl-code">, </span><span class="hl-identifier">permissions</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">static</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">requestPermissions</span><span class="hl-brackets">(</span><span class="hl-identifier">Fragment</span><span class="hl-code"> </span><span class="hl-identifier">object</span><span class="hl-code">, </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">requestCode</span><span class="hl-code">, </span><span class="hl-identifier">String</span><span class="hl-code">... </span><span class="hl-identifier">permissions</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">_requestPermissions</span><span class="hl-brackets">(</span><span class="hl-identifier">object</span><span class="hl-code">, </span><span class="hl-identifier">requestCode</span><span class="hl-code">, </span><span class="hl-identifier">permissions</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span></div>
+</div>
+</div>
+<blockquote>
+<p>これもオーバーロードであり、Activity と Fragment を区別し、最後に以下のメソッドを呼び出します。</p>
+</blockquote>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-types">static</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">_requestPermissions</span><span class="hl-brackets">(</span><span class="hl-identifier">Object</span><span class="hl-code"> </span><span class="hl-identifier">object</span><span class="hl-code">, </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">requestCode</span><span class="hl-code">, </span><span class="hl-identifier">String</span><span class="hl-code">... </span><span class="hl-identifier">permissions</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">if</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-code">!</span><span class="hl-identifier">Utils</span><span class="hl-code">.</span><span class="hl-identifier">isOverMarshmallow</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">doExecuteSuccess</span><span class="hl-brackets">(</span><span class="hl-identifier">object</span><span class="hl-code">, </span><span class="hl-identifier">requestCode</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-reserved">return</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-identifier">List</span><span class="hl-code">&lt;</span><span class="hl-identifier">String</span><span class="hl-code">&gt; </span><span class="hl-identifier">deniedPermissions</span><span class="hl-code"> = </span><span class="hl-identifier">Utils</span><span class="hl-code">.</span><span class="hl-identifier">findDeniedPermissions</span><span class="hl-brackets">(</span><span class="hl-identifier">Utils</span><span class="hl-code">.</span><span class="hl-identifier">getActivity</span><span class="hl-brackets">(</span><span class="hl-identifier">object</span><span class="hl-brackets">)</span><span class="hl-code">, </span><span class="hl-identifier">permissions</span><span class="hl-brackets">)</span><span class="hl-code">;
+ 
+    </span><span class="hl-reserved">if</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-identifier">deniedPermissions</span><span class="hl-code">.</span><span class="hl-identifier">size</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code"> &gt; </span><span class="hl-number">0</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">if</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-identifier">object</span><span class="hl-code"> </span><span class="hl-reserved">instanceof</span><span class="hl-code"> </span><span class="hl-identifier">Activity</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-brackets">(</span><span class="hl-brackets">(</span><span class="hl-identifier">Activity</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-identifier">object</span><span class="hl-brackets">)</span><span class="hl-code">.</span><span class="hl-identifier">requestPermissions</span><span class="hl-brackets">(</span><span class="hl-identifier">deniedPermissions</span><span class="hl-code">.</span><span class="hl-identifier">toArray</span><span class="hl-brackets">(</span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">String</span><span class="hl-brackets">[</span><span class="hl-identifier">deniedPermissions</span><span class="hl-code">.</span><span class="hl-identifier">size</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-brackets">]</span><span class="hl-brackets">)</span><span class="hl-code">, </span><span class="hl-identifier">requestCode</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-brackets">}</span><span class="hl-code"> </span><span class="hl-reserved">else</span><span class="hl-code"> </span><span class="hl-reserved">if</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-identifier">object</span><span class="hl-code"> </span><span class="hl-reserved">instanceof</span><span class="hl-code"> </span><span class="hl-identifier">Fragment</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-brackets">(</span><span class="hl-brackets">(</span><span class="hl-identifier">Fragment</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-identifier">object</span><span class="hl-brackets">)</span><span class="hl-code">.</span><span class="hl-identifier">requestPermissions</span><span class="hl-brackets">(</span><span class="hl-identifier">deniedPermissions</span><span class="hl-code">.</span><span class="hl-identifier">toArray</span><span class="hl-brackets">(</span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">String</span><span class="hl-brackets">[</span><span class="hl-identifier">deniedPermissions</span><span class="hl-code">.</span><span class="hl-identifier">size</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-brackets">]</span><span class="hl-brackets">)</span><span class="hl-code">, </span><span class="hl-identifier">requestCode</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-brackets">}</span><span class="hl-code"> </span><span class="hl-reserved">else</span><span class="hl-code">
+</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">throw</span><span class="hl-code"> </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">IllegalArgumentException</span><span class="hl-brackets">(</span><span class="hl-identifier">object</span><span class="hl-code">.</span><span class="hl-identifier">getClass</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">.</span><span class="hl-identifier">getName</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code"> + </span><span class="hl-quotes">"</span><span class="hl-string"> is not supported!</span><span class="hl-quotes">"</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code"> </span><span class="hl-reserved">else</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">doExecuteSuccess</span><span class="hl-brackets">(</span><span class="hl-identifier">object</span><span class="hl-code">, </span><span class="hl-identifier">requestCode</span><span class="hl-brackets">)</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span></div>
+</div>
+</div>
+<p>コードはいくつかの判断に過ぎないので、詳しくは説明しません。ただし、ここで少し余談をさせてください。外から見れば、みんなプログラマーであり、誰でも1つの機能（タスク）を実装できます。しかし優秀なプログラマーは、コードの論理判断に対してより多くの処理を行います。</p>
+<p>権限を申請した後、当然 Activity でこのメソッドをオーバーライドし、同じように最後に [それ] を呼び出します。<b>onRequestPermissionsResult</b>そして、<b>MPermissions.requestResult</b>このメソッドに進み、次はコールバックです。ここでは概要だけ説明します。前のフレームワークとほぼ同じだからです。</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-types">static</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">requestResult</span><span class="hl-brackets">(</span><span class="hl-identifier">Object</span><span class="hl-code"> </span><span class="hl-identifier">obj</span><span class="hl-code">, </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">requestCode</span><span class="hl-code">, </span><span class="hl-identifier">String</span><span class="hl-brackets">[</span><span class="hl-brackets">]</span><span class="hl-code"> </span><span class="hl-identifier">permissions</span><span class="hl-code">,
+                                  </span><span class="hl-types">int</span><span class="hl-brackets">[</span><span class="hl-brackets">]</span><span class="hl-code"> </span><span class="hl-identifier">grantResults</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">List</span><span class="hl-code">&lt;</span><span class="hl-identifier">String</span><span class="hl-code">&gt; </span><span class="hl-identifier">deniedPermissions</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">ArrayList</span><span class="hl-code">&lt;&gt;</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+    </span><span class="hl-reserved">for</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">i</span><span class="hl-code"> = </span><span class="hl-number">0</span><span class="hl-code">; </span><span class="hl-identifier">i</span><span class="hl-code"> &lt; </span><span class="hl-identifier">grantResults</span><span class="hl-code">.</span><span class="hl-identifier">length</span><span class="hl-code">; </span><span class="hl-identifier">i</span><span class="hl-code">++</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">if</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-identifier">grantResults</span><span class="hl-brackets">[</span><span class="hl-identifier">i</span><span class="hl-brackets">]</span><span class="hl-code"> != </span><span class="hl-identifier">PackageManager</span><span class="hl-code">.</span><span class="hl-identifier">PERMISSION_GRANTED</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">deniedPermissions</span><span class="hl-code">.</span><span class="hl-identifier">add</span><span class="hl-brackets">(</span><span class="hl-identifier">permissions</span><span class="hl-brackets">[</span><span class="hl-identifier">i</span><span class="hl-brackets">]</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-reserved">if</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-identifier">deniedPermissions</span><span class="hl-code">.</span><span class="hl-identifier">size</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code"> &gt; </span><span class="hl-number">0</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">doExecuteFail</span><span class="hl-brackets">(</span><span class="hl-identifier">obj</span><span class="hl-code">, </span><span class="hl-identifier">requestCode</span><span class="hl-brackets">)</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code"> </span><span class="hl-reserved">else</span><span class="hl-code">
+</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">doExecuteSuccess</span><span class="hl-brackets">(</span><span class="hl-identifier">obj</span><span class="hl-code">, </span><span class="hl-identifier">requestCode</span><span class="hl-brackets">)</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span></div>
+</div>
+</div><p><strong>doExecuteFail と doExecuteSuccess</strong></p>
+<p>コールバックが成功するか失敗するかは、フレームワークは気にしません。フレームワークは取得したオブジェクトを強制的にキャストして呼び出すだけです。</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-types">static</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">doExecuteSuccess</span><span class="hl-brackets">(</span><span class="hl-identifier">Object</span><span class="hl-code"> </span><span class="hl-identifier">activity</span><span class="hl-code">, </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">requestCode</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">findPermissionProxy</span><span class="hl-brackets">(</span><span class="hl-identifier">activity</span><span class="hl-brackets">)</span><span class="hl-code">.</span><span class="hl-identifier">grant</span><span class="hl-brackets">(</span><span class="hl-identifier">activity</span><span class="hl-code">, </span><span class="hl-identifier">requestCode</span><span class="hl-brackets">)</span><span class="hl-code">;
+ 
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-types">static</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">doExecuteFail</span><span class="hl-brackets">(</span><span class="hl-identifier">Object</span><span class="hl-code"> </span><span class="hl-identifier">activity</span><span class="hl-code">, </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">requestCode</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">findPermissionProxy</span><span class="hl-brackets">(</span><span class="hl-identifier">activity</span><span class="hl-brackets">)</span><span class="hl-code">.</span><span class="hl-identifier">denied</span><span class="hl-brackets">(</span><span class="hl-identifier">activity</span><span class="hl-code">, </span><span class="hl-identifier">requestCode</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span></div>
+</div>
+</div><p><strong>findPermissionProxy</strong></p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-types">static</span><span class="hl-code"> </span><span class="hl-identifier">PermissionProxy</span><span class="hl-code"> </span><span class="hl-identifier">findPermissionProxy</span><span class="hl-brackets">(</span><span class="hl-identifier">Object</span><span class="hl-code"> </span><span class="hl-identifier">activity</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">try</span><span class="hl-code">
+</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">Class</span><span class="hl-code"> </span><span class="hl-identifier">clazz</span><span class="hl-code"> = </span><span class="hl-identifier">activity</span><span class="hl-code">.</span><span class="hl-identifier">getClass</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-identifier">Class</span><span class="hl-code"> </span><span class="hl-identifier">injectorClazz</span><span class="hl-code"> = </span><span class="hl-identifier">Class</span><span class="hl-code">.</span><span class="hl-identifier">forName</span><span class="hl-brackets">(</span><span class="hl-identifier">clazz</span><span class="hl-code">.</span><span class="hl-identifier">getName</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code"> + </span><span class="hl-identifier">SUFFIX</span><span class="hl-brackets">)</span><span class="hl-code">;
+        </span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-identifier">PermissionProxy</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-identifier">injectorClazz</span><span class="hl-code">.</span><span class="hl-identifier">newInstance</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code"> </span><span class="hl-reserved">catch</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-identifier">ClassNotFoundException</span><span class="hl-code"> </span><span class="hl-identifier">e</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">e</span><span class="hl-code">.</span><span class="hl-identifier">printStackTrace</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code"> </span><span class="hl-reserved">catch</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-identifier">InstantiationException</span><span class="hl-code"> </span><span class="hl-identifier">e</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">e</span><span class="hl-code">.</span><span class="hl-identifier">printStackTrace</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code"> </span><span class="hl-reserved">catch</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-identifier">IllegalAccessException</span><span class="hl-code"> </span><span class="hl-identifier">e</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">e</span><span class="hl-code">.</span><span class="hl-identifier">printStackTrace</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+    </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-reserved">throw</span><span class="hl-code"> </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">RuntimeException</span><span class="hl-brackets">(</span><span class="hl-identifier">String</span><span class="hl-code">.</span><span class="hl-identifier">format</span><span class="hl-brackets">(</span><span class="hl-quotes">"</span><span class="hl-string">can not find %s , something when compiler.</span><span class="hl-quotes">"</span><span class="hl-code">, </span><span class="hl-identifier">activity</span><span class="hl-code">.</span><span class="hl-identifier">getClass</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">.</span><span class="hl-identifier">getSimpleName</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code"> + </span><span class="hl-identifier">SUFFIX</span><span class="hl-brackets">)</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span></div>
+</div>
+</div><p>与</p>
+<div class="example">
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-reserved">interface</span><span class="hl-code"> </span><span class="hl-identifier">PermissionProxy</span><span class="hl-code">&lt;</span><span class="hl-identifier">T</span><span class="hl-code">&gt;
+</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">grant</span><span class="hl-brackets">(</span><span class="hl-identifier">T</span><span class="hl-code"> </span><span class="hl-identifier">source</span><span class="hl-code">, </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">requestCode</span><span class="hl-brackets">)</span><span class="hl-code">;
+ 
+    </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">denied</span><span class="hl-brackets">(</span><span class="hl-identifier">T</span><span class="hl-code"> </span><span class="hl-identifier">source</span><span class="hl-code">, </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">requestCode</span><span class="hl-brackets">)</span><span class="hl-code">;
+ 
+    </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">rationale</span><span class="hl-brackets">(</span><span class="hl-identifier">T</span><span class="hl-code"> </span><span class="hl-identifier">source</span><span class="hl-code">, </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">requestCode</span><span class="hl-brackets">)</span><span class="hl-code">;
+ 
+    </span><span class="hl-types">boolean</span><span class="hl-code"> </span><span class="hl-identifier">needShowRationale</span><span class="hl-brackets">(</span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">requestCode</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span></div>
+</div>
+</div>
+<hr/>h2&gt;エピローグ
+<p>このようにして、私たちは2つのフレームワークのソースコード分析を書き終えました（権限管理に関するブログは多くあります）。解決策やカプセル化の考え方は大同小異です。プロジェクトではそれらのフレームワークを積極的に使うことができます。もちろん、もし不思議な情熱があれば、自分で簡易版をカプセル化しても構いません。</p><p>同時に、皆さんには他人の車輪（ライブラリ）をどんどん分解してみることをお勧めします。徐々にあなたの技術力が向上します。</p><p>
+<img alt="" decoding="async" src="../wp-content/uploads/2016/12/16.jpg" style="max-width:100%;"/></p>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link">← <a href="./android-advance-viewgrouphtml.html" rel="prev">1.3 カスタム ViewGroup</a> </div>
+<div class="next-design-link"><a href="./android-advance-plug-in-development.html" rel="next">2.0 Android プラグイン式開発</a> →</div>
+</div>
+<style>
+@media screen and (max-width: 768px) {
+	#w3cnote-ad728 {
+		display: none;
+	}
+}
+p.note-author {
+    border-bottom: 1px solid #ddd;
+    font-size: 18px;
+    font-weight: bold;
+    color: #78a15a;
+    padding-bottom: 2px;
+    margin-bottom: 4px;
+}
+</style>
+<script>
+var aid = 17090;
+</script>
+</div>
+</div>
+<div class="listcol last right-column">
+<script type="text/javascript">
+jQuery(document).ready(function ($){
+	var total = $(".membership li").length;
+	var left_list = '';
+	href = window.location.href;
+	
+	$(".membership li").each(function(index, value){
+
+		left_list += $(this).html();
+
+		cur_href = $(this).find("a").attr("href");
+		cur_obj = $(this);
+		
+		if(href.match(cur_href) != null) {
+			if(index==0) {
+				$(".previous-design-link").hide();
+			}
+			if(index==(total-1)) {
+				$(".next-design-link").hide();
+			}
+			prev_href = cur_obj.prev("li").find("a").attr("href");
+			prev_title = cur_obj.prev("li").find("a").attr("title");
+
+			next_href = cur_obj.next("li").find("a").attr("href");
+			next_title = cur_obj.next("li").find("a").attr("title");
+			if(prev_title) {
+				$(".previous-design-link a").attr("href", prev_href);
+				$(".previous-design-link a").attr("title", prev_title);
+				$(".previous-design-link a").text(prev_title);
+			} else {
+				$(".previous-design-link").html("");
+			}
+
+			if(next_title) {
+				$(".next-design-link a").attr("href", next_href);
+				$(".next-design-link a").attr("title", next_title);
+				$(".next-design-link a").text(next_title);
+			} else {
+				$(".next-design-link").html("");
+			}
+		}
+	});
+
+	$("#leftcolumn").html(left_list);
+});
+	</script>
+<div class="sidebar-box cate-list">
+<div class="sidebar-box recommend-here list-link">
+<a href="#">Android 进阶教程</a> </div>
+<ul class="membership">
+<li><a data-id="17013" href="./android-advance-screen-adaptation.html" target="_top" title="1.1 Android 中喜闻乐见的屏幕适配">1.1 Android 中喜闻乐见的屏幕适配</a></li>
+<li><a data-id="17036" href="./android-advance-custom-view.html" target="_top" title="1.2 自定义 View">1.2 自定义 View</a></li>
+<li><a data-id="17085" href="./android-advance-viewgrouphtml.html" target="_top" title="1.3 自定义 ViewGroup">1.3 自定义 ViewGroup</a></li>
+<li>
+	1.4 Android6.0权限管理-开源框架源码分析	</li>
+<li><a data-id="18227" href="./android-advance-plug-in-development.html" target="_top" title="2.0 Android 插件式开发">2.0 Android 插件式开发</a></li>
+<li><a data-id="18230" href="./android-advance-picasso1.html" target="_top" title="2.1 带你全方位学习Picasso（一）">2.1 带你全方位学习Picasso（一）</a></li>
+<li><a data-id="18234" href="./android-advance-picasso2.html" target="_top" title="2.2 带你全方位学习Picasso（二）">2.2 带你全方位学习Picasso（二）</a></li>
+</ul></div> </div>
+</div>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+</div><script src="../../lang-switcher.js"></script>
+</body>
+</html>

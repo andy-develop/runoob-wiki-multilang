@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Understanding the roles of header files and source files in C++ | Runoob Tutorial</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="./cpp-header.html" rel="canonical"/>
+<meta content="理解 C++ 中的头文件和源文件的作用" name="keywords"/>
+<meta content="一、C++ 编译模式 通常，在一个 C++ 程序中，只包含两类文件—— .cpp 文件和 .h 文件。其中，.cpp 文件被称作 C++ 源文件，里面放的都是 C++ 的源代码；而 .h 文件则被称作 C++ 头文件，里面放的也是 C++ 的源代码。 C++ 语言支持“分别编译”（separatecompilation）。也就是说，一个程序所有的内容，可以分成不同的部分分别放在不同的 .cpp 文件里。.cpp 文件里的东西都是相对独立.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div><!-- 导航栏 -->
+<!--  内容  -->
+<div class="container main">
+<div class="row">
+<div class="col middle-column big-middle-column">
+<div class="article">
+<div class="article-heading">
+<h2>Understanding the roles of header files and source files in C++</h2> <h3><em>Category</em> <a href="../w3cnote_genre/code.html" title="编程技术">Programming technology</a> </h3>
+</div>
+<div class="article-body note-body">
+<div class="article-intro">
+<!-- ad start-->
+<!-- ad end-->
+<h2>1. C++ compilation model</h2>
+<p>Usually, a C++ program contains only two types of files — .cpp files and .h files. Among them, .cpp files are called C++ source files, which contain C++ source code; .h files are called C++ header files, which also contain C++ source code.</p>
+<p>The C++ language supports "separate compilation". That is, all the contents of a program can be divided into different parts and placed in different .cpp files. The contents in a .cpp file are relatively independent; during compilation, they do not need to communicate with other files. It is only necessary to link them with other object files after compiling into object files. For example, a global function "void a(){}" is defined in file a.cpp, and file b.cpp needs to call this function. Even so, file a.cpp and file b.cpp do not need to know of each other's existence. They can be compiled separately, and after compiling into object files, they are linked, and the whole program can run.</p>
+<p>How is this achieved? From the perspective of writing a program, it is very simple. In file b.cpp, before calling the function "void a()", just declare the function "void a();". This is because when the compiler compiles b.cpp, it generates a symbol table. Symbols without definitions, such as "void a()", are stored in this table. During linking, the compiler looks for the definition of this symbol in other object files. Once found, the program can be generated successfully.</p>Note that two concepts are mentioned here: "definition" and "declaration". Simply put, a "definition" describes a symbol completely: whether it is a variable or a function, what return type it has, what parameters it needs, and so on. A "declaration" only declares the existence of the symbol, that is, it tells the compiler: this symbol is defined in another file; I will use it here, and when you link, go somewhere else to find out what it actually is. When defining, you must completely define a symbol (variable or function) according to C++ syntax, but when declaring, you only need to write out the prototype of the symbol. It should be noted that a symbol can be declared multiple times in an entire program, but it must be defined exactly once. Imagine, if a symbol has two different definitions, which one should the compiler listen to?This mechanism brings many benefits to C++ programmers, and also leads to a method of writing programs. Consider this: if there is a commonly used function "void f() {}", which is called in many .cpp files throughout the program, then we only need to define the function in one file and declare it in the other files. One function is easy to handle; declaring it is just one sentence. But what if there are many functions, such as a large set of mathematical functions, several hundred of them? Can we guarantee that every programmer can accurately remember and write out the forms of all functions?<hr/>
+<h2>2. What is a header file?</h2>
+<p>Obviously, the answer is impossible. But there is a very simple way to help programmers save the trouble of remembering so many function prototypes: we can write all the declaration statements of those hundreds of functions in advance, put them in one file, and when programmers need them, they can copy all of these into their source code.</p>
+<p>This method is indeed feasible, but it is still too troublesome and rather clumsy. So header files can play their role. The so-called header file, in fact, has the same content as .cpp files; both are C++ source code. However, header files do not need to be compiled. We put all function declarations into a header file. When a .cpp source file needs them, they can be included into the .cpp file through a macro command "#include", thereby merging their contents into the .cpp file. When the .cpp file is compiled, the included .h files take effect.</p>
+<p>For example, suppose there are only two mathematical functions: f1 and f2. Then we put their definitions in math.cpp:</p>
+<div class="example"><div class="example_code"><div class="hl-main"><span class="hl-mlcomment">/*</span><span class="hl-mlcomment"> math.cpp </span><span class="hl-mlcomment">*/</span><span class="hl-code">
+</span><span class="hl-types">double</span><span class="hl-code"> </span><span class="hl-identifier">f1</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-comment">//do something here....</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-reserved">return</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-types">double</span><span class="hl-code"> </span><span class="hl-identifier">f2</span><span class="hl-brackets">(</span><span class="hl-types">double</span><span class="hl-code"> </span><span class="hl-identifier">a</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-comment">//do something here...</span><span class="hl-comment"></span><span class="hl-code">
+</span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-identifier">a</span><span class="hl-code"> * </span><span class="hl-identifier">a</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-mlcomment">/*</span><span class="hl-mlcomment"> end of math.cpp </span><span class="hl-mlcomment">*/</span></div></div></div>
+<p>And put the declarations of "these" functions in a header file math.h:</p>
+<div class="example"> <div class="example_code"><div class="hl-main"><span class="hl-mlcomment">/*</span><span class="hl-mlcomment"> math.h </span><span class="hl-mlcomment">*/</span><span class="hl-code">
+</span><span class="hl-types">double</span><span class="hl-code"> </span><span class="hl-identifier">f1</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-types">double</span><span class="hl-code"> </span><span class="hl-identifier">f2</span><span class="hl-brackets">(</span><span class="hl-types">double</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-mlcomment">/*</span><span class="hl-mlcomment"> end of math.h </span><span class="hl-mlcomment">*/</span></div></div></div>
+<p>In another file, main.cpp, I want to call these two functions, so I only need to include the header file:</p>
+<div class="example"> <div class="example_code"><div class="hl-main"><span class="hl-mlcomment">/*</span><span class="hl-mlcomment"> main.cpp </span><span class="hl-mlcomment">*/</span><span class="hl-code">
+</span><span class="hl-prepro">#include</span><span class="hl-prepro"> </span><span class="hl-quotes">"</span><span class="hl-string">math.h</span><span class="hl-quotes">"</span><span class="hl-prepro"></span><span class="hl-code">
+</span><span class="hl-identifier">main</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">number1</span><span class="hl-code"> = </span><span class="hl-identifier">f1</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+    </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">number2</span><span class="hl-code"> = </span><span class="hl-identifier">f2</span><span class="hl-brackets">(</span><span class="hl-identifier">number1</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-mlcomment">/*</span><span class="hl-mlcomment"> end of main.cpp </span><span class="hl-mlcomment">*/</span></div></div></div>
+<p>In this way, it is a complete program. It should be noted that the .h file does not need to be written after the compiler command, but it must be in a place where the compiler can find it (for example, in the same directory as main.cpp). Both main.cpp and math.cpp can be compiled separately, generating main.o and math.o. Then, after linking these two object files, the program can run.</p>
+<h2>3. #include</h2>
+<p>#include is a macro command from the C language. It takes effect before the compiler compiles, that is, during preprocessing. The function of #include is to include the contents of the file written after it into the current file completely and without changing a word. It is worth mentioning that it has no other functions or side effects. Its function is to replace every place where it appears with the contents of the file written after it. Simple text replacement, nothing else. Therefore, the first line in main.cpp (#include "math.h") will be replaced with the contents of math.h before compilation. That is, when the compilation process is about to begin, the content of main.cpp has already changed:</p>
+<div class="example"> <div class="example_code"><div class="hl-main"><span class="hl-mlcomment">/*</span><span class="hl-mlcomment"> ~main.cpp </span><span class="hl-mlcomment">*/</span><span class="hl-code">
+</span><span class="hl-types">double</span><span class="hl-code"> </span><span class="hl-identifier">f1</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-types">double</span><span class="hl-code"> </span><span class="hl-identifier">f2</span><span class="hl-brackets">(</span><span class="hl-types">double</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-identifier">main</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">
+</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">number1</span><span class="hl-code"> = </span><span class="hl-identifier">f1</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+    </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">number2</span><span class="hl-code"> = </span><span class="hl-identifier">f2</span><span class="hl-brackets">(</span><span class="hl-identifier">number1</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-mlcomment">/*</span><span class="hl-mlcomment"> end of ~main.cpp </span><span class="hl-mlcomment">*/</span></div></div></div>
+<p>Not more, not less, just right. By the same reasoning, if in addition to main.cpp, there are many other .cpp files that also use the f1 and f2 functions, then they all only need to write #include "math.h" before using these two functions.</p>
+<hr/>
+<h2>4. What should be written in a header file?</h2>
+<p>From the discussion above, we can understand that the role of header files is to be included by other .cpp files. They themselves do not participate in compilation, but in fact, their contents are compiled in multiple .cpp files. Through the rule that "a definition can occur only once," we can easily conclude that header files should only contain declarations of variables and functions, not their definitions. Because the content of a header file is actually introduced into multiple different .cpp files, and they are all compiled. Putting declarations is fine. If definitions are put there, it is equivalent to having a definition for a symbol (variable or function) appearing in multiple files. Even if these definitions are all identical, it is illegal for the compiler.</p>
+<p>So, one point to remember is that in .h header files, only declarations of variables or functions should exist, not definitions. That is, you can only write sentences like: extern int a; and void f(); in header files. These are declarations. If you write sentences like int a; or void f() {}, once this header file is included by two or more .cpp files, the compiler will immediately report an error. (Regarding extern, we discussed it earlier; here we will not discuss the difference between definitions and declarations again.)</p>
+<p>However, there are three exceptions to this rule:</p>
+<ul><li>First, definitions of const objects can be written in header files. Because global const objects do not have extern declarations by default, they are valid only in the current file. Writing such objects in a header file, even if it is included in multiple other .cpp files, the object is only valid in the file that includes it and is invisible to other files, so it will not cause multiple definitions. At the same time, because the object in these .cpp files is included from one header file, this ensures that the value of the const object in these .cpp files is the same. It can be said to kill two birds with one stone. Similarly, definitions of static objects can also be placed in header files.</li><li>Second, definitions of inline functions can be written in header files. Because an inline function needs the compiler to expand it inline at the place where it is encountered according to its definition, and unlike ordinary functions, it cannot be declared first and then linked (inline functions are not linked), the compiler needs to see the complete definition of the inline function at compile time. If an inline function could only be defined once like an ordinary function, this would be difficult. Because in one file it is fine; I can put the definition of the inline function at the very beginning, so that the definition can be seen wherever it is used later. But what if I also use this function in other files? There is almost no good solution. Therefore, C++ stipulates that an inline function can be defined multiple times in a program, as long as the inline function appears only once in a .cpp file, and the definition of the inline function is the same in all .cpp files, it can pass compilation. Obviously, putting inline function definitions into a header file is a very wise practice.</li><li>Third, class definitions can be written in header files. Because when a program creates an object of a class, the compiler can know how the object of this class should be laid out only when the class definition is fully visible. Therefore, the requirements for class definitions are basically the same as those for inline functions. So putting a class definition into a header file and including that header file in the .cpp files that use the class is a good practice. Here, it is worth mentioning that a class definition contains data members and function members. Data members are defined (space is allocated) only when a specific object is created, but function members need to be defined from the very beginning, which is what we usually call the implementation of the class. Generally, our approach is to put the class definition in the header file and put the implementation code of the function members in a .cpp file. This is acceptable and is a very good approach. However, there is another approach: directly write the implementation code of the function members inside the class definition as well. In C++ classes, if a function member is defined within the class definition body, the compiler will treat this function as inline. Therefore, defining function members inside the class definition body and putting them together into the header file is legal. Note that if the definition of a function member is written in the header file of the class definition but not inside the class definition, this is illegal, because the function member is no longer inline at this point. Once the header file is included by two or more .cpp files, the function member will be redefined.</li></ul>
+<hr/>
+<h2>5. Protective measures in header files</h2>
+<p>Consider this: if the header file contains only declaration statements, then no matter how many times it is included by the same .cpp file, there is no problem—because the appearance of declaration statements is unrestricted. However, the three exceptions in header files discussed above are also a very common use of header files. So once any one of the above three exceptions appears in a header file, if it is included multiple times by a .cpp file, there will be a big problem. This is because the syntax elements in these three exceptions, although they "can be defined in multiple source files," "can only appear once in a single source file." Imagine that a.h contains the definition of class A, and b.h contains the definition of class B. Since the definition of class B depends on class A, b.h also #includes a.h. Now there is a source file that uses both class A and class B, so the programmer includes both a.h and b.h in this source file. At this point, the problem arises: the definition of class A appears twice in this source file! As a result, the entire program cannot be compiled. You might think this is the programmer's mistake—he should have known that b.h includes a.h—but in fact he should not have to know.</p>
+<p>Using "#define" combined with conditional compilation can solve this problem well. In a header file, define a name via #define, and use the conditional compilation #ifndef...#endif so that the compiler can decide whether to continue compiling the rest of the header file based on whether this name is defined. This method is simple, but you must remember to include it when writing header files.</p>
+<hr/>
+<h2>The difference between C++ header files and source files</h2>
+<h3>1. How source files associate with header files based on #include</h3>
+<ul><li>1. System-provided header files are enclosed in angle brackets, so the compiler will search for them in the system file directory.</li><li>2. User-defined files are enclosed in double quotes. The compiler first searches in the user directory, then searches in the C++ installation directory (for example, in VC you can specify and modify the library file search path, and in Unix and Linux you can set it through environment variables), and finally searches in system files.</li></ul>
+<p>#include "xxx.h" (I always thought "" and &lt;&gt; made no difference, but tinyxml.h is a non-system file, so "" must be used)</p>
+<h3>2. How header files associate with source files</h3>
+<p>This question actually means: given that the header file "a.h" declares a series of functions, and "b.cpp" implements these functions, if I want to use in "c.cpp" the functions declared in "a.h" and implemented in "b.cpp", I normally use #include "a.h" in "c.cpp". So how does c.cpp find the implementations in b.cpp?</p>
+<p>In fact, the file names of .cpp and .h have no direct relationship. Many compilers can accept other extensions. For example, I now see in our company's source code that .cpp files have been replaced by .cc files.</p>
+<p>In Turbo C, compilation is done by command line, and the command line parameter is the file name, whose default extensions are .cpp and .h, but they can also be customized to .xxx and so on.</p>
+<p>In Teacher Tan Haoqiang's book "C Programming", it is mentioned that during compiler preprocessing, the #include command is processed as "file inclusion processing": the entire contents of file2.c are copied to the position of #include "file2.c". This also explains why many compilers do not care what the file's suffix is—because #include preprocessing is just doing a "copy and insert code" job.</p>
+<p>During compilation, it does not look for the function implementations in b.cpp; this is only done at link time. Using #include "a.h" in b.cpp or c.cpp is actually introducing related declarations so that compilation can pass. The program does not care where the implementation is or how it is implemented. After the source files are compiled, object files (.o or .obj files) are generated. In these object files, these functions and variables are treated as symbols. At link time, the makefile needs to specify which .o or .obj file to link (here, the .o or .obj file generated by b.cpp). At this point, the linker goes to that .o or .obj file to find the functions implemented in b.cpp, and then builds them into the executable file specified in the makefile.</p>
+<p>Under Unix, you can even avoid including header files in source files; you only need to specify them in the makefile (but this greatly reduces program readability, which is a bad habit, ^_^). In VC, in general you do not need to write a makefile yourself; you only need to include all required files in the project, and VC will automatically write the makefile for you.</p>
+<p>Usually, the C++ compiler looks for the required symbols in every .o or .obj file, rather than only in a specific file, or stopping after finding one. Therefore, if the same function is implemented in several different files, or the same global variable is defined, the linker will report "redefined" during linking.</p>
+<h3>In summary</h3>
+<p>.h files can contain:</p>
+<ul><li>Declarations of class member data, but cannot assign values</li><li>Definitions and assignments of class static data members, but this is not recommended; just a declaration is fine.</li><li>Declarations of class member functions</li><li>Declarations of non-class member functions</li><li>Constant definitions: e.g., constint a=5;</li><li>Definitions of static functions</li><li>Definitions of class inline functions</li></ul>
+<p>Cannot contain:</p>
+<ul><li>1. Declarations of all non-static variables (not class data members)</li><li>2. Do not put default namespace declarations in header files; using namespace std; etc. should be placed in .cpp files. Use std::string in .h files.</li></ul>
+<blockquote><p>Original URL: https://blog.csdn.net/qq_35038153/article/details/71293265</p></blockquote>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link">← <a href="./linux-command-full-fight.html" rel="prev">Full spelling of common Linux commands</a> </div>
+<div class="next-design-link"><a href="./implementation-of-merge-sort.html" rel="next">Implementation of merge sort</a> →</div>
+</div>
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="title" id="comments">
+<h2 class="">
+<div class="altblock">
+<i aria-hidden="true" class="fa fa-pencil-square-o" style="font-size:28px;margin-top: 8px;"></i>
+</div>
+<span class="mw-headline" id="qa_headline">1 note</span>
+<span class="mw-headline" id="user_add_note" style="float:right;line-height: 62px;padding-right: 14px;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>Write a note</span>
+</h2>
+</div>
+<div id="postcomments">
+<ol class="commentlist">
+<li class="comment even thread-even depth-1" id="comment-60909"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>   HexToString</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  506***616@qq.com</p></div><div class="upvotejs" data-commid="60909" id="runoobvote-id-60909"><a class="upvote"></a> <span class="count">316</span></div></div><div class="comt-main" id="div-comment-60909"><p>There is an error, little bro.</p>
+<p>The rest is written quite well, but there is one small error that needs to be pointed out.</p>
+<span class="marked">.h</span>The file can contain:<span class="marked">static</span>Definitions of ordinary variables and ordinary functions, but cannot contain,<span class="marked">static</span>definitions of member functions and member variables.<p>The reason is<strong>static</strong>This keyword actually has two different meanings:</p>
+<ul><li>
+<strong>static</strong>When modifying ordinary variables and functions.</li><li>
+<strong>static</strong>The keyword is intended to restrict visibility.</li></ul>
+<p>For example:</p>
+<p>
+<span class="marked">void funcA(){ int a =0; a++; printf(a) }</span>If you want to continuously record how many times it has been called, you have to use a global variable, but global variables expose too much, and they are also visible in other files. Therefore, static a is used to be visible only in this file.</p>
+<p>When static modifies a class member variable, the member belongs to the class itself and is shared by all instance objects of the class.</p>
+<pre>class A{
+    public:
+        static int a;
+}</pre>
+<p>When other files include the header file classA.h that contains the class definition, it is essentially equivalent to copying. Suppose we now don't<span class="marked">#include "classA.h"</span>but directly write.</p>
+<p>For example, a.cpp includes the above header file, and then adds<span class="marked">int A::a = 3;</span>, in b.cpp includes the above header file, and then adds<span class="marked">int A::a = 3;</span>, this is equivalent to defining it twice. At this point a redefinition problem occurs (the root cause is that static member variables do not restrict visibility to only the current file). Therefore, header files cannot contain definitions of static member functions and member variables; they can only be declared.</p>
+<div class="comt-meta wrapper"><span class="comt-author"><a href=".." target="_blank">HexToString</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>   HexToString</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  506***616@qq.com</p></div></span>6 years ago (2021-01-22)</div></div></li><!-- #comment-## -->
+</ol>
+<div class="pagenav">
+</div>
+</div>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style="display:none; padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>Click me to share notes</h3>
+&lt;p style="font-size:14px;"&gt;Notes need to be an extension of this article's content!&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;To submit an article, click here&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;How to get a registration invitation code&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; You must &lt;a href=".." class="runoob-pop"&gt;log in&lt;/a&gt; before sharing notes!&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;How to get a registration invitation code&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=".." id="cancel-comment-reply-link">Cancel</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="21364"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>Share Note</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">Nickname</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">Nickname (required)</span></li>
+<li class="form-inline"><label class="hide" for="email">Email</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">Email (required)</span></li>
+<li class="form-inline"><label class="hide" for="url">Reference URL</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">Reference URL</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  21364;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 21364, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":21364},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+<style>
+@media screen and (max-width: 768px) {
+	#w3cnote-ad728 {
+		display: none;
+	}
+}
+p.note-author {
+    border-bottom: 1px solid #ddd;
+    font-size: 18px;
+    font-weight: bold;
+    color: #78a15a;
+    padding-bottom: 2px;
+    margin-bottom: 4px;
+}
+</style>
+<script>
+var aid = 21364;
+</script>
+</div>
+</div>
+<div class="listcol last right-column">
+<!--
+	<div class="tab tab-light-blue"> 订阅</div>
+	<div class="sidebar-box">
+		<div class="socialicons">
+			<a href="../feed.html" class="rss">RSS 订阅</a>
+		
+			<form action="..//list.qq.com/cgi-bin/qf_compose_send" method="post">
+			<input type="hidden" value="qf_booked_feedback" name="t">
+			<input type="hidden" value="4b67b6b6c1f5e792559940cab4aebb8f1126fba880bff1a8" name="id">
+			<input class="placeholder" id="feed_email" name="to" value="输入邮箱 订阅笔记" autocomplete="off">
+			<input type="submit" value="订阅" class="btn btn-primary">
+			</form>
+		
+		</div>
+ 
+	</div>
+-->
+<!--
+	<div class="sidebar-box cate-list">
+	<div class="sidebar-box recommend-here list-link">
+			<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">笔记列表</a>
+		</div>
+
+ 
+
+</div>
+-->
+<div class="sidebar-box cate-list" style="display:none;">
+<div class="sidebar-box recommend-here list-link">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">热门文章</a>
+</div>
+<div class="membership">
+<ul class="membership">
+<li><a href="https://mp.weixin.qq.com/s/ZaP6YNgKTCHYy3r2WPBBaw" target="_blank" title="2024 年 04 月 JavaScript 框架排行榜">2024 年 04 月 JavaScript 框架排行榜</a></li>
+<li><a href="https://mp.weixin.qq.com/s/JBR2twC0t6krjjuxqvhsEQ" target="_blank" title="免费、开源、好用的 SQL 客户端合集">免费、开源、好用的 SQL 客户端合集</a></li>
+<li><a href="https://mp.weixin.qq.com/s/TwV3YQjA1glyaW7TiHvhlA" target="_blank" title="优雅的代码规范，提升代码质量">优雅的代码规范，提升代码质量</a></li>
+<li><a href="https://mp.weixin.qq.com/s/CnUJ-2OHPbBKlnVpjDzavA" target="_blank" title="命令行中的趣味世界，牛也能说话，有趣又好玩">命令行中的趣味世界，牛也能说话，有趣又好玩</a></li>
+<li><a href="https://mp.weixin.qq.com/s/7NKl-mD7N8CeSNQlbKDEWA" target="_blank" title="2024 年 05 月编程语言排行榜，Fortran 进入前 10 名，发生了什么？">2024 年 05 月编程语言排行榜，Fortran 进入前 10 名，发生了什么？</a></li>
+<li><a href="https://mp.weixin.qq.com/s/yWlSVDKobtDhThnhirVRpw" target="_blank" title="免费开源的 IDE、数据库管理工具、SSH客户端和FTP客户端">免费开源的 IDE、数据库管理工具、SSH客户端和FTP客户端</a></li>
+</ul>
+</div>
+</div>
+<div class="sidebar-box cate-list">
+<div class="sidebar-box recommend-here list-link">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">教程列表</a>
+</div>
+<div class="cate-items">
+<a href="../ado.html">ADO 教程</a>
+<a href="../ai-agent.html">AI Agent 教程</a>
+<a href="../ai.html">AI 入门教程</a>
+<a href="../ai-math.html">AI 数学基础</a>
+<a href="../ajax.html">Ajax 教程</a>
+<a href="../android.html">Android 教程</a>
+<a href="../angularjs2.html">Angular2 教程</a>
+<a href="../angularjs.html">AngularJS 教程</a>
+<a href="../appml.html">AppML 教程</a>
+<a href="../asp.html">ASP 教程</a>
+<a href="../aspnet.html">ASP.NET 教程</a>
+<a href="../bootstrap.html">Bootstrap 教程</a>
+<a href="../bootstrap4.html">Bootstrap4 教程</a>
+<a href="../bootstrap5.html">Bootstrap5 教程</a>
+<a href="../cprogramming.html">C 教程</a>
+<a href="../c-dsa.html">C 语言数据结构与算法</a>
+<a href="../csharp.html">C# 教程</a>
+<a href="../cplusplus.html">C++ 教程</a>
+<a href="../chartjs.html">Chart.js 教程</a>
+<a href="../claude-code.html">Claude Code 教程</a>
+<a href="../cmake.html">CMake 教程</a>
+<a href="../codex.html">Codex 教程</a>
+<a href="../cssref.html">CSS 参考手册</a>
+<a href="../css.html">CSS 教程</a>
+<a href="../css3.html">CSS3 教程</a>
+<a href="../cursor.html">Cursor 教程</a>
+<a href="../dart.html">Dart 教程</a>
+<a href="../dash.html">Dash 教程</a>
+<a href="../deepseek-harness.html">DeepSeek Harness</a>
+<a href="../django.html">Django 教程</a>
+<a href="../docker.html">Docker 教程</a>
+<a href="../dtd.html">DTD 教程</a>
+<a href="../echarts.html">ECharts 教程</a>
+<a href="../eclipse.html">Eclipse 教程</a>
+<a href="../electron.html">Electron 教程</a>
+<a href="../fastapi.html">FastAPI 教程</a>
+<a href="../firebug.html">Firebug 教程</a>
+<a href="../flask.html">Flask 教程</a>
+<a href="../flutter.html">Flutter 教程</a>
+<a href="../font-awesome.html">Font Awesome 图标</a>
+<a href="../foundation.html">Foundation 教程</a>
+<a href="../git.html">Git 教程</a>
+<a href="../go.html">Go 语言教程</a>
+<a href="../googleapi.html">Google 地图 API 教程</a>
+<a href="../hermes-agent.html">Hermes Agent</a>
+<a href="../highcharts.html">Highcharts 教程</a>
+<a href="../htmldom.html">HTML DOM 教程</a>
+<a href="../tags.html">HTML 参考手册</a>
+<a href="../charsets.html">HTML 字符集</a>
+<a href="../html.html">HTML 教程</a>
+<a href="../http.html">HTTP 教程</a>
+<a href="../ionic.html">ionic 教程</a>
+<a href="../ios.html">iOS 教程</a>
+<a href="../java.html">Java 教程</a>
+<a href="../jsref.html">JavaScript 参考手册</a>
+<a href="../js.html">Javascript 教程</a>
+<a href="../jeasyui.html">jQuery EasyUI 教程</a>
+<a href="../jquerymobile.html">jQuery Mobile 教程</a>
+<a href="../jqueryui.html">jQuery UI 教程</a>
+<a href="../jquery.html">jQuery 教程</a>
+<a href="../json.html">JSON 教程</a>
+<a href="../jsp.html">JSP 教程</a>
+<a href="../julia.html">Julia 教程</a>
+<a href="../jupyter-notebook.html">Jupyter Notebook 教程</a>
+<a href="../kotlin.html">Kotlin 教程</a>
+<a href="../langchain.html">LangChain 教程</a>
+<a href="../latex.html">LaTeX 教程</a>
+<a href="../linux.html">Linux 教程</a>
+<a href="../lua.html">Lua 教程</a>
+<a href="../markdown.html">Markdown 教程</a>
+<a href="../matplotlib.html">Matplotlib 教程</a>
+<a href="../maven.html">Maven 教程</a>
+<a href="../memcached.html">Memcached 教程</a>
+<a href="../mongodb.html">MongoDB 教程</a>
+<a href="../mysql.html">MySQL 教程</a>
+<a href="../nextjs.html">Next.js 教程</a>
+<a href="../nlp.html">NLP 教程</a>
+<a href="../nodejs.html">Node.js 教程</a>
+<a href="../numpy.html">NumPy 教程</a>
+<a href="../obsidian.html">Obsidian 教程</a>
+<a href="../ollama.html">Ollama 教程</a>
+<a href="../opencode.html">OpenCode 教程</a>
+<a href="../opencv.html">OpenCV 教程</a>
+<a href="../pandas.html">Pandas 教程</a>
+<a href="../perl.html">Perl 教程</a>
+<a href="../php.html">PHP 教程</a>
+<a href="../pi-agent.html">Pi Agent</a>
+<a href="../pillow.html">Pillow 教程</a>
+<a href="../playwright.html">Playwright 教程</a>
+<a href="../postgresql.html">PostgreSQL 教程</a>
+<a href="../powershell.html">PowerShell</a>
+<a href="../pycharm.html">Pycharm 教程</a>
+<a href="../python3.html">Python 3 教程</a>
+<a href="../python.html">Python 基础教程</a>
+<a href="../python-design-pattern.html">Python 设计模式</a>
+<a href="../python-qt.html">Python 量化交易</a>
+<a href="../pytorch.html">PyTorch 教程</a>
+<a href="../r.html">R 教程</a>
+<a href="../rdf.html">RDF 教程</a>
+<a href="../react.html">React 教程</a>
+<a href="../redis.html">Redis 教程</a>
+<a href="../restfulapi.html">RESTful API</a>
+<a href="../rss.html">RSS 教程</a>
+<a href="../ruby.html">Ruby 教程</a>
+<a href="../rust.html">Rust 教程</a>
+<a href="../sass.html">Sass 教程</a>
+<a href="../scala.html">Scala 教程</a>
+<a href="../scipy.html">SciPy 教程</a>
+<a href="../selenium.html">Selenium 教程</a>
+<a href="../servlet.html">Servlet 教程</a>
+<a href="../skills.html">Skills 教程</a>
+<a href="../sklearn.html">Sklearn 教程</a>
+<a href="../soap.html">SOAP 教程</a>
+<a href="../sql.html">SQL 教程</a>
+<a href="../sqlite.html">SQLite 教程</a>
+<a href="../svg.html">SVG 教程</a>
+<a href="../svn.html">SVN 教程</a>
+<a href="../swagger.html">Swagger 教程</a>
+<a href="../swift.html">Swift 教程</a>
+<a href="../tailwindcss.html">Tailwind CSS 教程</a>
+<a href="../tcpip.html">TCP/IP 教程</a>
+<a href="../tensorflow.html">TensorFlow 教程</a>
+<a href="../typescript.html">TypeScript 教程</a>
+<a href="../uniapp.html">uni-app 教程</a>
+<a href="../vbscript.html">VBScript 教程</a>
+<a href="../vibe-coding.html">Vibe Coding 教程</a>
+<a href="../vscode.html">VSCode 教程</a>
+<a href="../vue2.html">Vue.js 教程</a>
+<a href="../vue3.html">Vue3 教程</a>
+<a href="../w3c.html">W3C 教程</a>
+<a href="../webservices.html">Web Service 教程</a>
+<a href="../wsdl.html">WSDL 教程</a>
+<a href="../xlink.html">XLink 教程</a>
+<a href="../dom.html">XML DOM 教程</a>
+<a href="../schema.html">XML Schema 教程</a>
+<a href="../xml.html">XML 教程</a>
+<a href="../xpath.html">XPath 教程</a>
+<a href="../xquery.html">XQuery 教程</a>
+<a href="../xslfo.html">XSLFO 教程</a>
+<a href="../xsl.html">XSLT 教程</a>
+<a href="../zig.html">Zig 教程</a>
+<a href="../data-structures.html">数据结构</a>
+<a href="../ml.html">机器学习</a>
+<a href="../regexp.html">正则表达式</a>
+<a href="../assembly.html">汇编语言</a>
+<a href="../quiz.html">测验</a>
+<a href="../browsers.html">浏览器</a>
+<a href="../quality.html">网站品质</a>
+<a href="../web.html">网站建设指南</a>
+<a href="../hosting.html">网站服务器教程</a>
+<a href="../np.html">网络协议</a>
+<a href="../computer-organization.html">计算机组成原理</a>
+<a href="../design-pattern.html">设计模式</a>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

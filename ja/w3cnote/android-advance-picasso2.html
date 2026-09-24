@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>2.2 Picassoを全方位で学ぼう（二） | 菜鸟教程</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="./android-advance-picasso2.html" rel="canonical"/>
+<meta content="2.2 带你全方位学习Picasso（二）" name="keywords"/>
+<meta content="目录   图像请求排序 tag() 分组请求 回调, RemoteView与Notifications 图像旋转与转换 图像缓存 缓存指示器，日志，统计 使用 Picasso.Builder 自定义Picasso 自定义请求处理 picasso2-okhttp3-downloader 与 picasso-transformations   图像请求排序 优先级：HIGH,MEDIUM,LOW 假设有一种场景，就是图片加载需要优先级显示，.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div><!-- 导航栏 -->
+<!--  内容  -->
+<div class="container main">
+<div class="row">
+<div class="col middle-column big-middle-column">
+<div class="article">
+<div class="article-heading">
+<h2>2.2 Picassoを全方位で学ぼう（二）</h2> <h3><em>カテゴリ</em> <a href="../w3cnote_genre/android-advance.html" title="Android 扩展教程">Android 拡張チュートリアル</a> </h3>
+</div>
+<div class="article-body note-body">
+<div class="article-intro">
+<!-- ad start-->
+<!-- ad end-->
+<h2>目次</h2>
+<ol>
+<li>画像リクエストの優先順位付け</li>
+<li>tag() によるリクエストのグループ化</li>
+<li>コールバック、RemoteView と Notifications</li>
+<li>画像の回転と変換</li>
+<li>画像キャッシュ</li>
+<li>キャッシュインジケータ、ログ、統計</li>
+<li>Picasso.Builder を使用して Picasso をカスタマイズする</li>
+<li>カスタムリクエスト処理</li>
+<li>picasso2-okhttp3-downloader と picasso-transformations</li>
+</ol>
+<hr/>
+<h2>画像リクエストの優先順位付け</h2>
+<h3>優先度：HIGH, MEDIUM, LOW</h3>
+<p>画像の読み込みに優先度を付けて表示する必要があるシナリオを想定しましょう。その場合に使用します。<code>priority()</code>。このメソッドは3つのパラメータのうちの1つを必要とします：<code>HIGH,MEDIUM,LOW</code>、デフォルトでは、すべてのリクエストは MEDIUM です。</p>
+<pre>
+//HIGH
+Picasso  
+    .with(context)
+    .load(UsageExampleListViewAdapter.eatFoodyImages[0])
+    .fit()
+    .priority(Picasso.Priority.HIGH)
+    .into(imageViewHero);
+
+//LOW
+Picasso  
+    .with(context)
+    .load(UsageExampleListViewAdapter.eatFoodyImages[2])
+    .fit()
+    .priority(Picasso.Priority.LOW)
+    .into(imageViewLowPrioRight);
+</pre><p><strong>注</strong>：使用します<code>priority()</code>画像の表示順序を100%保証するものではなく、単にリクエストの優先度です。</p>
+<hr/>
+<h2>tag() によるリクエストのグループ化</h2><p>画像のリクエスト優先度については理解できたでしょうが、それだけでは不十分かもしれません。複数の画像リクエストを同時にキャンセル、一時停止、再開する必要がある場合を想定しましょう。その場合に使用します。<code>tag()</code></p>
+<p><code>tag()</code>任意のJavaオブジェクトをパラメータとして使用できます。なぜなら、これらに基づいて画像グループを構築できるからです。画像グループには以下のオプションがあります：</p>
+<ul>
+<li>リクエストの一時停止 pauseTag()</li>
+<li>リクエストの再開 resumeTag()</li>
+<li>リクエストのキャンセル cancelTag()</li>
+</ul><p>今でもこれが一体何なのか理解できないかもしれませんが、小さな例を見てみましょう。</p>
+<h3>例：pauseTag() と resumeTag()</h3>
+<p>メールアプリがあると仮定しましょう。内容は主に<code>ListView</code>表示されます。</p>
+<p><img alt="" decoding="async" src="../wp-content/uploads/2017/01/2.png"/></p>
+<p>さて、ある状況を想像してみましょう。ユーザーが特定の情報を探していて、素早くスワイプするとします。ListView は本来、各 container を迅速にリサイクルして再利用します。しかし、Picasso は各 item に対してリクエストを実行しようとし、ユーザーが素早くスワイプするため、すぐにキャンセルします。</p>
+<p>リクエストをさらに減らすために、ListView のスクロールが終了するまで画像の読み込みを待つことができます。その間ユーザーは違いに気付かないでしょうが、これによりリクエスト量がすでに減っています。</p>
+<p>実装はとても簡単です。まず、Picasso リクエストにタグを追加します。</p>
+<pre>
+Picasso  
+    .with(context)
+    .load(UsageExampleListViewAdapter.eatFoodyImages[0])
+    .tag("Profile ListView") // can be any Java object
+    .into(imageViewWithTag);
+
+//接着，实现一个  `AbsListView.OnScrollListener` 和重写  `onScrollStateChanged()`
+
+@Override
+public void onScrollStateChanged(AbsListView view, int scrollState) {
+final Picasso picasso = Picasso.with(context);
+
+if (scrollState == SCROLL_STATE_IDLE || scrollState == SCROLL_STATE_TOUCH_SCROLL) {
+      picasso.resumeTag(context);
+} else {
+      picasso.pauseTag(context);
+}
+}
+
+//最后一步
+listView.setOnScrollListener(onScrollListener);
+</pre>
+<blockquote>
+<p>ListView が非常に速くスクロールしている状態では、すべてのリクエストを一時停止し、通常のスクロールまたは停止時にはリクエストを再開します。</p>
+<p><a href="https://github.com/square/picasso/blob/master/picasso-sample/src/main/java/com/example/picasso/SampleScrollListener.java">公式サイトのサンプルコード</a> </p>
+</blockquote>
+<p>注：この記事では主に String をタグとして使用しています。異なるオブジェクトを使いたいと思うかもしれません。その場合、思いつくのは<code>Context or Activity, Fragment</code>、しかし公式は警告を発しています<strong>ユーザーが離れてしまった場合<code>Activity</code>、ガベージコレクタは Picasso が Activity オブジェクトを破棄できないため、メモリリークが発生する可能性があります。</strong></p>
+<hr/>
+<h2>コールバック、RemoteView と Notifications</h2>
+<h3>fetch(), get(), Target の違い</h3>
+<p><strong>fetch()：</strong> <code>fetch()</code>バックグラウンドスレッドで画像を非同期に読み込みますが、<code>ImageView</code>表示はされず、Bitmap も返しません。このメソッドはディスクとメモリのキャッシュにのみ保存します。後で現在の画像を読み込むために使用できます。</p>
+<p><strong>get()：</strong> <code>get()</code>画像を同期読み込みし、<code>Bitmap</code>オブジェクトを返します。<strong>Targets：</strong>into オプションは ImageView オブジェクトを渡すだけでなく、Target を渡すこともできます。これはコールバックです。</p>
+<h3>Target をコールバック機構として使用する</h3>
+<p>これまでのところ、<code>.into()</code>私たちはこれまで ImageView オブジェクトを渡してきましたが、もちろんこのメソッドにはオーバーロードもあります。直接例を見てみましょう。すぐに理解できるかもしれません。</p>
+<pre>
+Picasso  
+    .with(context)
+    .load(UsageExampleListViewAdapter.eatFoodyImages[0])
+    .into(target);
+
+//下面是重点
+private Target target = new Target() {  
+    @Override
+    public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from){
+        // 图片加载成功
+    }
+    @Override
+    public void onBitmapFailed(Drawable errorDrawable) {
+        // 图片加载失败
+    }
+    @Override
+    public void onPrepareLoad(Drawable placeHolderDrawable) {
+        //图片加载中
+    }
+};
+</pre><p><strong>注：</strong>ここでは匿名クラスの使用は推奨されません。ガベージコレクション機構がターゲットを回収する可能性があり、Bitmap を取得できなくなります。</p>
+<h3>RemoteView を使用してカスタムNotificationsに画像を読み込む</h3>
+<p><code>RemoteView</code>使用用途：<code>Widgets</code>和<code>自定义notification</code></p>
+<p>まず、カスタム notification を見てみましょう。</p>
+<pre>
+// create RemoteViews
+final RemoteViews remoteViews = new RemoteViews(getPackageName(), R.layout.remoteview_notification);
+
+remoteViews.setImageViewResource(R.id.remoteview_notification_icon, R.mipmap.future_studio_launcher);
+
+remoteViews.setTextViewText(R.id.remoteview_notification_headline, "Headline");  
+remoteViews.setTextViewText(R.id.remoteview_notification_short_message, "Short Message");
+
+remoteViews.setTextColor(R.id.remoteview_notification_headline, getResources().getColor(android.R.color.black));  
+remoteViews.setTextColor(R.id.remoteview_notification_short_message, getResources().getColor(android.R.color.black));
+
+// build notification
+NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(UsageExampleTargetsAndRemoteViews.this)  
+    .setSmallIcon(R.mipmap.future_studio_launcher)
+    .setContentTitle("Content Title")
+    .setContentText("Content Text")
+    .setContent(remoteViews)
+    .setPriority(NotificationCompat.PRIORITY_MIN);
+
+final Notification notification = mBuilder.build();
+
+// set big content view for newer androids
+if (android.os.Build.VERSION.SDK_INT &gt;= 16) {  
+    notification.bigContentView = remoteViews;
+}
+
+NotificationManager mNotificationManager = (NotificationManager) this.getSystemService(Context.NOTIFICATION_SERVICE);  
+mNotificationManager.notify(NOTIFICATION_ID, notification); 
+</pre>
+<p>上記のコードはすべてカスタムレイアウトの通知を作成するものですが、詳細には立ち入りません。これが今回の重点ではないからです。Picasso を使用してこの要件を実装してみましょう。非常に簡単です：<code>.into(android.widget.RemoteViews remoteViews, int viewId, int notificationId, android.app.Notification notification)</code></p>
+<pre>
+Picasso  
+    .with(UsageExampleTargetsAndRemoteViews.this)
+    .load(UsageExampleListViewAdapter.eatFoodyImages[0])
+    .into(remoteViews, R.id.remoteview_notification_icon, NOTIFICATION_ID, notification);
+</pre>
+<blockquote>
+<p>各変数が何であるかわからない場合は、上記のコードを参考にしてください。まず効果図を見てみましょう。</p>
+</blockquote>
+<p><img alt="" decoding="async" src="../wp-content/uploads/2017/01/3.jpg"/></p>
+<hr/>
+<h2>画像の回転と変換</h2>
+<h3>回転</h3>
+<p>Picasso には回転機能が組み込まれています。理解するのは難しくないので、コードを直接見てみましょう。</p>
+<pre>
+Picasso  
+    .with(context)
+    .load(UsageExampleListViewAdapter.eatFoodyImages[0])
+    .rotate(90f)
+    .into(imageViewSimpleRotate);
+</pre><p>デフォルトでは中心点を基準に回転しますが、他の軸点で回転させる必要がある場合もあります。その場合は、呼び出すことができます<code>rotate(float degrees, float pivotX, float pivotY)</code>。</p>
+<pre>
+Picasso  
+    .with(context)
+    .load(R.drawable.floorplan)
+    .rotate(45f, 200f, 100f)
+    .into(imageViewComplexRotate);
+</pre><h3>変換</h3>
+<p>回転は画像処理技術のほんの一部です。Picasso はさらに<code>Transformation</code>画像処理のための を提供しています。実装するだけでよいのは<code>Transformation</code>インターフェースの主要なメソッドです<code>transform(android.graphics.Bitmap source)</code>、このメソッドは Bitmap を受け取り、変換後の画像を返します。このインターフェースを実装したら、Picasso で を呼び出すだけです。<code>transform(Transformation transformation)</code>画像の変換が完了します。いろいろ述べましたが、2つの例を見てみましょう。</p>
+<p><strong>ぼかし画像</strong></p>
+<p>まず、 を実装する必要があります<code>Transformation</code>インターフェースを、 を使用して<code>RenderScript</code>。ただし、この記事では については紹介しません<code>RenderScript</code>、しかし、それがぼかし画像に使用できることは理解しておきましょう。</p>
+<pre>
+public class BlurTransformation implements Transformation {
+
+    RenderScript rs;
+
+    public BlurTransformation(Context context) {
+        super();
+        rs = Renderscript.create(context);
+    }
+
+    @Override
+    public Bitmap transform(Bitmap bitmap) {
+        // 创建一个位图，
+        Bitmap blurredBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true);
+
+        // 分配内存
+        Allocation input = Allocation.createFromBitmap(rs, blurredBitmap, Allocation.MipmapControl.MIPMAP_FULL, Allocation.USAGE_SHARED);
+        Allocation output = Allocation.createTyped(rs, input.getType());
+
+        // 加载一个特定的脚本
+        ScriptIntrinsicBlur script = ScriptIntrinsicBlur.create(rs, Element.U8_4(rs));
+        script.setInput(input);
+
+        // 设置模糊半径
+        script.setRadius(10);
+
+        // 启动ScriptIntrinisicBlur
+        script.forEach(output);
+
+        // 输出
+        output.copyTo(blurredBitmap);
+
+        bitmap.recycle();
+        return blurredBitmap;
+    }
+
+    @Override
+    public String key() {
+        return "blur";
+    }
+}
+</pre>
+<p>定義が完了すれば、Picasso での呼び出しは非常に簡単になります。</p>
+<pre>
+Picasso  
+    .with(context)
+    .load(UsageExampleListViewAdapter.eatFoodyImages[0])
+    .transform(new BlurTransformation(context))
+    .into(imageViewTransformationBlur);
+</pre>
+<p><strong>ぼかしとグレースケール変換</strong>それだけでなく、Picasso の<code>transform</code>メソッドにはさらに が用意されています<code>transform(List&lt;? extends Transformation&gt; transformations)</code>、つまり画像に一連の変換を適用できるということです。ここでは、さらにグレースケール変換を実装しましょう。</p>
+<pre>
+public class GrayscaleTransformation implements Transformation {
+
+    private final Picasso picasso;
+
+    public GrayscaleTransformation(Picasso picasso) {
+        this.picasso = picasso;
+    }
+
+    @Override
+    public Bitmap transform(Bitmap source) {
+        Bitmap result = createBitmap(source.getWidth(), source.getHeight(), source.getConfig());
+        Bitmap noise;
+        try {
+            noise = picasso.load(R.drawable.noise).get();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to apply transformation! Missing resource.");
+        }
+
+        BitmapShader shader = new BitmapShader(noise, REPEAT, REPEAT);
+
+        ColorMatrix colorMatrix = new ColorMatrix();
+        colorMatrix.setSaturation(0);
+        ColorMatrixColorFilter filter = new ColorMatrixColorFilter(colorMatrix);
+
+        Paint paint = new Paint(ANTI_ALIAS_FLAG);
+        paint.setColorFilter(filter);
+
+        Canvas canvas = new Canvas(result);
+        canvas.drawBitmap(source, 0, 0, paint);
+
+        paint.setColorFilter(null);
+        paint.setShader(shader);
+        paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.MULTIPLY));
+
+        canvas.drawRect(0, 0, canvas.getWidth(), canvas.getHeight(), paint);
+
+        source.recycle();
+        noise.recycle();
+
+        return result;
+    }
+
+    @Override
+    public String key() {
+        return "grayscaleTransformation()";
+    }
+}
+</pre>
+<p>完了したら、また Picasso で参照します。今回は List コレクションを構築するだけです。</p>
+<pre>
+List&lt;Transformation&gt; transformations = new ArrayList&lt;&gt;();
+
+transformations.add(new GrayscaleTransformation(Picasso.with(context)));  
+transformations.add(new BlurTransformation(context));
+
+Picasso  
+    .with(context)
+    .load(UsageExampleListViewAdapter.eatFoodyImages[0])
+    .transform(transformations)
+    .into(imageViewTransformationsMultiple);
+</pre><hr/><h2>画像キャッシュ</h2><p>デフォルトの Picasso のキャッシュ設定。</p>
+<blockquote>
+<p>LRUメモリキャッシュ：利用可能なRAMの15%
+ディスクキャッシュ：ストレージの2%、最大50MB、ただし5MB未満にはできない
+ディスクおよびネットワークアクセス用の3つのダウンロードスレッド</p>
+</blockquote>
+<p>キャッシュサイズを変更することもできますが、それはこのブログの範囲外です。画像キャッシュのテーマに戻ると、Picasso はまずメモリキャッシュから画像を読み込もうとし、なければディスクキャッシュを検索し、ディスクにもなければネットワークリクエストを開始します（メモリ -&gt; ディスク -&gt; ネットワークリクエスト）。さらに、リクエストされたすべての画像は2つのキャッシュに保存されます（スペースを解放するために削除されなければならないまで）。このキャッシュ戦略で要件を満たせないと考えるなら、次を見てみましょう<code>MemoryPolicy</code></p>
+<h3>メモリポリシー</h3>
+<p>まず、Picasso はリクエストされた画像をメモリから優先的に取得します。この手順をスキップしたい場合は、 を使用できます<code>memoryPolicy(MemoryPolicy policy, MemoryPolicy... additional)</code>。 <code>MemoryPolicy</code>は2つの値を持つ単純な列挙型です<code>NO_CACHE和NO_STORE</code>。</p>
+<pre>
+Picasso  
+    .with(context)
+    .load(UsageExampleListViewAdapter.eatFoodyImages[1])
+    .memoryPolicy(MemoryPolicy.NO_CACHE)
+    .into(imageViewFromDisk);
+</pre><p>NO_STORE がどのような状況で使われるのか知りたいなら、それはリクエストされた画像をメモリにキャッシュしないことです。それでは、次の例を見てみましょう。</p>
+<pre>
+Picasso  
+    .with(context)
+    .load(UsageExampleListViewAdapter.eatFoodyImages[1])
+    .memoryPolicy(MemoryPolicy.NO_CACHE, MemoryPolicy.NO_STORE)
+    .into(imageViewFromDisk);
+</pre><p>これにより、リクエストされた画像はメモリにキャッシュされず、Picasso もメモリ内を探しに行きません。この利点は、既存のAPIではメモリキャッシュをクリアできないため、メモリ回収を高速化できることです。</p>
+<h3>ネットワークポリシー</h3>
+<p>ディスクキャッシュをスキップしたい場合は、 を呼び出します<code>.networkPolicy(NetworkPolicy policy, NetworkPolicy... additional)</code> 与 <code>NetworkPolicy.NO_CACHE</code>をパラメータとして渡します。</p>
+<pre>
+Picasso  
+    .with(context)
+    .load(UsageExampleListViewAdapter.eatFoodyImages[2])
+    .networkPolicy(NetworkPolicy.NO_CACHE)
+    .into(imageViewFromNetwork);
+</pre>
+<p>最後に、3番目のオプションも提供されています<code>NetworkPolicy：OFFLINE</code>。これをパラメータとして使用すると、Picasso はキャッシュからのみ画像を探し、ネットワークがあってもリクエストを送信しません。</p>
+<hr/>
+<h2>キャッシュインジケータ、ログ、統計</h2>
+<h3>キャッシュインジケータ</h3><p>有能な開発者として、画像がどこから来たのかを分析する必要がある場合があります。最も簡単な方法は、キャッシュインジケータを有効にすることです。次のように使うだけです。<code>.setIndicatorsEnabled(true)</code> 。</p>
+<pre>
+Picasso  
+    .with(context)
+    .setIndicatorsEnabled(true);
+</pre>
+<p>以降、すべての画像の左上隅に小さなインジケータが表示されます。</p>
+<p><img alt="" decoding="async" src="../wp-content/uploads/2017/01/4.png"/></p>
+<ul>
+<li>緑（画像はメモリから）</li>
+<li>青（画像はディスクから）</li>
+<li>赤（画像はネットワークから）</li>
+</ul><h3>ログ</h3>
+<p>場合によっては、より多くの情報が必要になることもあります。その場合は、ログを有効にできます。<code>.setLoggingEnabled(true)</code>。</p>
+<pre>
+Picasso  
+    .with(context)
+    .setLoggingEnabled(true);
+</pre><p>これにより、すべての画像読み込みでログが出力されます。</p>
+<pre>
+D/Picasso﹕ Main        created      [R0] Request{http://i.imgur.com/rT5vXE1.jpg}  
+D/Picasso﹕ Dispatcher  enqueued     [R0]+21ms  
+D/Picasso﹕ Hunter      executing    [R0]+26ms  
+D/Picasso﹕ Hunter      decoded      [R0]+575ms  
+D/Picasso﹕ Dispatcher  batched      [R0]+576ms for completion  
+D/Picasso﹕ Main        completed    [R0]+807ms from NETWORK  
+D/Picasso﹕ Dispatcher  delivered    [R0]+809ms  
+</pre><hr/><h2>統計</h2><p>リクエストの平均結果を取得できます。</p>
+<pre>
+StatsSnapshot picassoStats = Picasso.with(context).getSnapshot();
+
+Log.d("Picasso Stats", picassoStats.toString());
+</pre><p>コンソールに出力されます。</p>
+<pre>
+D/Picasso Stats﹕ StatsSnapshot{
+maxSize=28760941, 
+size=26567204, 
+cacheHits=30, 
+cacheMisses=58, 
+downloadCount=0, 
+totalDownloadSize=0, 
+averageDownloadSize=0, 
+totalOriginalBitmapSize=118399432, 
+totalTransformedBitmapSize=96928004, 
+averageOriginalBitmapSize=2466654, 
+averageTransformedBitmapSize=2019333, 
+originalBitmapCount=48, 
+transformedBitmapCount=41, 
+timeStamp=1432576918067}
+</pre><hr/><h2>Picasso.Builder を使用して Picasso をカスタマイズする</h2><p>Picassoには、Picassoインスタンスをカスタマイズする直接的なメソッドがあります。<code>Picasso.Builder类</code>これを使用してPicassoをカスタマイズできます。</p><h3>局所的に Picasso をカスタマイズする</h3><p>カスタムPicassoの説明に入る前に、標準のPicassoインスタンスを取得する方法を簡単に振り返っておきましょう。</p>
+<pre>
+Picasso picasso = Picasso.with(Context);  
+</pre><p>このメソッドは標準のPicassoを返します。カスタムインスタンスを構築する必要がある場合、一つの方法は<code>Picasso.Builder</code>オブジェクトを生成して調整することです。</p>
+<pre>
+// 创建 Picasso.Builder 对象
+Picasso.Builder picassoBuilder = new Picasso.Builder(context);
+// TODO
+Picasso picasso = picassoBuilder.build()
+</pre><p>次に、カスタムのPicassoを使用して画像を読み込むことができます。</p>
+<pre>
+picasso  
+    .load(UsageExampleListViewAdapter.eatFoodyImages[0])
+    .into(imageView1)
+</pre>
+<h3>グローバルにカスタムPicassoを使用する</h3><p>Picassoインスタンスの作成と変更の方法は変わりません。</p>
+<pre>
+// 创建 Picasso.Builder 对象
+Picasso.Builder picassoBuilder = new Picasso.Builder(context);
+
+//TODO
+Picasso picasso = picassoBuilder.build(); 
+</pre><p>このPicassoをグローバルにするには、ただ呼び出すだけです。<code>Picasso.setSingletonInstance(picasso);</code>通常、この初期化はアプリの起動時に行う必要があります。</p>
+<pre>
+try {  
+    Picasso.setSingletonInstance(picasso);
+} catch (IllegalStateException ignored) {
+}
+</pre><p>一度カスタムのグローバルPicassoを設定すると、以降のすべての<code>Picasso.with(Context context)</code>呼び出しは、カスタムPicassoを返すようになります。</p>
+<p>Picassoのカスタマイズ方法を学びましたが、カスタムPicassoで何ができるのかはまだ分かっていません。</p>
+<h3>カスタムPicasso：ダウンローダーの変更</h3><p>Picassoはデフォルトで、利用可能な最良のキャッシュとネットワークコンポーネントを使用します。デフォルトのダウンローダーを変更したい場合は、<code>Picasso.Builder</code>呼び出すことができます。<code>downloader(Downloader downloader)</code>たとえば、私たちのOkhttpです。</p>
+<pre>
+Picasso.Builder picassoBuilder = new Picasso.Builder(context);
+
+//更改下载器。
+picassoBuilder.downloader(new OkHttpDownloader(new OkHttpClient()));
+
+Picasso picasso = picassoBuilder.build();
+</pre><p>ただし、注意すべき点が1つあります。読み込む画像が自分のサーバーから取得されたもので、サーバーがHTTPSを使用しており、さらに署名が必要な場合、このときOKHttpはSSLの問題により画像を読み込めなくなります。その場合はUnsafeOkHttpClientを使用することで、この問題を回避できます。</p>
+<pre>
+picassoBuilder.downloader(  
+    new OkHttpDownloader(
+        UnsafeOkHttpClient.getUnsafeOkHttpClient()
+    )
+);
+</pre><h3>カスタムリクエスト処理</h3><p>引き続きカスタムPicassoです。まず、コードの一部を見てみましょう。</p>
+<pre>
+Picasso.Builder picassoBuilder = new Picasso.Builder(context);
+
+picassoBuilder.addRequestHandler(new EatFoodyRequestHandler());
+
+Picasso picasso = picassoBuilder.build();  
+</pre><p>唯一疑問に思うのは、おそらく次の部分です。<code>EatFoodyRequestHandler</code>これは私たちが継承する<code>RequestHandler</code>カスタム（リクエスト処理）クラスです。では、次が何かを見てみましょう。<code>RequestHandler</code>。</p>
+<h3>RequestHandler の実装</h3><p>これは抽象クラスであり、実装すべきメソッドが2つあります。</p>
+<pre>
+boolean canHandleRequest(Request data) Result load(Request request, int networkPolicy)
+</pre><p>最初のメソッドは、Picassoにこのリクエストハンドラーが現在のリクエストを処理するかどうかを認識させます。処理できる場合、リクエストは<code>load()</code>メソッドに渡されます。</p>
+<p>このクラス全体がどのように実装されているかを見てみましょう。</p>
+<pre>
+public class EatFoodyRequestHandler extends RequestHandler {  
+    private static final String EAT_FOODY_RECIPE_SCHEME = "eatfoody";
+    @Override
+    public boolean canHandleRequest(Request data) {
+        return EAT_FOODY_RECIPE_SCHEME.equals(data.uri.getScheme());
+    }
+
+    @Override
+    public Result load(Request request, int networkPolicy) throws IOException {
+        //获取请求的host
+       String imageKey = request.uri.getHost(); 
+       Bitmap bitmap;
+       if (imageKey.contentEquals("cupcake")) {
+           bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.cupcake);
+       }else if (imageKey.contentEquals("full_cake")) {
+           bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.full_cake);
+       }else {
+           bitmap = BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher);
+       }
+       return new Result(bitmap, Picasso.LoadedFrom.DISK);
+    }
+}
+</pre><p>このコードは一見すると難しくはありません。まず<code>canHandleRequest</code>メソッド内で、uriのプロトコルが次に示す値と等しいかどうかを判定します。<code>eatfoody</code>そうでない場合、Picassoは標準のダウンロードフローに戻ります。等しい場合は、そのメソッドに入ります。<code>load</code>そのメソッド内で、<code>load</code>uriの<code>host</code>部分を判定し、その後、対応するbitmapを返します。</p>
+<pre>
+//这会按照标准的流程加载图片
+picasso  
+    .load("http://i.imgur.com/DvpvklR.png")
+    .into(imageView1);
+
+//他会进入 load 方法中的逻辑判断去加载 `R.drawable.full_cake`
+picasso  
+    .load("eatfoody://cupcake")
+    .into(imageView2)
+</pre><hr/>
+<h2>picasso2-okhttp3-downloader と picasso-transformations</h2>
+<p>前の内容を注意深く読んだのであれば、ダウンローダーと変換についてすでに理解できていると思います。その拡張性は否定できません。当然、多くの優秀な開発者が私たちのために適切なフレームワークを提供してくれるでしょう。</p>
+<ul>
+<li><a href="https://github.com/wasabeef/picasso-transformations" target="_blank">picasso-transformations</a></li>
+<li><a href="https://github.com/JakeWharton/picasso2-okhttp3-downloader" target="_blank">picasso2-okhttp3-downloader</a></li>
+</ul>
+<p>ただし、関連する依存関係を追加する必要があります。これは難しくありません。自分でGitHubを調べてもよいですし、サンプルも提供されています。</p><hr/>
+<h2>まとめ</h2><p>Picassoの使用チュートリアルは、ひとまずここまでにします。機会があれば、またそのソースコードを一緒に読んでいきたいと思います。しかし、著者としても現時点ではまだ十分に成熟していないと認めているので、それは後回しにして読むことにします。なぜなら、その設計思想と拡張性は非常に優れており、著者が現在も使っているGlideでさえ、類似した設計パターンに基づいているからです。ただ、戦略の面では少し異なります。同時に、Glideも学ぶつもりです。両者は似ていますが、必要としている人のために解説する価値があります..... もちろん、著者によるこの2つの比較分析も欠かせません。それはもしかすると、より興味深いものになるでしょう。</p>
+<blockquote>
+<p><strong>译</strong> <a href="https://futurestud.io/tutorials/picasso-getting-started-simple-loading" target="_blank">未来スタジオ - Picasso</a></p></blockquote>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link">← <a href="./android-advance-picasso1.html" rel="prev">2.1 全方位でPicassoを学ぶ（一）</a> </div>
+<div class="next-design-link"></div>
+</div>
+<style>
+@media screen and (max-width: 768px) {
+	#w3cnote-ad728 {
+		display: none;
+	}
+}
+p.note-author {
+    border-bottom: 1px solid #ddd;
+    font-size: 18px;
+    font-weight: bold;
+    color: #78a15a;
+    padding-bottom: 2px;
+    margin-bottom: 4px;
+}
+</style>
+<script>
+var aid = 18234;
+</script>
+</div>
+</div>
+<div class="listcol last right-column">
+<script type="text/javascript">
+jQuery(document).ready(function ($){
+	var total = $(".membership li").length;
+	var left_list = '';
+	href = window.location.href;
+	
+	$(".membership li").each(function(index, value){
+
+		left_list += $(this).html();
+
+		cur_href = $(this).find("a").attr("href");
+		cur_obj = $(this);
+		
+		if(href.match(cur_href) != null) {
+			if(index==0) {
+				$(".previous-design-link").hide();
+			}
+			if(index==(total-1)) {
+				$(".next-design-link").hide();
+			}
+			prev_href = cur_obj.prev("li").find("a").attr("href");
+			prev_title = cur_obj.prev("li").find("a").attr("title");
+
+			next_href = cur_obj.next("li").find("a").attr("href");
+			next_title = cur_obj.next("li").find("a").attr("title");
+			if(prev_title) {
+				$(".previous-design-link a").attr("href", prev_href);
+				$(".previous-design-link a").attr("title", prev_title);
+				$(".previous-design-link a").text(prev_title);
+			} else {
+				$(".previous-design-link").html("");
+			}
+
+			if(next_title) {
+				$(".next-design-link a").attr("href", next_href);
+				$(".next-design-link a").attr("title", next_title);
+				$(".next-design-link a").text(next_title);
+			} else {
+				$(".next-design-link").html("");
+			}
+		}
+	});
+
+	$("#leftcolumn").html(left_list);
+});
+	</script>
+<div class="sidebar-box cate-list">
+<div class="sidebar-box recommend-here list-link">
+<a href="#">Android 进阶教程</a> </div>
+<ul class="membership">
+<li><a data-id="17013" href="./android-advance-screen-adaptation.html" target="_top" title="1.1 Android 中喜闻乐见的屏幕适配">1.1 Android 中喜闻乐见的屏幕适配</a></li>
+<li><a data-id="17036" href="./android-advance-custom-view.html" target="_top" title="1.2 自定义 View">1.2 自定义 View</a></li>
+<li><a data-id="17085" href="./android-advance-viewgrouphtml.html" target="_top" title="1.3 自定义 ViewGroup">1.3 自定义 ViewGroup</a></li>
+<li><a data-id="17090" href="./android-advance-authority-management.html" target="_top" title="1.4 Android6.0权限管理-开源框架源码分析">1.4 Android6.0权限管理-开源框架源码分析</a></li>
+<li><a data-id="18227" href="./android-advance-plug-in-development.html" target="_top" title="2.0 Android 插件式开发">2.0 Android 插件式开发</a></li>
+<li><a data-id="18230" href="./android-advance-picasso1.html" target="_top" title="2.1 带你全方位学习Picasso（一）">2.1 带你全方位学习Picasso（一）</a></li>
+<li>
+	2.2 带你全方位学习Picasso（二）	</li>
+</ul></div> </div>
+</div>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+</div><script src="../../lang-switcher.js"></script>
+</body>
+</html>

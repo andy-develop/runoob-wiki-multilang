@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RAG Retrieval-Augmented Generation | Rookie Tutorial</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<link href="../manifest.webmanifest.html" rel="manifest"/>
+<meta content="#10151c" name="theme-color"/>
+<link href="../pwa/icon-192.png.html" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="application-name"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="../ai/ai-rag.html" rel="canonical"/>
+<meta content="RAG 检索增强生成" name="keywords"/>
+<meta content="RAG 检索增强生成  你有没有遇到过这样的场景：  	 你有一份几百页的产品手册，用户问了一个很具体的问题，你翻了半天也找不到答案在哪。  	 你公司积累了好几年的内部文档、会议纪要、技术规范，新员工想了解某项业务规则，根本不知道从哪查起。  	 你有一堆电子书、研究报告、论文，想让 AI 基于这些内容回答问题，但直接把整本书贴给 AI，上下文窗口装不下。     这就是 RAG 要解决的问题。  RAG（Retrieval-Augm.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div>
+<!-- 导航栏 -->
+<style>
+/* 主题切换按钮 */
+/* ===== 主题变量（核心）===== */
+:root {
+  --theme-bg: #ffffff;
+  --theme-border: #e5e7eb;
+  --theme-icon: #333;
+  --theme-hover: #f3f4f6;
+}
+
+.dark {
+  --theme-bg: #1f2937;
+  --theme-border: #374151;
+  --theme-icon: #e5e7eb;
+  --theme-hover: #374151;
+}
+
+/* ===== 按钮容器 ===== */
+.nav-theme-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== 按钮本体 ===== */
+.nav-theme-toggle button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  border-radius: 6px;
+  border: 1px solid var(--theme-border);
+
+  background: var(--theme-bg);
+  color: var(--theme-icon);
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* ===== 图标大小 ===== */
+.nav-theme-toggle i {
+  font-size: 14px;
+}
+
+/* ===== hover 效果 ===== */
+.nav-theme-toggle button:hover {
+  background: var(--theme-hover);
+  transform: translateY(-1px);
+}
+
+/* ===== 点击反馈 ===== */
+.nav-theme-toggle button:active {
+  transform: scale(0.95);
+}
+
+/* ===== 当前激活态（可选）===== */
+.nav-theme-toggle button.active {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+</style>
+<!-- 导航栏 -->
+<nav aria-label="主导航" class="container navigation">
+<div class="row">
+<div class="col nav">
+<!-- PC 导航 -->
+<ul class="pc-nav" id="runoob-detail-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../js/js-tutorial.html">JavaScript</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a data-id="vue" href="#">Vue</a></li>
+<li><a href="../react/react-tutorial.html">React</a></li>
+<li><a href="../python3/python3-tutorial.html">Python3</a></li>
+<li><a href="../java/java-tutorial.html">Java</a></li>
+<li><a href="../cprogramming/c-tutorial.html">C</a></li>
+<li><a href="../cplusplus/cpp-tutorial.html">C++</a></li>
+<li><a href="../csharp/csharp-tutorial.html">C#</a></li>
+<li><a data-id="aiNav" href="#">AI</a></li>
+<li><a href="../go/go-tutorial.html">Go</a></li>
+<li><a href="../sql/sql-tutorial.html">SQL</a></li>
+<li><a href="../linux/linux-tutorial.html">Linux</a></li>
+<li><a href="../vscode/vscode-tutorial.html">VS Code</a></li>
+<li><a data-id="bootstrap" href="#">Bootstrap</a></li>
+<li><a href="../git/git-tutorial.html">Git</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<!-- 主题切换按钮，固定在最右侧 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+<!-- 移动端导航 -->
+<ul class="mobile-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a href="../js/js-tutorial.html">JS</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<li><a class="search-reveal" href="#">搜索</a></li>
+<!-- 移动端主题切换 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon-mobile" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun-mobile" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<!-- 二级导航 -->
+<!--  内容  -->
+<div class="container main">
+<!-- 中间 -->
+<div class="row">
+<div class="runoob-col-md2">
+<div class="left-column">
+<div class="tab" style="overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
+<i aria-hidden="true" class="fa fa-list"></i>
+<span>AI 入门教程</span>
+</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+<a data-p="par" href="../ai/ai-tutorial.html" target="_top" title="AI 入门教程">
+			AI 入门教程			</a>
+<a data-p="par" href="../ai/ai-into.html" target="_top" title="AI 简介">
+			AI 简介			</a>
+<a href="../ai/agi-intro.html" target="_top" title="AGI 简介">AGI 简介</a>
+<a href="../ai/llm-intro.html" target="_top" title="大模型相关概念">大模型相关概念</a> <a data-p="par" href="../ai/ai-prompt.html" target="_top" title="Prompt 提示词">
+			Prompt 提示词			</a>
+<a data-p="par" href="../ai/ai-tools.html" target="_top" title="AI 工具全景">
+			AI 工具全景			</a>
+<a data-p="par" href="../ai/how-ai-works.html" target="_top" title="AI 工作原理">
+			AI 工作原理			</a>
+<a data-p="par" href="../ai/ai-ethics.html" target="_top" title="AI 伦理与安全">
+			AI 伦理与安全			</a>
+<a data-p="par" href="../ai/ai-use-cases.html" target="_top" title="AI 应用场景">
+			AI 应用场景			</a>
+<a data-p="par" href="../ai/ai-industry.html" target="_top" title="AI 行业生态">
+			AI 行业生态			</a>
+<a data-p="par" href="../ai/prompt-engineering-advance.html" target="_top" title="Prompt 工程进阶">
+			Prompt 工程进阶			</a>
+<a data-p="par" href="../ai/ai-api-development.html" target="_top" title="AI API 开发">
+			AI API 开发			</a>
+<a data-p="par" href="../ai/ai-rag.html" target="_top" title="RAG 检索增强生成">
+			RAG 检索增强生成			</a>
+<a href="../ai/ai-agent.html" target="_top" title="AI 智能体">AI 智能体</a> <a data-p="par" href="../ai/ai-multimodal.html" target="_top" title="AI 多模态">
+			AI 多模态			</a>
+<a data-p="par" href="../ai/ai-workflow-auto.html" target="_top" title="AI 工作流自动化">
+			AI 工作流自动化			</a>
+<a data-p="par" href="../ai/ai-product-design.html" target="_top" title="AI 产品设计">
+			AI 产品设计			</a>
+<a data-p="par" href="../ai/ai-local-model-deployment.html" target="_top" title="本地模型部署">
+			本地模型部署			</a>
+<a data-p="par" href="../ai/ai-security.html" target="_top" title="AI 安全进阶">
+			AI 安全进阶			</a>
+<a data-p="par" href="../ai/ai-transformer.html" target="_top" title="Transformer 深度解析">
+			Transformer 深度解析			</a>
+<a data-p="par" href="../ai/ai-fine-tuning.html" target="_top" title="模型微调 Fine-tuning">
+			模型微调 Fine-tuning			</a>
+<a data-p="par" href="../ai/ai-rlhf.html" target="_top" title="RLHF 对齐训练">
+			RLHF 对齐训练			</a>
+<a data-p="par" href="../ai/ai-vector-database.html" target="_top" title="向量数据库">
+			向量数据库			</a>
+<a data-p="par" href="../ai/ai-deployment.html" target="_top" title="AI 工程化部署">
+			AI 工程化部署			</a>
+<a data-p="par" href="../ai/ai-deep-learning.html" target="_top" title="深度学习基础">
+			深度学习基础			</a>
+<a data-p="par" href="../ai/ai-computer-vision.html" target="_top" title="计算机视觉 AI">
+			计算机视觉 AI			</a>
+<a data-p="par" href="../ai/ai-nlp-advanced.html" target="_top" title="NLP 进阶技术">
+			NLP 进阶技术			</a>
+<a data-p="par" href="../ai/ai-frontier-research.html" target="_top" title="前沿研究动态">
+			前沿研究动态			</a>
+<a data-p="par" href="../ai/ai-system-architecture.html" target="_top" title="AI 系统架构">
+			AI 系统架构			</a>
+<a data-p="par" href="../ai/ai-evaluation.html" target="_top" title="AI 评测与安全研究">
+			AI 评测与安全研究			</a>
+</div>
+</div>
+</div>
+</div> <div class="col middle-column">
+<div class="article">
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../ai/ai-api-development.html" rel="prev">AI API development</a> </div>
+<div class="next-design-link"><a href="../ai/ai-multimodal.html" rel="next">Multimodal AI</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="article-body">
+<div class="article-intro" id="content">
+<h1>Retrieval-Augmented Generation</h1>
+<p>Have you ever encountered a scenario like this:</p>
+<ul>
+<li><p>You have a product manual that’s hundreds of pages long, and a user asks a very specific question. You search for a long time but can’t find where the answer is.</p></li>
+<li>
+<p>Your company has accumulated several years of internal documents, meeting minutes, and technical specifications. New employees who want to understand a particular business rule have no idea where to even start looking.</p></li>
+<li>
+<p>You have a pile of ebooks, research reports, and papers, and you want AI to answer questions based on this content, but if you paste the entire book directly to AI, the context window won't fit it.</p></li></ul>
+<p>This is the problem RAG aims to solve.</p>
+<p><span class="marked">RAG (Retrieval-Augmented Generation) is a technology that enables large language models to answer questions based on specific knowledge bases.</span>。</p>
+<p>The core idea of RAG is simple: first retrieve the most relevant content from your knowledge base, then send that content together with the user's question to the LLM, and let the LLM answer based on this context.</p>
+<blockquote>
+<p>Without RAG, the LLM only knows what's in its training data; with RAG, the LLM can use your private, up-to-date data.</p>
+</blockquote>
+<hr/>
+<h2>Why is RAG needed?</h2>
+<p>RAG is not the only solution to these problems, but it is currently one of the most practical and lowest-cost options.</p>
+<h3>LLM knowledge cutoff issue.</h3>
+<ul>
+<li>
+<p>All LLMs have a knowledge cutoff date—the training data only goes up to a certain point in time, and it doesn't know about events after that.</p></li>
+<li>
+<p>For example, GPT-4's knowledge cutoff is October 2023. If you ask it about news from 2024, it can only say 'I don't know.'</p></li>
+<li>
+<p>More importantly, your private data (internal documents, product manuals, company policies) has never appeared in the LLM's training data—how could it possibly know?</p></li></ul>
+<h3>Private data cannot be directly input into an LLM.</h3>
+<p>You might think: can't I just paste the documents directly into the LLM?</p>
+<p>The answer is: short documents work, but long documents don't.</p>
+<ul>
+<li>
+<p>First, the LLM's context window is limited. For example, GPT-3.5 only has 16K tokens, roughly 10,000 characters. A manual of several hundred pages simply won't fit.</p></li>
+<li>
+<p>Second, even if the context window is large enough, stuffing the entire document in doesn't work well. LLMs tend to get lost in long text and fail to find the truly relevant information.</p></li>
+<li>
+<p>Finally, there's the cost. GPT-4 with a 128K context costs $10 per million input tokens. If you stuff a whole book in every time, your wallet will cry.</p></li></ul>
+<h3>RAG vs Fine-tuning: How to Choose</h3>
+<p>Another way to give an LLM new data is fine-tuning—continuing to train the model with new data.</p>
+<p>But fine-tuning and RAG are fundamentally different, with entirely different use cases:</p>
+<table class="reference">
+<tr><th>Comparison item</th><th>RAG</th><th>Fine-tuning</th></tr>
+<tr><td>Data freshness</td><td>Can be updated at any time, immediately usable</td><td>Requires retraining, long cycle</td></tr>
+<tr><td>Applicable data volume</td><td>Very large (millions of documents)</td><td>Medium (thousands to tens of thousands of samples)</td></tr>
+<tr><td>Citation source</td><td>Can show which document the answer comes from</td><td>Cannot trace the source</td></tr>
+<tr><td>Hallucination problem</td><td>Reduces hallucinations by providing context</td><td>May still hallucinate</td></tr>
+<tr><td>Modifying knowledge</td><td>Simply delete or update documents</td><td>Requires retraining, hard to 'forget'</td></tr>
+<tr><td>Technical barrier</td><td>Relatively low, can use existing frameworks</td><td>Relatively high, requires GPU and training experience</td></tr>
+<tr><td>Cost</td><td>Mainly vector database and Embedding</td><td>High training cost, and high inference cost as well</td></tr>
+</table>
+<blockquote>
+<p>A simple rule of thumb: if you want the LLM to "know" certain factual knowledge (such as product descriptions, company policies), use RAG; if you want the LLM to "learn" a certain style or capability (such as writing style, code conventions), use fine-tuning.</p>
+</blockquote>
+<hr/>
+<h2>RAG Architecture Overview</h2>
+<p>RAG is divided into two phases: the offline indexing phase and the online retrieval phase.</p>
+<p>First, let's look at a complete architecture diagram:</p>
+<p><img alt="RAG 整体架构流程图" decoding="async" src="../wp-content/uploads/2026/06/11-rag-architecture.svg"/></p>
+<h3>Offline indexing stage (data preparation)</h3>
+<p>This phase runs in the background, and users won't see it directly.</p>
+<p>Its task is to process your documents into a format that can be quickly retrieved.</p>
+<p>The steps are as follows:</p>
+<ul>
+<li>
+<p>1. <strong>Document loading</strong>: Read documents in various formats such as PDF, TXT, DOCX, and web pages.</p></li>
+<li>
+<p>2. <strong>Document splitting</strong>: Split long documents into smaller text chunks, usually a few hundred to a thousand words.</p></li>
+<li>
+<p>3. <strong>Vectorization</strong>: Use an Embedding model to convert each text chunk into a vector (a string of numbers).</p></li>
+<li>
+<p>4. <strong>Storage</strong>: Store the vectors and original text together in a vector database.</p></li></ul>
+<p>This phase only needs to be done once, or rerun when documents are updated.</p>
+<h3>Online retrieval stage (user query)</h3>
+<p>This phase happens in real time when the user asks a question.</p>
+<p>The steps are as follows:</p>
+<ul>
+<li><p>1. <strong>Question vectorization</strong>: Use the same Embedding model to convert the user's question into a vector as well.</p></li>
+<li>
+<p>2. <strong>Similarity retrieval</strong>: Find the text chunks closest to the question vector in the vector database.</p></li>
+<li>
+<p>3. <strong>Build Prompt</strong>: Use the retrieved text chunks as context, and assemble them together with the user's question into a Prompt.</p></li>
+<li>
+<p>4. <strong>LLM generation</strong>: Send the Prompt to the LLM, and let it answer based on the context.</p></li>
+<li>
+<p>5. <strong>Return the answer</strong>: Return the LLM's answer to the user, usually along with the cited document sources.</p></li>
+</ul>
+<hr/>
+<h2>Introduction to Vector Databases</h2>
+<p>The vector database is one of the core components of RAG. To understand it, you first need to understand what a vector is.</p>
+<h3>What is a vector (Embedding)?</h3>
+<p>A vector (Embedding) is a string of numbers converted from text.</p>
+<p>For example, the word "cat" might be converted into a vector with several hundred dimensions like [0.23, -0.45, 0.12, 0.89, ...].</p>
+<p>The key point is:<span class="marked">Texts with similar semantics will have vectors that are close together in space.</span>。</p>
+<p>For example:</p>
+<ul>
+<li>The vector distance between "cat" and "kitty" is very close.</li>
+<li>The vector distance between "cat" and "dog" is closer than between "cat" and "car".</li>
+<li>The vector distance between "I like cats" and "I love cats" is very close.</li>
+</ul>
+<p>This is the foundation for "semantic search" — matching by meaning, not by keyword.</p>
+<h3>The computational principle of semantic similarity.</h3>
+<p>The similarity of two vectors is usually calculated using "cosine similarity".</p>
+<p>The range of cosine similarity is -1 to 1:</p>
+<ul>
+<li>1 means exactly the same</li>
+<li>0 means unrelated</li>
+<li>-1 means completely opposite</li>
+</ul>
+<p>In practice, we usually only care about positive similarity; the closer to 1, the more relevant.</p>
+<p>When you ask a question, the vector database quickly computes the similarity between the question vector and all document vectors, returning the most relevant top few.</p>
+<h3>Mainstream vector database</h3>
+<p>There are many vector databases on the market, each with its own characteristics:</p>
+<table class="reference">
+<tr><th>Database</th><th>Type</th><th>Features</th><th>Use cases</th></tr>
+<tr><td>Chroma</td><td>Local/Open source</td><td>Lightweight, easy to use, Python-friendly</td><td>Prototyping, small-scale applications</td></tr>
+<tr><td>Pinecone</td><td>Cloud service/SaaS</td><td>Managed service, no operations required, elastic scaling</td><td>Production environments, large-scale applications</td></tr>
+<tr><td>Weaviate</td><td>Open source/Managed</td><td>Feature-rich, supports GraphQL</td><td>Scenarios requiring advanced features</td></tr>
+<tr><td>Qdrant</td><td>Open source/Managed</td><td>High performance, written in Rust</td><td>Scenarios with high performance requirements</td></tr>
+<tr><td>Milvus</td><td>Open source/Managed</td><td>Comprehensive features, enterprise-grade</td><td>Large-scale enterprise applications</td></tr>
+<tr><td>FAISS</td><td>Local library</td><td>From Facebook, extremely fast</td><td>Scenarios where persistence is not needed</td></tr>
+</table>
+<p>For beginners, we recommend starting with Chroma — it is easy to install, requires no extra configuration, and is very suitable for learning and prototyping.</p>
+<hr/>
+<h2>Document Processing Workflow</h2>
+<p>Document processing is a step in RAG that is easily overlooked but actually very important.</p>
+<p>Whether your retrieval works well depends largely on how well the documents are processed.</p>
+<h3>Supported document formats.</h3>
+<p>LangChain supports many document formats:</p>
+<ul>
+<li>Plain text: .txt, .md</li>
+<li>PDF：.pdf</li>
+<li>Office：.docx, .pptx, .xlsx</li>
+<li>Web pages: HTML, URL</li>
+<li>Code: .py, .js, .java, etc.</li>
+<li>JSON：.json, .jsonl</li>
+<li>CSV：.csv</li>
+</ul>
+<p>Each format has a corresponding loader, making it very convenient to use.</p>
+<h3>Document segmentation strategy</h3>
+<p>Document chunking is the process of splitting long documents into smaller pieces.</p>
+<p>This looks simple, but there are many nuances:</p>
+<ul>
+<li>Too small: may lose context, a complete meaning gets cut off</li>
+<li>Too large: may contain irrelevant information, wasting the context window</li>
+</ul>
+<p>Common chunking strategies:</p>
+<table class="reference">
+<tr><th>Strategy</th><th>Principle</th><th>Applicable scenarios</th></tr>
+<tr><td>By character count</td><td>Simply split by character count, e.g., every 500 characters per chunk</td><td>Simple scenarios with low context requirements</td></tr>
+<tr><td>By paragraph</td><td>Split by newline characters, keeping paragraphs as intact as possible</td><td>Well-formatted documents</td></tr>
+<tr><td>Recursive chunking</td><td>Prefer paragraphs first, then sentences if too long, and finally words</td><td>The first choice for most scenarios</td></tr>
+<tr><td>Semantic chunking</td><td>Split based on semantic similarity to ensure semantic completeness</td><td>Scenarios with high semantic requirements</td></tr>
+</table>
+<p>In most cases, using LangChain's RecursiveCharacterTextSplitter is sufficient.</p>
+<h3>Tips for choosing the segmentation size</h3>
+<p>Chunk Size is a parameter that needs to be adjusted according to the scenario.</p>
+<p>Some reference guidelines:</p>
+<ul>
+<li>QA scenarios: 500-1000 characters, enough to contain a complete question-answer pair</li>
+<li>Summarization scenarios: 1000-2000 characters, more context is needed</li>
+<li>Code scenarios: can split by function or class, keeping code blocks intact</li>
+</ul>
+<p>There is also an important parameter: Overlap — the number of characters overlapped between adjacent text chunks.</p>
+<p>Overlap can prevent important information from being split across two chunks, usually set to 10%-20% of the chunk size.</p>
+<blockquote>
+<p>Don't blindly chase "optimal" chunking parameters. Start with 500 characters and 50 overlap, test the actual results, then adjust.</p>
+</blockquote>
+<hr/>
+<h2>Embedding Model</h2>
+<p>An embedding model is a model that converts text into vectors.</p>
+<p>Its quality directly affects retrieval performance — a good embedding model can accurately understand semantics and rank relevant documents higher.</p>
+<h3>What is an embedding model?</h3>
+<p>An Embedding model is a pretrained neural network that takes text as input and outputs vectors.</p>
+<p>Its training objective is: for texts with similar semantics, the output vectors should also be similar.</p>
+<p>For example:</p>
+<ul>
+<li>"How to learn Python" and "Python learning methods" → vectors are close</li>
+<li>"Cats are cute" and "Puppies are cute" → vectors are somewhat distant but still relatively close</li>
+<li>"How to learn Python" and "Cats are cute" → vector distance is very far</li>
+</ul>
+<h3>OpenAI text-embedding-3 series</h3>
+<p>OpenAI provides the most popular embedding models currently:</p>
+<table class="reference">
+<tr><th>Model</th><th>Dimensions</th><th>Price (per million tokens)</th><th>Features</th></tr>
+<tr><td>text-embedding-3-small</td><td>1536</td><td>$0.02</td><td>High cost-effectiveness, sufficient for most scenarios</td></tr>
+<tr><td>text-embedding-3-large</td><td>3072</td><td>$0.13</td><td>Better performance, suitable for high-precision needs</td></tr>
+</table>
+<p>text-embedding-3-small is currently the top choice—it performs better than the previous generation text-embedding-ada-002 and is cheaper.</p>
+<h3>Open-source Embedding Model</h3>
+<p>If you don't want to use OpenAI, or have data privacy requirements, there are also many open-source options:</p>
+<table class="reference">
+<tr><th>Model</th><th>Dimensions</th><th>Features</th></tr>
+<tr><td>sentence-transformers/all-MiniLM-L6-v2</td><td>384</td><td>Lightweight, fast, decent performance</td></tr>
+<tr><td>sentence-transformers/all-mpnet-base-v2</td><td>768</td><td>Better performance, but slower and larger</td></tr>
+<tr><td>BAAI/bge-large-zh-v1.5</td><td>1024</td><td>Optimized specifically for Chinese</td></tr>
+<tr><td>Alibaba-NLP/gte-large-zh</td><td>1024</td><td>Made by Alibaba, good Chinese performance</td></tr>
+</table>
+<p>For Chinese scenarios, we recommend the BAAI/bge series or Alibaba-NLP/gte series—they are specifically optimized for Chinese and perform better than general-purpose models.</p>
+<hr/>
+<h2>Retrieval strategy</h2>
+<p>Retrieval is not as simple as "find the most relevant documents"—different strategies suit different scenarios.</p>
+<h3>Vector similarity search</h3>
+<p>This is the most common retrieval method: compute the similarity between the question vector and all document vectors, and return the top K most relevant ones.</p>
+<p>Advantages: understands semantics, synonyms and near-synonyms can all be matched.</p>
+<p>Disadvantages: may be less accurate than keyword retrieval for precise terms and proper nouns.</p>
+<p>For example, if a user asks "runoob's Python tutorial", vector retrieval can understand that "tutorial" and "course" are similar, but if the user asks "runoob Python3.10 documentation", keyword search may be more accurate.</p>
+<h3>Keyword search (BM25)</h3>
+<p>This is the method used by traditional search engines: match keywords and score based on term frequency, inverse document frequency, etc.</p>
+<ul>
+<li>
+<p>Advantages: effective for exact matching of terms, product names, model numbers, etc.</p></li>
+<li>
+<p>Disadvantages: cannot understand synonyms or semantic relationships.</p></li></ul>
+<p>For example, if a user asks how to learn programming, keyword retrieval can only find documents containing "programming" and cannot find documents that say "writing code" but mean the same thing.</p>
+<h3>Hybrid Search</h3>
+<p>Since both methods have their pros and cons, why not use them together?</p>
+<p>Hybrid search performs both vector retrieval and keyword retrieval simultaneously, then merges and re-ranks the results.</p>
+<p>This way, it can leverage semantic understanding while ensuring exact matching.</p>
+<p>Many vector databases support hybrid search, such as Weaviate, Pinecone, Qdrant, etc.</p>
+<blockquote>
+<p>If you're not sure which one to use, choose hybrid search—in most cases, it works best.</p>
+</blockquote>
+<hr/>
+<h2>Generation phase optimization</h2>
+<p>Retrieving relevant documents is only the first step. There are also many techniques for getting the LLM to generate good answers based on those documents.</p>
+<h3>Prompt template design</h3>
+<p>The prompt template is a key factor affecting output quality in RAG.</p>
+<p>A good RAG prompt usually includes:</p>
+<ul>
+<li>Role setting: tell the LLM what role it is</li>
+<li>Context: the retrieved document content</li>
+<li>Task description: what to make the LLM do</li>
+<li>Constraints: for example, "answer only based on the context" and "if you don't know, say you don't know"</li>
+<li>Output format: how you want the LLM to answer</li>
+</ul>
+<p>A classic template:</p>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># A typical RAG prompt template</span><br/>
+RAG_PROMPT_TEMPLATE <span style="color: Gray;">=</span> <span style="color: #a11;">"""You are a professional {role}.<br/>Please answer the user's question based on the following context. If the context does not contain relevant information, say "Sorry, I could not find relevant information."<br/>
+<br/>Context:<br/>
+{context}<br/>
+<br/>User question: {question}<br/>
+<br/>Please answer in concise and accurate language: """</span><br/>
+</div>
+</div>
+<h3>How to reduce hallucinations?</h3>
+<p>Hallucination is the phenomenon where an LLM fabricates facts—it can sound very convincing, but it's all made up.</p>
+<p>RAG can reduce hallucinations, but cannot completely eliminate them.</p>
+<p>Some techniques for reducing hallucinations:</p>
+<ul>
+<li>Emphasize "answer only based on the context" in the prompt</li>
+<li>Have the LLM cite excerpts from the original text in its answers</li>
+<li>If the retrieval results are irrelevant, have the LLM say "I don't know"</li>
+<li>Use multiple LLMs to cross-validate answers</li>
+<li>Have the LLM first find relevant content from the context, then answer</li>
+</ul>
+<h3>Source citation annotation</h3>
+<p>It's important to let users know where the answer comes from—this not only increases credibility but also makes it easier for users to verify.</p>
+<p>Common practices:</p>
+<ul>
+<li>Mark the source in the answer, e.g., "according to Document A, page 2"</li>
+<li>List the titles and links of reference documents at the end of the answer</li>
+<li>Allow users to click and jump to the original text location</li>
+</ul>
+<p>Some advanced frameworks in LangChain (such as LlamaIndex) can do this automatically for you.</p>
+<hr/>
+<h2>Hands-On: Building a Document Q&amp;A System Based on LangChain</h2>
+<p>Enough talk—let's get hands-on and build a complete RAG system.</p>
+<p>We will use LangChain + Chroma + OpenAI to build a document Q&amp;A system.</p>
+<h3>Environment setup</h3>
+<p>First install the required libraries:</p>
+<pre>
+pip install langchain langchain-openai langchain-chroma python-dotenv</pre>
+<p>Then create a .env file in the project directory and fill in your OpenAI API Key:</p>
+<pre>
+OPENAI_API_KEY=你的-api-key-在这里</pre>
+<h3>Complete code implementation</h3>
+<p>This is a complete RAG system, including index creation and query functionality:</p>
+<div class="example">
+<h2 class="example">Example</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># Complete implementation of RAG document Q&amp;A system</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">import</span> <span style="color: #05a;">os</span><br/>
+<span style="color: Green;font-weight:bold;">from</span> dotenv <span style="color: Green;font-weight:bold;">import</span> load_dotenv<br/>
+<span style="color: Green;font-weight:bold;">from</span> langchain.<span style="color: #05a;">text_splitter</span> <span style="color: Green;font-weight:bold;">import</span> RecursiveCharacterTextSplitter<br/>
+<span style="color: Green;font-weight:bold;">from</span> langchain_openai <span style="color: Green;font-weight:bold;">import</span> OpenAIEmbeddings<br/>
+<span style="color: Green;font-weight:bold;">from</span> langchain_chroma <span style="color: Green;font-weight:bold;">import</span> Chroma<br/>
+<span style="color: Green;font-weight:bold;">from</span> langchain_openai <span style="color: Green;font-weight:bold;">import</span> ChatOpenAI<br/>
+<span style="color: Green;font-weight:bold;">from</span> langchain.<span style="color: #05a;">chains</span> <span style="color: Green;font-weight:bold;">import</span> RetrievalQA<br/>
+<span style="color: Green;font-weight:bold;">from</span> langchain.<span style="color: #05a;">prompts</span> <span style="color: Green;font-weight:bold;">import</span> PromptTemplate<br/>
+<span style="color: Green;font-weight:bold;">from</span> langchain.<span style="color: #05a;">schema</span> <span style="color: Green;font-weight:bold;">import</span> Document<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> load_documents_from_directory<span style="color: Olive;">(</span>directory: <span style="color: Teal;">str</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">list</span><span style="color: Olive;">[</span>Document<span style="color: Olive;">]</span>:<br/>
+    <span style="color: #a11;">"""Load documents from directory<br/>For demonstration purposes, we manually create some documents<br/>In actual projects, you can use DirectoryLoader to load real files<br/>
+    """</span><br/>
+    documents <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><br/>
+        Document<span style="color: Olive;">(</span><br/>
+            page_content<span style="color: Gray;">=</span><span style="color: #a11;">"""The RUNOOB tutorial website was founded in 2013, created by the Rookie Tutorial team.<br/>The website aims to provide easy-to-understand programming tutorials for programming beginners.<br/>We provide tutorials for multiple programming languages including HTML, CSS, JavaScript, Python, Java, C++, and more."""</span><span style="color: Gray;">,</span><br/>
+            metadata<span style="color: Gray;">=</span><span style="color: Olive;">{</span><span style="color: #a11;">"source"</span>: <span style="color: #a11;">"runoob_intro.txt"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"page"</span>: <span style="color: Maroon;">1</span><span style="color: Olive;">}</span><br/>
+        <span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+        Document<span style="color: Olive;">(</span><br/>
+            page_content<span style="color: Gray;">=</span><span style="color: #a11;">"""RUNOOB's Python tutorial covers all important knowledge points of Python.<br/>Including: Python basic syntax, data types, control statements, functions, modules, file operations, etc.<br/>The tutorial provides a large number of code examples, each carefully designed and tested.<br/>We also provide an online Python editor, allowing you to run code directly in your browser."""</span><span style="color: Gray;">,</span><br/>
+            metadata<span style="color: Gray;">=</span><span style="color: Olive;">{</span><span style="color: #a11;">"source"</span>: <span style="color: #a11;">"python_tutorial.txt"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"page"</span>: <span style="color: Maroon;">1</span><span style="color: Olive;">}</span><br/>
+        <span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+        Document<span style="color: Olive;">(</span><br/>
+            page_content<span style="color: Gray;">=</span><span style="color: #a11;">"""RUNOOB tutorials are characterized by concise content, rich examples, and a focus on practice.<br/>We believe that "the best way to learn programming is to write code."<br/>Therefore, each knowledge point comes with runnable code examples, so you can learn and practice at the same time.<br/>Our tutorials are completely free, and anyone can access and learn."""</span><span style="color: Gray;">,</span><br/>
+            metadata<span style="color: Gray;">=</span><span style="color: Olive;">{</span><span style="color: #a11;">"source"</span>: <span style="color: #a11;">"features.txt"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"page"</span>: <span style="color: Maroon;">1</span><span style="color: Olive;">}</span><br/>
+        <span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+        Document<span style="color: Olive;">(</span><br/>
+            page_content<span style="color: Gray;">=</span><span style="color: #a11;">"""In addition to text tutorials, RUNOOB also provides video tutorials.<br/>Video tutorials are more intuitive and suitable for visual learners.<br/>Our video tutorials cover popular topics such as Python, Web development, data analysis, and more.<br/>You can find our videos on Bilibili and YouTube."""</span><span style="color: Gray;">,</span><br/>
+            metadata<span style="color: Gray;">=</span><span style="color: Olive;">{</span><span style="color: #a11;">"source"</span>: <span style="color: #a11;">"video_course.txt"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"page"</span>: <span style="color: Maroon;">1</span><span style="color: Olive;">}</span><br/>
+        <span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+    <span style="color: Olive;">]</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Loaded {len(documents)} documents"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> documents<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> split_documents<span style="color: Olive;">(</span>documents: <span style="color: Teal;">list</span><span style="color: Olive;">[</span>Document<span style="color: Olive;">]</span><span style="color: Gray;">,</span> chunk_size: <span style="color: Teal;">int</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">500</span><span style="color: Gray;">,</span> chunk_overlap: <span style="color: Teal;">int</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">50</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">list</span><span style="color: Olive;">[</span>Document<span style="color: Olive;">]</span>:<br/>
+    <span style="color: #a11;">"""Split documents"""</span><br/>
+    text_splitter <span style="color: Gray;">=</span> RecursiveCharacterTextSplitter<span style="color: Olive;">(</span><br/>
+        chunk_size<span style="color: Gray;">=</span>chunk_size<span style="color: Gray;">,</span><br/>
+        chunk_overlap<span style="color: Gray;">=</span>chunk_overlap<span style="color: Gray;">,</span><br/>
+        length_function<span style="color: Gray;">=</span><span style="color: Teal;">len</span><span style="color: Gray;">,</span><br/>
+        separators<span style="color: Gray;">=</span><span style="color: Olive;">[</span><span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span><span style="color: #000099; font-weight: bold;">\n</span>"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"。"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"！"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"？"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"，"</span><span style="color: Gray;">,</span> <span style="color: #a11;">" "</span><span style="color: Gray;">,</span> <span style="color: #a11;">""</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span><br/>
+    <span style="color: Olive;">)</span><br/>
+    splits <span style="color: Gray;">=</span> text_splitter.<span style="color: #05a;">split_documents</span><span style="color: Olive;">(</span>documents<span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Split {len(documents)} documents into {len(splits)} text chunks"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> splits<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> create_vector_store<span style="color: Olive;">(</span>splits: <span style="color: Teal;">list</span><span style="color: Olive;">[</span>Document<span style="color: Olive;">]</span><span style="color: Gray;">,</span> persist_directory: <span style="color: Teal;">str</span> <span style="color: Gray;">=</span> <span style="color: #a11;">"./chroma_db"</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> Chroma:<br/>
+    <span style="color: #a11;">"""Create vector database"""</span><br/>
+    embeddings <span style="color: Gray;">=</span> OpenAIEmbeddings<span style="color: Olive;">(</span>model<span style="color: Gray;">=</span><span style="color: #a11;">"text-embedding-3-small"</span><span style="color: Olive;">)</span><br/>
+    vector_store <span style="color: Gray;">=</span> Chroma.<span style="color: #05a;">from_documents</span><span style="color: Olive;">(</span><br/>
+        documents<span style="color: Gray;">=</span>splits<span style="color: Gray;">,</span><br/>
+        embedding<span style="color: Gray;">=</span>embeddings<span style="color: Gray;">,</span><br/>
+        persist_directory<span style="color: Gray;">=</span>persist_directory<span style="color: Gray;">,</span><br/>
+    <span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Vector database created, with a total of {vector_store._collection.count()} records"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> vector_store<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> load_vector_store<span style="color: Olive;">(</span>persist_directory: <span style="color: Teal;">str</span> <span style="color: Gray;">=</span> <span style="color: #a11;">"./chroma_db"</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> Chroma:<br/>
+    <span style="color: #a11;">"""Load existing vector database"""</span><br/>
+    embeddings <span style="color: Gray;">=</span> OpenAIEmbeddings<span style="color: Olive;">(</span>model<span style="color: Gray;">=</span><span style="color: #a11;">"text-embedding-3-small"</span><span style="color: Olive;">)</span><br/>
+    vector_store <span style="color: Gray;">=</span> Chroma<span style="color: Olive;">(</span><br/>
+        persist_directory<span style="color: Gray;">=</span>persist_directory<span style="color: Gray;">,</span><br/>
+        embedding_function<span style="color: Gray;">=</span>embeddings<span style="color: Gray;">,</span><br/>
+    <span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">向量数据库已加载，共 {vector_store._collection.count()} 条记录</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> vector_store<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> create_rag_chain<span style="color: Olive;">(</span>vector_store: Chroma<span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""Create RAG Q&amp;A chain"""</span><br/>
+<br/>
+    <span style="color: #a50"># Custom Prompt template</span><br/>
+    template <span style="color: Gray;">=</span> <span style="color: #a11;">"""You are a professional RUNOOB customer service assistant.<br/>Please answer the user's question based on the following context. If the context does not contain relevant information, say "Sorry, I did not find relevant information."<br/>Keep the answer concise and clear, using Chinese.<br/>
+<br/>Context:<br/>
+{context}<br/>
+<br/>User question: {question}<br/>
+<br/>Answer: """</span><br/>
+<br/>
+    prompt <span style="color: Gray;">=</span> PromptTemplate<span style="color: Olive;">(</span><br/>
+        template<span style="color: Gray;">=</span>template<span style="color: Gray;">,</span><br/>
+        input_variables<span style="color: Gray;">=</span><span style="color: Olive;">[</span><span style="color: #a11;">"context"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"question"</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span><br/>
+    <span style="color: Olive;">)</span><br/>
+<br/>
+    llm <span style="color: Gray;">=</span> ChatOpenAI<span style="color: Olive;">(</span>model<span style="color: Gray;">=</span><span style="color: #a11;">"gpt-3.5-turbo"</span><span style="color: Gray;">,</span> temperature<span style="color: Gray;">=</span><span style="color: Maroon;">0</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># Create retrieval chain</span><br/>
+    rag_chain <span style="color: Gray;">=</span> RetrievalQA.<span style="color: #05a;">from_chain_type</span><span style="color: Olive;">(</span><br/>
+        llm<span style="color: Gray;">=</span>llm<span style="color: Gray;">,</span><br/>
+        chain_type<span style="color: Gray;">=</span><span style="color: #a11;">"stuff"</span><span style="color: Gray;">,</span><br/>
+        retriever<span style="color: Gray;">=</span>vector_store.<span style="color: #05a;">as_retriever</span><span style="color: Olive;">(</span>search_kwargs<span style="color: Gray;">=</span><span style="color: Olive;">{</span><span style="color: #a11;">"k"</span>: <span style="color: Maroon;">3</span><span style="color: Olive;">}</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+        chain_type_kwargs<span style="color: Gray;">=</span><span style="color: Olive;">{</span><span style="color: #a11;">"prompt"</span>: prompt<span style="color: Olive;">}</span><span style="color: Gray;">,</span><br/>
+        return_source_documents<span style="color: Gray;">=</span><span style="color: Teal;">True</span><span style="color: Gray;">,</span><br/>
+    <span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">return</span> rag_chain<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> main<span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""Main function"""</span><br/>
+    <span style="color: #a50"># Load environment variables</span><br/>
+    load_dotenv<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># Check if database already exists</span><br/>
+    db_exists <span style="color: Gray;">=</span> <span style="color: #05a;">os</span>.<span style="color: #05a;">path</span>.<span style="color: #05a;">exists</span><span style="color: Olive;">(</span><span style="color: #a11;">"./chroma_db"</span><span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">and</span> <span style="color: #05a;">os</span>.<span style="color: #05a;">path</span>.<span style="color: #05a;">isdir</span><span style="color: Olive;">(</span><span style="color: #a11;">"./chroma_db"</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">if</span> db_exists:<br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Found existing database, loading..."</span><span style="color: Olive;">)</span><br/>
+        vector_store <span style="color: Gray;">=</span> load_vector_store<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">else</span>:<br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Creating new database..."</span><span style="color: Olive;">)</span><br/>
+        <span style="color: #a50"># 1. Load documents</span><br/>
+        docs <span style="color: Gray;">=</span> load_documents_from_directory<span style="color: Olive;">(</span><span style="color: #a11;">"./data"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: #a50"># 2. Split documents</span><br/>
+        splits <span style="color: Gray;">=</span> split_documents<span style="color: Olive;">(</span>docs<span style="color: Olive;">)</span><br/>
+        <span style="color: #a50"># 3. Create vector database</span><br/>
+        vector_store <span style="color: Gray;">=</span> create_vector_store<span style="color: Olive;">(</span>splits<span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 4. Create RAG chain</span><br/>
+    rag_chain <span style="color: Gray;">=</span> create_rag_chain<span style="color: Olive;">(</span>vector_store<span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 5. Test queries</span><br/>
+    test_questions <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><br/>
+        <span style="color: #a11;">"When was RUNOOB founded?"</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">"What are the features of RUNOOB's Python tutorial?"</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">"Does RUNOOB have video tutorials?"</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">"How to learn C++ on RUNOOB?"</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">"Do RUNOOB's tutorials require payment?"</span><span style="color: Gray;">,</span><br/>
+    <span style="color: Olive;">]</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">for</span> question <span style="color: Green;font-weight:bold;">in</span> test_questions:<br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>{'='*60}"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Question: {question}"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"{'='*60}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+        result <span style="color: Gray;">=</span> rag_chain.<span style="color: #05a;">invoke</span><span style="color: Olive;">(</span><span style="color: Olive;">{</span><span style="color: #a11;">"query"</span>: question<span style="color: Olive;">}</span><span style="color: Olive;">)</span><br/>
+        answer <span style="color: Gray;">=</span> result<span style="color: Olive;">[</span><span style="color: #a11;">"result"</span><span style="color: Olive;">]</span><br/>
+        sources <span style="color: Gray;">=</span> result<span style="color: Olive;">[</span><span style="color: #a11;">"source_documents"</span><span style="color: Olive;">]</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Answer: {answer}"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>Reference sources:"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> i<span style="color: Gray;">,</span> doc <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">enumerate</span><span style="color: Olive;">(</span>sources<span style="color: Gray;">,</span> <span style="color: Maroon;">1</span><span style="color: Olive;">)</span>:<br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  [{i}] {doc.metadata['source']} (page {doc.metadata['page']})"</span><span style="color: Olive;">)</span><br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"      Snippet: {doc.page_content[:50]}..."</span><span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">if</span> __name__ <span style="color: Gray;">==</span> <span style="color: #a11;">"__main__"</span>:<br/>
+    main<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<p>Running this program, you will see output similar to this:</p>
+<pre>
+创建新的数据库...
+已加载 4 个文档
+已将 4 个文档切分为 4 个文本块
+向量数据库已创建，共 4 条记录
+
+============================================================
+问题：RUNOOB 是什么时候创立的？
+============================================================
+回答：RUNOOB 教程网站创立于 2013 年。
+
+参考来源：
+  [1] runoob_intro.txt (第 1 页)
+      片段：RUNOOB 教程网站创立于 2013 年，由菜鸟教程团队创建。...
+  [2] features.txt (第 1 页)
+      片段：除了文字教程，RUNOOB 还提供了视频教程。...
+
+============================================================
+问题：RUNOOB 的 Python 教程有什么特点？
+============================================================
+回答：RUNOOB 的 Python 教程涵盖了 Python 的所有重要知识点，包括基础语法、数据类型、控制语句、函数、模块、文件操作等，并且提供了大量经过精心设计和测试的代码示例，还提供了在线 Python 编辑器，可以直接在浏览器中运行代码。
+
+参考来源：
+  [1] python_tutorial.txt (第 1 页)
+      片段：RUNOOB 的 Python 教程涵盖了 Python 的所有重要知识点。...
+  [2] features.txt (第 1 页)
+      片段：RUNOOB 教程的特点是内容简洁、示例丰富、注重实践。...</pre>
+<p>Congratulations! You have successfully built a complete RAG document Q&amp;A system.</p>
+<hr/>
+<h2>Advanced Optimization: Re-ranking, HyDE</h2>
+<p>Basic RAG works, but if you want better results, you can try these advanced optimization methods.</p>
+<h3>Re-ranking</h3>
+<p>The results returned by vector retrieval are sorted by similarity, but high similarity does not necessarily mean it is the most suitable answer to the question.</p>
+<p>Re-ranking means: first use vector retrieval to return the top K results (e.g., 20), then use a more precise model to re-rank these results, and select the best few to send to the LLM.</p>
+<p>Common Re-ranking models:</p>
+<ul>
+<li>cross-encoder/ms-marco-MiniLM-L-6-v2</li>
+<li>BAAI/bge-reranker-large</li>
+</ul>
+<p>Although it adds an extra step, the improvement in results is obvious and worth doing.</p>
+<h3>HyDE（Hypothetical Document Embedding）</h3>
+<p>HyDE is a clever idea: first use the LLM to generate a "hypothetical answer" for the user's question, then use this hypothetical answer for retrieval.</p>
+<p>Why is this effective? Because questions are usually short and have low information density; while hypothetical answers are longer, more document-like in style, and have higher similarity to real documents.</p>
+<p>For example:</p>
+<ul>
+<li>User question: "When was RUNOOB founded?"</li>
+<li>Hypothetical answer: "The RUNOOB tutorial website was founded in 2013, created by the Rookie Tutorial team, aiming to provide quality tutorials for programming beginners."</li>
+</ul>
+<p>Using the hypothetical answer for retrieval often finds more relevant documents.</p>
+Other extensions
+</div>
+</div>
+<div class="archive-list" style="display:none;font-size: 14px;line-height: 1.8;margin-top: 20px;padding: 10px;">
+<div class="archive-list-item">
+<div class="post-intro" id="ai-info" style="width: 100%;">AI thinking...</div>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../ai/ai-api-development.html" rel="prev">AI API Development</a> </div>
+<div class="next-design-link"><a href="../ai/ai-multimodal.html" rel="next">AI Multimodal</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="sidebar-box">
+</div>
+Notes List
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>Click me to share notes.</h3>
+&lt;p style="font-size:14px;"&gt;Notes must be an extension of the content of this article!&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;Article submission, click here&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;How to get registration invitation code&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; You must &lt;a href=";.html" class="runoob-pop"&gt;log in&lt;/a&gt; before sharing notes!&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;How to get registration invitation code&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=";.html" id="cancel-comment-reply-link">Cancel</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="31500"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>Share Notes</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">Nickname</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">Nickname (required)</span></li>
+<li class="form-inline"><label class="hide" for="email">Email</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">Email (required)</span></li>
+<li class="form-inline"><label class="hide" for="url">Reference address</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">Reference address</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  31500;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 31500, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":31500},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+</div>
+</div>
+<!-- 右边栏 -->
+<div class="fivecol last right-column">
+<style>
+.sidebar-tree .double-li {
+    width:300px;
+}
+.sidebar-tree .double-li li {
+    width: 44%;
+    line-height: 1.5em;
+    border-bottom: 1px solid #ccc;
+    float: left;
+    display: inline;
+}
+</style>
+<div class="sidebar-box re-box re-box-large">
+<div class="sidebar-box recommend-here" style="margin: 0 auto;">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;"> <i aria-hidden="true" class="fa fa-list"></i> 分类导航</a>
+</div>
+<div class="sidebar-box sidebar-cate">
+<div class="sidebar-tree">
+<ul><li style="margin: 0;"><a class="tit" href="#"> Python / 数据科学</a><ul class="double-li"><li><a href="../python3/python3-tutorial.html" title="Python 教程">Python 教程</a></li><li><a href="../python/python-tutorial.html" title="Python2.x 教程">Python2.x 教程</a></li><li><a href="../fastapi/fastapi-tutorial.html" title="FastAPI 教程">FastAPI 教程</a></li><li><a href="../flask/flask-tutorial.html" title="Flask 教程">Flask 教程</a></li><li><a href="../django/django-tutorial.html" title="Django 教程">Django 教程</a></li><li><a href="../numpy/numpy-tutorial.html" title="NumPy 教程">NumPy 教程</a></li><li><a href="../pandas/pandas-tutorial.html" title="Pandas 教程">Pandas 教程</a></li><li><a href="../scipy/scipy-tutorial.html" title="SciPy 教程">SciPy 教程</a></li><li><a href="../matplotlib/matplotlib-tutorial.html" title="Matplotlib 教程">Matplotlib 教程</a></li><li><a href="../dash/dash-tutorial.html" title="Dash 教程">Dash 教程</a></li><li><a href="../jupyter-notebook/jupyter-notebook-tutorial.html" title="Jupyter Notebook 教程">Jupyter Notebook 教程</a></li><li><a href="../pillow/pillow-tutorial.html" title="Pillow 教程">Pillow 教程</a></li><li><a href="../qt/qt-tutorial.html" title="量化交易">量化交易</a></li><li><a href="../r/r-tutorial.html" title="R 教程">R 教程</a></li><li><a href="../julia/julia-tutorial.html" title="Julia 教程">Julia 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> AI / 智能开发</a><ul class="double-li"><li><a href="../ai-agent/ai-agent-tutorial.html" title="AI Agent（智能体）">AI Agent（智能体）</a></li><li><a href="../ai/ai-tutorial.html" title="AI（人工智能）">AI（人工智能）</a></li><li><a href="../codex/codex-tutorial.html" title="Codex 教程">Codex 教程</a></li><li><a href="../vibe-coding/vibe-coding-tutorial.html" title="Vibe Coding 教程">Vibe Coding 教程</a></li><li><a href="../claude-code/claude-code-tutorial.html" title="Claude Code">Claude Code</a></li><li><a href="../opencode/opencode-tutorial.html" title="OpenCode">OpenCode</a></li><li><a href="../skills/skills-tutorial.html" title="Skills（技能）">Skills（技能）</a></li><li><a href="../ollama/ollama-tutorial.html" title="Ollama 教程">Ollama 教程</a></li><li><a href="../hermes-agent/hermes-agent-tutorial.html" title="Hermes Agent">Hermes Agent</a></li><li><a href="../deepseek-harness/deepseek-harness-tutorial.html" title="DeepSeek Harness">DeepSeek Harness</a></li><li><a href="../pi-agent/pi-agent-tutorial.html" title="Pi Agent">Pi Agent</a></li><li><a href="../ai-math/ai-math-tutorial.html" title="AI 数学基础">AI 数学基础</a></li><li><a href="../tensorflow/tensorflow-tutorial.html" title="TensorFlow 教程">TensorFlow 教程</a></li><li><a href="../pytorch/pytorch-tutorial.html" title="PyTorch 教程">PyTorch 教程</a></li><li><a href="../sklearn/sklearn-tutorial.html" title="Scikit-learn 教程">Scikit-learn 教程</a></li><li><a href="../ml/ml-tutorial.html" title="机器 教程">机器 教程</a></li><li><a href="../langchain/langchain-tutorial.html" title="LangChain">LangChain</a></li><li><a href="../nlp/nlp-tutorial.html" title="自然语言处理 NLP">自然语言处理 NLP</a></li><li><a href="../opencv/opencv-tutorial.html" title="OpenCV 教程">OpenCV 教程</a></li><li><a href="../selenium/selenium-tutorial.html" title="Selenium 教程">Selenium 教程</a></li><li><a href="../playwright/playwright-tutorial.html" title="Playwright 教程">Playwright 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 前端开发</a><ul class="double-li"><li><a href="../html/html-tutorial.html" title="HTML 教程">HTML 教程</a></li><li><a href="../html/html5-intro.html" title="HTML5 教程">HTML5 教程</a></li><li><a href="../css/css-tutorial.html" title="CSS 教程">CSS 教程</a></li><li><a href="../css3/css3-tutorial.html" title="CSS3 教程">CSS3 教程</a></li><li><a href="../js/js-tutorial.html" title="JavaScript 教程">JavaScript 教程</a></li><li><a href="../htmldom/htmldom-tutorial.html" title="HTML DOM 教程">HTML DOM 教程</a></li><li><a href="../typescript/ts-tutorial.html" title="TypeScript 教程">TypeScript 教程</a></li><li><a href="../ajax/ajax-tutorial.html" title="AJAX 教程">AJAX 教程</a></li><li><a href="../json/json-tutorial.html" title="JSON 教程">JSON 教程</a></li><li><a href="../tailwindcss/tailwindcss-tutorial.html" title="Tailwind CSS 教程">Tailwind CSS 教程</a></li><li><a href="../bootstrap4/bootstrap4-tutorial.html" title="Bootstrap4 教程">Bootstrap4 教程</a></li><li><a href="../bootstrap5/bootstrap5-tutorial.html" title="Bootstrap5 教程">Bootstrap5 教程</a></li><li><a href="../foundation/foundation-tutorial.html" title="Foundation 教程">Foundation 教程</a></li><li><a href="../vue2/vue-tutorial.html" title="Vue.js 教程">Vue.js 教程</a></li><li><a href="../vue3/vue3-tutorial.html" title="Vue3 教程">Vue3 教程</a></li><li><a href="../react/react-tutorial.html" title="React 教程">React 教程</a></li><li><a href="../nextjs/nextjs-tutorial.html" title="Next.js 教程">Next.js 教程</a></li><li><a href="../angularjs/angularjs-tutorial.html" title="AngularJS 教程">AngularJS 教程</a></li><li><a href="../angularjs2/angularjs2-tutorial.html" title="Angular 教程">Angular 教程</a></li><li><a href="../jquery/jquery-tutorial.html" title="jQuery 教程">jQuery 教程</a></li><li><a href="../jqueryui/jqueryui-tutorial.html" title="jQuery UI 教程">jQuery UI 教程</a></li><li><a href="../jeasyui/jqueryeasyui-tutorial.html" title="jQuery EasyUI 教程">jQuery EasyUI 教程</a></li><li><a href="../echarts/echarts-tutorial.html" title="ECharts 教程">ECharts 教程</a></li><li><a href="../chartjs/chartjs-tutorial.html" title="Chart.js 教程">Chart.js 教程</a></li><li><a href="../highcharts/highcharts-tutorial.html" title="Highcharts 教程">Highcharts 教程</a></li><li><a href="../googleapi/google-maps-basic.html" title="Google 地图 教程">Google 地图 教程</a></li><li><a href="../svg/svg-tutorial.html" title="SVG 教程">SVG 教程</a></li><li><a href="../font-awesome/fontawesome-tutorial.html" title="Font Awesome 教程">Font Awesome 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 后端开发</a><ul class="double-li"><li><a href="../nodejs/nodejs-tutorial.html" title="Node.js 教程">Node.js 教程</a></li><li><a href="../electron/electron-tutorial.html" title="Electron 教程">Electron 教程</a></li><li><a href="../php/php-tutorial.html" title="PHP 教程">PHP 教程</a></li><li><a href="../java/java-tutorial.html" title="Java 教程">Java 教程</a></li><li><a href="../go/go-tutorial.html" title="Go 教程">Go 教程</a></li><li><a href="../rust/rust-tutorial.html" title="Rust 教程">Rust 教程</a></li><li><a href="../csharp/csharp-tutorial.html" title="C# 教程">C# 教程</a></li><li><a href="../servlet/servlet-tutorial.html" title="Servlet 教程">Servlet 教程</a></li><li><a href="../jsp/jsp-tutorial.html" title="JSP 教程">JSP 教程</a></li><li><a href="../asp/asp-tutorial.html" title="ASP 教程">ASP 教程</a></li><li><a href="../appml/appml-tutorial.html" title="AppML 教程">AppML 教程</a></li><li><a href="../vbscript/vbscript-tutorial.html" title="VBScript 教程">VBScript 教程</a></li><li><a href="../swagger/swagger-tutorial.html" title="Swagger 教程">Swagger 教程</a></li><li><a href="../restfulapi/restful-api-tutorial.html" title="RESTful API 教程">RESTful API 教程</a></li><li><a href="../docker/docker-tutorial.html" title="Docker 教程">Docker 教程</a></li><li><a href="../linux/linux-tutorial.html" title="Linux 教程">Linux 教程</a></li><li><a href="../w3cnote/zookeeper-tutorial.html" title="ZooKeeper 教程">ZooKeeper 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 数据库</a><ul class="double-li"><li><a href="../sql/sql-tutorial.html" title="SQL 教程">SQL 教程</a></li><li><a href="../mysql/mysql-tutorial.html" title="MySQL 教程">MySQL 教程</a></li><li><a href="../postgresql/postgresql-tutorial.html" title="PostgreSQL 教程">PostgreSQL 教程</a></li><li><a href="../sqlite/sqlite-tutorial.html" title="SQLite 教程">SQLite 教程</a></li><li><a href="../mongodb/mongodb-tutorial.html" title="MongoDB 教程">MongoDB 教程</a></li><li><a href="../redis/redis-tutorial.html" title="Redis 教程">Redis 教程</a></li><li><a href="../memcached/memcached-tutorial.html" title="Memcached 教程">Memcached 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 移动开发</a><ul class="double-li"><li><a href="../w3cnote/android-tutorial-intro.html" title="Android 教程">Android 教程</a></li><li><a href="../flutter/flutter-tutorial.html" title="Flutter 教程">Flutter 教程</a></li><li><a href="../ionic/ionic-tutorial.html" title="Ionic 教程">Ionic 教程</a></li><li><a href="../jquerymobile/jquerymobile-tutorial.html" title="jQuery Mobile 教程">jQuery Mobile 教程</a></li><li><a href="../swift/swift-tutorial.html" title="Swift 教程">Swift 教程</a></li><li><a href="../kotlin/kotlin-tutorial.html" title="Kotlin 教程">Kotlin 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> DevOps / 工程化</a><ul class="double-li"><li><a href="../git/git-tutorial.html" title="Git 教程">Git 教程</a></li><li><a href="../svn/svn-tutorial.html" title="SVN 教程">SVN 教程</a></li><li><a href="../cmake/cmake-tutorial.html" title="CMake 教程">CMake 教程</a></li><li><a href="../maven/maven-tutorial.html" title="Maven 教程">Maven 教程</a></li><li><a href="../vscode/vscode-tutorial.html" title="VS Code 教程">VS Code 教程</a></li><li><a href="../obsidian/obsidian-tutorial.html" title="Obsidian 教程">Obsidian 教程</a></li><li><a href="../pycharm/pycharm-tutorial.html" title="PyCharm 教程">PyCharm 教程</a></li><li><a href="../eclipse/eclipse-tutorial.html" title="Eclipse 教程">Eclipse 教程</a></li><li><a href="../markdown/md-tutorial.html" title="Markdown 教程">Markdown 教程</a></li><li><a href="../latex/latex-tutorial.html" title="LaTeX 教程">LaTeX 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 编程语言</a><ul class="double-li"><li><a href="../c/c-tutorial.html" title="C 教程">C 教程</a></li><li><a href="../cplusplus/cpp-tutorial.html" title="C++ 教程">C++ 教程</a></li><li><a href="../zig/zig-tutorial.html" title="Zig 教程">Zig 教程</a></li><li><a href="../scala/scala-tutorial.html" title="Scala 教程">Scala 教程</a></li><li><a href="../ruby/ruby-tutorial.html" title="Ruby 教程">Ruby 教程</a></li><li><a href="../perl/perl-tutorial.html" title="Perl 教程">Perl 教程</a></li><li><a href="../lua/lua-tutorial.html" title="Lua 教程">Lua 教程</a></li><li><a href="../dart/dart-tutorial.html" title="Dart 教程">Dart 教程</a></li><li><a href="../assembly/assembly-tutorial.html" title="汇编语言 教程">汇编语言 教程</a></li><li><a href="../w3cnote/verilog-tutorial.html" title="Verilog 教程">Verilog 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 计算机基础</a><ul class="double-li"><li><a href="../computer-organization/computer-organization-tutorial.html" title="计算机组成原理">计算机组成原理</a></li><li><a href="../data-structures/data-structures-tutorial.html" title="数据结构与算法">数据结构与算法</a></li><li><a href="../c-dsa/c-dsa-tutorial.html" title="C 语言数据结构与算法">C 语言数据结构与算法</a></li><li><a href="../design-pattern/design-pattern-tutorial.html" title="设计模式">设计模式</a></li><li><a href="../python-design-pattern/python-design-pattern-tutorial.html" title="Python 设计模式">Python 设计模式</a></li><li><a href="../regexp/regexp-tutorial.html" title="正则表达式">正则表达式</a></li><li><a href="../http/http-tutorial.html" title="HTTP 教程">HTTP 教程</a></li><li><a href="../tcpip/tcpip-tutorial.html" title="TCP/IP 教程">TCP/IP 教程</a></li><li><a href="../np/np-tutorial.html" title="网络协议">网络协议</a></li><li><a href="../w3c/w3c-tutorial.html" title="W3C 教程">W3C 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> XML / Web Service</a><ul class="double-li"><li><a href="../xml/xml-tutorial.html" title="XML 教程">XML 教程</a></li><li><a href="../dtd/dtd-tutorial.html" title="DTD 教程">DTD 教程</a></li><li><a href="../dom/dom-tutorial.html" title="XML DOM 教程">XML DOM 教程</a></li><li><a href="../xsl/xsl-tutorial.html" title="XSLT 教程">XSLT 教程</a></li><li><a href="../xpath/xpath-tutorial.html" title="XPath 教程">XPath 教程</a></li><li><a href="../xquery/xquery-tutorial.html" title="XQuery 教程">XQuery 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XLink 教程">XLink 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XPointer 教程">XPointer 教程</a></li><li><a href="../schema/schema-tutorial.html" title="XML Schema 教程">XML Schema 教程</a></li><li><a href="../xslfo/xslfo-tutorial.html" title="XSL-FO 教程">XSL-FO 教程</a></li><li><a href="../webservices/webservices-tutorial.html" title="Web Service 教程">Web Service 教程</a></li><li><a href="../wsdl/wsdl-tutorial.html" title="WSDL 教程">WSDL 教程</a></li><li><a href="../soap/soap-tutorial.html" title="SOAP 教程">SOAP 教程</a></li><li><a href="../rss/rss-tutorial.html" title="RSS 教程">RSS 教程</a></li><li><a href="../rdf/rdf-tutorial.html" title="RDF 教程">RDF 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> .NET</a><ul class="double-li"><li><a href="../aspnet/aspnet-tutorial.html" title="ASP.NET 教程">ASP.NET 教程</a></li><li><a href="../aspnet/mvc-intro.html" title="MVC 教程">MVC 教程</a></li><li><a href="../aspnet/razor-intro.html" title="Razor 教程">Razor 教程</a></li><li><a href="../aspnet/aspnet-intro.html" title="Web Forms 教程">Web Forms 教程</a></li><li><a href="../aspnet/webpages-intro.html" title="Web Pages 教程">Web Pages 教程</a></li><li><a href="../powershell/powershell-tutorial.html" title="PowerShell 教程">PowerShell 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 网站建设</a><ul class="double-li"><li><a href="../web/web-buildingprimer.html" title="网站建设指南">网站建设指南</a></li><li><a href="../browsers/browser-information.html" title="浏览器信息">浏览器信息</a></li><li><a href="../hosting/hosting-tutorial.html" title="网站主机教程">网站主机教程</a></li><li><a href="../quality/quality-tutorial.html" title="网站品质">网站品质</a></li></ul></li></ul> </div>
+</div>
+</div>
+<br/>
+<div class="sidebar-box re-box re-box-large">
+</div>
+</div></div>
+</div>
+<script>
+var aid = 31500;
+function coll() {
+	$.post( '/wp-content/themes/runoob/option/user/userinfo.php', {aid:aid, action:"collarticle", opt:'add'},function( data ) {
+		if(data.error==0) {
+			$("#content").find("h1:first").find("a").attr("href","javascript:void(0);");
+			$("#content").find("h1:first").find("img").attr("src","http://www.runoob.com/wp-content/themes/runoob/assets/img/coll2.png").css({width:32+"px",height:32+"px"});
+		}
+		alert(data.msg);
+	},'json');
+}
+
+(function () {
+    // 1. 仅 HTML 页面
+    if (!document.contentType || !document.contentType.includes('text/html')) return;
+
+    // 2. 容器判断
+    var container = document.querySelector('.article-intro');
+    if (!container) return;
+
+    var h1 = container.querySelector('h1');
+    if (!h1) return;
+
+    // 3. URL 判断
+    var url = window.location.href.toLowerCase();
+    var version = null;
+
+    if (url.includes('/python3/')) {
+        version = 'Python3.x';
+    } else if (url.includes('/python/')) {
+        version = 'Python2.x';
+    }
+
+    if (!version) return;
+
+    // 4. 防重复
+    if (h1.querySelector('.py-version-badge')) return;
+
+    // 5. 创建标签
+    var badge = document.createElement('span');
+    badge.className = 'py-version-badge';
+    badge.innerText = version;
+
+    // 6. 样式（核心：float 实现右上角）
+    badge.style.float = 'right';
+    badge.style.fontSize = '12px';
+    badge.style.padding = '2px 8px';
+    badge.style.borderRadius = '999px';
+
+   // 自适应亮/暗色 + 渐变背景（增强版）
+	badge.style.color = 'inherit';
+
+	// 渐变背景（低透明度，不影响暗黑模式）
+	if (version.includes('3')) {
+		badge.style.background = 'linear-gradient(90deg, rgba(79,172,254,0.15), rgba(0,242,254,0.15))';
+	} else {
+		badge.style.background = 'linear-gradient(90deg, rgba(161,140,209,0.15), rgba(251,194,235,0.15))';
+	}
+
+	// 边框弱化（更精致）
+	badge.style.border = '1px solid rgba(127,127,127,0.3)';
+
+	// 提升可读性
+	badge.style.opacity = '0.95';
+
+    // 微调位置（更贴近“右上角”）
+    badge.style.marginTop = '4px';
+    badge.style.marginLeft = '10px';
+
+    // 7. 插入到 h1 最前面（让 float 生效更稳定）
+    h1.insertBefore(badge, h1.firstChild);
+
+})();
+</script>
+<!-- 反馈对话框开始 -->
+<script src="../wp-content/themes/runoob/assets/js/runoob-article-dir.min.js"></script>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

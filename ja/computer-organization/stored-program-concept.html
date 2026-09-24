@@ -1,0 +1,1324 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>プログラムとデータはなぜ同じメモリに置けるのか | 菜鸟教程</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<link href="../manifest.webmanifest.html" rel="manifest"/>
+<meta content="#10151c" name="theme-color"/>
+<link href="../pwa/icon-192.png.html" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="application-name"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="../computer-organization/stored-program-concept.html" rel="canonical"/>
+<meta content="程序和数据为什么能放在同一块内存里" name="keywords"/>
+<meta content="程序和数据为什么能放在同一块内存里 上一讲我们看到了冯·诺依曼架构的全貌——五大组件和三条总线。 这一讲，我们聚焦它最革命性的思想：把程序指令当作一种特殊的数据，和数据一起存放在同一块内存中。    生活化类比：乐谱与音乐播放器  想象两个不同的音乐设备：  设备 A：八音盒 一个发条驱动的八音盒，内部有一根布满凸点的金属滚筒。每个凸点拨动一根钢片发出一个音符。 要换一首曲子？你得拆开八音盒，换上另一根凸点排列不同的滚筒。滚筒本身就是「.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div>
+<!-- 导航栏 -->
+<style>
+/* 主题切换按钮 */
+/* ===== 主题变量（核心）===== */
+:root {
+  --theme-bg: #ffffff;
+  --theme-border: #e5e7eb;
+  --theme-icon: #333;
+  --theme-hover: #f3f4f6;
+}
+
+.dark {
+  --theme-bg: #1f2937;
+  --theme-border: #374151;
+  --theme-icon: #e5e7eb;
+  --theme-hover: #374151;
+}
+
+/* ===== 按钮容器 ===== */
+.nav-theme-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== 按钮本体 ===== */
+.nav-theme-toggle button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  border-radius: 6px;
+  border: 1px solid var(--theme-border);
+
+  background: var(--theme-bg);
+  color: var(--theme-icon);
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* ===== 图标大小 ===== */
+.nav-theme-toggle i {
+  font-size: 14px;
+}
+
+/* ===== hover 效果 ===== */
+.nav-theme-toggle button:hover {
+  background: var(--theme-hover);
+  transform: translateY(-1px);
+}
+
+/* ===== 点击反馈 ===== */
+.nav-theme-toggle button:active {
+  transform: scale(0.95);
+}
+
+/* ===== 当前激活态（可选）===== */
+.nav-theme-toggle button.active {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+</style>
+<!-- 导航栏 -->
+<nav aria-label="主导航" class="container navigation">
+<div class="row">
+<div class="col nav">
+<!-- PC 导航 -->
+<ul class="pc-nav" id="runoob-detail-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../js/js-tutorial.html">JavaScript</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a data-id="vue" href="#">Vue</a></li>
+<li><a href="../react/react-tutorial.html">React</a></li>
+<li><a href="../python3/python3-tutorial.html">Python3</a></li>
+<li><a href="../java/java-tutorial.html">Java</a></li>
+<li><a href="../cprogramming/c-tutorial.html">C</a></li>
+<li><a href="../cplusplus/cpp-tutorial.html">C++</a></li>
+<li><a href="../csharp/csharp-tutorial.html">C#</a></li>
+<li><a data-id="aiNav" href="#">AI</a></li>
+<li><a href="../go/go-tutorial.html">Go</a></li>
+<li><a href="../sql/sql-tutorial.html">SQL</a></li>
+<li><a href="../linux/linux-tutorial.html">Linux</a></li>
+<li><a href="../vscode/vscode-tutorial.html">VS Code</a></li>
+<li><a data-id="bootstrap" href="#">Bootstrap</a></li>
+<li><a href="../git/git-tutorial.html">Git</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<!-- 主题切换按钮，固定在最右侧 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+<!-- 移动端导航 -->
+<ul class="mobile-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a href="../js/js-tutorial.html">JS</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<li><a class="search-reveal" href="#">搜索</a></li>
+<!-- 移动端主题切换 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon-mobile" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun-mobile" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<!-- 二级导航 -->
+<!--  内容  -->
+<div class="container main">
+<!-- 中间 -->
+<div class="row">
+<div class="runoob-col-md2">
+<div class="left-column">
+<div class="tab" style="overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
+<i aria-hidden="true" class="fa fa-list"></i>
+<span>计算机组成原理</span>
+</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+<a data-p="par" href="../computer-organization/computer-organization-tutorial.html" target="_top" title="计算机组成原理">
+			计算机组成原理			</a>
+<a data-p="par" href="../computer-organization/why-computer-only-knows-0-and-1.html" target="_top" title="为什么计算机只认识 0 和 1">
+			计算机只认识 0 和 1			</a>
+<a data-p="par" href="../computer-organization/number-system-conversion.html" target="_top" title="进制转换 — 二进制、十进制、十六进制">
+			进制转换			</a>
+<a data-p="par" href="../computer-organization/negative-numbers-complement.html" target="_top" title="负数怎么表示 — 原码、反码、补码">
+			负数怎么表示			</a>
+<a data-p="par" href="../computer-organization/floating-point-ieee754.html" target="_top" title="小数怎么表示 — 浮点数与 IEEE 754">
+			小数怎么表示			</a>
+<a data-p="par" href="../computer-organization/character-encoding.html" target="_top" title="字符怎么表示 — ASCII 与 Unicode">
+			字符怎么表示			</a>
+<a data-p="par" href="../computer-organization/boolean-algebra-logic-gates.html" target="_top" title="布尔代数基础 — AND / OR / NOT / XOR">
+			布尔代数基础			</a>
+<a data-p="par" href="../computer-organization/building-logic-circuits.html" target="_top" title="逻辑门电路搭建">
+			逻辑门电路搭建			</a>
+<a data-p="par" href="../computer-organization/from-gates-to-adder.html" target="_top" title="从逻辑门到加法器">
+			从逻辑门到加法器			</a>
+<a data-p="par" href="../computer-organization/flip-flops-and-registers.html" target="_top" title="触发器与寄存器 — 计算机如何「记住」数据">
+			触发器与寄存器			</a>
+<a data-p="par" href="../computer-organization/computer-architecture-overview.html" target="_top" title="一台计算机的整体骨架">
+			一台计算机的整体骨架			</a>
+<a data-p="par" href="../computer-organization/stored-program-concept.html" target="_top" title="程序和数据为什么能放在同一块内存里">
+			程序和数据			</a>
+<a data-p="par" href="../computer-organization/instruction-cycle.html" target="_top" title="指令周期 — 取指、译码、执行、写回">
+			指令周期			</a>
+<a data-p="par" href="../computer-organization/clock-frequency.html" target="_top" title="时钟频率是什么意思">
+			时钟频率			</a>
+<a data-p="par" href="../computer-organization/cpu-pipeline.html" target="_top" title="流水线 — 如何让 CPU 更快">
+			流水线			</a>
+<a data-p="par" href="../computer-organization/multi-core-processors.html" target="_top" title="多核心是怎么回事">
+			多核心是怎么回事			</a>
+<a data-p="par" href="../computer-organization/memory-hierarchy.html" target="_top" title="存储金字塔 — 为什么要分这么多层">
+			存储金字塔			</a>
+<a data-p="par" href="../computer-organization/cache-hits-and-misses.html" target="_top" title="缓存命中与缓存未命中">
+			缓存命中与缓存未命中			</a>
+<a data-p="par" href="../computer-organization/memory-addressing.html" target="_top" title="内存地址与寻址">
+			内存地址与寻址			</a>
+<a data-p="par" href="../computer-organization/computer-bus-system.html" target="_top" title="总线 — 计算机内部的「公路系统」">
+			总线			</a>
+<a data-p="par" href="../computer-organization/io-polling-interrupt-dma.html" target="_top" title="I/O 的三种方式 — 轮询、中断、DMA">
+			I/O 的三种方式			</a>
+<a data-p="par" href="../computer-organization/instruction-journey-summary.html" target="_top" title="一条指令的完整旅程">
+			一条指令的完整旅程			</a>
+</div>
+</div>
+</div>
+</div> <div class="col middle-column">
+<div class="article">
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../computer-organization/computer-architecture-overview.html" rel="prev">1台のコンピュータの全体像</a> </div>
+<div class="next-design-link"><a href="../computer-organization/instruction-cycle.html" rel="next">命令サイクル — 命令フェッチ、デコード、実行、ライトバック</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="article-body">
+<div class="article-intro" id="content">
+<h1>プログラムとデータはなぜ同じメモリに置けるのか</h1>
+<p>前回はフォン・ノイマンアーキテクチャの全体像——五大コンポーネントと3本のバスを見てきました。</p>
+<p>今回は、その中でも最も革新的な考え方に焦点を当てます：<span class="marked">プログラム命令を特別なデータとして扱い、データと一緒に同じメモリに格納すること</span>。</p>
+<hr/>
+<h2>身近な例え：楽譜と音楽プレーヤー</h2>
+<p>2つの異なる音楽機器を想像してみてください：</p>
+<p><span class="tag1">機器A：オルゴール</span></p>
+<p>ゼンマイ仕掛けのオルゴールには、内部に凸点がびっしりと並んだ金属製のシリンダーがあります。各凸点がスチールの櫛歯を弾いて1つの音符を鳴らします。</p>
+<p>曲を変えたい？オルゴールを分解して、凸点の並びが異なる別のシリンダーに交換する必要があります。シリンダー自体が「プログラム」と「演奏器」を物理的に融合させたものです。</p>
+<p><span class="tag1">機器B：スマートフォンの音楽アプリ</span></p>
+<p>スマホには何百ものMP3ファイルが保存されています。タップした曲がそのまま再生されます。</p>
+<p>MP3ファイル（プログラム/データ）とプレーヤーアプリ（実行器）は分離しています——曲を変えるにはファイルを変えるだけでよく、スマホを替える必要はありません。</p>
+<p>オルゴールはフォン・ノイマン以前のコンピュータです：プログラムとハードウェアが結びついており、タスクを変えることはマシンを変えることと同じです。</p>
+<p>スマートフォンはフォン・ノイマン以後のコンピュータです：プログラムはメモリ内の交換可能な内容であり、ハードウェアは汎用の実行プラットフォームです。</p>
+<table class="reference">
+<tr><th>比較の観点</th><th>オルゴール（外部プログラム制御）</th><th>スマートフォン（プログラム内蔵方式）</th></tr>
+<tr><td>プログラムの格納方法</td><td>機械構造に固定されている</td><td>データとしてメモリ内に存在する</td></tr>
+<tr><td>曲の変更</td><td>分解してシリンダーを交換</td><td>画面をタップするだけ</td></tr>
+<tr><td>ハードウェアは汎用か</td><td>オルゴール1台 = 曲1曲</td><td>スマホ1台 = 無限の曲</td></tr>
+<tr><td>柔軟性</td><td>ほぼゼロ</td><td>極めて高い</td></tr>
+</table>
+<blockquote><p>フォン・ノイマンがやったのはこの1つのことです：「楽譜」をハードウェアから取り出し、自由に置き換えられる「データファイル」に変えたのです。これ以降、ハードウェアはハードウェア、ソフトウェアはソフトウェアとなりました。</p></blockquote>
+<hr/>
+<h2>歴史的背景：「外部プログラム制御」から「プログラム内蔵方式」へ</h2>
+<h3>2.1 フォン・ノイマン以前のコンピュータ</h3>
+<p>1940年代前半には、すでにいくつかの電子コンピュータが実用化されていましたが、それらには共通の問題がありました：</p>
+<p><span class="tag1">ENIAC（1946年）</span>——世界初の汎用電子コンピュータで、演算速度は驚異的でしたが、計算タスクを変えるたびに、エンジニアは数日かけて<span class="marked">数百本のケーブルを手動で抜き差しし、数千のスイッチを設定する</span>ことで「再プログラミング」を行う必要がありました。</p>
+<p><span class="tag1">Harvard Mark I（1944年）</span>——プログラムの入力にはパンチテープを使用しましたが、プログラムメモリ（テープリーダー）とデータメモリは物理的に分離された2つの装置であり、CPUはデータにアクセスするようにプログラム命令にアクセスできませんでした。</p>
+<p>これらのマシンに共通する欠点：</p>
+<ul>
+<li>プログラムの変更に非常に時間がかかる——ハードウェアの配線を手動で調整したり、物理メディアを交換したりする必要がある</li>
+<li>プログラム命令をプログラム自身が変更できない——これにより、コンパイラやリンカなどの高度なプログラミング技術の出現が制限された</li>
+<li>ハードウェア設計が複雑——タスクごとに異なるハードウェア構成が必要になる可能性がある</li>
+</ul>
+<h3>2.2 フォン・ノイマンの革新</h3>
+<p>1945年、フォン・ノイマンは『EDVACに関する報告書草案』の中で大胆なアイデアを提案しました：</p>
+<p><span class="marked">プログラム命令を2進数にエンコードし、データと一緒に同じアドレス指定可能なメモリに格納するというものです。</span></p>
+<p>このアイデアには、3つの決定的な利点がありました：</p>
+<ol>
+<li><span class="tag1 green">ハードウェアの統一</span>：CPUは、あるメモリ位置に命令が格納されているのかデータが格納されているのかを知る必要がありません——アドレスに従って読み書きするだけです。これによりハードウェア設計が大幅に簡素化されました。</li>
+<li><span class="tag1 green">ソフトウェアの独立した存在</span>：プログラムは、保存・複製・転送が可能な「ファイル」になりました。これが「ソフトウェア」という概念の誕生です。</li>
+<li><span class="tag1 green">プログラムの自己修正可能性</span>：プログラムはデータを操作するように、自分自身や他のプログラムの命令を修正できます。これがアセンブラ、コンパイラ、オペレーティングシステムなど、時代を画す技術の基盤となりました。</li>
+</ol>
+<hr/>
+<h2>原理の詳細：メモリ内での命令とデータの共存</h2>
+<h3>3.1 メモリモジュールの模式図：どれが命令？どれがデータ？</h3>
+<p>次の図は、あるメモリ領域のスナップショットを示しています。各マスは1つの記憶ユニットであり、一意のアドレス番号を持っています。</p>
+<p>観察してみてください——<span class="marked">命令とデータは物理的にはまったく同じで、どちらも0と1です。</span>それらを区別する唯一の方法は、誰がいつアクセスしたかです。</p>
+<svg style="width:100%;height:auto;max-width:800px;background:#fafafa;border-radius:12px;border:1px solid #e0e0e0;" viewbox="0 0 800 450" xmlns="http://www.w3.org/2000/svg">
+<defs>
+命令の色のグラデーション
+<lineargradient id="instGrad" x1="0" x2="1" y1="0" y2="0">
+<stop offset="0%" stop-color="#1565C0"></stop>
+<stop offset="100%" stop-color="#1E88E5"></stop>
+</lineargradient>
+データの色のグラデーション
+<lineargradient id="dataGrad" x1="0" x2="1" y1="0" y2="0">
+<stop offset="0%" stop-color="#E65100"></stop>
+<stop offset="100%" stop-color="#FB8C00"></stop>
+</lineargradient>
+</defs>
+メモリモジュールの背景
+<rect fill="#ECEFF1" height="30" rx="6" stroke="#B0BEC5" stroke-width="1.5" width="600" x="40" y="20"></rect>
+<text fill="#546E7A" font-size="13" font-weight="bold" text-anchor="middle" x="340" y="40">主記憶装置（RAM）</text>
+テーブルヘッダー
+<rect fill="#37474F" height="35" rx="4" width="90" x="40" y="65"></rect>
+<text fill="#ECEFF1" font-size="12" font-weight="bold" text-anchor="middle" x="85" y="87">アドレス</text>
+<rect fill="#37474F" height="35" rx="4" width="160" x="135" y="65"></rect>
+<text fill="#ECEFF1" font-size="12" font-weight="bold" text-anchor="middle" x="215" y="87">格納内容</text>
+<rect fill="#37474F" height="35" rx="4" width="90" x="300" y="65"></rect>
+<text fill="#ECEFF1" font-size="12" font-weight="bold" text-anchor="middle" x="345" y="87">種類</text>
+<rect fill="#37474F" height="35" rx="4" width="90" x="395" y="65"></rect>
+<text fill="#ECEFF1" font-size="12" font-weight="bold" text-anchor="middle" x="440" y="87">実際の意味</text>
+データ行
+アドレス0: 命令 LOAD A 5
+<rect fill="#ECEFF1" height="28" rx="3" width="90" x="40" y="105"></rect>
+<text fill="#333" font-family="monospace" font-size="12" text-anchor="middle" x="85" y="124">0x0000</text>
+<rect fill="#1565C0" height="28" opacity="0.18" rx="3" width="160" x="135" y="105"></rect>
+<text fill="#1565C0" font-family="monospace" font-size="12" font-weight="bold" text-anchor="middle" x="215" y="124">10110001 00000101</text>
+<text fill="#1565C0" font-size="12" font-weight="bold" text-anchor="middle" x="345" y="124">[ 命令 ]</text>
+<text fill="#555" font-size="11" text-anchor="middle" x="440" y="124">LOAD A, 5</text>
+アドレス2: データ 5（Aの値）
+<rect fill="#ECEFF1" height="28" rx="3" width="90" x="40" y="138"></rect>
+<text fill="#333" font-family="monospace" font-size="12" text-anchor="middle" x="85" y="157">0x0001</text>
+<rect fill="#E65100" height="28" opacity="0.18" rx="3" width="160" x="135" y="138"></rect>
+<text fill="#E65100" font-family="monospace" font-size="12" font-weight="bold" text-anchor="middle" x="215" y="157">00000000 00000101</text>
+<text fill="#E65100" font-size="12" font-weight="bold" text-anchor="middle" x="345" y="157">[ データ ]</text>
+<text fill="#555" font-size="11" text-anchor="middle" x="440" y="157">即値5</text>
+アドレス3: 命令 LOAD B 3
+<rect fill="#ECEFF1" height="28" rx="3" width="90" x="40" y="171"></rect>
+<text fill="#333" font-family="monospace" font-size="12" text-anchor="middle" x="85" y="190">0x0002</text>
+<rect fill="#1565C0" height="28" opacity="0.18" rx="3" width="160" x="135" y="171"></rect>
+<text fill="#1565C0" font-family="monospace" font-size="12" font-weight="bold" text-anchor="middle" x="215" y="190">10110010 00000011</text>
+<text fill="#1565C0" font-size="12" font-weight="bold" text-anchor="middle" x="345" y="190">[ 命令 ]</text>
+<text fill="#555" font-size="11" text-anchor="middle" x="440" y="190">LOAD B, 3</text>
+アドレス5: データ 3（Bの値）
+<rect fill="#ECEFF1" height="28" rx="3" width="90" x="40" y="204"></rect>
+<text fill="#333" font-family="monospace" font-size="12" text-anchor="middle" x="85" y="223">0x0003</text>
+<rect fill="#E65100" height="28" opacity="0.18" rx="3" width="160" x="135" y="204"></rect>
+<text fill="#E65100" font-family="monospace" font-size="12" font-weight="bold" text-anchor="middle" x="215" y="223">00000000 00000011</text>
+<text fill="#E65100" font-size="12" font-weight="bold" text-anchor="middle" x="345" y="223">[ データ ]</text>
+<text fill="#555" font-size="11" text-anchor="middle" x="440" y="223">即値3</text>
+アドレス4: 命令 ADD A B
+<rect fill="#ECEFF1" height="28" rx="3" width="90" x="40" y="237"></rect>
+<text fill="#333" font-family="monospace" font-size="12" text-anchor="middle" x="85" y="256">0x0004</text>
+<rect fill="#1565C0" height="28" opacity="0.18" rx="3" width="160" x="135" y="237"></rect>
+<text fill="#1565C0" font-family="monospace" font-size="12" font-weight="bold" text-anchor="middle" x="215" y="256">00100000 00000001</text>
+<text fill="#1565C0" font-size="12" font-weight="bold" text-anchor="middle" x="345" y="256">[ 命令 ]</text>
+<text fill="#555" font-size="11" text-anchor="middle" x="440" y="256">ADD A, B</text>
+アドレス6: 命令 STORE A
+<rect fill="#ECEFF1" height="28" rx="3" width="90" x="40" y="270"></rect>
+<text fill="#333" font-family="monospace" font-size="12" text-anchor="middle" x="85" y="289">0x0005</text>
+<rect fill="#1565C0" height="28" opacity="0.18" rx="3" width="160" x="135" y="270"></rect>
+<text fill="#1565C0" font-family="monospace" font-size="12" font-weight="bold" text-anchor="middle" x="215" y="289">00110000 01100100</text>
+<text fill="#1565C0" font-size="12" font-weight="bold" text-anchor="middle" x="345" y="289">[ 命令 ]</text>
+<text fill="#555" font-size="11" text-anchor="middle" x="440" y="289">STORE 100</text>
+アドレス100: データ 格納結果
+<rect fill="#FFF9C4" height="28" rx="3" width="90" x="40" y="303"></rect>
+<text fill="#333" font-family="monospace" font-size="12" text-anchor="middle" x="85" y="322">0x0064</text>
+<rect fill="#E65100" height="28" opacity="0.18" rx="3" width="160" x="135" y="303"></rect>
+<text fill="#E65100" font-family="monospace" font-size="12" font-weight="bold" text-anchor="middle" x="215" y="322">00000000 00001000</text>
+<text fill="#E65100" font-size="12" font-weight="bold" text-anchor="middle" x="345" y="322">[ データ ]</text>
+<text fill="#555" font-size="11" text-anchor="middle" x="440" y="322">計算結果: 8</text>
+凡例エリア
+<rect fill="#FFFFFF" height="75" rx="8" stroke="#BDBDBD" stroke-width="1" width="500" x="40" y="355"></rect>
+<text fill="#333" font-size="13" font-weight="bold" x="60" y="378">凡例の説明：</text>
+<rect fill="#1565C0" height="16" opacity="0.2" rx="3" width="16" x="170" y="367"></rect>
+<text fill="#555" font-size="12" x="192" y="380">青色のハイライト = 命令ユニット（オペコード + オペランド）</text>
+<rect fill="#E65100" height="16" opacity="0.2" rx="3" width="16" x="170" y="390"></rect>
+<text fill="#555" font-size="12" x="192" y="403">オレンジ色のハイライト = データユニット（即値、変数の値、計算結果）</text>
+<text fill="#888" font-size="10" x="60" y="420">説明：命令とデータは物理的な格納において完全に同じで、どちらもビット列です。CPUが命令をフェッチする際のPCポインタだけが、それが命令かデータかを決定します。</text>
+</svg>
+<h3>3.2 重要な疑問：CPUはどのように命令とデータを区別するのか？</h3>
+<p>上の模式図から重要な事実がわかります：命令とデータは物理的な記憶レベルでは<span class="marked">まったく区別できません</span>——それらはどちらも2進数のビット列です。</p>
+<p>では、CPUはどうやってメモリユニットを命令として扱うべきかデータとして扱うべきかを知るのでしょうか？</p>
+<p>答えは簡単です：<span class="marked">アクセスのタイミングとアクセス主体を見るのです。</span></p>
+<ul>
+<li><span class="tag1">命令フェッチ段階</span>：CPUの<b>プログラムカウンタ（PC）</b>がアドレスを提供し、コントローラが「命令読み出し」制御信号を発行します。このときメモリから読み出された内容は「命令」として命令レジスタに送られ、デコードされます。</li>
+<li><span class="tag1">実行段階</span>：CPUはデコード結果に基づいてオペランドのアドレス（レジスタまたは命令内の即値から取得される場合があります）を計算し、コントローラが「データ読み出し」制御信号を発行します。このときメモリから読み出された内容は「データ」としてALUに送られ、演算に参加します。</li>
+</ul>
+<blockquote><p>一言でまとめると：同じメモリアドレスでも、PCがそれを指しているときは「命令」であり、オペランドアドレスがそれを指しているときは「データ」です。これが「プログラム内蔵方式」の真髄です——命令とデータは物理的には区別できず、論理的にはアクセスコンテキストによって区別されます。</p></blockquote>
+<hr/>
+<h2>インタラクティブデモ：自分でメモリ内の命令とデータを確認する</h2>
+<p>以下のPythonコードは、インタラクティブに探索できるメモリシステムを作成します——命令やデータを書き込み、メモリ内の任意のアドレスの内容を表示して、それが命令かデータかを判断できます。</p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: #a11;">"""<br/>メモリ内での命令とデータの混在格納デモ（runoobデモ）<br/>「プログラム内蔵方式」の考え方を示す：命令とデータは同じメモリ内では格納内容から区別できない<br/>
+"""</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> MemoryInspector:<br/>
+    <span style="color: #a11;">"""メモリチェッカー——メモリ内での命令とデータの共存を直感的に表示"""</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> size<span style="color: Gray;">=</span><span style="color: Maroon;">256</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a50"># メモリの初期化：各ユニットは整数値を1つ格納（8ビットを模擬）</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">memory</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Maroon;">0</span><span style="color: Olive;">]</span> * size<br/>
+        <span style="color: #a50"># マーク配列：各アドレスの種類を記録——'instruction' または 'data'</span><br/>
+        <span style="color: #a50"># 注意：実際のハードウェアにはこのマークはありません！ここではデモの便宜のためだけです</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">type_tags</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: #a11;">'empty'</span><span style="color: Olive;">]</span> * size<br/>
+        <span style="color: #a50"># 各アドレスのニーモニック解釈を記録（これもデモの便宜のため）</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">annotations</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: #a11;">''</span><span style="color: Olive;">]</span> * size<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> write_instruction<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> address<span style="color: Gray;">,</span> opcode<span style="color: Gray;">,</span> operand<span style="color: Gray;">,</span> annotation<span style="color: Gray;">=</span><span style="color: #a11;">""</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""メモリに1つの命令を書き込む（2つのユニットを占有：オペコード + オペランド）"""</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">memory</span><span style="color: Olive;">[</span>address<span style="color: Olive;">]</span> <span style="color: Gray;">=</span> opcode<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">type_tags</span><span style="color: Olive;">[</span>address<span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: #a11;">'instruction'</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">annotations</span><span style="color: Olive;">[</span>address<span style="color: Olive;">]</span> <span style="color: Gray;">=</span> annotation<br/>
+<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">memory</span><span style="color: Olive;">[</span>address + <span style="color: Maroon;">1</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> operand<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">type_tags</span><span style="color: Olive;">[</span>address + <span style="color: Maroon;">1</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: #a11;">'instruction'</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">annotations</span><span style="color: Olive;">[</span>address + <span style="color: Maroon;">1</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> f<span style="color: #a11;">"  └ オペランド: {operand}"</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> write_data<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> address<span style="color: Gray;">,</span> value<span style="color: Gray;">,</span> annotation<span style="color: Gray;">=</span><span style="color: #a11;">""</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""メモリにデータユニットを書き込む"""</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">memory</span><span style="color: Olive;">[</span>address<span style="color: Olive;">]</span> <span style="color: Gray;">=</span> value<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">type_tags</span><span style="color: Olive;">[</span>address<span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: #a11;">'data'</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">annotations</span><span style="color: Olive;">[</span>address<span style="color: Olive;">]</span> <span style="color: Gray;">=</span> annotation<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: #05a;">inspect</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> start<span style="color: Gray;">=</span><span style="color: Maroon;">0</span><span style="color: Gray;">,</span> end<span style="color: Gray;">=</span><span style="color: Maroon;">16</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""指定された範囲のメモリ内容を表示する"""</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">68</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"{'アドレス':&gt;6} | {'格納値':&gt;8} | {'2進数':&gt;10} | {'タイプ':&gt;12} | 意味"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"-"</span> * <span style="color: Maroon;">68</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> addr <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>start<span style="color: Gray;">,</span> <span style="color: Teal;">min</span><span style="color: Olive;">(</span>end<span style="color: Gray;">,</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span>.<span style="color: #05a;">memory</span><span style="color: Olive;">)</span><span style="color: Olive;">)</span><span style="color: Olive;">)</span>:<br/>
+            val <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">memory</span><span style="color: Olive;">[</span>addr<span style="color: Olive;">]</span><br/>
+            binary <span style="color: Gray;">=</span> format<span style="color: Olive;">(</span>val<span style="color: Gray;">,</span> <span style="color: #a11;">'08b'</span><span style="color: Olive;">)</span>  <span style="color: #a50"># 8ビット2進数表現</span><br/>
+            tag <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">type_tags</span><span style="color: Olive;">[</span>addr<span style="color: Olive;">]</span><br/>
+            anno <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">annotations</span><span style="color: Olive;">[</span>addr<span style="color: Olive;">]</span><br/>
+<br/>
+            <span style="color: #a50">} (オペコード)"</span><br/>
+            marker <span style="color: Gray;">=</span> <span style="color: #a11;">"[I]"</span> <span style="color: Green;font-weight:bold;">if</span> tag <span style="color: Gray;">==</span> <span style="color: #a11;">'instruction'</span> <span style="color: Green;font-weight:bold;">else</span> \<br/>
+                     <span style="color: #a11;">"[D]"</span> <span style="color: Green;font-weight:bold;">if</span> tag <span style="color: Gray;">==</span> <span style="color: #a11;">'data'</span> <span style="color: Green;font-weight:bold;">else</span> \<br/>
+                     <span style="color: #a11;">"[ ]"</span><br/>
+<br/>
+            <span style="color: Green;font-weight:bold;">if</span> val <span style="color: Gray;">!=</span> <span style="color: Maroon;">0</span> <span style="color: Green;font-weight:bold;">or</span> tag <span style="color: Gray;">!=</span> <span style="color: #a11;">'empty'</span>:<br/>
+                <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  {addr:4d} | {marker} {val:5d} |  {binary}  | {tag:&gt;12} | {anno}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"="</span> * <span style="color: Maroon;">68</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">} (オペランドが変更されました)"<span style="color: #000099; font-weight: bold;">\n</span>"</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> compare_bytes<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> addr1<span style="color: Gray;">,</span> addr2<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""<br/>2つのアドレスの生のバイトを比較——バイナリ上では区別できないことがわかります。<br/>
+        """</span><br/>
+        v1 <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">memory</span><span style="color: Olive;">[</span>addr1<span style="color: Olive;">]</span><br/>
+        v2 <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">memory</span><span style="color: Olive;">[</span>addr2<span style="color: Olive;">]</span><br/>
+        b1 <span style="color: Gray;">=</span> format<span style="color: Olive;">(</span>v1<span style="color: Gray;">,</span> <span style="color: #a11;">'08b'</span><span style="color: Olive;">)</span><br/>
+        b2 <span style="color: Gray;">=</span> format<span style="color: Olive;">(</span>v2<span style="color: Gray;">,</span> <span style="color: #a11;">'08b'</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>"--- アドレス {addr1} とアドレス {addr2} の比較 ---"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"アドレス {addr1}: 2進数 {b1}  (タイプ: {self.type_tags[addr1]})"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"アドレス {addr2}: 2進数 {b2}  (タイプ: {self.type_tags[addr2]})"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">if</span> b1 <span style="color: Gray;">==</span> b2 <span style="color: Green;font-weight:bold;">and</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">type_tags</span><span style="color: Olive;">[</span>addr1<span style="color: Olive;">]</span> <span style="color: Gray;">!=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">type_tags</span><span style="color: Olive;">[</span>addr2<span style="color: Olive;">]</span>:<br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"&gt;&gt;&gt; 重要な発見：この2つのアドレスのバイナリ内容は完全に同じです ({b1})！"</span><span style="color: Olive;">)</span><br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"&gt;&gt;&gt; しかしそれらのタイプは異なります：アドレス {addr1} は {self.type_tags[addr1]}、"</span><span style="color: Olive;">)</span><br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"&gt;&gt;&gt; アドレス {addr2} は {self.type_tags[addr2]} です。"</span><span style="color: Olive;">)</span><br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"&gt;&gt;&gt; つまり——バイナリ内容だけでは、命令とデータを区別できないのです！"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">else</span>:<br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"この2つのアドレスの内容は異なります。"</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> simulate_instruction_data_ambiguity<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> addr<span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""<br/>同じバイナリ値が異なるコンテキストで異なる意味に解釈されることをデモする<br/>
+        """</span><br/>
+        val <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">memory</span><span style="color: Olive;">[</span>addr<span style="color: Olive;">]</span><br/>
+        binary <span style="color: Gray;">=</span> format<span style="color: Olive;">(</span>val<span style="color: Gray;">,</span> <span style="color: #a11;">'08b'</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>"--- アドレス {addr} の曖昧性デモ ---"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"格納されたバイナリ値: {binary} (10進数: {val})"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">""</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"CPU の PC がここを指している場合（命令フェッチ段階）:"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  -&gt; このバイトは「命令オペコード」として解釈されます"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  -&gt; 例えば {binary} は 'LOAD' 命令を表す可能性があります"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">""</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"ALU がオペランドアドレスを介してここを参照する場合（実行段階）:"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  -&gt; このバイトは「データ」として解釈されます"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  -&gt; 例えば10進数の {val} は単なる普通の数値です"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">""</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"同じビット列でも、異なる役割が読み取ると、意味はまったく異なります！"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: #a50"># ================================================================</span><br/>
+<span style="color: #a50"># デモ1：メモリ内の混在ストレージの構築</span><br/>
+<span style="color: #a50"># ================================================================</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"&gt;&gt;&gt; デモ1：メモリ内に命令とデータを混在して格納<span style="color: #000099; font-weight: bold;">\n</span>"</span><span style="color: Olive;">)</span><br/>
+mem <span style="color: Gray;">=</span> MemoryInspector<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 命令シーケンスを書き込む</span><br/>
+mem.<span style="color: #05a;">write_instruction</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0xB1</span><span style="color: Gray;">,</span> <span style="color: Maroon;">5</span><span style="color: Gray;">,</span> <span style="color: #a11;">"LOAD A, 5"</span><span style="color: Olive;">)</span><br/>
+mem.<span style="color: #05a;">write_instruction</span><span style="color: Olive;">(</span><span style="color: Maroon;">2</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0xB2</span><span style="color: Gray;">,</span> <span style="color: Maroon;">3</span><span style="color: Gray;">,</span> <span style="color: #a11;">"LOAD B, 3"</span><span style="color: Olive;">)</span><br/>
+mem.<span style="color: #05a;">write_instruction</span><span style="color: Olive;">(</span><span style="color: Maroon;">4</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0x20</span><span style="color: Gray;">,</span> <span style="color: Maroon;">1</span><span style="color: Gray;">,</span> <span style="color: #a11;">"ADD A, B"</span><span style="color: Olive;">)</span><br/>
+mem.<span style="color: #05a;">write_instruction</span><span style="color: Olive;">(</span><span style="color: Maroon;">6</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0x30</span><span style="color: Gray;">,</span> <span style="color: Maroon;">100</span><span style="color: Gray;">,</span> <span style="color: #a11;">"STORE 100"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># データを書き込む</span><br/>
+mem.<span style="color: #05a;">write_data</span><span style="color: Olive;">(</span><span style="color: Maroon;">100</span><span style="color: Gray;">,</span> <span style="color: Maroon;">8</span><span style="color: Gray;">,</span> <span style="color: #a11;">"計算結果: 5 + 3 = 8"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># メモリ全体を表示</span><br/>
+mem.<span style="color: #05a;">inspect</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Gray;">,</span> <span style="color: Maroon;">8</span><span style="color: Olive;">)</span><br/>
+mem.<span style="color: #05a;">inspect</span><span style="color: Olive;">(</span><span style="color: Maroon;">100</span><span style="color: Gray;">,</span> <span style="color: Maroon;">102</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># ================================================================</span><br/>
+<span style="color: #a50"># デモ2：同一数値の命令/データ曖昧性</span><br/>
+<span style="color: #a50"># ================================================================</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"&gt;&gt;&gt; デモ2：同じバイナリ値は命令の場合もあれば、データの場合もある<span style="color: #000099; font-weight: bold;">\n</span>"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 意図的にアドレス (命令領域) に値5を書き、アドレス200 (データ領域) にも5を書く</span><br/>
+mem.<span style="color: #05a;">write_instruction</span><span style="color: Olive;">(</span><span style="color: Maroon;">10</span><span style="color: Gray;">,</span> <span style="color: Maroon;">5</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0</span><span style="color: Gray;">,</span> <span style="color: #a11;">"この 5 はオペコードです"</span><span style="color: Olive;">)</span><br/>
+mem.<span style="color: #05a;">write_data</span><span style="color: Olive;">(</span><span style="color: Maroon;">200</span><span style="color: Gray;">,</span> <span style="color: Maroon;">5</span><span style="color: Gray;">,</span> <span style="color: #a11;">"この 5 はデータ値です"</span><span style="color: Olive;">)</span><br/>
+<br/>
+mem.<span style="color: #05a;">compare_bytes</span><span style="color: Olive;">(</span><span style="color: Maroon;">10</span><span style="color: Gray;">,</span> <span style="color: Maroon;">200</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 曖昧性デモ</span><br/>
+mem.<span style="color: #05a;">simulate_instruction_data_ambiguity</span><span style="color: Olive;">(</span><span style="color: Maroon;">10</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># ================================================================</span><br/>
+<span style="color: #a50"># デモ3：自己変更コードの概念（高度なトピック）</span><br/>
+<span style="color: #a50"># ================================================================</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"&gt;&gt;&gt; デモ3：プログラムによる自己変更の概念<span style="color: #000099; font-weight: bold;">\n</span>"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"命令とデータが同じメモリ内にあるため、プログラムは自身の命令を変更できます！"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"これこそがプログラム内蔵方式アーキテクチャがもたらす能力です。"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">""</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"例えば、プログラムはアドレス6の命令 STORE 100 を STORE 200 に変更できます："</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"変更前 アドレス 6: {mem.memory</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"変更前 アドレス 7: {mem.memory</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># プログラムが自身を変更：STORE のオペランドを 100 から 200 に変更</span><br/>
+mem.<span style="color: #05a;">memory</span><span style="color: Olive;">[</span><span style="color: Maroon;">7</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">200</span><br/>
+mem.<span style="color: #05a;">type_tags</span><span style="color: Olive;">[</span><span style="color: Maroon;">7</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: #a11;">'data'</span><br/>
+mem.<span style="color: #05a;">annotations</span><span style="color: Olive;">[</span><span style="color: Maroon;">7</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: #a11;">"プログラム自身による変更：オペランド 100 -&gt; 200"</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"変更後 アドレス 7: {mem.memory</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">""</span><span style="color: Olive;">)</span><br/>
+mem.<span style="color: #05a;">inspect</span><span style="color: Olive;">(</span><span style="color: Maroon;">6</span><span style="color: Gray;">,</span> <span style="color: Maroon;">8</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"&gt;&gt;&gt; この能力は、コンパイラ、動的リンカ、仮想マシンなどの技術の基盤です。"</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<blockquote><p>このプログラムを実行すると、命令とデータが同じメモリ内の異なる「役割」であることがはっきりとわかります。それらは同じストレージとアドレッシング機構を共有しています——これこそフォン・ノイマンアーキテクチャの中核となる巧妙さです。</p></blockquote>
+<style>
+/* ========== 内存格子交互演示样式（runoob 专用） ========== */
+.mem-demo-wrap {
+  margin: 25px 0;
+}
+
+/* 图例 */
+.mem-legend {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  margin: 10px 0 15px;
+  font-size: 13px;
+}
+.mem-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.mem-legend .legend-swatch {
+  display: inline-block;
+  width: 16px; height: 16px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.mem-legend .legend-swatch.inst {
+  background: linear-gradient(135deg, #1565C0, #1E88E5);
+}
+.mem-legend .legend-swatch.data {
+  background: linear-gradient(135deg, #E65100, #FB8C00);
+}
+.mem-legend .legend-swatch.empty {
+  background: #CFD8DC;
+  border: 1px solid #B0BEC5;
+}
+
+/* 内存格子网格 */
+.mem-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+  max-width: 720px;
+  margin: 15px auto;
+  background: #ECEFF1;
+  padding: 10px;
+  border-radius: 10px;
+  border: 2px solid #B0BEC5;
+}
+.mem-cell {
+  aspect-ratio: 1;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 10px;
+  font-weight: bold;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  position: relative;
+  min-width: 0;
+}
+.mem-cell:hover {
+  transform: scale(1.18);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+  z-index: 5;
+}
+.mem-cell.instruction {
+  background: linear-gradient(135deg, #1565C0, #1E88E5);
+  color: #E3F2FD;
+}
+.mem-cell.data {
+  background: linear-gradient(135deg, #E65100, #FB8C00);
+  color: #FFF3E0;
+}
+.mem-cell.empty {
+  background: #CFD8DC;
+  color: #90A4AE;
+}
+
+/* Tooltip 悬停提示 */
+.mem-cell .mem-tooltip {
+  display: none;
+  position: absolute;
+  bottom: 115%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #37474F;
+  color: #ECEFF1;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  white-space: nowrap;
+  z-index: 15;
+  pointer-events: none;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-weight: normal;
+}
+.mem-cell .mem-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #37474F;
+}
+.mem-cell:hover .mem-tooltip {
+  display: block;
+}
+
+/* 信息面板 */
+.mem-info-panel {
+  max-width: 720px;
+  margin: 14px auto 0;
+  padding: 14px 18px;
+  background: #fff;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  min-height: 44px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  transition: all 0.3s ease;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.mem-info-panel.active {
+  color: #333;
+  border-color: #1976D2;
+  background: #E3F2FD;
+}
+.mem-info-panel .info-addr {
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: bold;
+  color: #333;
+}
+.mem-info-panel .info-type {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  color: #fff;
+}
+.mem-info-panel .info-type.inst {
+  background: #1565C0;
+}
+.mem-info-panel .info-type.data {
+  background: #E65100;
+}
+.mem-info-panel .info-meaning {
+  color: #555;
+}
+</style>
+<h3>3.3 インタラクティブデモ：メモリのセルをクリックして内容を確認（runoob）</h3>
+<p>以下は64バイトのメモリ領域のシミュレーションです。<span class="tag1">青いセルは命令を表し、</span>，<span class="tag1">オレンジ色のセルはデータを表し、</span>"、灰色は空き領域です。任意のセルにホバーすると、格納されている生の値を表示し、"<b>セルをクリックして</b>"詳細な説明を表示します——そのアドレスに格納されているのが「命令」か「データ」か、そしてその実際の意味を含みます。"</p>
+<div class="mem-demo-wrap">
+<div class="mem-legend">
+<span><span class="legend-swatch inst"></span>命令 (Instruction)</span>
+<span><span class="legend-swatch data"></span>データ (Data)</span>
+<span><span class="legend-swatch empty"></span>空き (Empty)</span>
+</div>
+<div class="mem-grid" id="memGrid">
+セルはJSによって動的に生成されます
+</div>
+<div class="mem-info-panel" id="memInfoPanel">上部のメモリセルをクリックして、そのアドレスに格納されている内容のタイプと意味を確認します。</div>
+</div>
+<script>
+(function() {
+  /* runoob 内存格子交互演示 */
+
+  /* 定义 64 字节内存数据 */
+  var memoryData = [];
+  var i;
+  for (i = 0; i < 64; i++) {
+    memoryData.push({ value: 0, type: 'empty', meaning: '空闲区域' });
+  }
+
+  /* 写入指令区域（地址 0x00 - 0x07）：程序指令 */
+  memoryData[0]  = { value: 0xB1, type: 'instruction', meaning: 'LOAD A, 5 的操作码' };
+  memoryData[1]  = { value: 5,    type: 'instruction', meaning: 'LOAD A 的操作数：立即数 5' };
+  memoryData[2]  = { value: 0xB2, type: 'instruction', meaning: 'LOAD B, 3 的操作码' };
+  memoryData[3]  = { value: 3,    type: 'instruction', meaning: 'LOAD B 的操作数：立即数 3' };
+  memoryData[4]  = { value: 0x20, type: 'instruction', meaning: 'ADD A, B 的操作码' };
+  memoryData[5]  = { value: 0x01, type: 'instruction', meaning: 'ADD 的操作数：目标寄存器编号' };
+  memoryData[6]  = { value: 0x30, type: 'instruction', meaning: 'STORE 100 的操作码' };
+  memoryData[7]  = { value: 100,  type: 'instruction', meaning: 'STORE 的操作数：目标地址 100 (0x64)' };
+
+  /* 写入数据区域（地址 0x32 - 0x37，即十进制 50-55）：程序变量和数据 */
+  memoryData[50] = { value: 10,  type: 'data', meaning: '变量 X 的初始值: 10' };
+  memoryData[51] = { value: 20,  type: 'data', meaning: '变量 Y 的初始值: 20' };
+  memoryData[52] = { value: 30,  type: 'data', meaning: '运算结果 X+Y: 30' };
+  memoryData[53] = { value: 255, type: 'data', meaning: '常量 MAX_VALUE: 255' };
+  memoryData[54] = { value: 100, type: 'data', meaning: '输出端口映射地址: 0x64' };
+  memoryData[55] = { value: 0,   type: 'data', meaning: '状态寄存器: 就绪 (0)' };
+
+  /* 特意设置歧义演示：地址 0x08（指令区）和 0x39（数据区，十进制 57）存相同值 5 */
+  memoryData[8]  = { value: 5, type: 'instruction', meaning: 'HALT 指令的操作码 (0x05)' };
+  memoryData[57] = { value: 5, type: 'data', meaning: '计数器初始值: 5（和地址 8 存的原始字节完全一样！）' };
+
+  /* 渲染内存格子 */
+  var grid = document.getElementById('memGrid');
+  var panel = document.getElementById('memInfoPanel');
+
+  if (grid) {
+    memoryData.forEach(function(cell, addr) {
+      var div = document.createElement('div');
+      div.className = 'mem-cell ' + cell.type;
+      div.setAttribute('data-addr', addr);
+
+      /* 显示地址后两位十六进制 */
+      var shortAddr = addr.toString(16).toUpperCase().padStart(2, '0');
+      div.textContent = '0x' + shortAddr;
+
+      /* 悬停提示 tooltip */
+      var tip = document.createElement('span');
+      tip.className = 'mem-tooltip';
+      if (cell.type === 'empty') {
+        tip.textContent = '空闲';
+      } else {
+        tip.textContent = '0x' + cell.value.toString(16).toUpperCase().padStart(2, '0')
+          + ' (十进制 ' + cell.value + ')';
+      }
+      div.appendChild(tip);
+
+      /* 点击事件：显示详细信息 */
+      div.addEventListener('click', function() {
+        var a = parseInt(this.getAttribute('data-addr'));
+        var c = memoryData[a];
+
+        panel.innerHTML = '';
+        panel.className = 'mem-info-panel active';
+
+        /* 地址标签 */
+        var addrSpan = document.createElement('span');
+        addrSpan.className = 'info-addr';
+        addrSpan.textContent = '地址 0x' + a.toString(16).toUpperCase().padStart(2, '0')
+          + ' (十进制 ' + a + ')';
+
+        /* 类型标签 */
+        var typeSpan = document.createElement('span');
+        typeSpan.className = 'info-type';
+        if (c.type === 'instruction') {
+          typeSpan.className += ' inst';
+          typeSpan.textContent = '指令';
+        } else if (c.type === 'data') {
+          typeSpan.className += ' data';
+          typeSpan.textContent = '数据';
+        } else {
+          typeSpan.style.background = '#90A4AE';
+          typeSpan.textContent = '空闲';
+        }
+
+        /* 含义文本 */
+        var meaningSpan = document.createElement('span');
+        meaningSpan.className = 'info-meaning';
+        var meaningText = c.meaning;
+        if (c.type !== 'empty') {
+          meaningText += '（原始字节: 0x'
+            + c.value.toString(16).toUpperCase().padStart(2, '0')
+            + '）';
+        }
+        meaningSpan.textContent = meaningText;
+
+        panel.appendChild(addrSpan);
+        panel.appendChild(typeSpan);
+        panel.appendChild(meaningSpan);
+      });
+
+      grid.appendChild(div);
+    });
+  }
+})();
+</script>
+<hr/>
+<h2>ハーバードアーキテクチャとの比較</h2>
+<p>フォン・ノイマンアーキテクチャは唯一のコンピュータアーキテクチャではありません。その主な「競争相手」は<b>ハーバードアーキテクチャ（Harvard Architecture）</b>。</p>
+<table class="reference">
+<tr><th>比較項目</th><th>フォン・ノイマンアーキテクチャ</th><th>ハーバードアーキテクチャ</th></tr>
+<tr><td>メモリ</td><td><span class="marked">単一メモリ</span>、命令とデータで共用</td><td><span class="marked">2つの独立したメモリ</span>、命令とデータが分離されている</td></tr>
+<tr><td>バス</td><td>1組のアドレス/データバスで、命令とデータを時分割で共用</td><td>2組の独立したバスで、命令とデータを同時にアクセスできる</td></tr>
+<tr><td>利点</td><td>ハードウェア設計が簡単で、メモリの利用率が高く、ソフトウェアが柔軟</td><td>命令とデータを同時に取得でき、速度が速い（パイプラインに適している）</td></tr>
+<tr><td>欠点</td><td>命令とデータの取得が衝突する可能性がある（フォン・ノイマンボトルネック）</td><td>ハードウェアがより複雑で、命令ストレージとデータストレージを動的に割り当てられない</td></tr>
+<tr><td>代表的な用途</td><td>PC、サーバーなどの汎用コンピュータ</td><td>組み込みMCU、DSPデジタル信号プロセッサ</td></tr>
+</table>
+<blockquote><p>現代のCPUは実際の実装において、これら2つのアーキテクチャを融合させることがよくあります。外部にはフォン・ノイマンアーキテクチャの統一メモリモデルを提供し（プログラミングを容易にする）、内部ではL1キャッシュレベルで命令キャッシュとデータキャッシュを分離して使用します（ハーバードアーキテクチャの速度上の利点を活かす）。これが「改良型ハーバードアーキテクチャ」と呼ばれるものです。</p></blockquote>
+その他の拡張
+</div>
+</div>
+<div class="archive-list" style="display:none;font-size: 14px;line-height: 1.8;margin-top: 20px;padding: 10px;">
+<div class="archive-list-item">
+<div class="post-intro" id="ai-info" style="width: 100%;">AI 思考中...</div>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../computer-organization/computer-architecture-overview.html" rel="prev">コンピュータ全体の骨格</a> </div>
+<div class="next-design-link"><a href="../computer-organization/instruction-cycle.html" rel="next">命令サイクル — 命令フェッチ、デコード、実行、ライトバック</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="sidebar-box">
+</div>
+ノート一覧
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>クリックしてノートを共有</h3>
+&lt;p style="font-size:14px;"&gt;ノートはこの記事の内容を拡張したものである必要があります！&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;記事の投稿は、こちらをクリックしてください&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; ノートを共有する前に&lt;a href=";.html" class="runoob-pop"&gt;ログイン&lt;/a&gt;する必要があります！&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=";.html" id="cancel-comment-reply-link">キャンセル</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="31881"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>ノートを共有</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">ニックネーム</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">ニックネーム (必須)</span></li>
+<li class="form-inline"><label class="hide" for="email">メールアドレス</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">メールアドレス (必須)</span></li>
+<li class="form-inline"><label class="hide" for="url">引用アドレス</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">引用地址</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  31881;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 31881, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":31881},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+</div>
+</div>
+<!-- 右边栏 -->
+<div class="fivecol last right-column">
+<style>
+.sidebar-tree .double-li {
+    width:300px;
+}
+.sidebar-tree .double-li li {
+    width: 44%;
+    line-height: 1.5em;
+    border-bottom: 1px solid #ccc;
+    float: left;
+    display: inline;
+}
+</style>
+<div class="sidebar-box re-box re-box-large">
+<div class="sidebar-box recommend-here" style="margin: 0 auto;">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;"> <i aria-hidden="true" class="fa fa-list"></i> 分类导航</a>
+</div>
+<div class="sidebar-box sidebar-cate">
+<div class="sidebar-tree">
+<ul><li style="margin: 0;"><a class="tit" href="#"> Python / 数据科学</a><ul class="double-li"><li><a href="../python3/python3-tutorial.html" title="Python 教程">Python 教程</a></li><li><a href="../python/python-tutorial.html" title="Python2.x 教程">Python2.x 教程</a></li><li><a href="../fastapi/fastapi-tutorial.html" title="FastAPI 教程">FastAPI 教程</a></li><li><a href="../flask/flask-tutorial.html" title="Flask 教程">Flask 教程</a></li><li><a href="../django/django-tutorial.html" title="Django 教程">Django 教程</a></li><li><a href="../numpy/numpy-tutorial.html" title="NumPy 教程">NumPy 教程</a></li><li><a href="../pandas/pandas-tutorial.html" title="Pandas 教程">Pandas 教程</a></li><li><a href="../scipy/scipy-tutorial.html" title="SciPy 教程">SciPy 教程</a></li><li><a href="../matplotlib/matplotlib-tutorial.html" title="Matplotlib 教程">Matplotlib 教程</a></li><li><a href="../dash/dash-tutorial.html" title="Dash 教程">Dash 教程</a></li><li><a href="../jupyter-notebook/jupyter-notebook-tutorial.html" title="Jupyter Notebook 教程">Jupyter Notebook 教程</a></li><li><a href="../pillow/pillow-tutorial.html" title="Pillow 教程">Pillow 教程</a></li><li><a href="../qt/qt-tutorial.html" title="量化交易">量化交易</a></li><li><a href="../r/r-tutorial.html" title="R 教程">R 教程</a></li><li><a href="../julia/julia-tutorial.html" title="Julia 教程">Julia 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> AI / 智能开发</a><ul class="double-li"><li><a href="../ai-agent/ai-agent-tutorial.html" title="AI Agent（智能体）">AI Agent（智能体）</a></li><li><a href="../ai/ai-tutorial.html" title="AI（人工智能）">AI（人工智能）</a></li><li><a href="../codex/codex-tutorial.html" title="Codex 教程">Codex 教程</a></li><li><a href="../vibe-coding/vibe-coding-tutorial.html" title="Vibe Coding 教程">Vibe Coding 教程</a></li><li><a href="../claude-code/claude-code-tutorial.html" title="Claude Code">Claude Code</a></li><li><a href="../opencode/opencode-tutorial.html" title="OpenCode">OpenCode</a></li><li><a href="../skills/skills-tutorial.html" title="Skills（技能）">Skills（技能）</a></li><li><a href="../ollama/ollama-tutorial.html" title="Ollama 教程">Ollama 教程</a></li><li><a href="../hermes-agent/hermes-agent-tutorial.html" title="Hermes Agent">Hermes Agent</a></li><li><a href="../deepseek-harness/deepseek-harness-tutorial.html" title="DeepSeek Harness">DeepSeek Harness</a></li><li><a href="../pi-agent/pi-agent-tutorial.html" title="Pi Agent">Pi Agent</a></li><li><a href="../ai-math/ai-math-tutorial.html" title="AI 数学基础">AI 数学基础</a></li><li><a href="../tensorflow/tensorflow-tutorial.html" title="TensorFlow 教程">TensorFlow 教程</a></li><li><a href="../pytorch/pytorch-tutorial.html" title="PyTorch 教程">PyTorch 教程</a></li><li><a href="../sklearn/sklearn-tutorial.html" title="Scikit-learn 教程">Scikit-learn 教程</a></li><li><a href="../ml/ml-tutorial.html" title="机器 教程">机器 教程</a></li><li><a href="../langchain/langchain-tutorial.html" title="LangChain">LangChain</a></li><li><a href="../nlp/nlp-tutorial.html" title="自然语言处理 NLP">自然语言处理 NLP</a></li><li><a href="../opencv/opencv-tutorial.html" title="OpenCV 教程">OpenCV 教程</a></li><li><a href="../selenium/selenium-tutorial.html" title="Selenium 教程">Selenium 教程</a></li><li><a href="../playwright/playwright-tutorial.html" title="Playwright 教程">Playwright 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 前端开发</a><ul class="double-li"><li><a href="../html/html-tutorial.html" title="HTML 教程">HTML 教程</a></li><li><a href="../html/html5-intro.html" title="HTML5 教程">HTML5 教程</a></li><li><a href="../css/css-tutorial.html" title="CSS 教程">CSS 教程</a></li><li><a href="../css3/css3-tutorial.html" title="CSS3 教程">CSS3 教程</a></li><li><a href="../js/js-tutorial.html" title="JavaScript 教程">JavaScript 教程</a></li><li><a href="../htmldom/htmldom-tutorial.html" title="HTML DOM 教程">HTML DOM 教程</a></li><li><a href="../typescript/ts-tutorial.html" title="TypeScript 教程">TypeScript 教程</a></li><li><a href="../ajax/ajax-tutorial.html" title="AJAX 教程">AJAX 教程</a></li><li><a href="../json/json-tutorial.html" title="JSON 教程">JSON 教程</a></li><li><a href="../tailwindcss/tailwindcss-tutorial.html" title="Tailwind CSS 教程">Tailwind CSS 教程</a></li><li><a href="../bootstrap4/bootstrap4-tutorial.html" title="Bootstrap4 教程">Bootstrap4 教程</a></li><li><a href="../bootstrap5/bootstrap5-tutorial.html" title="Bootstrap5 教程">Bootstrap5 教程</a></li><li><a href="../foundation/foundation-tutorial.html" title="Foundation 教程">Foundation 教程</a></li><li><a href="../vue2/vue-tutorial.html" title="Vue.js 教程">Vue.js 教程</a></li><li><a href="../vue3/vue3-tutorial.html" title="Vue3 教程">Vue3 教程</a></li><li><a href="../react/react-tutorial.html" title="React 教程">React 教程</a></li><li><a href="../nextjs/nextjs-tutorial.html" title="Next.js 教程">Next.js 教程</a></li><li><a href="../angularjs/angularjs-tutorial.html" title="AngularJS 教程">AngularJS 教程</a></li><li><a href="../angularjs2/angularjs2-tutorial.html" title="Angular 教程">Angular 教程</a></li><li><a href="../jquery/jquery-tutorial.html" title="jQuery 教程">jQuery 教程</a></li><li><a href="../jqueryui/jqueryui-tutorial.html" title="jQuery UI 教程">jQuery UI 教程</a></li><li><a href="../jeasyui/jqueryeasyui-tutorial.html" title="jQuery EasyUI 教程">jQuery EasyUI 教程</a></li><li><a href="../echarts/echarts-tutorial.html" title="ECharts 教程">ECharts 教程</a></li><li><a href="../chartjs/chartjs-tutorial.html" title="Chart.js 教程">Chart.js 教程</a></li><li><a href="../highcharts/highcharts-tutorial.html" title="Highcharts 教程">Highcharts 教程</a></li><li><a href="../googleapi/google-maps-basic.html" title="Google 地图 教程">Google 地图 教程</a></li><li><a href="../svg/svg-tutorial.html" title="SVG 教程">SVG 教程</a></li><li><a href="../font-awesome/fontawesome-tutorial.html" title="Font Awesome 教程">Font Awesome 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 后端开发</a><ul class="double-li"><li><a href="../nodejs/nodejs-tutorial.html" title="Node.js 教程">Node.js 教程</a></li><li><a href="../electron/electron-tutorial.html" title="Electron 教程">Electron 教程</a></li><li><a href="../php/php-tutorial.html" title="PHP 教程">PHP 教程</a></li><li><a href="../java/java-tutorial.html" title="Java 教程">Java 教程</a></li><li><a href="../go/go-tutorial.html" title="Go 教程">Go 教程</a></li><li><a href="../rust/rust-tutorial.html" title="Rust 教程">Rust 教程</a></li><li><a href="../csharp/csharp-tutorial.html" title="C# 教程">C# 教程</a></li><li><a href="../servlet/servlet-tutorial.html" title="Servlet 教程">Servlet 教程</a></li><li><a href="../jsp/jsp-tutorial.html" title="JSP 教程">JSP 教程</a></li><li><a href="../asp/asp-tutorial.html" title="ASP 教程">ASP 教程</a></li><li><a href="../appml/appml-tutorial.html" title="AppML 教程">AppML 教程</a></li><li><a href="../vbscript/vbscript-tutorial.html" title="VBScript 教程">VBScript 教程</a></li><li><a href="../swagger/swagger-tutorial.html" title="Swagger 教程">Swagger 教程</a></li><li><a href="../restfulapi/restful-api-tutorial.html" title="RESTful API 教程">RESTful API 教程</a></li><li><a href="../docker/docker-tutorial.html" title="Docker 教程">Docker 教程</a></li><li><a href="../linux/linux-tutorial.html" title="Linux 教程">Linux 教程</a></li><li><a href="../w3cnote/zookeeper-tutorial.html" title="ZooKeeper 教程">ZooKeeper 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 数据库</a><ul class="double-li"><li><a href="../sql/sql-tutorial.html" title="SQL 教程">SQL 教程</a></li><li><a href="../mysql/mysql-tutorial.html" title="MySQL 教程">MySQL 教程</a></li><li><a href="../postgresql/postgresql-tutorial.html" title="PostgreSQL 教程">PostgreSQL 教程</a></li><li><a href="../sqlite/sqlite-tutorial.html" title="SQLite 教程">SQLite 教程</a></li><li><a href="../mongodb/mongodb-tutorial.html" title="MongoDB 教程">MongoDB 教程</a></li><li><a href="../redis/redis-tutorial.html" title="Redis 教程">Redis 教程</a></li><li><a href="../memcached/memcached-tutorial.html" title="Memcached 教程">Memcached 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 移动开发</a><ul class="double-li"><li><a href="../w3cnote/android-tutorial-intro.html" title="Android 教程">Android 教程</a></li><li><a href="../flutter/flutter-tutorial.html" title="Flutter 教程">Flutter 教程</a></li><li><a href="../ionic/ionic-tutorial.html" title="Ionic 教程">Ionic 教程</a></li><li><a href="../jquerymobile/jquerymobile-tutorial.html" title="jQuery Mobile 教程">jQuery Mobile 教程</a></li><li><a href="../swift/swift-tutorial.html" title="Swift 教程">Swift 教程</a></li><li><a href="../kotlin/kotlin-tutorial.html" title="Kotlin 教程">Kotlin 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> DevOps / 工程化</a><ul class="double-li"><li><a href="../git/git-tutorial.html" title="Git 教程">Git 教程</a></li><li><a href="../svn/svn-tutorial.html" title="SVN 教程">SVN 教程</a></li><li><a href="../cmake/cmake-tutorial.html" title="CMake 教程">CMake 教程</a></li><li><a href="../maven/maven-tutorial.html" title="Maven 教程">Maven 教程</a></li><li><a href="../vscode/vscode-tutorial.html" title="VS Code 教程">VS Code 教程</a></li><li><a href="../obsidian/obsidian-tutorial.html" title="Obsidian 教程">Obsidian 教程</a></li><li><a href="../pycharm/pycharm-tutorial.html" title="PyCharm 教程">PyCharm 教程</a></li><li><a href="../eclipse/eclipse-tutorial.html" title="Eclipse 教程">Eclipse 教程</a></li><li><a href="../markdown/md-tutorial.html" title="Markdown 教程">Markdown 教程</a></li><li><a href="../latex/latex-tutorial.html" title="LaTeX 教程">LaTeX 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 编程语言</a><ul class="double-li"><li><a href="../c/c-tutorial.html" title="C 教程">C 教程</a></li><li><a href="../cplusplus/cpp-tutorial.html" title="C++ 教程">C++ 教程</a></li><li><a href="../zig/zig-tutorial.html" title="Zig 教程">Zig 教程</a></li><li><a href="../scala/scala-tutorial.html" title="Scala 教程">Scala 教程</a></li><li><a href="../ruby/ruby-tutorial.html" title="Ruby 教程">Ruby 教程</a></li><li><a href="../perl/perl-tutorial.html" title="Perl 教程">Perl 教程</a></li><li><a href="../lua/lua-tutorial.html" title="Lua 教程">Lua 教程</a></li><li><a href="../dart/dart-tutorial.html" title="Dart 教程">Dart 教程</a></li><li><a href="../assembly/assembly-tutorial.html" title="汇编语言 教程">汇编语言 教程</a></li><li><a href="../w3cnote/verilog-tutorial.html" title="Verilog 教程">Verilog 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 计算机基础</a><ul class="double-li"><li><a href="../computer-organization/computer-organization-tutorial.html" title="计算机组成原理">计算机组成原理</a></li><li><a href="../data-structures/data-structures-tutorial.html" title="数据结构与算法">数据结构与算法</a></li><li><a href="../c-dsa/c-dsa-tutorial.html" title="C 语言数据结构与算法">C 语言数据结构与算法</a></li><li><a href="../design-pattern/design-pattern-tutorial.html" title="设计模式">设计模式</a></li><li><a href="../python-design-pattern/python-design-pattern-tutorial.html" title="Python 设计模式">Python 设计模式</a></li><li><a href="../regexp/regexp-tutorial.html" title="正则表达式">正则表达式</a></li><li><a href="../http/http-tutorial.html" title="HTTP 教程">HTTP 教程</a></li><li><a href="../tcpip/tcpip-tutorial.html" title="TCP/IP 教程">TCP/IP 教程</a></li><li><a href="../np/np-tutorial.html" title="网络协议">网络协议</a></li><li><a href="../w3c/w3c-tutorial.html" title="W3C 教程">W3C 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> XML / Web Service</a><ul class="double-li"><li><a href="../xml/xml-tutorial.html" title="XML 教程">XML 教程</a></li><li><a href="../dtd/dtd-tutorial.html" title="DTD 教程">DTD 教程</a></li><li><a href="../dom/dom-tutorial.html" title="XML DOM 教程">XML DOM 教程</a></li><li><a href="../xsl/xsl-tutorial.html" title="XSLT 教程">XSLT 教程</a></li><li><a href="../xpath/xpath-tutorial.html" title="XPath 教程">XPath 教程</a></li><li><a href="../xquery/xquery-tutorial.html" title="XQuery 教程">XQuery 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XLink 教程">XLink 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XPointer 教程">XPointer 教程</a></li><li><a href="../schema/schema-tutorial.html" title="XML Schema 教程">XML Schema 教程</a></li><li><a href="../xslfo/xslfo-tutorial.html" title="XSL-FO 教程">XSL-FO 教程</a></li><li><a href="../webservices/webservices-tutorial.html" title="Web Service 教程">Web Service 教程</a></li><li><a href="../wsdl/wsdl-tutorial.html" title="WSDL 教程">WSDL 教程</a></li><li><a href="../soap/soap-tutorial.html" title="SOAP 教程">SOAP 教程</a></li><li><a href="../rss/rss-tutorial.html" title="RSS 教程">RSS 教程</a></li><li><a href="../rdf/rdf-tutorial.html" title="RDF 教程">RDF 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> .NET</a><ul class="double-li"><li><a href="../aspnet/aspnet-tutorial.html" title="ASP.NET 教程">ASP.NET 教程</a></li><li><a href="../aspnet/mvc-intro.html" title="MVC 教程">MVC 教程</a></li><li><a href="../aspnet/razor-intro.html" title="Razor 教程">Razor 教程</a></li><li><a href="../aspnet/aspnet-intro.html" title="Web Forms 教程">Web Forms 教程</a></li><li><a href="../aspnet/webpages-intro.html" title="Web Pages 教程">Web Pages 教程</a></li><li><a href="../powershell/powershell-tutorial.html" title="PowerShell 教程">PowerShell 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 网站建设</a><ul class="double-li"><li><a href="../web/web-buildingprimer.html" title="网站建设指南">网站建设指南</a></li><li><a href="../browsers/browser-information.html" title="浏览器信息">浏览器信息</a></li><li><a href="../hosting/hosting-tutorial.html" title="网站主机教程">网站主机教程</a></li><li><a href="../quality/quality-tutorial.html" title="网站品质">网站品质</a></li></ul></li></ul> </div>
+</div>
+</div>
+<br/>
+<div class="sidebar-box re-box re-box-large">
+</div>
+</div></div>
+</div>
+<script>
+var aid = 31881;
+function coll() {
+	$.post( '/wp-content/themes/runoob/option/user/userinfo.php', {aid:aid, action:"collarticle", opt:'add'},function( data ) {
+		if(data.error==0) {
+			$("#content").find("h1:first").find("a").attr("href","javascript:void(0);");
+			$("#content").find("h1:first").find("img").attr("src","http://www.runoob.com/wp-content/themes/runoob/assets/img/coll2.png").css({width:32+"px",height:32+"px"});
+		}
+		alert(data.msg);
+	},'json');
+}
+
+(function () {
+    // 1. 仅 HTML 页面
+    if (!document.contentType || !document.contentType.includes('text/html')) return;
+
+    // 2. 容器判断
+    var container = document.querySelector('.article-intro');
+    if (!container) return;
+
+    var h1 = container.querySelector('h1');
+    if (!h1) return;
+
+    // 3. URL 判断
+    var url = window.location.href.toLowerCase();
+    var version = null;
+
+    if (url.includes('/python3/')) {
+        version = 'Python3.x';
+    } else if (url.includes('/python/')) {
+        version = 'Python2.x';
+    }
+
+    if (!version) return;
+
+    // 4. 防重复
+    if (h1.querySelector('.py-version-badge')) return;
+
+    // 5. 创建标签
+    var badge = document.createElement('span');
+    badge.className = 'py-version-badge';
+    badge.innerText = version;
+
+    // 6. 样式（核心：float 实现右上角）
+    badge.style.float = 'right';
+    badge.style.fontSize = '12px';
+    badge.style.padding = '2px 8px';
+    badge.style.borderRadius = '999px';
+
+   // 自适应亮/暗色 + 渐变背景（增强版）
+	badge.style.color = 'inherit';
+
+	// 渐变背景（低透明度，不影响暗黑模式）
+	if (version.includes('3')) {
+		badge.style.background = 'linear-gradient(90deg, rgba(79,172,254,0.15), rgba(0,242,254,0.15))';
+	} else {
+		badge.style.background = 'linear-gradient(90deg, rgba(161,140,209,0.15), rgba(251,194,235,0.15))';
+	}
+
+	// 边框弱化（更精致）
+	badge.style.border = '1px solid rgba(127,127,127,0.3)';
+
+	// 提升可读性
+	badge.style.opacity = '0.95';
+
+    // 微调位置（更贴近“右上角”）
+    badge.style.marginTop = '4px';
+    badge.style.marginLeft = '10px';
+
+    // 7. 插入到 h1 最前面（让 float 生效更稳定）
+    h1.insertBefore(badge, h1.firstChild);
+
+})();
+</script>
+<!-- 反馈对话框开始 -->
+<script src="../wp-content/themes/runoob/assets/js/runoob-article-dir.min.js"></script>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

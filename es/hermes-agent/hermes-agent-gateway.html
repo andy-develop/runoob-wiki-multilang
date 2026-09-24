@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Integración de mensajes de la plataforma Hermes Agent | Tutorial para principiantes</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<link href="../manifest.webmanifest.html" rel="manifest"/>
+<meta content="#10151c" name="theme-color"/>
+<link href="../pwa/icon-192.png.html" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="application-name"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="../hermes-agent/hermes-agent-gateway.html" rel="canonical"/>
+<meta content="Hermes Agent 平台消息接入" name="keywords"/>
+<meta content="Hermes Agent 平台消息接入 消息网关（Messaging Gateway）让同一个 Agent——同样的记忆、技能和工具——在 20+ 平台上无缝运行。 本章将介绍 Gateway 的配置与部署、会话生命周期、多用户隔离策略以及安全访问控制。   消息网关概览 消息网关是一个常驻后台进程，统一管理所有消息平台的连接、会话、定时任务和媒体投递。 你在 CLI 中教给 Agent 的一切——记忆、技能、偏好——在所有平台上完全一.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div>
+<!-- 导航栏 -->
+<style>
+/* 主题切换按钮 */
+/* ===== 主题变量（核心）===== */
+:root {
+  --theme-bg: #ffffff;
+  --theme-border: #e5e7eb;
+  --theme-icon: #333;
+  --theme-hover: #f3f4f6;
+}
+
+.dark {
+  --theme-bg: #1f2937;
+  --theme-border: #374151;
+  --theme-icon: #e5e7eb;
+  --theme-hover: #374151;
+}
+
+/* ===== 按钮容器 ===== */
+.nav-theme-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== 按钮本体 ===== */
+.nav-theme-toggle button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  border-radius: 6px;
+  border: 1px solid var(--theme-border);
+
+  background: var(--theme-bg);
+  color: var(--theme-icon);
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* ===== 图标大小 ===== */
+.nav-theme-toggle i {
+  font-size: 14px;
+}
+
+/* ===== hover 效果 ===== */
+.nav-theme-toggle button:hover {
+  background: var(--theme-hover);
+  transform: translateY(-1px);
+}
+
+/* ===== 点击反馈 ===== */
+.nav-theme-toggle button:active {
+  transform: scale(0.95);
+}
+
+/* ===== 当前激活态（可选）===== */
+.nav-theme-toggle button.active {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+</style>
+<!-- 导航栏 -->
+<nav aria-label="主导航" class="container navigation">
+<div class="row">
+<div class="col nav">
+<!-- PC 导航 -->
+<ul class="pc-nav" id="runoob-detail-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../js/js-tutorial.html">JavaScript</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a data-id="vue" href="#">Vue</a></li>
+<li><a href="../react/react-tutorial.html">React</a></li>
+<li><a href="../python3/python3-tutorial.html">Python3</a></li>
+<li><a href="../java/java-tutorial.html">Java</a></li>
+<li><a href="../cprogramming/c-tutorial.html">C</a></li>
+<li><a href="../cplusplus/cpp-tutorial.html">C++</a></li>
+<li><a href="../csharp/csharp-tutorial.html">C#</a></li>
+<li><a data-id="aiNav" href="#">AI</a></li>
+<li><a href="../go/go-tutorial.html">Go</a></li>
+<li><a href="../sql/sql-tutorial.html">SQL</a></li>
+<li><a href="../linux/linux-tutorial.html">Linux</a></li>
+<li><a href="../vscode/vscode-tutorial.html">VS Code</a></li>
+<li><a data-id="bootstrap" href="#">Bootstrap</a></li>
+<li><a href="../git/git-tutorial.html">Git</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<!-- 主题切换按钮，固定在最右侧 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+<!-- 移动端导航 -->
+<ul class="mobile-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a href="../js/js-tutorial.html">JS</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<li><a class="search-reveal" href="#">搜索</a></li>
+<!-- 移动端主题切换 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon-mobile" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun-mobile" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<!-- 二级导航 -->
+<!--  内容  -->
+<div class="container main">
+<!-- 中间 -->
+<div class="row">
+<div class="runoob-col-md2">
+<div class="left-column">
+<div class="tab" style="overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
+<i aria-hidden="true" class="fa fa-list"></i>
+<span>Hermes Agent</span>
+</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+<a data-p="par" href="../hermes-agent/hermes-agent-tutorial.html" target="_top" title="Hermes Agent 教程">
+			Hermes Agent 教程			</a>
+<a data-p="par" href="../hermes-agent/hermes-agent-intro.html" target="_top" title="Hermes Agent 简介">
+			Hermes Agent 简介			</a>
+<a data-p="par" href="../hermes-agent/hermes-agent-install.html" target="_top" title="Hermes Agent 安装">
+			Hermes Agent 安装			</a>
+<a data-p="par" href="../hermes-agent/hermes-agent-setup-file.html" target="_top" title="Hermes Agent 配置文件">
+			Hermes Agent 配置文件			</a>
+<a href="../hermes-agent/hermes-agent-model-setup.html" target="_top" title="Hermes Agent 模型配置">Hermes Agent 模型配置</a> <a data-p="par" href="../hermes-agent/hermes-agent-desktop.html" target="_top" title="Hermes Agent 桌面版">
+			Hermes Agent 桌面版			</a>
+<a data-p="par" href="../hermes-agent/hermes-agent-memory.html" target="_top" title="Hermes Agent 记忆系统">
+			Hermes Agent 记忆系统			</a>
+<a data-p="par" href="../hermes-agent/hermes-agent-skills.html" target="_top" title="Hermes Agent 技能（Skills）">
+			Hermes Agent Skills			</a>
+<a data-p="par" href="../hermes-agent/hermes-agent-tools-mcp.html" target="_top" title="Hermes Agent 工具生态与 MCP 集成">
+			Hermes Agent 工具			</a>
+<a data-p="par" href="../hermes-agent/hermes-agent-gateway.html" target="_top" title="Hermes Agent 平台消息接入">
+			Hermes Agent 平台消息			</a>
+<a data-p="par" href="../hermes-agent/hermes-agent-session-cron.html" target="_top" title="Hermes Agent Session 生命周期与定时任务">
+			Hermes Agent 定时任务			</a>
+<a data-p="par" href="../hermes-agent/hermes-agent-profile.html" target="_top" title="Hermes Agent Profile 系统与发行版">
+			Hermes Agent Profile			</a>
+<a data-p="par" href="../hermes-agent/hermes-agent-dashboard.html" target="_top" title="Hermes Agent 部署模式与 Dashboard">
+			Hermes Agent 部署模式			</a>
+<a data-p="par" href="../hermes-agent/hermes-agent-checkpoint.html" target="_top" title="Hermes Agent 检查点、定时任务与持久目标">
+			Hermes Agent 检查点			</a>
+<a data-p="par" href="../hermes-agent/hermes-agent-delegation.html" target="_top" title="Hermes Agent 子 Agent 委托与批量处理">
+			Hermes Agent  委托			</a>
+<a data-p="par" href="../hermes-agent/hermes-agent-plugins.html" target="_top" title="Hermes Agent 插件开发与生产实践">
+			Hermes Agent 插件			</a>
+<a data-p="par" href="../hermes-agent/hermes-agent-web-dashboard.html" target="_top" title="Hermes Agent 仪表盘（Dashboard）">
+			Hermes Agent 仪表盘			</a>
+<a href="../hermes-agent/hermes-agent-cli.html" target="_top" title="Hermes Agent CLI">Hermes Agent CLI</a>
+<a href="../hermes-agent/hermes-agent-tools.html" target="_top" title="Hermes Agent 工具集">Hermes Agent 工具集</a>
+<a href="../hermes-agent/hermes-agent-mcp.html" target="_top" title="Hermes Agent MCP">Hermes Agent MCP</a>
+</div>
+</div>
+</div>
+</div> <div class="col middle-column">
+<div class="article">
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../hermes-agent/hermes-agent-tools-mcp.html" rel="prev">Ecosistema de herramientas de Hermes Agent e integración con MCP</a> </div>
+<div class="next-design-link"><a href="../hermes-agent/hermes-agent-session-cron.html" rel="next">Ciclo de vida de la sesión y tareas programadas en Hermes Agent</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="article-body">
+<div class="article-intro" id="content">
+<h1>Integración de mensajes de la plataforma Hermes Agent</h1>
+<p>El gateway de mensajes (Messaging Gateway) permite que<span class="tag1">el mismo Agente</span>—con la misma memoria, habilidades y herramientas— funcione sin problemas en más de 20 plataformas.</p>
+<p>Este capítulo presenta la configuración e implementación de Gateway, el ciclo de vida de las sesiones, las políticas de aislamiento multiusuario y el control de acceso seguro.</p>
+<hr/>
+<h2>Descripción general del gateway de mensajes</h2>
+<p>El gateway de mensajes es un proceso residente en segundo plano que gestiona de manera unificada las conexiones, sesiones, tareas programadas y entrega de medios de todas las plataformas de mensajería.</p>
+<p>Todo lo que le enseñas al Agente en la CLI —memoria, habilidades, preferencias— es completamente consistente en todas las plataformas.</p>
+<h3>Plataformas compatibles</h3>
+<p>Hermes soporta más de 20 plataformas de mensajería: CLI, Telegram, Discord, Slack, WhatsApp, Signal, Matrix, Mattermost, Email, SMS, DingTalk, Feishu/Lark, WeCom (WeChat Work), WeChat, QQ, Yuanbao, BlueBubbles (iMessage), Home Assistant, Microsoft Teams, Google Chat, etc.</p>
+<h3>Comparación de capacidades de plataforma</h3>
+<table class="reference">
+<tr><th>Plataforma</th><th>Voz</th><th>Imágenes</th><th>Archivos</th><th>Hilos de mensajes</th><th>Reacciones con emojis</th><th>Indicador de escritura</th><th>Salida en streaming</th></tr>
+<tr><td>Telegram</td><td>Sí</td><td>Sí</td><td>Sí</td><td>Sí</td><td>—</td><td>Sí</td><td>Sí</td></tr>
+<tr><td>Discord</td><td>Sí</td><td>Sí</td><td>Sí</td><td>Sí</td><td>Sí</td><td>Sí</td><td>Sí</td></tr>
+<tr><td>Slack</td><td>Sí</td><td>Sí</td><td>Sí</td><td>Sí</td><td>Sí</td><td>Sí</td><td>Sí</td></tr>
+<tr><td>WhatsApp</td><td>—</td><td>Sí</td><td>Sí</td><td>—</td><td>—</td><td>Sí</td><td>Sí</td></tr>
+<tr><td>Signal</td><td>—</td><td>Sí</td><td>Sí</td><td>—</td><td>—</td><td>Sí</td><td>Sí</td></tr>
+<tr><td>Feishu/Lark</td><td>Sí</td><td>Sí</td><td>Sí</td><td>Sí</td><td>Sí</td><td>Sí</td><td>Sí</td></tr>
+<tr><td>WeCom (WeChat Work)</td><td>Sí</td><td>Sí</td><td>Sí</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>DingTalk</td><td>—</td><td>Sí</td><td>Sí</td><td>—</td><td>Sí</td><td>—</td><td>Sí</td></tr>
+<tr><td>Microsoft Teams</td><td>—</td><td>Sí</td><td>—</td><td>Sí</td><td>—</td><td>Sí</td><td>—</td></tr>
+<tr><td>Email</td><td>—</td><td>Sí</td><td>Sí</td><td>Sí</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>SMS</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>Matrix</td><td>Sí</td><td>Sí</td><td>Sí</td><td>Sí</td><td>Sí</td><td>Sí</td><td>Sí</td></tr>
+</table>
+<blockquote><p>Continuidad de sesión multiplataforma: el mismo Agente puede mantener el contexto entre diferentes plataformas. Por ejemplo, si estás conversando con el Agente en Telegram y cambias a Discord, el Agente aún recuerda la conversación anterior.</p></blockquote>
+<hr/>
+<h2>Arranque y configuración de Gateway</h2>
+<h3>Configuración de la versión de escritorio</h3><p>Abre la sección de plataformas de mensajería en el menú lateral para ver las plataformas compatibles. Haz clic en la plataforma correspondiente para configurarla:</p>
+<p><img decoding="async" src="../wp-content/uploads/2026/06/runoob_1782543344268.png"/></p>
+<h3>Configuración en modo interactivo</h3>
+<p>Utiliza el asistente interactivo para completar la configuración inicial de todas las plataformas:</p>
+<pre>
+hermes gateway setup</pre>
+<p><img decoding="async" src="../wp-content/uploads/2026/06/runoob_1782542894808.png"/></p>
+<p>El asistente te guía a través de la configuración de cada plataforma: seleccionar la plataforma, completar el Bot Token, configurar la lista de usuarios permitidos, etc.</p>
+<p>Por ejemplo, si seleccionas Feishu/Lark, puedes elegir escanear un código QR para crear un bot o crearlo mediante APP ID:</p>
+<p><img decoding="async" src="../wp-content/uploads/2026/06/runoob_1782542950548.png"/></p>
+<h3>Comandos de administración del gateway</h3>
+<div class="example">
+<h2 class="example">Ejemplo</h2>
+<div class="example_code">
+<span style="color: #666666; font-style: italic;"># Ejecutar en primer plano (para depuración)</span><br/>
+hermes gateway<br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># Instalar como servicio de sistema a nivel de usuario (Linux systemd / macOS launchd)</span><br/>
+hermes gateway <span style="color: #c20cb9; font-weight: bold;">install</span><br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># Linux: instalar como servicio del sistema que se inicia automáticamente al arrancar</span><br/>
+<span style="color: #c20cb9; font-weight: bold;">sudo</span> hermes gateway <span style="color: #c20cb9; font-weight: bold;">install</span> <span style="color: #660033;">--system</span><br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># Control de servicios</span><br/>
+hermes gateway start       <span style="color: #666666; font-style: italic;"># Iniciar el servicio</span><br/>
+hermes gateway stop        <span style="color: #666666; font-style: italic;"># Detener el servicio</span><br/>
+hermes gateway restart     <span style="color: #666666; font-style: italic;"># Reiniciar el servicio</span><br/>
+hermes gateway status      <span style="color: #666666; font-style: italic;"># Ver el estado del servicio</span><br/>
+</div>
+</div>
+<h3>Práctica de integración de Telegram Bot</h3>
+<p>Tomando Telegram como ejemplo, completa un flujo completo de integración de un Bot.</p>
+<p>Paso 1: Crear un Telegram Bot.</p>
+<p>Busca @BotFather en Telegram, envía el comando /newbot y sigue las indicaciones para configurar el nombre y el nombre de usuario del Bot.</p>
+<p>BotFather devolverá un Bot API Token con un formato similar a:<code>1234567890:ABCdefGHIjklMNOpqrsTUVwxyz</code>。</p>
+<p>Paso 2: Configurar Hermes Gateway.</p>
+<div class="example">
+<h2 class="example">Ejemplo</h2>
+<div class="example_code">
+<span style="color: blue;"># Ruta del archivo: ~/.hermes/config.yaml</span><br/>
+<span style="color: blue;"># Configuración de la plataforma Telegram</span><span style="color: #007F45;"><br/>
+platforms</span>:<span style="color: #007F45;"><br/>
+  telegram</span>:<span style="color: green;"><br/>
+    enabled</span><span style="font-weight: bold; color: brown;">: </span>true<span style="color: green;"><br/>
+    bot_token</span><span style="font-weight: bold; color: brown;">: </span><span style="color: #CF00CF;">"1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"</span><br/>
+    <span style="color: blue;"># Opcional: lista de ID de usuario permitidos (modo lista blanca)</span><span style="color: #007F45;"><br/>
+    allowed_users</span><span style="font-weight: bold; color: brown;">:<br/>
+</span>      - <span style="color: #CF00CF;">"123456789"</span><br/>
+    <span style="color: blue;"># Opcional: si es necesario ser mencionado con @ en los grupos para responder</span><span style="color: green;"><br/>
+    require_mention</span><span style="font-weight: bold; color: brown;">: </span>true<br/>
+    <span style="color: blue;"># Opcional: lista de canales exentos de mención @</span><span style="color: #007F45;"><br/>
+    free_response_channels</span><span style="font-weight: bold; color: brown;">:<br/>
+</span>      - <span style="color: #CF00CF;">"-1001234567890"</span><br/>
+</div>
+</div>
+<p>Paso 3: Iniciar y probar.</p>
+<div class="example">
+<h2 class="example">Ejemplo</h2>
+<div class="example_code">
+<span style="color: #666666; font-style: italic;"># Iniciar Gateway</span><br/>
+hermes gateway start<br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># Envía un mensaje a tu Bot en Telegram para probar</span><br/>
+</div>
+</div>
+<blockquote><p>Para la primera integración se recomienda usar el modo lista blanca (allowed_users), permitiendo que solo tu propia cuenta interactúe con el Agente; una vez verificado que todo funciona correctamente, ábrelo a otras personas.</p></blockquote>
+<h3>Comandos de barra diagonal disponibles en la plataforma</h3>
+<p>En cualquier plataforma de mensajería se pueden usar los siguientes comandos:</p>
+<table class="reference">
+<tr><th>Comando</th><th>Función</th></tr>
+<tr><td>/new o /reset</td><td>Iniciar una nueva sesión</td></tr>
+<tr><td>/model [nombre]</td><td>Ver o cambiar el modelo</td></tr>
+<tr><td>/retry</td><td>Reintentar el último mensaje</td></tr>
+<tr><td>/undo</td><td>Deshacer la conversación anterior</td></tr>
+<tr><td>/stop</td><td>Interrumpir la tarea actual</td></tr>
+<tr><td>/approve / /deny</td><td>Aprobar/rechazar comandos peligrosos</td></tr>
+<tr><td>/background &lt;tarea&gt;</td><td>Ejecutar una tarea en una sesión en segundo plano</td></tr>
+<tr><td>/status</td><td>Mostrar información de la sesión actual</td></tr>
+<tr><td>/usage</td><td>Mostrar el uso de tokens de esta sesión</td></tr>
+<tr><td>/voice [on/off/tts]</td><td>Controlar las respuestas de voz</td></tr>
+<tr><td>/compress</td><td>Comprimir manualmente el contexto de la conversación</td></tr>
+<tr><td>/resume [título]</td><td>Recuperar una sesión nombrada anteriormente</td></tr>
+<tr><td>/&lt;skill-name&gt;</td><td>Invocar cualquier habilidad instalada</td></tr>
+<tr><td>/reload-mcp</td><td>Recargar los servidores MCP</td></tr>
+<tr><td>/update</td><td>Actualizar Hermes a la última versión</td></tr>
+<tr><td>/help</td><td>Mostrar todos los comandos disponibles</td></tr>
+</table>
+<hr/>
+<h2>Ciclo de vida de la sesión</h2>
+<p>Session es el concepto central para gestionar conversaciones en Hermes Gateway.</p>
+<p>Comprender cómo funciona Session te ayuda a configurar políticas adecuadas de aislamiento de sesiones y reglas de reinicio.</p>
+<h3>SessionSource: descriptor del origen del mensaje</h3>
+<p>Cada mensaje que llega al Gateway lleva asociado un SessionSource, que registra «de dónde viene» este mensaje.</p>
+<table class="reference">
+<tr><th>Campo</th><th>Tipo</th><th>Descripción</th></tr>
+<tr><td>platform</td><td>string</td><td>Nombre de la plataforma (telegram, discord, slack, etc.)</td></tr>
+<tr><td>chat_id</td><td>string</td><td>Identificador de sesión (ID de chat privado, ID de grupo, ID de canal)</td></tr>
+<tr><td>chat_type</td><td>string</td><td>Tipo de sesión: dm (chat privado), group (grupo), channel (canal), thread (hilo)</td></tr>
+<tr><td>user_id</td><td>string</td><td>ID de plataforma del remitente del mensaje</td></tr>
+<tr><td>user_name</td><td>string</td><td>Nombre para mostrar del remitente del mensaje</td></tr>
+<tr><td>thread_id</td><td>string</td><td>ID de tema del foro (foro de Telegram) / ID de hilo de Discord</td></tr>
+<tr><td>guild_id</td><td>string</td><td>ID de servidor de Discord (para aislamiento de servidores)</td></tr>
+</table>
+<h3>Reglas de generación de Session Key</h3>
+<p>Session Key es una cadena determinista compuesta por los campos en SessionSource.</p>
+<p>Determina qué mensajes pertenecen a la misma sesión, con el siguiente formato:</p>
+<pre>
+agent:main:{platform}:{chat_type}:{chat_id}:{thread_id}:{user_id}
+</pre>
+<p>Ejemplos de Session Key en diferentes escenarios:</p>
+<table class="reference">
+<tr><th>Escenario</th><th>Session Key</th></tr>
+<tr><td>Chat privado de Telegram</td><td>agent:main:telegram:dm:12345</td></tr>
+<tr><td>Grupo de Telegram</td><td>agent:main:telegram:group:-10012345:user_abc</td></tr>
+<tr><td>Tema de foro de Telegram</td><td>agent:main:telegram:group:-10012345:thread_678:user_abc</td></tr>
+<tr><td>Chat privado de Discord</td><td>agent:main:discord:dm:12345</td></tr>
+<tr><td>Canal de servidor de Discord</td><td>agent:main:discord:channel:12345:user_abc</td></tr>
+<tr><td>Hilo de Discord</td><td>agent:main:discord:thread:12345:thread_678</td></tr>
+</table>
+<blockquote><p>Las reglas de generación de Session Key son una de las configuraciones más importantes de la puerta de enlace. Si se configuran incorrectamente, pueden causar que las sesiones de diferentes usuarios se 'crucen': dos personas diferentes pueden ver el contenido de la conversación del otro.</p></blockquote>
+<h3>SessionEntry: registro de sesión activa</h3>
+<p>Cada Session Key corresponde a un SessionEntry, que registra los metadatos y el estado de la sesión.</p>
+<table class="reference">
+<tr><th>Campo</th><th>Descripción</th></tr>
+<tr><td>session_id</td><td>Identificador único de sesión, formato: YYYYMMDD_HHMMSS_hex aleatorio de 8 dígitos</td></tr>
+<tr><td>created_at</td><td>Hora de creación de la sesión</td></tr>
+<tr><td>updated_at</td><td>Última hora de actividad (para determinar el tiempo de espera por inactividad)</td></tr>
+<tr><td>total_tokens</td><td>Consumo acumulado de tokens</td></tr>
+<tr><td>estimated_cost_usd</td><td>Costo acumulado estimado (USD)</td></tr>
+<tr><td>suspended</td><td>Si está suspendido forzosamente (comando /stop o bucle anómalo)</td></tr>
+<tr><td>resume_pending</td><td>Si está esperando recuperación (marca de recuperación después de un reinicio por caída)</td></tr>
+</table>
+<hr/>
+<h2>Política de aislamiento multiusuario</h2>
+<p>El aislamiento multiusuario determina si múltiples usuarios en el mismo grupo o canal comparten una sesión o son independientes.</p>
+<p>Esta configuración afecta directamente la experiencia del usuario: una sesión compartida significa que el usuario A puede ver el contexto de la conversación del usuario B.</p>
+<h3>Configuración de la política de aislamiento</h3>
+<table class="reference">
+<tr><th>Elemento de configuración</th><th>Valor predeterminado</th><th>Significado</th></tr>
+<tr><td>group_sessions_per_user</td><td>true</td><td>Cada usuario en un grupo/canal tiene una sesión independiente</td></tr>
+<tr><td>thread_sessions_per_user</td><td>false</td><td>Todos los usuarios en un hilo comparten la misma sesión</td></tr>
+</table>
+<h3>Comportamiento en diferentes escenarios</h3>
+<table class="reference">
+<tr><th>Escenario</th><th>Comportamiento predeterminado</th><th>Descripción</th></tr>
+<tr><td>Chat privado (DM)</td><td>Siempre independiente</td><td>El chat privado siempre es privado, no configurable</td></tr>
+<tr><td>Grupo/Canal</td><td>Sesión independiente por usuario</td><td>El usuario A y el usuario B tienen contextos de sesión independientes en el mismo grupo</td></tr>
+<tr><td>Hilo (tema de foro)</td><td>Todos los usuarios comparten la sesión</td><td>En los temas de foro de Telegram y los hilos de Discord, todos los participantes comparten el mismo contexto</td></tr>
+</table>
+<h3>Cambios en el mensaje de sistema en sesiones compartidas</h3>
+<p>Cuando la sesión está en modo compartido (shared_multi_user_session = true), el mensaje del sistema cambia:</p>
+<ul>
+<li>Ya no se fija un nombre de usuario, sino que se indica 'sesión multiusuario: el prefijo del mensaje contiene el nombre del remitente'</li>
+<li>Cada mensaje de usuario se prefija con el nombre para mostrar del remitente para que el Agente sepa quién está hablando</li>
+<li>Este diseño mantiene la validez de la caché del mensaje (el mensaje del sistema no cambia según el remitente)</li>
+</ul>
+<blockquote><p>La política de aislamiento predeterminada (por usuario en grupos, compartida en hilos) es una mejor práctica validada por amplia experiencia. No se recomienda modificarla a menos que existan necesidades especiales.</p></blockquote>
+<hr/>
+<h2>Configuración de seguridad del gateway</h2>
+<h3>Control de acceso de usuarios</h3>
+<p><span class="tag1">De forma predeterminada, la puerta de enlace rechaza a todos los usuarios que no estén en la lista blanca</span>: es la configuración de seguridad predeterminada para los bots con acceso al terminal.</p>
+<p>Configurar los usuarios permitidos (en el archivo .env):</p>
+<div class="example">
+<h2 class="example">Ejemplo</h2>
+<div class="example_code">
+<span style="color: #666666; font-style: italic;"># Ruta de archivo: ~/.hermes/.env</span><br/>
+<span style="color: #666666; font-style: italic;"># Lista blanca de usuarios para plataformas específicas</span><br/>
+<span style="color: #007800;">TELEGRAM_ALLOWED_USERS</span>=<span style="color: #000000;">123456789</span>,<span style="color: #000000;">987654321</span><br/>
+<span style="color: #007800;">DISCORD_ALLOWED_USERS</span>=<span style="color: #000000;">123456789012345678</span><br/>
+<span style="color: #007800;">SLACK_ALLOWED_USERS</span>=U012AB3CD,U012EF4GH<br/>
+<span style="color: #007800;">FEISHU_ALLOWED_USERS</span>=ou_xxxxxxxx,ou_yyyyyyyy<br/>
+<span style="color: #007800;">WECOM_ALLOWED_USERS</span>=user-id-<span style="color: #000000;">1</span>,user-id-<span style="color: #000000;">2</span><br/>
+<span style="color: #007800;">TEAMS_ALLOWED_USERS</span>=aad-object-id-<span style="color: #000000;">1</span><br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># Lista blanca que aplica a todas las plataformas</span><br/>
+<span style="color: #007800;">GATEWAY_ALLOWED_USERS</span>=<span style="color: #000000;">123456789</span>,<span style="color: #000000;">987654321</span><br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># Permitir a todos los usuarios (no recomendado para bots con acceso al terminal)</span><br/>
+<span style="color: #007800;">GATEWAY_ALLOW_ALL_USERS</span>=<span style="color: #c20cb9; font-weight: bold;">true</span><br/>
+</div>
+</div>
+<h3>Emparejamiento DM (alternativa a la lista blanca)</h3>
+<p>No es necesario configurar manualmente el ID de usuario: cuando un nuevo usuario envía un mensaje privado al Bot, recibe un código de emparejamiento de un solo uso:</p>
+<div class="example">
+<h2 class="example">Ejemplo</h2>
+<div class="example_code">
+<span style="color: #666666; font-style: italic;"># Después de que el usuario envíe un mensaje privado al Bot, verá: 'Código de emparejamiento: XKGH5N7P'</span><br/>
+<span style="color: #666666; font-style: italic;"># Tú apruebas el acceso de ese usuario</span><br/>
+hermes pairing approve telegram XKGH5N7P<br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># Ver la lista de usuarios pendientes y aprobados</span><br/>
+hermes pairing list<br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># Revocar el acceso de un usuario</span><br/>
+hermes pairing revoke telegram <span style="color: #000000;">123456789</span><br/>
+</div>
+</div>
+<p>El código de emparejamiento caduca después de 1 hora, tiene límite de frecuencia y se genera con números aleatorios criptográficos.</p>
+<h3>Token de silencio</h3>
+<p>Se usa en chats grupales, Hooks y flujos automatizados para que el Agente no envíe ningún mensaje bajo ciertas condiciones:</p>
+<pre>
+# Agent 回复中仅包含以下内容之一时，网关不会向平台发送任何消息：
+[SILENT]
+SILENT
+NO_REPLY
+NO REPLY
+</pre>
+<p>El silencio es una<span class="tag1">decisión de entrega</span>, no afecta el registro de la sesión: la respuesta aún se almacena en el historial de la conversación, lo que garantiza el correcto funcionamiento de la lógica de alternancia del diálogo.</p>
+<h3>Política de reinicio de sesión</h3>
+<p>Configura cuándo se restablece automáticamente la sesión para evitar el crecimiento infinito del contexto:</p>
+<div class="example">
+<h2 class="example">Ejemplo</h2>
+<div class="example_code">
+
+{<br/>
+  "reset_by_platform": {<br/>
+    "telegram": { "mode": "idle", "idle_minutes": 240 },<br/>
+    "discord":  { "mode": "idle", "idle_minutes": 60 },<br/>
+    "slack":    { "mode": "daily", "reset_hour": 4 }<br/>
+  }<br/>
+}<br/>
+</div>
+</div>
+<table class="reference">
+<tr><th>Estrategia</th><th>Valor predeterminado</th><th>Descripción</th></tr>
+<tr><td>daily</td><td>4 a. m.</td><td>Restablece la sesión en un momento específico del día</td></tr>
+<tr><td>idle</td><td>1440 minutos</td><td>Restablece la sesión después de un tiempo de inactividad</td></tr>
+<tr><td>both</td><td>Combinación</td><td>Se restablece lo que se active primero</td></tr>
+</table>
+<hr/>
+<h2>Referencia rápida de comandos comunes</h2>
+<div class="example">
+<h2 class="example">Ejemplo</h2>
+<div class="example_code">
+<span style="color: #666666; font-style: italic;"># ─── Gestión de la puerta de enlace ────────────────────────────────────────────────</span><br/>
+hermes gateway setup                  <span style="color: #666666; font-style: italic;"># Configuración interactiva de plataforma</span><br/>
+hermes gateway                        <span style="color: #666666; font-style: italic;"># Ejecución en primer plano (depuración)</span><br/>
+hermes gateway <span style="color: #c20cb9; font-weight: bold;">install</span>                <span style="color: #666666; font-style: italic;"># Instalar como servicio de usuario</span><br/>
+hermes gateway start <span style="color: #000000; font-weight: bold;">/</span> stop <span style="color: #000000; font-weight: bold;">/</span> restart <span style="color: #666666; font-style: italic;"># Control de servicios</span><br/>
+hermes gateway status                 <span style="color: #666666; font-style: italic;"># Ver el estado del servicio</span><br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># ─── Emparejamiento de usuarios ────────────────────────────────────────────────</span><br/>
+hermes pairing list                   <span style="color: #666666; font-style: italic;"># Ver la lista de emparejamientos</span><br/>
+hermes pairing approve <span style="color: #000000; font-weight: bold;">&lt;</span>platform<span style="color: #000000; font-weight: bold;">&gt;</span> <span style="color: #000000; font-weight: bold;">&lt;</span>code<span style="color: #000000; font-weight: bold;">&gt;</span>   <span style="color: #666666; font-style: italic;"># Aprobar emparejamiento</span><br/>
+hermes pairing revoke <span style="color: #000000; font-weight: bold;">&lt;</span>platform<span style="color: #000000; font-weight: bold;">&gt;</span> <span style="color: #000000; font-weight: bold;">&lt;</span>user_id<span style="color: #000000; font-weight: bold;">&gt;</span> <span style="color: #666666; font-style: italic;"># Revocar acceso</span><br/>
+<br/>
+<span style="color: #666666; font-style: italic;"># ─── Comandos de barra dentro de la sesión ──────────────────────────────────────────</span><br/>
+<span style="color: #000000; font-weight: bold;">/</span>new                                  <span style="color: #666666; font-style: italic;"># Iniciar nueva sesión</span><br/>
+<span style="color: #000000; font-weight: bold;">/</span>model <span style="color: #7a0874; font-weight: bold;">[</span>Nombre<span style="color: #7a0874; font-weight: bold;">]</span>                         <span style="color: #666666; font-style: italic;"># Ver o cambiar el modelo</span><br/>
+<span style="color: #000000; font-weight: bold;">/</span>retry                                <span style="color: #666666; font-style: italic;"># Reintentar el último mensaje</span><br/>
+<span style="color: #000000; font-weight: bold;">/</span>undo                                 <span style="color: #666666; font-style: italic;"># Deshacer la ronda de conversación anterior</span><br/>
+<span style="color: #000000; font-weight: bold;">/</span>stop                                 <span style="color: #666666; font-style: italic;"># Interrumpir la tarea actual</span><br/>
+<span style="color: #000000; font-weight: bold;">/</span>approve <span style="color: #000000; font-weight: bold;">/</span> <span style="color: #000000; font-weight: bold;">/</span>deny                      <span style="color: #666666; font-style: italic;"># Aprobar/rechazar comandos peligrosos</span><br/>
+<span style="color: #000000; font-weight: bold;">/</span>background <span style="color: #000000; font-weight: bold;">&lt;</span>Tarea<span style="color: #000000; font-weight: bold;">&gt;</span>                    <span style="color: #666666; font-style: italic;"># Tarea en segundo plano</span><br/>
+<span style="color: #000000; font-weight: bold;">/</span>status                               <span style="color: #666666; font-style: italic;"># Información de la sesión actual</span><br/>
+<span style="color: #000000; font-weight: bold;">/</span>usage                                <span style="color: #666666; font-style: italic;"># Uso de tokens</span><br/>
+<span style="color: #000000; font-weight: bold;">/</span>voice <span style="color: #7a0874; font-weight: bold;">[</span>on<span style="color: #000000; font-weight: bold;">/</span>off<span style="color: #000000; font-weight: bold;">/</span>tts<span style="color: #7a0874; font-weight: bold;">]</span>                   <span style="color: #666666; font-style: italic;"># Control de voz</span><br/>
+<span style="color: #000000; font-weight: bold;">/</span>compress                             <span style="color: #666666; font-style: italic;"># Comprimir contexto</span><br/>
+<span style="color: #000000; font-weight: bold;">/</span>resume <span style="color: #7a0874; font-weight: bold;">[</span>Título<span style="color: #7a0874; font-weight: bold;">]</span>                         <span style="color: #666666; font-style: italic;"># Reanudar sesión</span><br/>
+<span style="color: #000000; font-weight: bold;">/&lt;</span>skill-name<span style="color: #000000; font-weight: bold;">&gt;</span>                         <span style="color: #666666; font-style: italic;"># Invocar habilidad</span><br/>
+<span style="color: #000000; font-weight: bold;">/</span>reload-mcp                           <span style="color: #666666; font-style: italic;"># Recargar MCP</span><br/>
+<span style="color: #000000; font-weight: bold;">/</span>update                               <span style="color: #666666; font-style: italic;"># Actualizar Hermes</span><br/>
+<span style="color: #000000; font-weight: bold;">/</span><span style="color: #7a0874; font-weight: bold;">help</span>                                 <span style="color: #666666; font-style: italic;"># Todos los comandos</span><br/>
+</div>
+</div> Otras extensiones
+</div>
+</div>
+<div class="archive-list" style="display:none;font-size: 14px;line-height: 1.8;margin-top: 20px;padding: 10px;">
+<div class="archive-list-item">
+<div class="post-intro" id="ai-info" style="width: 100%;">IA pensando...</div>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../hermes-agent/hermes-agent-tools-mcp.html" rel="prev">Ecosistema de herramientas de Hermes Agent e integración con MCP</a> </div>
+<div class="next-design-link"><a href="../hermes-agent/hermes-agent-session-cron.html" rel="next">Ciclo de vida de las sesiones de Hermes Agent y tareas programadas</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="sidebar-box">
+</div>
+Lista de notas
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>Haz clic para compartir notas</h3>
+&lt;p style="font-size:14px;"&gt;¡La nota debe ser una extensión del contenido de este artículo!&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;Envía un artículo, haz clic aquí&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;Cómo obtener el código de invitación de registro&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; Antes de compartir una nota, debes &lt;a href=";.html" class="runoob-pop"&gt;iniciar sesión&lt;/a&gt;!&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;Cómo obtener el código de invitación de registro&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=";.html" id="cancel-comment-reply-link">Cancelar</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="31580"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>Compartir nota</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">Apodo</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">Apodo (obligatorio)</span></li>
+<li class="form-inline"><label class="hide" for="email">Correo electrónico</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">Correo electrónico (obligatorio)</span></li>
+<li class="form-inline"><label class="hide" for="url">Dirección de referencia</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">Dirección de referencia</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  31580;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 31580, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":31580},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+</div>
+</div>
+<!-- 右边栏 -->
+<div class="fivecol last right-column">
+<style>
+.sidebar-tree .double-li {
+    width:300px;
+}
+.sidebar-tree .double-li li {
+    width: 44%;
+    line-height: 1.5em;
+    border-bottom: 1px solid #ccc;
+    float: left;
+    display: inline;
+}
+</style>
+<div class="sidebar-box re-box re-box-large">
+<div class="sidebar-box recommend-here" style="margin: 0 auto;">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;"> <i aria-hidden="true" class="fa fa-list"></i> 分类导航</a>
+</div>
+<div class="sidebar-box sidebar-cate">
+<div class="sidebar-tree">
+<ul><li style="margin: 0;"><a class="tit" href="#"> Python / 数据科学</a><ul class="double-li"><li><a href="../python3/python3-tutorial.html" title="Python 教程">Python 教程</a></li><li><a href="../python/python-tutorial.html" title="Python2.x 教程">Python2.x 教程</a></li><li><a href="../fastapi/fastapi-tutorial.html" title="FastAPI 教程">FastAPI 教程</a></li><li><a href="../flask/flask-tutorial.html" title="Flask 教程">Flask 教程</a></li><li><a href="../django/django-tutorial.html" title="Django 教程">Django 教程</a></li><li><a href="../numpy/numpy-tutorial.html" title="NumPy 教程">NumPy 教程</a></li><li><a href="../pandas/pandas-tutorial.html" title="Pandas 教程">Pandas 教程</a></li><li><a href="../scipy/scipy-tutorial.html" title="SciPy 教程">SciPy 教程</a></li><li><a href="../matplotlib/matplotlib-tutorial.html" title="Matplotlib 教程">Matplotlib 教程</a></li><li><a href="../dash/dash-tutorial.html" title="Dash 教程">Dash 教程</a></li><li><a href="../jupyter-notebook/jupyter-notebook-tutorial.html" title="Jupyter Notebook 教程">Jupyter Notebook 教程</a></li><li><a href="../pillow/pillow-tutorial.html" title="Pillow 教程">Pillow 教程</a></li><li><a href="../qt/qt-tutorial.html" title="量化交易">量化交易</a></li><li><a href="../r/r-tutorial.html" title="R 教程">R 教程</a></li><li><a href="../julia/julia-tutorial.html" title="Julia 教程">Julia 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> AI / 智能开发</a><ul class="double-li"><li><a href="../ai-agent/ai-agent-tutorial.html" title="AI Agent（智能体）">AI Agent（智能体）</a></li><li><a href="../ai/ai-tutorial.html" title="AI（人工智能）">AI（人工智能）</a></li><li><a href="../codex/codex-tutorial.html" title="Codex 教程">Codex 教程</a></li><li><a href="../vibe-coding/vibe-coding-tutorial.html" title="Vibe Coding 教程">Vibe Coding 教程</a></li><li><a href="../claude-code/claude-code-tutorial.html" title="Claude Code">Claude Code</a></li><li><a href="../opencode/opencode-tutorial.html" title="OpenCode">OpenCode</a></li><li><a href="../skills/skills-tutorial.html" title="Skills（技能）">Skills（技能）</a></li><li><a href="../ollama/ollama-tutorial.html" title="Ollama 教程">Ollama 教程</a></li><li><a href="../hermes-agent/hermes-agent-tutorial.html" title="Hermes Agent">Hermes Agent</a></li><li><a href="../deepseek-harness/deepseek-harness-tutorial.html" title="DeepSeek Harness">DeepSeek Harness</a></li><li><a href="../pi-agent/pi-agent-tutorial.html" title="Pi Agent">Pi Agent</a></li><li><a href="../ai-math/ai-math-tutorial.html" title="AI 数学基础">AI 数学基础</a></li><li><a href="../tensorflow/tensorflow-tutorial.html" title="TensorFlow 教程">TensorFlow 教程</a></li><li><a href="../pytorch/pytorch-tutorial.html" title="PyTorch 教程">PyTorch 教程</a></li><li><a href="../sklearn/sklearn-tutorial.html" title="Scikit-learn 教程">Scikit-learn 教程</a></li><li><a href="../ml/ml-tutorial.html" title="机器 教程">机器 教程</a></li><li><a href="../langchain/langchain-tutorial.html" title="LangChain">LangChain</a></li><li><a href="../nlp/nlp-tutorial.html" title="自然语言处理 NLP">自然语言处理 NLP</a></li><li><a href="../opencv/opencv-tutorial.html" title="OpenCV 教程">OpenCV 教程</a></li><li><a href="../selenium/selenium-tutorial.html" title="Selenium 教程">Selenium 教程</a></li><li><a href="../playwright/playwright-tutorial.html" title="Playwright 教程">Playwright 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 前端开发</a><ul class="double-li"><li><a href="../html/html-tutorial.html" title="HTML 教程">HTML 教程</a></li><li><a href="../html/html5-intro.html" title="HTML5 教程">HTML5 教程</a></li><li><a href="../css/css-tutorial.html" title="CSS 教程">CSS 教程</a></li><li><a href="../css3/css3-tutorial.html" title="CSS3 教程">CSS3 教程</a></li><li><a href="../js/js-tutorial.html" title="JavaScript 教程">JavaScript 教程</a></li><li><a href="../htmldom/htmldom-tutorial.html" title="HTML DOM 教程">HTML DOM 教程</a></li><li><a href="../typescript/ts-tutorial.html" title="TypeScript 教程">TypeScript 教程</a></li><li><a href="../ajax/ajax-tutorial.html" title="AJAX 教程">AJAX 教程</a></li><li><a href="../json/json-tutorial.html" title="JSON 教程">JSON 教程</a></li><li><a href="../tailwindcss/tailwindcss-tutorial.html" title="Tailwind CSS 教程">Tailwind CSS 教程</a></li><li><a href="../bootstrap4/bootstrap4-tutorial.html" title="Bootstrap4 教程">Bootstrap4 教程</a></li><li><a href="../bootstrap5/bootstrap5-tutorial.html" title="Bootstrap5 教程">Bootstrap5 教程</a></li><li><a href="../foundation/foundation-tutorial.html" title="Foundation 教程">Foundation 教程</a></li><li><a href="../vue2/vue-tutorial.html" title="Vue.js 教程">Vue.js 教程</a></li><li><a href="../vue3/vue3-tutorial.html" title="Vue3 教程">Vue3 教程</a></li><li><a href="../react/react-tutorial.html" title="React 教程">React 教程</a></li><li><a href="../nextjs/nextjs-tutorial.html" title="Next.js 教程">Next.js 教程</a></li><li><a href="../angularjs/angularjs-tutorial.html" title="AngularJS 教程">AngularJS 教程</a></li><li><a href="../angularjs2/angularjs2-tutorial.html" title="Angular 教程">Angular 教程</a></li><li><a href="../jquery/jquery-tutorial.html" title="jQuery 教程">jQuery 教程</a></li><li><a href="../jqueryui/jqueryui-tutorial.html" title="jQuery UI 教程">jQuery UI 教程</a></li><li><a href="../jeasyui/jqueryeasyui-tutorial.html" title="jQuery EasyUI 教程">jQuery EasyUI 教程</a></li><li><a href="../echarts/echarts-tutorial.html" title="ECharts 教程">ECharts 教程</a></li><li><a href="../chartjs/chartjs-tutorial.html" title="Chart.js 教程">Chart.js 教程</a></li><li><a href="../highcharts/highcharts-tutorial.html" title="Highcharts 教程">Highcharts 教程</a></li><li><a href="../googleapi/google-maps-basic.html" title="Google 地图 教程">Google 地图 教程</a></li><li><a href="../svg/svg-tutorial.html" title="SVG 教程">SVG 教程</a></li><li><a href="../font-awesome/fontawesome-tutorial.html" title="Font Awesome 教程">Font Awesome 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 后端开发</a><ul class="double-li"><li><a href="../nodejs/nodejs-tutorial.html" title="Node.js 教程">Node.js 教程</a></li><li><a href="../electron/electron-tutorial.html" title="Electron 教程">Electron 教程</a></li><li><a href="../php/php-tutorial.html" title="PHP 教程">PHP 教程</a></li><li><a href="../java/java-tutorial.html" title="Java 教程">Java 教程</a></li><li><a href="../go/go-tutorial.html" title="Go 教程">Go 教程</a></li><li><a href="../rust/rust-tutorial.html" title="Rust 教程">Rust 教程</a></li><li><a href="../csharp/csharp-tutorial.html" title="C# 教程">C# 教程</a></li><li><a href="../servlet/servlet-tutorial.html" title="Servlet 教程">Servlet 教程</a></li><li><a href="../jsp/jsp-tutorial.html" title="JSP 教程">JSP 教程</a></li><li><a href="../asp/asp-tutorial.html" title="ASP 教程">ASP 教程</a></li><li><a href="../appml/appml-tutorial.html" title="AppML 教程">AppML 教程</a></li><li><a href="../vbscript/vbscript-tutorial.html" title="VBScript 教程">VBScript 教程</a></li><li><a href="../swagger/swagger-tutorial.html" title="Swagger 教程">Swagger 教程</a></li><li><a href="../restfulapi/restful-api-tutorial.html" title="RESTful API 教程">RESTful API 教程</a></li><li><a href="../docker/docker-tutorial.html" title="Docker 教程">Docker 教程</a></li><li><a href="../linux/linux-tutorial.html" title="Linux 教程">Linux 教程</a></li><li><a href="../w3cnote/zookeeper-tutorial.html" title="ZooKeeper 教程">ZooKeeper 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 数据库</a><ul class="double-li"><li><a href="../sql/sql-tutorial.html" title="SQL 教程">SQL 教程</a></li><li><a href="../mysql/mysql-tutorial.html" title="MySQL 教程">MySQL 教程</a></li><li><a href="../postgresql/postgresql-tutorial.html" title="PostgreSQL 教程">PostgreSQL 教程</a></li><li><a href="../sqlite/sqlite-tutorial.html" title="SQLite 教程">SQLite 教程</a></li><li><a href="../mongodb/mongodb-tutorial.html" title="MongoDB 教程">MongoDB 教程</a></li><li><a href="../redis/redis-tutorial.html" title="Redis 教程">Redis 教程</a></li><li><a href="../memcached/memcached-tutorial.html" title="Memcached 教程">Memcached 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 移动开发</a><ul class="double-li"><li><a href="../w3cnote/android-tutorial-intro.html" title="Android 教程">Android 教程</a></li><li><a href="../flutter/flutter-tutorial.html" title="Flutter 教程">Flutter 教程</a></li><li><a href="../ionic/ionic-tutorial.html" title="Ionic 教程">Ionic 教程</a></li><li><a href="../jquerymobile/jquerymobile-tutorial.html" title="jQuery Mobile 教程">jQuery Mobile 教程</a></li><li><a href="../swift/swift-tutorial.html" title="Swift 教程">Swift 教程</a></li><li><a href="../kotlin/kotlin-tutorial.html" title="Kotlin 教程">Kotlin 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> DevOps / 工程化</a><ul class="double-li"><li><a href="../git/git-tutorial.html" title="Git 教程">Git 教程</a></li><li><a href="../svn/svn-tutorial.html" title="SVN 教程">SVN 教程</a></li><li><a href="../cmake/cmake-tutorial.html" title="CMake 教程">CMake 教程</a></li><li><a href="../maven/maven-tutorial.html" title="Maven 教程">Maven 教程</a></li><li><a href="../vscode/vscode-tutorial.html" title="VS Code 教程">VS Code 教程</a></li><li><a href="../obsidian/obsidian-tutorial.html" title="Obsidian 教程">Obsidian 教程</a></li><li><a href="../pycharm/pycharm-tutorial.html" title="PyCharm 教程">PyCharm 教程</a></li><li><a href="../eclipse/eclipse-tutorial.html" title="Eclipse 教程">Eclipse 教程</a></li><li><a href="../markdown/md-tutorial.html" title="Markdown 教程">Markdown 教程</a></li><li><a href="../latex/latex-tutorial.html" title="LaTeX 教程">LaTeX 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 编程语言</a><ul class="double-li"><li><a href="../c/c-tutorial.html" title="C 教程">C 教程</a></li><li><a href="../cplusplus/cpp-tutorial.html" title="C++ 教程">C++ 教程</a></li><li><a href="../zig/zig-tutorial.html" title="Zig 教程">Zig 教程</a></li><li><a href="../scala/scala-tutorial.html" title="Scala 教程">Scala 教程</a></li><li><a href="../ruby/ruby-tutorial.html" title="Ruby 教程">Ruby 教程</a></li><li><a href="../perl/perl-tutorial.html" title="Perl 教程">Perl 教程</a></li><li><a href="../lua/lua-tutorial.html" title="Lua 教程">Lua 教程</a></li><li><a href="../dart/dart-tutorial.html" title="Dart 教程">Dart 教程</a></li><li><a href="../assembly/assembly-tutorial.html" title="汇编语言 教程">汇编语言 教程</a></li><li><a href="../w3cnote/verilog-tutorial.html" title="Verilog 教程">Verilog 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 计算机基础</a><ul class="double-li"><li><a href="../computer-organization/computer-organization-tutorial.html" title="计算机组成原理">计算机组成原理</a></li><li><a href="../data-structures/data-structures-tutorial.html" title="数据结构与算法">数据结构与算法</a></li><li><a href="../c-dsa/c-dsa-tutorial.html" title="C 语言数据结构与算法">C 语言数据结构与算法</a></li><li><a href="../design-pattern/design-pattern-tutorial.html" title="设计模式">设计模式</a></li><li><a href="../python-design-pattern/python-design-pattern-tutorial.html" title="Python 设计模式">Python 设计模式</a></li><li><a href="../regexp/regexp-tutorial.html" title="正则表达式">正则表达式</a></li><li><a href="../http/http-tutorial.html" title="HTTP 教程">HTTP 教程</a></li><li><a href="../tcpip/tcpip-tutorial.html" title="TCP/IP 教程">TCP/IP 教程</a></li><li><a href="../np/np-tutorial.html" title="网络协议">网络协议</a></li><li><a href="../w3c/w3c-tutorial.html" title="W3C 教程">W3C 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> XML / Web Service</a><ul class="double-li"><li><a href="../xml/xml-tutorial.html" title="XML 教程">XML 教程</a></li><li><a href="../dtd/dtd-tutorial.html" title="DTD 教程">DTD 教程</a></li><li><a href="../dom/dom-tutorial.html" title="XML DOM 教程">XML DOM 教程</a></li><li><a href="../xsl/xsl-tutorial.html" title="XSLT 教程">XSLT 教程</a></li><li><a href="../xpath/xpath-tutorial.html" title="XPath 教程">XPath 教程</a></li><li><a href="../xquery/xquery-tutorial.html" title="XQuery 教程">XQuery 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XLink 教程">XLink 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XPointer 教程">XPointer 教程</a></li><li><a href="../schema/schema-tutorial.html" title="XML Schema 教程">XML Schema 教程</a></li><li><a href="../xslfo/xslfo-tutorial.html" title="XSL-FO 教程">XSL-FO 教程</a></li><li><a href="../webservices/webservices-tutorial.html" title="Web Service 教程">Web Service 教程</a></li><li><a href="../wsdl/wsdl-tutorial.html" title="WSDL 教程">WSDL 教程</a></li><li><a href="../soap/soap-tutorial.html" title="SOAP 教程">SOAP 教程</a></li><li><a href="../rss/rss-tutorial.html" title="RSS 教程">RSS 教程</a></li><li><a href="../rdf/rdf-tutorial.html" title="RDF 教程">RDF 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> .NET</a><ul class="double-li"><li><a href="../aspnet/aspnet-tutorial.html" title="ASP.NET 教程">ASP.NET 教程</a></li><li><a href="../aspnet/mvc-intro.html" title="MVC 教程">MVC 教程</a></li><li><a href="../aspnet/razor-intro.html" title="Razor 教程">Razor 教程</a></li><li><a href="../aspnet/aspnet-intro.html" title="Web Forms 教程">Web Forms 教程</a></li><li><a href="../aspnet/webpages-intro.html" title="Web Pages 教程">Web Pages 教程</a></li><li><a href="../powershell/powershell-tutorial.html" title="PowerShell 教程">PowerShell 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 网站建设</a><ul class="double-li"><li><a href="../web/web-buildingprimer.html" title="网站建设指南">网站建设指南</a></li><li><a href="../browsers/browser-information.html" title="浏览器信息">浏览器信息</a></li><li><a href="../hosting/hosting-tutorial.html" title="网站主机教程">网站主机教程</a></li><li><a href="../quality/quality-tutorial.html" title="网站品质">网站品质</a></li></ul></li></ul> </div>
+</div>
+</div>
+<br/>
+<div class="sidebar-box re-box re-box-large">
+</div>
+</div></div>
+</div>
+<script>
+var aid = 31580;
+function coll() {
+	$.post( '/wp-content/themes/runoob/option/user/userinfo.php', {aid:aid, action:"collarticle", opt:'add'},function( data ) {
+		if(data.error==0) {
+			$("#content").find("h1:first").find("a").attr("href","javascript:void(0);");
+			$("#content").find("h1:first").find("img").attr("src","http://www.runoob.com/wp-content/themes/runoob/assets/img/coll2.png").css({width:32+"px",height:32+"px"});
+		}
+		alert(data.msg);
+	},'json');
+}
+
+(function () {
+    // 1. 仅 HTML 页面
+    if (!document.contentType || !document.contentType.includes('text/html')) return;
+
+    // 2. 容器判断
+    var container = document.querySelector('.article-intro');
+    if (!container) return;
+
+    var h1 = container.querySelector('h1');
+    if (!h1) return;
+
+    // 3. URL 判断
+    var url = window.location.href.toLowerCase();
+    var version = null;
+
+    if (url.includes('/python3/')) {
+        version = 'Python3.x';
+    } else if (url.includes('/python/')) {
+        version = 'Python2.x';
+    }
+
+    if (!version) return;
+
+    // 4. 防重复
+    if (h1.querySelector('.py-version-badge')) return;
+
+    // 5. 创建标签
+    var badge = document.createElement('span');
+    badge.className = 'py-version-badge';
+    badge.innerText = version;
+
+    // 6. 样式（核心：float 实现右上角）
+    badge.style.float = 'right';
+    badge.style.fontSize = '12px';
+    badge.style.padding = '2px 8px';
+    badge.style.borderRadius = '999px';
+
+   // 自适应亮/暗色 + 渐变背景（增强版）
+	badge.style.color = 'inherit';
+
+	// 渐变背景（低透明度，不影响暗黑模式）
+	if (version.includes('3')) {
+		badge.style.background = 'linear-gradient(90deg, rgba(79,172,254,0.15), rgba(0,242,254,0.15))';
+	} else {
+		badge.style.background = 'linear-gradient(90deg, rgba(161,140,209,0.15), rgba(251,194,235,0.15))';
+	}
+
+	// 边框弱化（更精致）
+	badge.style.border = '1px solid rgba(127,127,127,0.3)';
+
+	// 提升可读性
+	badge.style.opacity = '0.95';
+
+    // 微调位置（更贴近“右上角”）
+    badge.style.marginTop = '4px';
+    badge.style.marginLeft = '10px';
+
+    // 7. 插入到 h1 最前面（让 float 生效更稳定）
+    h1.insertBefore(badge, h1.firstChild);
+
+})();
+</script>
+<!-- 反馈对话框开始 -->
+<script src="../wp-content/themes/runoob/assets/js/runoob-article-dir.min.js"></script>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

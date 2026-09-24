@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Analysis and Solutions of OOM Problems in Android Apps | Rookie Tutorial</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="./android-oom.html" rel="canonical"/>
+<meta content="Android应用中OOM问题剖析和解决方案" name="keywords"/>
+<meta content="1.什么是OOM？  03-21 21:05:28.771: E/dalvikvm-heap(13316): Out of memory on a 10485776-byte allocation. 03-21 21:05:28.779: E/AndroidRuntime(13316): java.lang.OutOfMemoryError   这几句的意思是，我们程序申请需要10485776byte太大了，虚拟机无法满足我们，羞愧的s.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div><!-- 导航栏 -->
+<!--  内容  -->
+<div class="container main">
+<div class="row">
+<div class="col middle-column big-middle-column">
+<div class="article">
+<div class="article-heading">
+<h2>Analysis and Solutions of OOM Problems in Android Apps</h2> <h3><em>Category</em> <a href="../w3cnote_genre/code.html" title="编程技术">Programming Technology</a> </h3>
+</div>
+<div class="article-body note-body">
+<div class="article-intro">
+<!-- ad start-->
+<!-- ad end-->
+<h2>1. What is OOM?</h2>
+<pre>
+03-21 21:05:28.771: E/dalvikvm-heap(13316): Out of memory on a 10485776-byte allocation.
+03-21 21:05:28.779: E/AndroidRuntime(13316): java.lang.OutOfMemoryError
+</pre>
+<p>These lines mean that our program needs to allocate 10485776 bytes, which is too large, and the virtual machine cannot satisfy us, so it shamefully shuts down and kills itself. This phenomenon usually occurs in the development of APPs that use many images or very large images. In simple terms, when our APP needs to apply for a piece of memory to load an image, the system thinks that the memory used by our APP is already too much. Even if it has 1G of free memory, it refuses to give more memory to our APP; then even though the system immediately throws an OOM error, the program does not catch the error, so a dialog box pops up and it crashes.</p>
+<h3>2. Why does OOM happen?</h3>
+<p>Because each process or each virtual machine of an Android system app has a maximum memory limit. If the applied memory resources exceed this limit, the system will throw an OOM error. It has little to do with the remaining memory of the entire device. For example, in earlier Android systems, a virtual machine had a maximum of 16M memory. After an app starts, the virtual machine keeps applying for memory resources to load images, and when it exceeds the memory upper limit, OOM occurs. How is the memory limit of Android system apps determined?</p>
+<h4>2.1 Composition of Android App memory:</h4>
+<p>App memory consists of<strong>dalvik memory</strong>
+和    <strong>native memory</strong>It consists of two parts. Dalvik is the Java heap; the objects created are allocated here, while native is memory allocated through c/c++. Bitmap is allocated in this way. (After Android 3.0, the system by default allocates Bitmap through Dalvik, and native is managed as a heap.) The sum of these two parts cannot exceed Android's memory limit for a single process or virtual machine.</p>
+<p>What is the memory limit size of each phone?</p>
+<pre>
+ActivityManager activityManager = (ActivityManager)context.getSystemService(Context.ACTIVITY_SERVICE)
+activityManager.getMemoryClass();
+</pre>
+<p>The above method returns a number in M (megabytes). The values vary on different system platforms or devices, such as HTC default 24M, Galaxy 36M, emulator-2.3 24M, etc. My Moto XT681 is 42M. 3</p>
+<p>What is obtained above is the maximum memory resource of the virtual machine.</p>
+<p>As for the size limit of the head heap, you can check the /system/build.prop file.</p>
+<pre>
+dalvik.vm.heapstartsize  =  5m
+dalvik.vm.heapgrowthlimit = 48m
+dalvik.vm.heapsize = 256m
+</pre>
+<p>Note:<span>The heapsize parameter indicates the maximum memory available for a single process heap. But if the following parameter "dalvik.vm.headgrowthlimit =48m" exists, it means that the heap memory of a single process is limited to 48m, that is, the program can actually only use 48m memory during its running process.</span>
+</p>
+<h4>2.2 Why does the Android system set a memory limit for apps?</h4>
+<p>
+1      <strong>To make developers use memory more reasonably.</strong>Limiting the upper limit of available memory for each app can prevent certain applications from maliciously or unintentionally using too much memory, causing other applications to fail to run normally. Android is multi-process. If a process (that is, an application) consumes too much memory, other applications cannot run. Because of the limit, developers must make good use of limited resources and optimize resource usage.</p>
+<p>
+2    <strong>The screen can display limited content; it is enough to have sufficient memory.</strong>Even if there are thousands of images and tens of millions of data items to use, what needs to be displayed to the user at a specific moment is always limited, because the screen display is just that big, and the information that can be placed on it is very limited. Most information is in a state of being ready to display, so there is no need to give too much heap memory. In other words, when<span>OOM phenomenon occurs, most of the reasons are that there are problems in our program design and optimization is needed.</span>There are many optimization methods, such as trading time for space: continuously loading the images to be used, continuously recycling unused images, and decoding large images into images suitable for the phone screen size, etc.</p>
+<p>
+3      <strong>The need for limiting multiple apps and multiple Dalvik virtual machines.</strong>Apps on Android use independent virtual machines; each time an app is opened, at least one independent virtual machine is started. This avoids a virtual machine crash causing the entire system to crash, at the cost of wasting more memory. This design ensures the stability of Android.</p>
+<h4>2.3 Doesn't GC automatically recycle resources? Why does OOM still occur?</h4>
+<p>Doesn't Android use GC to automatically recycle resources? Why aren't those unused resources in the app recycled?</p>
+<p>Android's GC reclaims unused memory resources according to specific algorithms, preventing the app's memory requests from accumulating more and more. However, GC generally reclaims resources such as memory of unowned objects or soft-referenced resources, or even weaker reference resources. For example:</p>
+<pre>
+Bitmap bt = BitmapFactory.decodeResource( this .getResources(), R.drawable.splash);  //此时的图片资源是强引用，是有主的资源。
+bt ＝  null ;  //此时这个图片资源就是无主的了。gc心情号的时候就会去回收它。
+SoftReference&lt;Bitmap&gt; softRef =  new  SoftReference&lt;Bitmap&gt;(bt);
+bt =  null ;
+其他代码...
+</pre>
+<p>When the program applies for a lot of memory resources, GC may release the image memory referenced by softRef. bt = softRef.get() may then return null, so the image needs to be reloaded.</p>
+<p>Of course, this also illustrates the benefit of using soft references for image resources: GC will automatically release resources as needed, avoiding OOM to a certain extent.</p>
+<p>TIPS: Develop the habit of setting unused objects to null in programming. In fact, it is even better to directly recycle unused images. Because letting GC reclaim through setting null may sometimes be too late.</p>
+<p>2.4 How to check the memory allocation status of an app?</p>
+<p>1. Monitor memory status through the heap tab in DDMS:</p>
+<p>In the middle of the Heap view there is something called "data object", that is, data objects, which are class-type objects that exist in large numbers in our program.</p>
+<p>In the row for data object, there is a column "Total Size", whose value is the total memory amount of all Java data objects in the current process. If there is a situation in the code where object references are not released, the "Total Size" value of data object will not show an obvious drop after each GC. As the number of operations increases, the "Total Size" value will become larger and larger, until it reaches an upper limit and the process is killed.</p>
+<p>
+<strong>2. Inside the App, we can use totalMemory and freeMemory:</strong>
+</p>
+<pre>
+Runtime.getRuntime().freeMemory()
+RUntime.getRuntime().totalMemory()
+</pre>
+<p>
+<strong>3  adb shell dumpsys meminfo com.android.demo</strong>
+</p>
+<h3>3. Several points to note for avoiding OOM:</h3>
+<p>
+<strong>3.1 Appropriately adjust image size</strong>. Because the phone screen size is limited, the display area allocated to images is limited, especially for super-large images loaded from the network or SD card, where the image file size reaches several MB or more than a dozen MB:</p>
+<p>Before loading into memory, first calculate the size of the bitmap, then appropriately adjust the sampling rate so that the loaded image is just right, or slightly larger and sufficient for display on the phone screen.</p>
+<pre>
+BimtapFactory.Option opts =  new   BitampFactory.Option();
+        opts.inJustDecodeBounds =  true ;
+        opts.inSampleSize=computeSample(opts, minSideLength, maxNumOfPixels);  // Android 提供了一种动态计算的方法 computeSampleSize
+        opts.inJustDecodeBounds =  false ;
+         try {
+                return  BitmapFactory.decodeFile(imageFile, opts);
+        }  catch (OutOfMemoryError err){
+}
+</pre>
+<p>
+<strong>3.2 Image caching</strong>. When loading a large number of images at once in controls such as ListView or Gallery, only load the resources displayed on the screen, do not load those not yet displayed, and promptly release resources that move off the screen. Use a two-level cache of strong reference + soft reference to improve loading performance. Cache images in memory using soft references, rather than reloading them into memory every time they are used.</p>
+<p>
+<strong>3.3 Use encoding methods with lower memory usage</strong>. For example, Bitmap.Config.ARGB_4444 uses less memory than Bitmap.Config.ARGB_8888.</p>
+<p>
+<strong>3.4 Recycle images in a timely manner</strong>. If a large number of Bitmap objects are referenced, and the app does not need to display all images at the same time, you can promptly recycle the Bitmap objects that are temporarily unused. For some scenarios where the usage status of images is clearly known, you can actively call recycle to reclaim them.</p>
+<p>For the image resources on the app's startup splash screen, recycle them after use. For frame animations, you can load one, draw one, and release one.</p>
+<p>
+<strong>3.5 Do not create too many local variables in loops</strong>. Use static with caution. When static is used to modify a member variable, the variable belongs to the class, not to an instance of the class, and its life cycle is very long. If it is used to reference instances that take up too much memory, you need to be cautious.</p>
+<p>
+<strong>3.6 Customize heap memory allocation size</strong>. Optimize the heap memory allocation of the Dalvik virtual machine.</p>
+<pre>
+public   class  ClassName{
+    private   static  Context mContext;
+       // 省略
+}
+</pre>
+<h3>4. Several ways to avoid OOM when the App uses images:</h3>
+<p>
+4.1     <strong>Directly set to null or recycle</strong>
+</p>
+<p>For a large number of images used in the app, adopt this approach: load them when used, and directly set to null or recycle them when not displayed.</p>
+<p>This is a good habit and can basically eliminate OOM, but the drawback is that there is more code, and you may forget to recycle some resources.</p>
+<p>In some cases, there may be inefficient things such as repeatedly loading, releasing, and reloading a specific image.</p>
+<p>
+<strong>4.2 Simply manage image resources through SoftReference references</strong>
+</p>
+<p>Create a HashMap of SoftReference</p>
+<p>When using an image, first check whether the hashmap has a softreference and whether the image in the softreference is null.</p>
+<p>If it is null, load the image into the softreference and add it to the hashmap.</p>
+<p>There is no need to explicitly handle the recycling and releasing of images in the code; GC will automatically handle the release of resources.</p>
+<p>This method is simple and practical to handle, and can avoid, to some extent, the inefficiency of repeatedly loading and releasing in the previous method. But it is not optimized enough.</p>
+<p>
+<strong>4.3 Strong reference + soft reference two-level cache</strong>
+</p>
+<p>The Android demonstration program ImageDownloader.java uses a two-level cache mechanism. That is, there is a data structure that directly holds references to successfully decoded Bitmap objects, while a second-level cache data structure holds soft reference objects of evicted Bitmaps. Due to the special nature of soft reference objects, when memory is needed, the system will first release the objects held by soft references. That is, when the VM finds that available memory is low and needs to trigger GC, the bitmap objects in the second-level cache will be recycled, while the bitmap objects held by the first-level cache are used for display.</p>
+<p>In fact, the most critical point of this solution is using a relatively suitable data structure, namely LinkedHashMap type as the container for the first-level cache of Bitmaps. Due to the special nature of LinkedHashMap, we can control the number of objects stored in memory and remove unused objects from the container, putting them into the soft reference second-level cache. We can always keep the most recently accessed bitmap objects in the first-level cache. When the capacity of LinkedHashMap exceeds our preset value, the objects that have existed in the container for the longest time will be removed. At this time, we can put the removed objects from LinkedHashMap into the second-level cache container, and leave the management of objects in the second-level cache to the system. When the system needs to GC, it will first recycle the Bitmap objects in the second-level cache container.</p>
+<p>When obtaining an image object, first search the first-level cache container. If there is a corresponding object and it is available, return it directly. If not, search the second-level cache for the corresponding SoftReference, determine whether the Bitmap held by the SoftReference object is available; if available, return it directly, otherwise return null. If the image cannot be found in the second-level cache either, then directly load the image resource.</p>
+<p>4. LruCache + SD card cache method</p>
+<h3>5. Suggestions for two scenarios prone to OOM:</h3>
+<p>5.1 Downloading a large number of images over the network</p>
+<p>For example, a Weibo client: multithreaded asynchronous network, small images directly use LRUCache+SoftRef+SD, large images are downloaded on demand:</p>
+<p>
+     </p>
+<p>5.2 For cases such as ListView, GridView that need to load a very large number of item entries</p>
+<p>In the adapter's getView function, there is a convertView parameter that tells you whether there is a reusable view object. If convertView is not used, every call to getView will create a new view. This way, the previous view may not have been destroyed yet, and continuously creating new views will inevitably cause memory to surge, leading to OOM. In addition, when reusing convertView, the original images and other resources inside it become ownerless.</p>
+<p>Here Google officially recommends using: "convertView + static class ViewHolder"</p>
+<p>The official explanation is:</p>
+<p>
+<span>a. Reuse the cached convertView passed to the getView() method to avoid inflating unnecessary views.</span>
+</p>
+<p>b. Use the ViewHolder pattern to avoid unnecessary findViewById() calls; because too many findViewById() calls will also affect performance.</p>
+<p>
+   </p>
+<p>Additional explanation of the role of the ViewHolder class: The ViewHolder pattern stores a data structure in the tag of the view returned by the getView method. This data structure contains references to the views to which we want to bind data, thereby avoiding calling findViewById() every time getView() is called.</p>
+<h3>6. How to apply for memory allocation that exceeds the memory limit:</h3>
+<p>6.1 Allocate memory from Native C. Using NDK (Native Development Kit) and JNI, it can allocate memory at the C level (such as malloc/free or new/delete). Such allocation is not counted against the 24MB limit. This is true; allocating memory from native code is for Java's convenience, but it can be used to store data in RAM (even image data) to some extent.</p>
+<p>6.2 Use OpenGL textures. Texture memory is not counted against the limit. To check how much memory your application has actually allocated, you can use android.os.Debug.getNativeHeapAllocatedSize(). With one of the Nexus devices using the above two techniques, I can easily allocate 300MB for a single foreground process — more than 10 times the default 24MB limit. From the above, using native code to allocate memory is not within the 24MB limit (OpenGL textures also use native code to allocate memory).</p>
+<p>
+<span>However, the risk with these two methods is that if the native heap allocates more memory than the system's available memory limit, it usually crashes directly.</span>
+</p> </div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link">← <a href="./9patch-9-remove-black-line.html" rel="prev">9patch(.9) how to remove the black dots/black lines you drew on it</a> </div>
+<div class="next-design-link"><a href="./all-vim-cheatsheat-3.html" rel="next">The most complete Vim shortcut key map in history — from beginner to advanced</a> →</div>
+</div>
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>Click me to share notes</h3>
+&lt;p style="font-size:14px;"&gt;The note must be an extension of the content of this article!&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;Article submission, click here&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;How to get a registration invitation code&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; You must &lt;a href=".." class="runoob-pop"&gt;log in&lt;/a&gt; before sharing notes!&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;How to get a registration invitation code&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=".." id="cancel-comment-reply-link">Cancel</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="14112"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>Share notes</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">Nickname</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">Nickname (required)</span></li>
+<li class="form-inline"><label class="hide" for="email">Email</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">Email (required)</span></li>
+<li class="form-inline"><label class="hide" for="url">Reference URL</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">Reference URL</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  14112;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 14112, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":14112},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+<style>
+@media screen and (max-width: 768px) {
+	#w3cnote-ad728 {
+		display: none;
+	}
+}
+p.note-author {
+    border-bottom: 1px solid #ddd;
+    font-size: 18px;
+    font-weight: bold;
+    color: #78a15a;
+    padding-bottom: 2px;
+    margin-bottom: 4px;
+}
+</style>
+<script>
+var aid = 14112;
+</script>
+</div>
+</div>
+<div class="listcol last right-column">
+<!--
+	<div class="tab tab-light-blue"> 订阅</div>
+	<div class="sidebar-box">
+		<div class="socialicons">
+			<a href="../feed.html" class="rss">RSS 订阅</a>
+		
+			<form action="..//list.qq.com/cgi-bin/qf_compose_send" method="post">
+			<input type="hidden" value="qf_booked_feedback" name="t">
+			<input type="hidden" value="4b67b6b6c1f5e792559940cab4aebb8f1126fba880bff1a8" name="id">
+			<input class="placeholder" id="feed_email" name="to" value="输入邮箱 订阅笔记" autocomplete="off">
+			<input type="submit" value="订阅" class="btn btn-primary">
+			</form>
+		
+		</div>
+ 
+	</div>
+-->
+<!--
+	<div class="sidebar-box cate-list">
+	<div class="sidebar-box recommend-here list-link">
+			<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">笔记列表</a>
+		</div>
+
+ 
+
+</div>
+-->
+<div class="sidebar-box cate-list" style="display:none;">
+<div class="sidebar-box recommend-here list-link">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">热门文章</a>
+</div>
+<div class="membership">
+<ul class="membership">
+<li><a href="https://mp.weixin.qq.com/s/ZaP6YNgKTCHYy3r2WPBBaw" target="_blank" title="2024 年 04 月 JavaScript 框架排行榜">2024 年 04 月 JavaScript 框架排行榜</a></li>
+<li><a href="https://mp.weixin.qq.com/s/JBR2twC0t6krjjuxqvhsEQ" target="_blank" title="免费、开源、好用的 SQL 客户端合集">免费、开源、好用的 SQL 客户端合集</a></li>
+<li><a href="https://mp.weixin.qq.com/s/TwV3YQjA1glyaW7TiHvhlA" target="_blank" title="优雅的代码规范，提升代码质量">优雅的代码规范，提升代码质量</a></li>
+<li><a href="https://mp.weixin.qq.com/s/CnUJ-2OHPbBKlnVpjDzavA" target="_blank" title="命令行中的趣味世界，牛也能说话，有趣又好玩">命令行中的趣味世界，牛也能说话，有趣又好玩</a></li>
+<li><a href="https://mp.weixin.qq.com/s/7NKl-mD7N8CeSNQlbKDEWA" target="_blank" title="2024 年 05 月编程语言排行榜，Fortran 进入前 10 名，发生了什么？">2024 年 05 月编程语言排行榜，Fortran 进入前 10 名，发生了什么？</a></li>
+<li><a href="https://mp.weixin.qq.com/s/yWlSVDKobtDhThnhirVRpw" target="_blank" title="免费开源的 IDE、数据库管理工具、SSH客户端和FTP客户端">免费开源的 IDE、数据库管理工具、SSH客户端和FTP客户端</a></li>
+</ul>
+</div>
+</div>
+<div class="sidebar-box cate-list">
+<div class="sidebar-box recommend-here list-link">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">教程列表</a>
+</div>
+<div class="cate-items">
+<a href="../ado.html">ADO 教程</a>
+<a href="../ai-agent.html">AI Agent 教程</a>
+<a href="../ai.html">AI 入门教程</a>
+<a href="../ai-math.html">AI 数学基础</a>
+<a href="../ajax.html">Ajax 教程</a>
+<a href="../android.html">Android 教程</a>
+<a href="../angularjs2.html">Angular2 教程</a>
+<a href="../angularjs.html">AngularJS 教程</a>
+<a href="../appml.html">AppML 教程</a>
+<a href="../asp.html">ASP 教程</a>
+<a href="../aspnet.html">ASP.NET 教程</a>
+<a href="../bootstrap.html">Bootstrap 教程</a>
+<a href="../bootstrap4.html">Bootstrap4 教程</a>
+<a href="../bootstrap5.html">Bootstrap5 教程</a>
+<a href="../cprogramming.html">C 教程</a>
+<a href="../c-dsa.html">C 语言数据结构与算法</a>
+<a href="../csharp.html">C# 教程</a>
+<a href="../cplusplus.html">C++ 教程</a>
+<a href="../chartjs.html">Chart.js 教程</a>
+<a href="../claude-code.html">Claude Code 教程</a>
+<a href="../cmake.html">CMake 教程</a>
+<a href="../codex.html">Codex 教程</a>
+<a href="../cssref.html">CSS 参考手册</a>
+<a href="../css.html">CSS 教程</a>
+<a href="../css3.html">CSS3 教程</a>
+<a href="../cursor.html">Cursor 教程</a>
+<a href="../dart.html">Dart 教程</a>
+<a href="../dash.html">Dash 教程</a>
+<a href="../deepseek-harness.html">DeepSeek Harness</a>
+<a href="../django.html">Django 教程</a>
+<a href="../docker.html">Docker 教程</a>
+<a href="../dtd.html">DTD 教程</a>
+<a href="../echarts.html">ECharts 教程</a>
+<a href="../eclipse.html">Eclipse 教程</a>
+<a href="../electron.html">Electron 教程</a>
+<a href="../fastapi.html">FastAPI 教程</a>
+<a href="../firebug.html">Firebug 教程</a>
+<a href="../flask.html">Flask 教程</a>
+<a href="../flutter.html">Flutter 教程</a>
+<a href="../font-awesome.html">Font Awesome 图标</a>
+<a href="../foundation.html">Foundation 教程</a>
+<a href="../git.html">Git 教程</a>
+<a href="../go.html">Go 语言教程</a>
+<a href="../googleapi.html">Google 地图 API 教程</a>
+<a href="../hermes-agent.html">Hermes Agent</a>
+<a href="../highcharts.html">Highcharts 教程</a>
+<a href="../htmldom.html">HTML DOM 教程</a>
+<a href="../tags.html">HTML 参考手册</a>
+<a href="../charsets.html">HTML 字符集</a>
+<a href="../html.html">HTML 教程</a>
+<a href="../http.html">HTTP 教程</a>
+<a href="../ionic.html">ionic 教程</a>
+<a href="../ios.html">iOS 教程</a>
+<a href="../java.html">Java 教程</a>
+<a href="../jsref.html">JavaScript 参考手册</a>
+<a href="../js.html">Javascript 教程</a>
+<a href="../jeasyui.html">jQuery EasyUI 教程</a>
+<a href="../jquerymobile.html">jQuery Mobile 教程</a>
+<a href="../jqueryui.html">jQuery UI 教程</a>
+<a href="../jquery.html">jQuery 教程</a>
+<a href="../json.html">JSON 教程</a>
+<a href="../jsp.html">JSP 教程</a>
+<a href="../julia.html">Julia 教程</a>
+<a href="../jupyter-notebook.html">Jupyter Notebook 教程</a>
+<a href="../kotlin.html">Kotlin 教程</a>
+<a href="../langchain.html">LangChain 教程</a>
+<a href="../latex.html">LaTeX 教程</a>
+<a href="../linux.html">Linux 教程</a>
+<a href="../lua.html">Lua 教程</a>
+<a href="../markdown.html">Markdown 教程</a>
+<a href="../matplotlib.html">Matplotlib 教程</a>
+<a href="../maven.html">Maven 教程</a>
+<a href="../memcached.html">Memcached 教程</a>
+<a href="../mongodb.html">MongoDB 教程</a>
+<a href="../mysql.html">MySQL 教程</a>
+<a href="../nextjs.html">Next.js 教程</a>
+<a href="../nlp.html">NLP 教程</a>
+<a href="../nodejs.html">Node.js 教程</a>
+<a href="../numpy.html">NumPy 教程</a>
+<a href="../obsidian.html">Obsidian 教程</a>
+<a href="../ollama.html">Ollama 教程</a>
+<a href="../opencode.html">OpenCode 教程</a>
+<a href="../opencv.html">OpenCV 教程</a>
+<a href="../pandas.html">Pandas 教程</a>
+<a href="../perl.html">Perl 教程</a>
+<a href="../php.html">PHP 教程</a>
+<a href="../pi-agent.html">Pi Agent</a>
+<a href="../pillow.html">Pillow 教程</a>
+<a href="../playwright.html">Playwright 教程</a>
+<a href="../postgresql.html">PostgreSQL 教程</a>
+<a href="../powershell.html">PowerShell</a>
+<a href="../pycharm.html">Pycharm 教程</a>
+<a href="../python3.html">Python 3 教程</a>
+<a href="../python.html">Python 基础教程</a>
+<a href="../python-design-pattern.html">Python 设计模式</a>
+<a href="../python-qt.html">Python 量化交易</a>
+<a href="../pytorch.html">PyTorch 教程</a>
+<a href="../r.html">R 教程</a>
+<a href="../rdf.html">RDF 教程</a>
+<a href="../react.html">React 教程</a>
+<a href="../redis.html">Redis 教程</a>
+<a href="../restfulapi.html">RESTful API</a>
+<a href="../rss.html">RSS 教程</a>
+<a href="../ruby.html">Ruby 教程</a>
+<a href="../rust.html">Rust 教程</a>
+<a href="../sass.html">Sass 教程</a>
+<a href="../scala.html">Scala 教程</a>
+<a href="../scipy.html">SciPy 教程</a>
+<a href="../selenium.html">Selenium 教程</a>
+<a href="../servlet.html">Servlet 教程</a>
+<a href="../skills.html">Skills 教程</a>
+<a href="../sklearn.html">Sklearn 教程</a>
+<a href="../soap.html">SOAP 教程</a>
+<a href="../sql.html">SQL 教程</a>
+<a href="../sqlite.html">SQLite 教程</a>
+<a href="../svg.html">SVG 教程</a>
+<a href="../svn.html">SVN 教程</a>
+<a href="../swagger.html">Swagger 教程</a>
+<a href="../swift.html">Swift 教程</a>
+<a href="../tailwindcss.html">Tailwind CSS 教程</a>
+<a href="../tcpip.html">TCP/IP 教程</a>
+<a href="../tensorflow.html">TensorFlow 教程</a>
+<a href="../typescript.html">TypeScript 教程</a>
+<a href="../uniapp.html">uni-app 教程</a>
+<a href="../vbscript.html">VBScript 教程</a>
+<a href="../vibe-coding.html">Vibe Coding 教程</a>
+<a href="../vscode.html">VSCode 教程</a>
+<a href="../vue2.html">Vue.js 教程</a>
+<a href="../vue3.html">Vue3 教程</a>
+<a href="../w3c.html">W3C 教程</a>
+<a href="../webservices.html">Web Service 教程</a>
+<a href="../wsdl.html">WSDL 教程</a>
+<a href="../xlink.html">XLink 教程</a>
+<a href="../dom.html">XML DOM 教程</a>
+<a href="../schema.html">XML Schema 教程</a>
+<a href="../xml.html">XML 教程</a>
+<a href="../xpath.html">XPath 教程</a>
+<a href="../xquery.html">XQuery 教程</a>
+<a href="../xslfo.html">XSLFO 教程</a>
+<a href="../xsl.html">XSLT 教程</a>
+<a href="../zig.html">Zig 教程</a>
+<a href="../data-structures.html">数据结构</a>
+<a href="../ml.html">机器学习</a>
+<a href="../regexp.html">正则表达式</a>
+<a href="../assembly.html">汇编语言</a>
+<a href="../quiz.html">测验</a>
+<a href="../browsers.html">浏览器</a>
+<a href="../quality.html">网站品质</a>
+<a href="../web.html">网站建设指南</a>
+<a href="../hosting.html">网站服务器教程</a>
+<a href="../np.html">网络协议</a>
+<a href="../computer-organization.html">计算机组成原理</a>
+<a href="../design-pattern.html">设计模式</a>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

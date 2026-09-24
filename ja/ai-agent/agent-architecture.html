@@ -1,0 +1,1529 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Agent アーキテクチャ | 菜鸟教程</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<link href="../manifest.webmanifest.html" rel="manifest"/>
+<meta content="#10151c" name="theme-color"/>
+<link href="../pwa/icon-192.png.html" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="application-name"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="../ai-agent/agent-architecture.html" rel="canonical"/>
+<meta content="Agent 架构" name="keywords"/>
+<meta content="/* ===== SVG 图解颜色变量（浅色背景） ===== */ :root {   --c-gray-fill:#f0eeea; --c-gray-s:#888780; --c-gray-t:#2c2c2a;   --c-teal-fill:#e0f4ee; --c-teal-s:#0f6e56; --c-teal-t:#085041;   --c-purple-fill:#eeedfe;--c-purple-s:#534ab7;.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div>
+<!-- 导航栏 -->
+<style>
+/* 主题切换按钮 */
+/* ===== 主题变量（核心）===== */
+:root {
+  --theme-bg: #ffffff;
+  --theme-border: #e5e7eb;
+  --theme-icon: #333;
+  --theme-hover: #f3f4f6;
+}
+
+.dark {
+  --theme-bg: #1f2937;
+  --theme-border: #374151;
+  --theme-icon: #e5e7eb;
+  --theme-hover: #374151;
+}
+
+/* ===== 按钮容器 ===== */
+.nav-theme-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== 按钮本体 ===== */
+.nav-theme-toggle button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  border-radius: 6px;
+  border: 1px solid var(--theme-border);
+
+  background: var(--theme-bg);
+  color: var(--theme-icon);
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* ===== 图标大小 ===== */
+.nav-theme-toggle i {
+  font-size: 14px;
+}
+
+/* ===== hover 效果 ===== */
+.nav-theme-toggle button:hover {
+  background: var(--theme-hover);
+  transform: translateY(-1px);
+}
+
+/* ===== 点击反馈 ===== */
+.nav-theme-toggle button:active {
+  transform: scale(0.95);
+}
+
+/* ===== 当前激活态（可选）===== */
+.nav-theme-toggle button.active {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+</style>
+<!-- 导航栏 -->
+<nav aria-label="主导航" class="container navigation">
+<div class="row">
+<div class="col nav">
+<!-- PC 导航 -->
+<ul class="pc-nav" id="runoob-detail-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../js/js-tutorial.html">JavaScript</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a data-id="vue" href="#">Vue</a></li>
+<li><a href="../react/react-tutorial.html">React</a></li>
+<li><a href="../python3/python3-tutorial.html">Python3</a></li>
+<li><a href="../java/java-tutorial.html">Java</a></li>
+<li><a href="../cprogramming/c-tutorial.html">C</a></li>
+<li><a href="../cplusplus/cpp-tutorial.html">C++</a></li>
+<li><a href="../csharp/csharp-tutorial.html">C#</a></li>
+<li><a data-id="aiNav" href="#">AI</a></li>
+<li><a href="../go/go-tutorial.html">Go</a></li>
+<li><a href="../sql/sql-tutorial.html">SQL</a></li>
+<li><a href="../linux/linux-tutorial.html">Linux</a></li>
+<li><a href="../vscode/vscode-tutorial.html">VS Code</a></li>
+<li><a data-id="bootstrap" href="#">Bootstrap</a></li>
+<li><a href="../git/git-tutorial.html">Git</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<!-- 主题切换按钮，固定在最右侧 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+<!-- 移动端导航 -->
+<ul class="mobile-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a href="../js/js-tutorial.html">JS</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<li><a class="search-reveal" href="#">搜索</a></li>
+<!-- 移动端主题切换 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon-mobile" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun-mobile" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<!-- 二级导航 -->
+<!--  内容  -->
+<div class="container main">
+<!-- 中间 -->
+<div class="row">
+<div class="runoob-col-md2">
+<div class="left-column">
+<div class="tab" style="overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
+<i aria-hidden="true" class="fa fa-list"></i>
+<span>AI Agent 教程</span>
+</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+<a data-p="par" href="../ai-agent/ai-agent-tutorial.html" target="_top" title="AI Agent(智能体) 教程">
+			AI Agent(智能体) 教程			</a>
+<a data-p="par" href="../ai-agent/ai-agent-intro.html" target="_top" title="AI Agent 简介">
+			AI Agent 简介			</a>
+<a data-p="par" href="../ai-agent/ai-agent-core.html" target="_top" title="AI Agent  核心组件">
+			AI Agent  核心组件			</a>
+<a href="../ai-agent/ai-terminology.html" target="_top" title="AI Agent 术语">AI Agent 术语</a>
+<a href="../ai-agent/ai-agent-working-principle.html" target="_top" title="AI Agent 工作原理">AI Agent 工作原理</a>
+<a href="../ai-agent/ai-architecture.html" target="_top" title="AI 底层架构">AI 底层架构</a>
+<a href="../ai-agent/ai-agent-llm.html" target="_top" title="大语言模型基础">大语言模型基础</a>
+<a href="../ai-agent/llm-multimodal.html" target="_top" title="大模型多模态">大模型多模态</a>
+<a href="../ai-agent/prompt-engineering.html" target="_top" title="提示词工程">提示词工程</a>
+<a href="../ai-agent/token-intro.html" target="_top" title="Token (词元)">Token (词元)</a>
+<a href="../ai-agent/reasoning-planning.html" target="_top" title="推理与规划">推理与规划</a>
+<a href="../ai-agent/vector-database.html" target="_top" title="向量数据库">向量数据库</a>
+<a href="../ai-agent/retrieval-augmented-generation.html" target="_top" title="RAG 与知识检索">RAG 与知识检索</a>
+<a href="../ai-agent/agent-context-engineering.html" target="_top" title="Agent 上下文工程">Agent 上下文工程</a>
+<a href="../ai-agent/agent-architecture.html" target="_top" title="Agent 架构">Agent 架构</a>
+<br/>
+<h2 class="left"> <span class="left_h2">智能体工具</span></h2> <a data-p="par" href="../ai-agent/first-ai-agent.html" target="_top" title="第一个 AI Agent">
+			第一个 AI Agent			</a>
+<a href="../ai-agent/ai-monkeycode.html" target="_top" title="AI 开发平台"> AI 开发平台</a>
+<a href="../ai-agent/openclaw-clawdbot-tutorial.html" target="_top" title="OpenClaw (Clawdbot) 教程"> OpenClaw (Clawdbot) 教程</a>
+<a href="../ai-agent/openclaw-quickstart.html" target="_top" title="OpenClaw 快速上手"> OpenClaw 快速上手</a>
+<a href="../ai-agent/qoderwork.html" target="_top" title="QoderWork 教程"> QoderWork 教程</a>
+<a href="../ai-agent/qoderwake-usage.html" target="_top" title="QoderWake 教程"> QoderWake 教程</a>
+<a href="../ai-agent/workbuddy-usage.html" target="_top" title="WorkBuddy 入门教程"> WorkBuddy 入门教程</a>
+<a href="../ai-agent/ai-workflow.html" target="_top" title="AI 工作流"> AI 工作流</a>
+<a data-p="par" href="../ai-agent/crewai-agent.html" target="_top" title="CrewAI 构建智能体">
+			CrewAI 构建智能体			</a>
+<a data-p="par" href="../ai-agent/langchain-agent.html" target="_top" title="LangChain 制作智能体">
+			LangChain 制作智能体			</a>
+<a href="../ai-agent/langgraph-quick-start.html" target="_top" title="LangGraph 入门教程">LangGraph 入门教程</a>
+<a href="../ai-agent/deep-agents-usage.html" target="_top" title="Deep Agents 入门教程">Deep Agents 入门教程</a>
+<a href="../ai-agent/graphrag-usage.html" target="_top" title="GraphRAG 入门教程">GraphRAG 入门教程</a>
+<a href="../ai-agent/harness-engineering.html" target="_top" title="Harness Engineering">Harness Engineering</a>
+<a href="../ai-agent/hermes-agent.html" target="_top" title="Hermes Agent">Hermes Agent</a>
+<a href="../ai-agent/loop-engineering.html" target="_top" title="Loop Engineering">Loop Engineering</a>
+<a href="../ai-agent/vibe-coding-start.html" target="_top" title="Vibe Coding 入门教程">Vibe Coding</a>
+<a href="../ai-agent/dify-usage.html" title="Dify 入门教程">Dify 入门教程</a>
+<a href="../ai-agent/n8n-usage.html" title="n8n 入门教程">n8n 入门教程 </a>
+<a href="../ai-agent/pi-coding-agent.html" title="Pi Coding Agent">Pi Coding Agent </a>
+<br/><h2 class="left"> <span class="left_h2">Python 实现智能体</span></h2>
+<a href="../ai-agent/python-ai-agent.html" target="_top" title="Python 实现 AI Agent">Python 实现 AI Agent</a>
+<a href="../ai-agent/ai-agent-function-calling.html" target="_top" title="工具调用">工具调用</a>
+<a href="../ai-agent/ai-agent-memory-system-design.html" target="_top" title="记忆系统">记忆系统</a>
+<a data-p="par" href="../ai-agent/ai-agent-python-setup.html" target="_top" title="Python 智能体环境配置">
+			Python 智能体环境配置			</a>
+<a data-p="par" href="../ai-agent/ai-agent-answer-demo.html" target="_top" title="AI Agent 问答实例">
+			AI Agent 问答实例			</a>
+<a data-p="par" href="../ai-agent/python-reasoning-planning.html" target="_top" title="Python 实现推理与规划">
+			推理与规划			</a>
+<a data-p="par" href="../ai-agent/python-rag.html" target="_top" title="Python 实现 RAG 与知识检索">
+			RAG 与知识检索			</a>
+<a data-p="par" href="../ai-agent/multi-agent-system.html" target="_top" title="多智能体系统（Multi-Agent System）">
+			多智能体系统			</a>
+<a data-p="par" href="../ai-agent/tools-integration.html" target="_top" title="AI Agent 工具与外部集成">
+			工具与外部集成			</a>
+<a data-p="par" href="../ai-agent/multimodal-agent.html" target="_top" title="多模态 Agent">
+			多模态 Agent			</a>
+<a data-p="par" href="../ai-agent/evaluation-safety-alignment.html" target="_top" title="Agent 评估、安全与对齐">
+			评估、安全与对齐			</a>
+<a data-p="par" href="../ai-agent/production-deployment.html" target="_top" title="AI Agent 生产部署与工程化">
+			生产部署与工程化			</a>
+<a data-p="par" href="../ai-agent/vertical-applications.html" target="_top" title="AI Agent 垂直应用场景">
+			垂直应用场景			</a>
+<a data-p="par" href="../ai-agent/hugging-face-transformers.html" target="_top" title="Hugging Face Transformers">
+			Hugging Face Transformers			</a>
+</div>
+</div>
+</div>
+</div> <div class="col middle-column">
+<div class="article">
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../ai-agent/vertical-applications.html" rel="prev">AI Agent の垂直応用シナリオ</a> </div>
+<div class="next-design-link"><a href="../ai-agent/vector-database.html" rel="next">ベクトルデータベース（Vector Database）</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="article-body">
+<div class="article-intro" id="content">
+<style>
+/* ===== SVG 图解颜色变量（浅色背景） ===== */
+:root {
+  --c-gray-fill:#f0eeea; --c-gray-s:#888780; --c-gray-t:#2c2c2a;
+  --c-teal-fill:#e0f4ee; --c-teal-s:#0f6e56; --c-teal-t:#085041;
+  --c-purple-fill:#eeedfe;--c-purple-s:#534ab7;--c-purple-t:#3c3489;
+  --c-coral-fill:#faece7;--c-coral-s:#993c1d;--c-coral-t:#712b13;
+  --c-amber-fill:#faeeda;--c-amber-s:#854f0b;--c-amber-t:#633806;
+  --c-blue-fill:#e6f1fb; --c-blue-s:#185fa5; --c-blue-t:#0c447c;
+  --c-green-fill:#eaf3de;--c-green-s:#3b6d11;--c-green-t:#27500a;
+  --arr: #888780;
+  --dash: #b8b6ae;
+  --text-3: #8a8780;
+  --border-2: #c8c6bc;
+}
+
+/* ===== SVG 共享样式类 ===== */
+svg .th{font-family:sans-serif;font-size:14px;font-weight:500;}
+svg .ts{font-family:sans-serif;font-size:12px;font-weight:400;}
+svg .arr-line{fill:none;stroke:var(--arr);stroke-width:1.5;}
+svg .dash-line{fill:none;stroke:var(--dash);stroke-width:1.2;stroke-dasharray:5 4;}
+
+/* ===== 图解容器 ===== */
+.diagram{background:#fafaf8;border:1px solid #e4e2da;border-radius:12px;padding:24px 16px 16px;margin:28px 0;overflow-x:auto;}
+.diagram-title{font-family:sans-serif;font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:#8a8780;margin-bottom:16px;text-align:center;}
+
+
+
+/* ===== 标签徽章 ===== */
+.badge{display:inline-block;font-family:sans-serif;font-size:11px;font-weight:500;padding:3px 9px;border-radius:12px;margin:0 4px 4px 0;vertical-align:middle;}
+.badge-easy{background:var(--c-teal-fill);color:var(--c-teal-t);border:1px solid var(--c-teal-s);}
+.badge-prod{background:var(--c-purple-fill);color:var(--c-purple-t);border:1px solid var(--c-purple-s);}
+.badge-adv{background:var(--c-coral-fill);color:var(--c-coral-t);border:1px solid var(--c-coral-s);}
+</style>
+<h1>Agent アーキテクチャ</h1>
+<p>Agent（エージェント）とは、環境を自律的に認識し、推論し、目標を達成するために行動を起こす AI システムです。</p>
+<p>本記事では、最も単純なループからマルチ Agent 協調まで、6つの主流アーキテクチャの原理、図解、適用シナリオを一気に理解し、実際のプロジェクトで適切な技術選定を行うのに役立ちます。</p>
+<p><img decoding="async" src="../wp-content/uploads/2026/05/d274cacd-ee56-4e65-9330-0c792d33c1a2.webp"/></p>
+<hr/>
+<h2>Agent アーキテクチャとは</h2>
+<p>AI アプリケーション開発において、<span class="marked">Agent（エージェント）とは</span>環境を認識し、自律的に意思決定し、行動を起こす AI システムを指します。</p>
+<p>従来の「一問一答」型の大規模モデル呼び出しとは異なり、Agent は複数ステップの操作を連続的に実行し、ツールを呼び出し、さらには他の Agent を調整して、複雑なタスクを完了できます。</p>
+<p><span class="marked">Agent アーキテクチャとは</span>Agent システム内の各コンポーネントの編成方法を指し、Agent の能力の限界、信頼性、柔軟性、適用シナリオを決定します。</p>
+<div class="diagram">
+<div class="diagram-title">Agent の本質: 知覚 → 推論 → 行動</div>
+<svg role="img" viewbox="0 0 680 120" width="100%">
+<title>Agent のコアループ</title>
+<desc>Agent の3つの中核的な要素（環境の知覚、推論による意思決定、行動の実行）を示し、ループを形成します。</desc>
+<defs>
+<marker id="arr0" markerheight="6" markerwidth="6" orient="auto-start-reverse" refx="8" refy="5" viewbox="0 0 10 10">
+<path d="M2 1L8 5L2 9" fill="none" stroke="var(--arr)" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path>
+</marker>
+</defs>
+<rect fill="var(--c-teal-fill)" height="44" rx="8" stroke="var(--c-teal-s)" stroke-width="0.8" width="140" x="60" y="38"></rect>
+<text class="th" dominant-baseline="central" fill="var(--c-teal-t)" text-anchor="middle" x="130" y="60">環境の知覚</text>
+<rect fill="var(--c-purple-fill)" height="44" rx="8" stroke="var(--c-purple-s)" stroke-width="0.8" width="140" x="270" y="38"></rect>
+<text class="th" dominant-baseline="central" fill="var(--c-purple-t)" text-anchor="middle" x="340" y="60">推論による意思決定</text>
+<rect fill="var(--c-coral-fill)" height="44" rx="8" stroke="var(--c-coral-s)" stroke-width="0.8" width="140" x="480" y="38"></rect>
+<text class="th" dominant-baseline="central" fill="var(--c-coral-t)" text-anchor="middle" x="550" y="60">行動の実行</text>
+<line class="arr-line" marker-end="url(#arr0)" x1="200" x2="270" y1="60" y2="60"></line>
+<line class="arr-line" marker-end="url(#arr0)" x1="410" x2="480" y1="60" y2="60"></line>
+<path d="M550,82 L550,106 L130,106 L130,82" fill="none" marker-end="url(#arr0)" stroke="var(--arr)" stroke-dasharray="4 3" stroke-width="1.2"></path>
+<text class="ts" fill="var(--text-3)" text-anchor="middle" x="340" y="116">結果を観察してループを継続</text>
+</svg>
+</div>
+<p>Agent の動作方法は本質的に<span class="marked">ループ（Loop）です。</span>——現在の状態を認識し、次のステップを推理し、行動を実行し、再び認識する……タスクが完了するまで繰り返します。</p>
+<p>アーキテクチャごとの違いは、この基本ループをどのように編成し拡張するかにあります。</p>
+<blockquote><p>本記事では、大規模言語モデル（LLM）の基本概念と、「ツール呼び出し」（Function Calling）の基本的な考え方を理解していることを前提としています。まだ馴染みがない場合は、まずこの2つの基礎知識を学んでください。</p></blockquote>
+<hr/>
+<h2>アーキテクチャ1: 単一 Agent ループ（Single Agent Loop）</h2>
+<p>
+<span class="badge badge-easy">入門者に最適</span>
+<span class="badge badge-easy">実装が簡単</span>
+</p>
+<p>最も基本的で直感的なアーキテクチャで、1つの Agent が最初から最後まで独立してすべてのタスクを完了します。</p>
+<p>単一 Agent ループは直接体現しています：<span class="marked">ReAct パターン</span>（Reasoning + Acting）：各ステップは「先に考えてから行動する」ことを意味します。LLM が頭脳の役割を担い、ツール呼び出しがその両手となります。</p>
+<div class="diagram">
+<div class="diagram-title">図1 — 単一 Agent ループのフロー</div>
+<svg role="img" viewbox="0 0 680 460" width="100%">
+<title>単一 Agent ループのアーキテクチャ図</title>
+<desc>単一の Agent の完全な作業ループを示します：タスクの受け取り、環境の認識、推論による意思決定、ツールの呼び出しを行い、その結果に基づいてループを継続するか、タスク完了として終了するかを判断します。</desc>
+<defs>
+<marker id="arr1" markerheight="6" markerwidth="6" orient="auto-start-reverse" refx="8" refy="5" viewbox="0 0 10 10">
+<path d="M2 1L8 5L2 9" fill="none" stroke="var(--arr)" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path>
+</marker>
+</defs>
+<rect fill="var(--c-gray-fill)" height="44" rx="8" stroke="var(--c-gray-s)" stroke-width="0.8" width="220" x="230" y="30"></rect>
+<text class="th" dominant-baseline="central" fill="var(--c-gray-t)" text-anchor="middle" x="340" y="52">ユーザータスクの入力</text>
+<line class="arr-line" marker-end="url(#arr1)" x1="340" x2="340" y1="74" y2="118"></line>
+<rect fill="var(--c-teal-fill)" height="56" rx="8" stroke="var(--c-teal-s)" stroke-width="0.8" width="220" x="230" y="118"></rect>
+<text class="th" dominant-baseline="central" fill="var(--c-teal-t)" text-anchor="middle" x="340" y="141">知覚 · コンテキストの収集</text>
+<text class="ts" dominant-baseline="central" fill="var(--c-teal-t)" text-anchor="middle" x="340" y="162">ファイルの読み取り、状態の取得</text>
+<line class="arr-line" marker-end="url(#arr1)" x1="340" x2="340" y1="174" y2="220"></line>
+<rect fill="var(--c-purple-fill)" height="56" rx="8" stroke="var(--c-purple-s)" stroke-width="0.8" width="220" x="230" y="220"></rect>
+<text class="th" dominant-baseline="central" fill="var(--c-purple-t)" text-anchor="middle" x="340" y="243">推論 · 次のステップの決定</text>
+<text class="ts" dominant-baseline="central" fill="var(--c-purple-t)" text-anchor="middle" x="340" y="264">状況を分析し、ツールを選択</text>
+<line class="arr-line" marker-end="url(#arr1)" x1="340" x2="340" y1="276" y2="322"></line>
+<rect fill="var(--c-coral-fill)" height="56" rx="8" stroke="var(--c-coral-s)" stroke-width="0.8" width="220" x="230" y="322"></rect>
+<text class="th" dominant-baseline="central" fill="var(--c-coral-t)" text-anchor="middle" x="340" y="345">行動 · ツールの呼び出し</text>
+<text class="ts" dominant-baseline="central" fill="var(--c-coral-t)" text-anchor="middle" x="340" y="366">Bash / Read / Edit...</text>
+<line class="arr-line" marker-end="url(#arr1)" x1="450" x2="504" y1="248" y2="248"></line>
+<text class="ts" fill="var(--text-3)" text-anchor="middle" x="476" y="238">完了</text>
+<rect fill="var(--c-gray-fill)" height="44" rx="8" stroke="var(--c-gray-s)" stroke-width="0.8" width="130" x="504" y="226"></rect>
+<text class="th" dominant-baseline="central" fill="var(--c-gray-t)" text-anchor="middle" x="569" y="248">結果の出力</text>
+<path d="M340,378 L340,418 L168,418 L168,146 L230,146" fill="none" marker-end="url(#arr1)" stroke="var(--arr)" stroke-dasharray="5 4" stroke-width="1.4"></path>
+<text class="ts" fill="var(--text-3)" text-anchor="end" x="160" y="285">ループを継続</text>
+<rect fill="var(--c-purple-s)" height="272" opacity="0.35" rx="2" width="4" x="20" y="110"></rect>
+<text class="ts" fill="var(--text-3)" text-anchor="middle" transform="rotate(-90,30,246)" x="30" y="246">Agent ループ</text>
+</svg>
+</div>
+<h3>動作原理</h3>
+<p><span class="marked">知覚：</span>現在の状態（ファイルの内容、環境変数、前のステップの出力結果）を読み取り、現在のコンテキストに統合します。</p>
+<p><span class="marked">推論：</span>LLM はコンテキストに基づいて次のアクション（どのツールを呼び出すか、どのパラメータを渡すか、またはタスクが完了したかどうか）を決定します。</p>
+<p><span class="marked">行動：</span>ツール呼び出しを実行します（例：ファイルの読み書き、ネットワーク検索）。ツールの実行結果はコンテキストに追加され、次のループに入ります。</p>
+<blockquote><p>ツール呼び出しの結果は毎回コンテキスト（Context Window）に書き戻されます。そのため、タスクが進むにつれてコンテキストは増え続け、LLM のコンテキストウィンドウの制限に達します。これが単一 Agent ループの最も主要なボトルネックです。</p></blockquote>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: #a50"># 単一 Agent ループの簡易実装 —— ReAct パターンの中核ロジックを示す</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> SimpleAgent:<br/>
+    <span style="color: #a11;">"""単一 Agent ループの基本構造"""</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> model<span style="color: Gray;">,</span> tools<span style="color: Gray;">,</span> max_turns<span style="color: Gray;">=</span><span style="color: Maroon;">10</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">model</span> <span style="color: Gray;">=</span> model          <span style="color: #a50"># 大規模言語モデル</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">tools</span> <span style="color: Gray;">=</span> tools          <span style="color: #a50"># 利用可能なツールリスト</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">max_turns</span> <span style="color: Gray;">=</span> max_turns  <span style="color: #a50"># 最大ループ回数。無限ループを防ぐ</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> run<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> task: <span style="color: Teal;">str</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">str</span>:<br/>
+        <span style="color: #a11;">"""タスクを実行するメインループ"""</span><br/>
+        context <span style="color: Gray;">=</span> f<span style="color: #a11;">"ユーザータスク：{task}"</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">for</span> turn <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span>.<span style="color: #05a;">max_turns</span><span style="color: Olive;">)</span>:<br/>
+            <span style="color: #a50"># ステップ1: 思考 —— モデルに次のステップを決定させる</span><br/>
+            response <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">model</span>.<span style="color: #05a;">think</span><span style="color: Olive;">(</span>context<span style="color: Olive;">)</span><br/>
+<br/>
+            <span style="color: #a50"># モデルがタスク完了と判断した場合は、最終回答を返す</span><br/>
+            <span style="color: Green;font-weight:bold;">if</span> response.<span style="color: #05a;">is_final</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+                <span style="color: Green;font-weight:bold;">return</span> response.<span style="color: #05a;">content</span><br/>
+<br/>
+            <span style="color: #a50"># ステップ2: 行動 —— モデルが選択したツールを呼び出す</span><br/>
+            tool_name <span style="color: Gray;">=</span> response.<span style="color: #05a;">tool_name</span><br/>
+            tool_args <span style="color: Gray;">=</span> response.<span style="color: #05a;">tool_args</span><br/>
+            tool_result <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">tools</span><span style="color: Olive;">[</span>tool_name<span style="color: Olive;">]</span><span style="color: Olive;">(</span>**tool_args<span style="color: Olive;">)</span><br/>
+<br/>
+            <span style="color: #a50"># ステップ3: ツールの結果をモデルにフィードバックし、次のループへ</span><br/>
+            context +<span style="color: Gray;">=</span> f<span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>ツール {tool_name} の戻り値：{tool_result}"</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">return</span> <span style="color: #a11;">"最大ループ回数に達しました。タスクは未完了です"</span><br/>
+<br/>
+<span style="color: #a50"># 使用例</span><br/>
+agent <span style="color: Gray;">=</span> SimpleAgent<span style="color: Olive;">(</span>model<span style="color: Gray;">=</span>llm<span style="color: Gray;">,</span> tools<span style="color: Gray;">=</span><span style="color: Olive;">{</span><br/>
+    <span style="color: #a11;">"read_file"</span>: read_file<span style="color: Gray;">,</span><br/>
+    <span style="color: #a11;">"search_code"</span>: search_code<span style="color: Gray;">,</span><br/>
+    <span style="color: #a11;">"run_test"</span>: run_test<br/>
+<span style="color: Olive;">}</span><span style="color: Olive;">)</span><br/>
+result <span style="color: Gray;">=</span> agent.<span style="color: #05a;">run</span><span style="color: Olive;">(</span><span style="color: #a11;">"runoob プロジェクト内の user.py の型エラーを修正"</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<h4>利点</h4>
+<ul>
+<li>実装が最も簡単で、デバッグしやすい</li>
+<li>タスクの境界が明確なシナリオに適している</li>
+<li>ほぼすべての Agent フレームワークが対応している</li>
+</ul>
+<h4>欠点</h4>
+<ul>
+<li>コンテキストウィンドウが満杯になりやすい</li>
+<li>複雑なタスクでは「脱線」しやすい</li>
+<li>複数のサブタスクを並行処理できない</li>
+</ul>
+<p><span class="tag1 green">最適な適用シナリオ：</span>バグの修正、関数の作成、具体的な質問への回答など。タスクが明確で複雑さが適度であり、並列処理や複数役割の協調が不要な場合。</p>
+<blockquote><p>タスクに15回以上のツール呼び出しが必要になると見込まれる場合、単一 Agent ループは最適ではない可能性があります。マルチ Agent 協調やプラン&amp;実行アーキテクチャを使用して、複雑さを分解することを検討してください。</p></blockquote>
+<hr/>
+<h2>アーキテクチャ2: プラン + 実行（Plan &amp; Execute）</h2>
+<p>
+<span class="badge badge-easy">直感的で親しみやすい</span>
+<span class="badge badge-prod">監査可能</span>
+</p>
+<p>「何をするか明確に考える」と「実際に実行する」を2つの独立した段階に分離し、タスクの予測可能性と監査可能性を高めます。</p>
+<p>プラン&amp;実行アーキテクチャは、Agent の作業を2つの明確な段階に分割します：まず<span class="marked">プラン（Plan）</span>、次に<span class="marked">実行（Execute）</span>。</p>
+<p>プラン段階では、モデルは何も実行せず、詳細な実行ステップのリストを生成するだけです。実行段階では、システムが各ステップを順番に完了します。この分離により、ユーザーは実行前に計画を確認できます。これは Claude Code の Plan Mode と同様です。</p>
+<div class="diagram">
+<div class="diagram-title">図2 — プラン&amp;実行アーキテクチャ（動的再プランを含む）</div>
+<svg role="img" viewbox="0 0 680 430" width="100%">
+<title>プラン&amp;実行アーキテクチャ図</title>
+<desc>2段階のフローを示します：プラン段階で実行ステップのリストを生成し、実行段階で各ステップを順番に完了し、結果に応じて動的に再プランすることができます。</desc>
+<defs>
+<marker id="arr2" markerheight="6" markerwidth="6" orient="auto-start-reverse" refx="8" refy="5" viewbox="0 0 10 10">
+<path d="M2 1L8 5L2 9" fill="none" stroke="var(--arr)" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path>
+</marker>
+<marker id="arr2d" markerheight="6" markerwidth="6" orient="auto-start-reverse" refx="8" refy="5" viewbox="0 0 10 10">
+<path d="M2 1L8 5L2 9" fill="none" stroke="var(--c-amber-s)" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path>
+</marker>
+</defs>
+<rect fill="var(--c-teal-fill)" height="24" rx="4" stroke="var(--c-teal-s)" stroke-width="0.5" width="76" x="20" y="16"></rect>
+<text class="ts" dominant-baseline="central" fill="var(--c-teal-t)" text-anchor="middle" x="58" y="28">プラン段階</text>
+<rect fill="var(--c-gray-fill)" height="44" rx="8" stroke="var(--c-gray-s)" stroke-width="0.8" width="220" x="230" y="30"></rect>
+<text class="th" dominant-baseline="central" fill="var(--c-gray-t)" text-anchor="middle" x="340" y="52">ユーザータスク</text>
+<line class="arr-line" marker-end="url(#arr2)" x1="340" x2="340" y1="74" y2="118"></line>
+<rect fill="var(--c-purple-fill)" height="56" rx="8" stroke="var(--c-purple-s)" stroke-width="0.8" width="220" x="230" y="118"></rect>
+<text class="th" dominant-baseline="central" fill="var(--c-purple-t)" text-anchor="middle" x="340" y="141">プランナー（Planner）</text>
+<text class="ts" dominant-baseline="central" fill="var(--c-purple-t)" text-anchor="middle" x="340" y="162">段階的な実行計画を生成</text>
+<line class="arr-line" marker-end="url(#arr2)" x1="340" x2="340" y1="174" y2="208"></line>
+<rect fill="none" height="74" rx="8" stroke="var(--border-2)" stroke-dasharray="5 3" stroke-width="1" width="420" x="130" y="208"></rect>
+<text class="ts" fill="var(--text-3)" x="148" y="222">実行計画</text>
+<rect fill="var(--c-teal-fill)" height="44" rx="6" stroke="var(--c-teal-s)" stroke-width="0.7" width="106" x="150" y="224"></rect>
+<text class="th" dominant-baseline="central" fill="var(--c-teal-t)" text-anchor="middle" x="203" y="240">ステップ 1</text>
+<text class="ts" dominant-baseline="central" fill="var(--c-teal-t)" text-anchor="middle" x="203" y="258">情報収集</text>
+<line class="arr-line" marker-end="url(#arr2)" x1="256" x2="274" y1="246" y2="246"></line>
+<rect fill="var(--c-teal-fill)" height="44" rx="6" stroke="var(--c-teal-s)" stroke-width="0.7" width="106" x="274" y="224"></rect>
+<text class="th" dominant-baseline="central" fill="var(--c-teal-t)" text-anchor="middle" x="327" y="240">ステップ 2</text>
+<text class="ts" dominant-baseline="central" fill="var(--c-teal-t)" text-anchor="middle" x="327" y="258">分析処理</text>
+<line class="arr-line" marker-end="url(#arr2)" x1="380" x2="398" y1="246" y2="246"></line>
+<rect fill="var(--c-teal-fill)" height="44" rx="6" stroke="var(--c-teal-s)" stroke-width="0.7" width="106" x="398" y="224"></rect>
+<text class="th" dominant-baseline="central" fill="var(--c-teal-t)" text-anchor="middle" x="451" y="240">ステップ 3</text>
+<text class="ts" dominant-baseline="central" fill="var(--c-teal-t)" text-anchor="middle" x="451" y="258">結果の出力</text>
+<rect fill="var(--c-coral-fill)" height="24" rx="4" stroke="var(--c-coral-s)" stroke-width="0.5" width="76" x="20" y="310"></rect>
+<text class="ts" dominant-baseline="central" fill="var(--c-coral-t)" text-anchor="middle" x="58" y="322">実行段階</text>
+<line class="arr-line" marker-end="url(#arr2)" x1="340" x2="340" y1="282" y2="322"></line>
+<rect fill="var(--c-coral-fill)" height="56" rx="8" stroke="var(--c-coral-s)" stroke-width="0.8" width="220" x="230" y="322"></rect>
+<text class="th" dominant-baseline="central" fill="var(--c-coral-t)" text-anchor="middle" x="340" y="345">実行器（Executor）</text>
+<text class="ts" dominant-baseline="central" fill="var(--c-coral-t)" text-anchor="middle" x="340" y="366">各ステップを順番に完了</text>
+<line class="arr-line" marker-end="url(#arr2)" x1="340" x2="340" y1="378" y2="408"></line>
+<text class="ts" fill="var(--text-3)" text-anchor="middle" x="340" y="420">タスクを完了</text>
+<path d="M450,350 L510,350 L510,246 L504,246" fill="none" marker-end="url(#arr2d)" stroke="var(--c-amber-s)" stroke-dasharray="5 3" stroke-width="1.2"></path>
+<text class="ts" fill="var(--c-amber-t)" text-anchor="start" x="520" y="300">動的再プラン</text>
+<text class="ts" fill="var(--text-3)" text-anchor="start" x="520" y="314">(任意)</text>
+</svg>
+</div>
+<h3>2つのバリエーション</h3>
+<table class="reference">
+<tr><th>バリエーション</th><th>動作</th><th>代表的なシナリオ</th></tr>
+<tr><td>静的プラン</td><td>計画を一度に生成し、順番に線形的に実行し、途中で調整しない</td><td>フローが固定され、手順が明確なタスク。例：データ移行スクリプト</td></tr>
+<tr><td>動的プラン</td><td>各ステップを実行するごとに再評価し、結果に基づいて以降の計画を調整する</td><td>結果が不確実なタスク。例：デバッグ、探索的データ分析</td></tr>
+</table>
+<p>動的計画法はより堅牢だが、実装の複雑さは高く、各ステップでの再計画が追加のトークンを消費する。</p>
+<blockquote><p>Claude Code の Plan Mode はこのアーキテクチャの体现であり——「計画」をクリックすると、AI がまず詳細な計画を出力してレビューを求め、確認後に初めて実行を開始する。これにより、ユーザーのコントロール感が大幅に向上する。</p></blockquote>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: #a50"># Plan &amp; Execute アーキテクチャの簡易実装</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> PlanExecuteAgent:<br/>
+    <span style="color: #a11;">"""先に計画し、後に実行する Agent"""</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> plan<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> task: <span style="color: Teal;">str</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">list</span>:<br/>
+        <span style="color: #a11;">"""フェーズ1：実行計画の生成"""</span><br/>
+        plan <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">model</span>.<span style="color: #05a;">generate</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"""<br/>以下のタスクを実行可能なステップのリストに分解してください：<br/>タスク：{task}<br/>JSON 形式のステップリストを返してください。各ステップには以下を含みます：<br/>- step_id: ステップ番号<br/>- description: ステップの説明<br/>- tool: 呼び出す必要のあるツール名<br/>
+        """</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> plan<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> execute<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> plan: <span style="color: Teal;">list</span><span style="color: Gray;">,</span> dynamic: <span style="color: Teal;">bool</span> <span style="color: Gray;">=</span> <span style="color: Teal;">False</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">str</span>:<br/>
+        <span style="color: #a11;">"""フェーズ2：計画をステップごとに実行"""</span><br/>
+        results <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+        remaining_plan <span style="color: Gray;">=</span> plan.<span style="color: #05a;">copy</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">while</span> remaining_plan:<br/>
+            step <span style="color: Gray;">=</span> remaining_plan.<span style="color: #05a;">pop</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Olive;">)</span><br/>
+            output <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">tools</span><span style="color: Olive;">[</span>step<span style="color: Olive;">[</span><span style="color: #a11;">"tool"</span><span style="color: Olive;">]</span><span style="color: Olive;">]</span><span style="color: Olive;">(</span>step<span style="color: Olive;">[</span><span style="color: #a11;">"description"</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+            results.<span style="color: #05a;">append</span><span style="color: Olive;">(</span><span style="color: Olive;">{</span><span style="color: #a11;">"step"</span>: step<span style="color: Olive;">[</span><span style="color: #a11;">"step_id"</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span> <span style="color: #a11;">"output"</span>: output<span style="color: Olive;">}</span><span style="color: Olive;">)</span><br/>
+<br/>
+            <span style="color: Green;font-weight:bold;">if</span> dynamic <span style="color: Green;font-weight:bold;">and</span> remaining_plan:<br/>
+                <span style="color: #a50"># 動的計画法：現在の結果に基づいて後続の計画を再評価する</span><br/>
+                remaining_plan <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">replan</span><span style="color: Olive;">(</span>remaining_plan<span style="color: Gray;">,</span> results<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">return</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">summarize</span><span style="color: Olive;">(</span>results<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 使用例</span><br/>
+agent <span style="color: Gray;">=</span> PlanExecuteAgent<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+plan <span style="color: Gray;">=</span> agent.<span style="color: #05a;">plan</span><span style="color: Olive;">(</span><span style="color: #a11;">「runoob プロジェクトにユーザー認証機能を追加する」</span><span style="color: Olive;">)</span><br/>
+<span style="color: #a50"># 人間は先に plan をレビューし、妥当性を確認してから実行できる</span><br/>
+result <span style="color: Gray;">=</span> agent.<span style="color: #05a;">execute</span><span style="color: Olive;">(</span>plan<span style="color: Gray;">,</span> dynamic<span style="color: Gray;">=</span><span style="color: Teal;">True</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<h4>利点</h4>
+<ul>
+<li>実行前に計画を人間がレビューできる</li>
+<li>推論と実行の責務が分離されており、明確</li>
+<li>長いタスクに適している</li>
+</ul>
+<h4>欠点</h4>
+<ul>
+<li>初期計画が十分に正確でない可能性がある</li>
+<li>2フェーズ構成により遅延が増加する</li>
+<li>静的なバージョンでは予期しない状況に対応しにくい</li>
+</ul>
+<blockquote><p>Plan &amp; Execute の代价は推論ラウンドの増加であり、単純なタスクにとってはむしろ無駄である。タスクが3ステップ以内で完了できるなら、単一 Agent ループを直接使う方が効率的だ。</p></blockquote>
+<hr/>
+<h2>アーキテクチャ3: マルチ Agent 協調（Multi-Agent）</h2>
+<p>
+<span class="badge badge-prod">本番環境での推奨</span>
+<span class="badge badge-adv">複雑なタスク</span>
+</p>
+<p>Orchestrator（コーディネーター）がタスクの分解とスケジューリングを担当し、複数の Subagent がそれぞれの役割を果たし、並列または直列でサブタスクを完了し、結果は Orchestrator に集約されて総合処理される。</p>
+<p>単一の Agent がコンテキストウィンドウの不足やタスクの複雑さに直面したとき、マルチ Agent アーキテクチャはエレガントな解決策を提供する：<span class="marked">複数の専門化されたサブ Agent を並列に動作させ</span>、Orchestrator（コーディネーター）が全体を統括する。</p>
+<div class="diagram">
+<div class="diagram-title">図 3 — マルチ Agent 協調アーキテクチャ（Orchestrator + Subagents）</div>
+<svg role="img" viewbox="0 0 680 376" width="100%">
+<title>マルチ Agent 協調アーキテクチャ図</title>
+<desc>Orchestrator コーディネーターはタスクを3つの専門化されたサブ Agent に配布し、サブ Agent は並列実行後に結果をコーディネーターに集約する</desc>
+<defs>
+<marker id="arr3" markerheight="6" markerwidth="6" orient="auto-start-reverse" refx="8" refy="5" viewbox="0 0 10 10">
+<path d="M2 1L8 5L2 9" fill="none" stroke="var(--arr)" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path>
+</marker>
+<marker id="arr3r" markerheight="6" markerwidth="6" orient="auto-start-reverse" refx="8" refy="5" viewbox="0 0 10 10">
+<path d="M2 1L8 5L2 9" fill="none" stroke="var(--c-blue-s)" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path>
+</marker>
+</defs>
+<rect fill="var(--c-purple-fill)" height="56" rx="10" stroke="var(--c-purple-s)" stroke-width="1" width="240" x="220" y="20"></rect>
+<text class="th" dominant-baseline="central" fill="var(--c-purple-t)" text-anchor="middle" x="340" y="43">コーディネーター（Orchestrator）</text>
+<text class="ts" dominant-baseline="central" fill="var(--c-purple-t)" text-anchor="middle" x="340" y="63">タスク分解 · スケジューリング · 結果の総合</text>
+<path d="M340,76 L340,130 L158,130 L158,176" fill="none" marker-end="url(#arr3)" stroke="var(--arr)" stroke-width="1.4"></path>
+<line class="arr-line" marker-end="url(#arr3)" x1="340" x2="340" y1="76" y2="176"></line>
+<path d="M340,76 L340,130 L522,130 L522,176" fill="none" marker-end="url(#arr3)" stroke="var(--arr)" stroke-width="1.4"></path>
+<text class="ts" fill="var(--text-3)" text-anchor="middle" x="200" y="126">タスクの配布</text>
+<rect fill="var(--c-amber-fill)" height="20" rx="4" stroke="var(--c-amber-s)" stroke-width="0.5" width="208" x="236" y="148"></rect>
+<text class="ts" dominant-baseline="central" fill="var(--c-amber-t)" text-anchor="middle" x="340" y="158">並列実行</text>
+<rect fill="var(--c-teal-fill)" height="56" rx="8" stroke="var(--c-teal-s)" stroke-width="0.8" width="180" x="68" y="176"></rect>
+<text class="th" dominant-baseline="central" fill="var(--c-teal-t)" text-anchor="middle" x="158" y="199">サブ Agent A</text>
+<text class="ts" dominant-baseline="central" fill="var(--c-teal-t)" text-anchor="middle" x="158" y="219">コードレビュー</text>
+<rect fill="var(--c-teal-fill)" height="56" rx="8" stroke="var(--c-teal-s)" stroke-width="0.8" width="180" x="250" y="176"></rect>
+<text class="th" dominant-baseline="central" fill="var(--c-teal-t)" text-anchor="middle" x="340" y="199">サブ Agent B</text>
+<text class="ts" dominant-baseline="central" fill="var(--c-teal-t)" text-anchor="middle" x="340" y="219">セキュリティ検出</text>
+<rect fill="var(--c-teal-fill)" height="56" rx="8" stroke="var(--c-teal-s)" stroke-width="0.8" width="180" x="432" y="176"></rect>
+<text class="th" dominant-baseline="central" fill="var(--c-teal-t)" text-anchor="middle" x="522" y="199">サブ Agent C</text>
+<text class="ts" dominant-baseline="central" fill="var(--c-teal-t)" text-anchor="middle" x="522" y="219">パフォーマンス分析</text>
+<path d="M158,232 L158,280 L296,280 L296,306" fill="none" marker-end="url(#arr3r)" stroke="var(--c-blue-s)" stroke-dasharray="4 3" stroke-width="1.2"></path>
+<line fill="none" marker-end="url(#arr3r)" stroke="var(--c-blue-s)" stroke-dasharray="4 3" stroke-width="1.2" x1="340" x2="340" y1="232" y2="306"></line>
+<path d="M522,232 L522,280 L384,280 L384,306" fill="none" marker-end="url(#arr3r)" stroke="var(--c-blue-s)" stroke-dasharray="4 3" stroke-width="1.2"></path>
+<text class="ts" fill="var(--c-blue-t)" text-anchor="middle" x="490" y="270">結果の返却</text>
+<rect fill="var(--c-blue-fill)" height="50" rx="8" stroke="var(--c-blue-s)" stroke-width="0.8" width="240" x="220" y="306"></rect>
+<text class="th" dominant-baseline="central" fill="var(--c-blue-t)" text-anchor="middle" x="340" y="327">結果の集約</text>
+<text class="ts" dominant-baseline="central" fill="var(--c-blue-t)" text-anchor="middle" x="340" y="346">各サブ Agent の出力を総合する</text>
+</svg>
+</div>
+<h3>独立したコンテキストが中核的な利点</h3>
+<p>各サブ Agent は<span class="marked">独立したコンテキストウィンドウ</span>を持つ。コードレビュー Agent が auth.py を深く読んでも、パフォーマンス分析 Agent の判断には影響しない。セキュリティ検出 Agent が生成する大量の中間出力も、他の Agent の領域を圧迫しない。</p>
+<blockquote><p>サブ Agent（Subagent）は短命かつ分離されており——タスクを完了すると即座に破棄される。Agent チーム（Agent Teams）は、複数の独立した Agent インスタンスが長時間協力し、互いにメッセージを送り合う、より現実のチームに近いものだ。</p></blockquote>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: #a50"># マルチ Agent 協調の簡易実装</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> Orchestrator:<br/>
+    <span style="color: #a11;">"""オーケストレーター：タスクの分解、配布、結果の集約を担当"""</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">subagents</span> <span style="color: Gray;">=</span> <span style="color: Olive;">{</span><br/>
+            <span style="color: #a11;">"code_review"</span>: Subagent<span style="color: Olive;">(</span><br/>
+                name<span style="color: Gray;">=</span><span style="color: #a11;">「コードレビュー」</span><span style="color: Gray;">,</span><br/>
+                tools<span style="color: Gray;">=</span><span style="color: Olive;">[</span><span style="color: #a11;">"read_file"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"static_analysis"</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span><br/>
+                system_prompt<span style="color: Gray;">=</span><span style="color: #a11;">「あなたはコードレビューの専門家です...」</span><br/>
+            <span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+            <span style="color: #a11;">"security"</span>: Subagent<span style="color: Olive;">(</span><br/>
+                name<span style="color: Gray;">=</span><span style="color: #a11;">「セキュリティ検出」</span><span style="color: Gray;">,</span><br/>
+                tools<span style="color: Gray;">=</span><span style="color: Olive;">[</span><span style="color: #a11;">"scan_vulnerability"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"check_deps"</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span><br/>
+                system_prompt<span style="color: Gray;">=</span><span style="color: #a11;">「あなたはセキュリティ検出の専門家です...」</span><br/>
+            <span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+            <span style="color: #a11;">"performance"</span>: Subagent<span style="color: Olive;">(</span><br/>
+                name<span style="color: Gray;">=</span><span style="color: #a11;">「パフォーマンス分析」</span><span style="color: Gray;">,</span><br/>
+                tools<span style="color: Gray;">=</span><span style="color: Olive;">[</span><span style="color: #a11;">"profile_code"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"analyze_complexity"</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span><br/>
+                system_prompt<span style="color: Gray;">=</span><span style="color: #a11;">「あなたはパフォーマンス分析の専門家です...」</span><br/>
+            <span style="color: Olive;">)</span><br/>
+        <span style="color: Olive;">}</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> handle_task<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> task: <span style="color: Teal;">str</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">dict</span>:<br/>
+        <span style="color: #a50"># ステップ1：タスクを分析し、どの Subagent が必要かを決定する</span><br/>
+        needed <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">plan</span><span style="color: Olive;">(</span>task<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># ステップ2：並列配布（各 Subagent は同時に動作し、コンテキストは独立）</span><br/>
+        results <span style="color: Gray;">=</span> <span style="color: Olive;">{</span><span style="color: Olive;">}</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> agent_name <span style="color: Green;font-weight:bold;">in</span> needed:<br/>
+            sub_task <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">decompose</span><span style="color: Olive;">(</span>task<span style="color: Gray;">,</span> agent_name<span style="color: Olive;">)</span><br/>
+            results<span style="color: Olive;">[</span>agent_name<span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">subagents</span><span style="color: Olive;">[</span>agent_name<span style="color: Olive;">]</span>.<span style="color: #05a;">run</span><span style="color: Olive;">(</span>sub_task<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># ステップ3：各 Subagent の結果を集約し、総合出力する</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">synthesize</span><span style="color: Olive;">(</span>task<span style="color: Gray;">,</span> results<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 使用例：1回の実行で、3つの次元を並列分析</span><br/>
+orch <span style="color: Gray;">=</span> Orchestrator<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+report <span style="color: Gray;">=</span> orch.<span style="color: #05a;">handle_task</span><span style="color: Olive;">(</span><span style="color: #a11;">「runoob プロジェクトの PR #42 をレビューする」</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<h4>利点</h4>
+<ul>
+<li>並列処理を自然にサポートし、速度が速い</li>
+<li>サブ Agent はそれぞれ独立しており、コンテキストが互いに干渉しない</li>
+<li>各サブ Agent の役割を専門化できる</li>
+</ul>
+<h4>欠点</h4>
+<ul>
+<li>協調ロジックが複雑で、デバッグが難しい</li>
+<li>複数の Agent の並列処理により Token コストが高くなる</li>
+<li>Orchestrator 自体がボトルネックになる可能性がある</li>
+</ul>
+<blockquote><p>マルチ Agent 協調の主なコストはオーケストレーションのオーバーヘッドである。サブタスクが非常に単純な場合（各1〜2ステップのみ）、オーケストレーションのオーバーヘッドが実際の作業のオーバーヘッドを超える可能性があり、その場合は単一 Agent の方が適している。</p></blockquote>
+<hr/>
+<h2>アーキテクチャ4: 反省と自己修正（Reflection）</h2>
+<p>
+<span class="badge badge-prod">高品質な出力</span>
+<span class="badge badge-easy">統合が容易</span>
+</p>
+<p>Agent の出力段階に品質評価を追加し、満足できない場合は再生成または修正を行い、内部イテレーションループを形成する。</p>
+<p>反省アーキテクチャは Agent に「品質チェック段階」を追加する：出力を生成するたびに、<span class="marked">判定者（Critic）</span>が品質を評価し、基準に達していない場合は修正を要求し、出力が基準を満たすまで続ける。</p>
+<p>これは開発者がコードを書いた後に自分でテストを実行するのと同じで——納品前に一度自己チェックするようなものだ。</p>
+<div class="diagram">
+<div class="diagram-title">図 4 — 反省と自己修正アーキテクチャ</div>
+<svg role="img" viewbox="0 0 680 410" width="100%">
+<title>反省と自己修正アーキテクチャ図</title>
+<desc>Agent がタスクを実行した後、Critic 判定者が出力品質を採点し、合格なら完了、不合格なら修正段階に入る</desc>
+<defs>
+<marker id="arr4" markerheight="6" markerwidth="6" orient="auto-start-reverse" refx="8" refy="5" viewbox="0 0 10 10">
+<path d="M2 1L8 5L2 9" fill="none" stroke="var(--arr)" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path>
+</marker>
+<marker id="arr4g" markerheight="6" markerwidth="6" orient="auto-start-reverse" refx="8" refy="5" viewbox="0 0 10 10">
+<path d="M2 1L8 5L2 9" fill="none" stroke="var(--c-green-s)" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path>
+</marker>
+<marker id="arr4r" markerheight="6" markerwidth="6" orient="auto-start-reverse" refx="8" refy="5" viewbox="0 0 10 10">
+<path d="M2 1L8 5L2 9" fill="none" stroke="var(--c-coral-s)" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path>
+</marker>
+</defs>
+<rect fill="var(--c-teal-fill)" height="56" rx="8" stroke="var(--c-teal-s)" stroke-width="0.8" width="220" x="230" y="30"></rect>
+<text class="th" dominant-baseline="central" fill="var(--c-teal-t)" text-anchor="middle" x="340" y="53">実行器（Executor）</text>
+<text class="ts" dominant-baseline="central" fill="var(--c-teal-t)" text-anchor="middle" x="340" y="73">初期出力を生成</text>
+<line class="arr-line" marker-end="url(#arr4)" x1="340" x2="340" y1="86" y2="160"></line>
+<rect fill="var(--c-purple-fill)" height="56" rx="8" stroke="var(--c-purple-s)" stroke-width="0.8" width="220" x="230" y="160"></rect>
+<text class="th" dominant-baseline="central" fill="var(--c-purple-t)" text-anchor="middle" x="340" y="183">判定者（Critic）</text>
+<text class="ts" dominant-baseline="central" fill="var(--c-purple-t)" text-anchor="middle" x="340" y="203">品質と正確性を評価</text>
+<line fill="none" marker-end="url(#arr4g)" stroke="var(--c-green-s)" stroke-width="1.4" x1="450" x2="504" y1="188" y2="188"></line>
+<text class="ts" fill="var(--c-green-t)" text-anchor="middle" x="476" y="180">合格</text>
+<rect fill="var(--c-green-fill)" height="44" rx="8" stroke="var(--c-green-s)" stroke-width="0.8" width="130" x="504" y="166"></rect>
+<text class="th" dominant-baseline="central" fill="var(--c-green-t)" text-anchor="middle" x="569" y="188">最終結果を出力</text>
+<line fill="none" marker-end="url(#arr4r)" stroke="var(--c-coral-s)" stroke-width="1.4" x1="340" x2="340" y1="216" y2="288"></line>
+<text class="ts" fill="var(--c-coral-t)" text-anchor="start" x="356" y="255">不合格</text>
+<rect fill="var(--c-coral-fill)" height="56" rx="8" stroke="var(--c-coral-s)" stroke-width="0.8" width="220" x="230" y="288"></rect>
+<text class="th" dominant-baseline="central" fill="var(--c-coral-t)" text-anchor="middle" x="340" y="311">修正器（Reviser）</text>
+<text class="ts" dominant-baseline="central" fill="var(--c-coral-t)" text-anchor="middle" x="340" y="331">フィードバックに基づいて出力を改善</text>
+<path d="M340,344 L340,388 L168,388 L168,58 L230,58" fill="none" marker-end="url(#arr4)" stroke="var(--arr)" stroke-dasharray="5 4" stroke-width="1.3"></path>
+<text class="ts" fill="var(--text-3)" text-anchor="end" x="158" y="225">再生成</text>
+<text class="ts" fill="var(--text-3)" text-anchor="middle" x="340" y="402">（通常は最大反復回数の制限を設定）</text>
+</svg>
+</div>
+<h3>2つの実装方法</h3>
+<table class="reference">
+<tr><th>方式</th><th>メカニズム</th><th>利点</th><th>欠点</th></tr>
+<tr><td>自己反省</td><td>同じモデルが先に実行し、その後自分の出力を評価する</td><td>実装が簡単で、追加のモデルコストなし</td><td>モデルが自分のエラーに「見て見ぬふり」をする可能性がある</td></tr>
+<tr><td>Critic モデル</td><td>独立した判定モデルで実行モデルの出力を評価する</td><td>より客観的で、実行モデルの盲点を発見できる</td><td>モデル呼び出しコストと遅延が増加する</td></tr>
+</table>
+<blockquote><p>「単体テストを書く → テストを実行する → 失敗を観察する → コードを修正する → 再度実行する」——これが反省アーキテクチャの古典的な応用である。テスト結果自体が Critic のフィードバックシグナルとなる。</p></blockquote>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: #a50"># 反省アーキテクチャの簡易実装</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> ReflectiveAgent:<br/>
+    <span style="color: #a11;">"""自己反省機能を持つ Agent"""</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> model<span style="color: Gray;">,</span> tools<span style="color: Gray;">,</span> max_reflections<span style="color: Gray;">=</span><span style="color: Maroon;">3</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">model</span> <span style="color: Gray;">=</span> model<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">tools</span> <span style="color: Gray;">=</span> tools<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">max_reflections</span> <span style="color: Gray;">=</span> max_reflections  <span style="color: #a50"># 最大修正回数。無限ループを防ぐ</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> run<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> task: <span style="color: Teal;">str</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">str</span>:<br/>
+        <span style="color: #a50"># ステップ1：正常に実行し、初期出力を生成</span><br/>
+        output <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">model</span>.<span style="color: #05a;">generate</span><span style="color: Olive;">(</span>task<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">for</span> i <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span>.<span style="color: #05a;">max_reflections</span><span style="color: Olive;">)</span>:<br/>
+            <span style="color: #a50"># ステップ2：反省 —— 出力の品質を評価</span><br/>
+            critique <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">model</span>.<span style="color: #05a;">generate</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"""<br/>以下の出力を厳格に評価してください：<br/>元のタスク：{task}<br/>現在の出力：{output}<br/>チェック項目：事実誤認？論理の欠陥？情報の漏れ？フォーマットの問題？<br/>出力が完璧なら「PASS」と返信してください。<br/>
+            """</span><span style="color: Olive;">)</span><br/>
+<br/>
+            <span style="color: Green;font-weight:bold;">if</span> <span style="color: #a11;">"PASS"</span> <span style="color: Green;font-weight:bold;">in</span> critique:<br/>
+                <span style="color: Green;font-weight:bold;">break</span>  <span style="color: #a50"># 出力はレビューを通過</span><br/>
+<br/>
+            <span style="color: #a50"># ステップ3：修正 —— 批評意見に基づいて改善</span><br/>
+            output <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">model</span>.<span style="color: #05a;">generate</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"""<br/>元のタスク：{task}<br/>前回の出力：{output}<br/>問題のフィードバック：{critique}<br/>フィードバックに基づいて出力を修正してください。<br/>
+            """</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">return</span> output<br/>
+<br/>
+<span style="color: #a50"># 使用例</span><br/>
+agent <span style="color: Gray;">=</span> ReflectiveAgent<span style="color: Olive;">(</span>model<span style="color: Gray;">=</span>llm<span style="color: Gray;">,</span> tools<span style="color: Gray;">=</span><span style="color: Olive;">{</span><span style="color: Olive;">}</span><span style="color: Olive;">)</span><br/>
+<span style="color: #05a;">code</span> <span style="color: Gray;">=</span> agent.<span style="color: #05a;">run</span><span style="color: Olive;">(</span><span style="color: #a11;">「RUNOOB 文字列の AES 暗号化を実装する Python 関数を書く」</span><span style="color: Olive;">)</span><br/>
+<span style="color: #a50"># Agent はコード生成後、暗号化の実装や鍵の処理を自己チェックし、</span><br/>
+<span style="color: #a50"># 脆弱性を発見したら自動修正し、出力が安全で信頼できることを確保する</span><br/>
+</div>
+</div>
+<h4>利点</h4>
+<ul>
+<li>出力品質を顕著に向上させる</li>
+<li>明確な品質基準を設定できる</li>
+<li>客観的な判定基準があるタスクに適している</li>
+</ul>
+<h4>欠点</h4>
+<ul>
+<li>複数回の反復により遅延とコストが増加する</li>
+<li>無限ループを防ぐため、最大反復回数の設定が必要</li>
+<li>評価基準を形式化しにくい場合、効果は限定的である。</li>
+</ul>
+<blockquote><p>自己反省ループは各反復ごとに追加のLLM呼び出しが必要になり、遅延が大幅に増加する。また、自己反省回数の上限を設定する必要がある。そうしないと、モデルが「永遠に満足しない」無限ループに陥る可能性がある。</p></blockquote>
+<hr/>
+<h2>アーキテクチャ5: RAG + Agent（検索拡張型エージェント）</h2>
+<p>
+<span class="badge badge-prod">知識集約型タスク</span>
+<span class="badge badge-adv">大規模ナレッジベース</span>
+</p>
+<p>Agentのツールセットにベクトル検索機能を追加し、Agentが推論プロセス中に外部ナレッジベースを動的に照会できるようにして、コンテキストウィンドウの制限を克服する。</p>
+<p>RAG（Retrieval-Augmented Generation、検索拡張生成）は、本来LLMに外部ナレッジベースを照会させる技術である。これがAgentと組み合わさると、さらに強力になる。Agentは<span class="marked">いつ検索するか、何を検索するかを主体的に決定できる</span>毎回受動的に一度だけ検索するのではなく。</p>
+<div class="diagram">
+<div class="diagram-title">図 5 — RAG + Agent 検索拡張アーキテクチャ</div>
+<svg role="img" viewbox="0 0 680 400" width="100%">
+<title>RAG + Agent アーキテクチャ図</title>
+<desc>Agentは推論・意思決定の過程で、主体的に外部ナレッジベースへの検索を実行し、検索した関連コンテンツをコンテキストに組み込み、より正確な推論と行動を行う。</desc>
+<defs>
+<marker id="arr5" markerheight="6" markerwidth="6" orient="auto-start-reverse" refx="8" refy="5" viewbox="0 0 10 10">
+<path d="M2 1L8 5L2 9" fill="none" stroke="var(--arr)" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path>
+</marker>
+<marker id="arr5a" markerheight="6" markerwidth="6" orient="auto-start-reverse" refx="8" refy="5" viewbox="0 0 10 10">
+<path d="M2 1L8 5L2 9" fill="none" stroke="var(--c-amber-s)" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path>
+</marker>
+</defs>
+<rect fill="var(--c-gray-fill)" height="44" rx="8" stroke="var(--c-gray-s)" stroke-width="0.8" width="220" x="230" y="20"></rect>
+<text class="th" dominant-baseline="central" fill="var(--c-gray-t)" text-anchor="middle" x="340" y="42">ユーザークエリ</text>
+<line class="arr-line" marker-end="url(#arr5)" x1="340" x2="340" y1="64" y2="110"></line>
+<rect fill="var(--c-teal-fill)" height="56" rx="8" stroke="var(--c-teal-s)" stroke-width="0.8" width="220" x="230" y="110"></rect>
+<text class="th" dominant-baseline="central" fill="var(--c-teal-t)" text-anchor="middle" x="340" y="133">能動的検索</text>
+<text class="ts" dominant-baseline="central" fill="var(--c-teal-t)" text-anchor="middle" x="340" y="153">検索タイミングと内容を決定</text>
+<rect fill="var(--c-amber-fill)" height="76" rx="8" stroke="var(--c-amber-s)" stroke-width="0.8" width="165" x="480" y="100"></rect>
+<text class="th" dominant-baseline="central" fill="var(--c-amber-t)" text-anchor="middle" x="562" y="128">ナレッジベース</text>
+<text class="ts" dominant-baseline="central" fill="var(--c-amber-t)" text-anchor="middle" x="562" y="148">ドキュメント / ベクトルデータベース</text>
+<text class="ts" dominant-baseline="central" fill="var(--c-amber-t)" text-anchor="middle" x="562" y="165">コードベース / メモリ</text>
+<line fill="none" marker-end="url(#arr5a)" stroke="var(--c-amber-s)" stroke-width="1.4" x1="450" x2="480" y1="131" y2="131"></line>
+<line fill="none" marker-end="url(#arr5a)" stroke="var(--c-amber-s)" stroke-width="1.4" x1="480" x2="450" y1="148" y2="148"></line>
+<text class="ts" fill="var(--c-amber-t)" text-anchor="middle" x="465" y="124">クエリ</text>
+<text class="ts" fill="var(--c-amber-t)" text-anchor="middle" x="465" y="162">レスポンス</text>
+<line class="arr-line" marker-end="url(#arr5)" x1="340" x2="340" y1="166" y2="220"></line>
+<text class="ts" fill="var(--text-3)" text-anchor="start" x="356" y="196">拡張されたコンテキスト</text>
+<rect fill="var(--c-purple-fill)" height="56" rx="8" stroke="var(--c-purple-s)" stroke-width="0.8" width="220" x="230" y="220"></rect>
+<text class="th" dominant-baseline="central" fill="var(--c-purple-t)" text-anchor="middle" x="340" y="243">拡張された推論</text>
+<text class="ts" dominant-baseline="central" fill="var(--c-purple-t)" text-anchor="middle" x="340" y="263">ナレッジベースの内容を組み合わせて推論</text>
+<path d="M450,248 L508,248 L508,138 L480,138" fill="none" marker-end="url(#arr5)" stroke="var(--c-purple-s)" stroke-dasharray="4 3" stroke-width="1.1"></path>
+<text class="ts" fill="var(--c-purple-t)" text-anchor="start" x="516" y="194">必要に応じて再検索</text>
+<line class="arr-line" marker-end="url(#arr5)" x1="340" x2="340" y1="276" y2="326"></line>
+<rect fill="var(--c-coral-fill)" height="56" rx="8" stroke="var(--c-coral-s)" stroke-width="0.8" width="220" x="230" y="326"></rect>
+<text class="th" dominant-baseline="central" fill="var(--c-coral-t)" text-anchor="middle" x="340" y="349">アクションを実行</text>
+<text class="ts" dominant-baseline="central" fill="var(--c-coral-t)" text-anchor="middle" x="340" y="369">知識に基づく精密な操作</text>
+</svg>
+</div>
+<h3>通常の RAG との重要な違い</h3>
+<p>通常のRAGは「受動的・一回きり」である。ユーザーが質問した際に固定的に一度だけ検索し、結果をPromptに埋め込む。</p>
+<p><span class="marked">RAG + Agentはそれとは異なる</span>：Agentは推論のどの段階で知識の補充が必要か、何を検索すべきかを自律的に判断し、タスクを完了するのに十分な情報を得るまでナレッジベースを複数回照会できる。</p>
+<blockquote><p>コードベースQ&amp;A Agentは「なぜここでシングルトンパターンを使うのか？」と聞かれた場合、LLMのトレーニング記憶だけに頼って推測するのではなく、プロジェクトドキュメント、設計決定記録、関連コードファイルを能動的に検索する。</p></blockquote>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: #a50"># RAG + Agent の簡易実装</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> RAGAgent:<br/>
+    <span style="color: #a11;">"""動的検索機能を備えたAgent"""</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> model<span style="color: Gray;">,</span> vector_db<span style="color: Gray;">,</span> max_retrievals<span style="color: Gray;">=</span><span style="color: Maroon;">5</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">model</span> <span style="color: Gray;">=</span> model<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">vector_db</span> <span style="color: Gray;">=</span> vector_db  <span style="color: #a50"># ベクトルデータベース</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">max_retrievals</span> <span style="color: Gray;">=</span> max_retrievals<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> should_retrieve<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> context: <span style="color: Teal;">str</span><span style="color: Gray;">,</span> question: <span style="color: Teal;">str</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">bool</span>:<br/>
+        <span style="color: #a11;">"""Agent自身がさらに情報を検索する必要があるかを判断する"""</span><br/>
+        decision <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">model</span>.<span style="color: #05a;">generate</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"""<br/>現在の既知情報：{context}<br/>現在の問題：{question}<br/>現在の情報で問題に答えるのに十分か？ YES か NO で回答してください。<br/>
+        """</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> <span style="color: #a11;">"NO"</span> <span style="color: Green;font-weight:bold;">in</span> decision<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> run<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> task: <span style="color: Teal;">str</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">str</span>:<br/>
+        context <span style="color: Gray;">=</span> <span style="color: #a11;">""</span><br/>
+        retrieval_count <span style="color: Gray;">=</span> <span style="color: Maroon;">0</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">while</span> retrieval_count <span style="color: Gray;">&lt;</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">max_retrievals</span>:<br/>
+            <span style="color: #a50"># Agentが検索が必要かどうかを自律的に判断</span><br/>
+            <span style="color: Green;font-weight:bold;">if</span> <span style="color: Green;font-weight:bold;">not</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">should_retrieve</span><span style="color: Olive;">(</span>context<span style="color: Gray;">,</span> task<span style="color: Olive;">)</span>:<br/>
+                <span style="color: Green;font-weight:bold;">break</span><br/>
+<br/>
+            <span style="color: #a50"># Agentが何を検索するかを自律的に決定</span><br/>
+            search_query <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">model</span>.<span style="color: #05a;">generate</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"""<br/>タスク：{task}<br/>既存情報：{context}<br/>タスクを完了するために、次にどのような情報を検索すべきか？<br/>
+            """</span><span style="color: Olive;">)</span><br/>
+<br/>
+            <span style="color: #a50"># 検索を実行し、結果をコンテキストに追加</span><br/>
+            docs <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">vector_db</span>.<span style="color: #05a;">search</span><span style="color: Olive;">(</span>search_query<span style="color: Olive;">)</span><br/>
+            context +<span style="color: Gray;">=</span> <span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>"</span>.<span style="color: #05a;">join</span><span style="color: Olive;">(</span>docs<span style="color: Olive;">)</span><br/>
+            retrieval_count +<span style="color: Gray;">=</span> <span style="color: Maroon;">1</span><br/>
+<br/>
+        <span style="color: #a50"># すべての情報を統合して最終回答を生成</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">model</span>.<span style="color: #05a;">generate</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"タスク：{task}<span style="color: #000099; font-weight: bold;">\n</span>参考資料：{context}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 使用例</span><br/>
+agent <span style="color: Gray;">=</span> RAGAgent<span style="color: Olive;">(</span>model<span style="color: Gray;">=</span>llm<span style="color: Gray;">,</span> vector_db<span style="color: Gray;">=</span>runoob_docs_db<span style="color: Olive;">)</span><br/>
+answer <span style="color: Gray;">=</span> agent.<span style="color: #05a;">run</span><span style="color: Olive;">(</span><span style="color: #a11;">"RUNOOBフレームワークでデータベース接続プールを設定するには？"</span><span style="color: Olive;">)</span><br/>
+<span style="color: #a50"># Agentはまず「接続プール設定」を検索し、「最大接続数」への言及を発見</span><br/>
+<span style="color: #a50"># 理解できない場合は、再度「最大接続数のベストプラクティス」を検索</span><br/>
+<span style="color: #a50"># 最終的に複数回の検索結果を統合して完全な回答を提供</span><br/>
+</div>
+</div>
+<h4>利点</h4>
+<ul>
+<li>コンテキストウィンドウの制限を突破できる</li>
+<li>出力に根拠があり、幻覚（ハルシネーション）を軽減できる</li>
+<li>ナレッジベースを独立して更新できる</li>
+</ul>
+<h4>欠点</h4>
+<ul>
+<li>検索品質が全体の効果に影響する</li>
+<li>ベクトルデータベースの保守コスト</li>
+<li>検索遅延により応答時間が増加する</li>
+</ul>
+<hr/>
+<h2>アーキテクチャ6: ワークフローオーケストレーション（Workflow / DAG）</h2>
+<p>
+<span class="badge badge-prod">本番環境での第一選択</span>
+<span class="badge badge-prod">高信頼性</span>
+</p><p>Agentの行動を有向非巡回グラフ（DAG）として固定化する。各ノードはLLM呼び出しまたはツール呼び出しであり、エッジはデータ依存関係を表し、フレームワークが実行を駆動する。</p>
+<p>これは従来のソフトウェアエンジニアリングに最も近いAgentアーキテクチャである。前述のいくつかのアーキテクチャとの最大の違いは次の点にある：<span class="marked">Agentの自律的な意思決定空間が単一ノード内に制限される</span>ノード間の遷移は事前に定義されており、変更できない。</p>
+<div class="diagram">
+<div class="diagram-title">図 6 — ワークフローDAGアーキテクチャ（有向非巡回グラフ）</div>
+<svg role="img" viewbox="0 0 680 300" width="100%">
+<title>ワークフローDAGアーキテクチャ図</title>
+<desc>有向非巡回グラフの説明：データ入力後、タスクAとタスクBが並列実行される。両方が完了すると集約ノードが処理し、最後に結果を出力する。</desc>
+<defs>
+<marker id="arr6" markerheight="6" markerwidth="6" orient="auto-start-reverse" refx="8" refy="5" viewbox="0 0 10 10">
+<path d="M2 1L8 5L2 9" fill="none" stroke="var(--arr)" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path>
+</marker>
+</defs>
+<rect fill="var(--c-gray-fill)" height="44" rx="8" stroke="var(--c-gray-s)" stroke-width="0.8" width="100" x="30" y="124"></rect>
+<text class="th" dominant-baseline="central" fill="var(--c-gray-t)" text-anchor="middle" x="80" y="146">データ入力</text>
+<path d="M130,146 L152,146 L152,100 L176,100" fill="none" marker-end="url(#arr6)" stroke="var(--arr)" stroke-width="1.4"></path>
+<path d="M130,146 L152,146 L152,192 L176,192" fill="none" marker-end="url(#arr6)" stroke="var(--arr)" stroke-width="1.4"></path>
+<rect fill="var(--c-teal-fill)" height="64" rx="8" stroke="var(--c-teal-s)" stroke-width="0.8" width="150" x="176" y="68"></rect>
+<text class="th" dominant-baseline="central" fill="var(--c-teal-t)" text-anchor="middle" x="251" y="91">タスクA</text>
+<text class="ts" dominant-baseline="central" fill="var(--c-teal-t)" text-anchor="middle" x="251" y="115">独立して並列実行</text>
+<rect fill="var(--c-teal-fill)" height="64" rx="8" stroke="var(--c-teal-s)" stroke-width="0.8" width="150" x="176" y="160"></rect>
+<text class="th" dominant-baseline="central" fill="var(--c-teal-t)" text-anchor="middle" x="251" y="183">タスクB</text>
+<text class="ts" dominant-baseline="central" fill="var(--c-teal-t)" text-anchor="middle" x="251" y="207">独立して並列実行</text>
+<rect fill="var(--c-amber-fill)" height="18" rx="4" stroke="var(--c-amber-s)" stroke-width="0.5" width="150" x="176" y="138"></rect>
+<text class="ts" dominant-baseline="central" fill="var(--c-amber-t)" text-anchor="middle" x="251" y="147">並列可能</text>
+<path d="M326,100 L354,100 L354,146 L378,146" fill="none" marker-end="url(#arr6)" stroke="var(--arr)" stroke-width="1.4"></path>
+<path d="M326,192 L354,192 L354,146 L378,146" fill="none" marker-end="url(#arr6)" stroke="var(--arr)" stroke-width="1.4"></path>
+<text class="ts" fill="var(--text-3)" text-anchor="middle" x="390" y="90">A、Bの両方が完了した後にのみ起動</text>
+<rect fill="var(--c-purple-fill)" height="64" rx="8" stroke="var(--c-purple-s)" stroke-width="0.8" width="164" x="378" y="114"></rect>
+<text class="th" dominant-baseline="central" fill="var(--c-purple-t)" text-anchor="middle" x="460" y="137">集約ノード</text>
+<text class="ts" dominant-baseline="central" fill="var(--c-purple-t)" text-anchor="middle" x="460" y="161">依存を待ち、結果を統合</text>
+<line class="arr-line" marker-end="url(#arr6)" x1="542" x2="582" y1="146" y2="146"></line>
+<rect fill="var(--c-gray-fill)" height="44" rx="8" stroke="var(--c-gray-s)" stroke-width="0.8" width="84" x="582" y="124"></rect>
+<text class="th" dominant-baseline="central" fill="var(--c-gray-t)" text-anchor="middle" x="624" y="146">出力</text>
+</svg>
+</div>
+<h3>純粋な Agent vs DAG ワークフロー</h3>
+<table class="reference">
+<tr><th>特性</th><th>純粋なAgent</th><th>DAGワークフロー</th></tr>
+<tr><td>フロー制御</td><td>モデルが次のステップを自律的に決定</td><td>事前定義されたDAG図が決定</td></tr>
+<tr><td>予測可能性</td><td>低い。実行のたびに経路が異なる可能性がある</td><td>高い。実行経路が確定している</td></tr>
+<tr><td>デバッグ容易性</td><td>難しい。ログ追跡に依存する</td><td>容易。各ノードの入出力が明確</td></tr>
+<tr><td>フォールトトレランス</td><td>モデル自身の回復に依存</td><td>フレームワークがリトライ、チェックポイントからの再開を提供</td></tr>
+<tr><td>柔軟性</td><td>高い。予期しない状況に対応できる</td><td>低い。事前定義された経路しか進めない</td></tr>
+</table>
+<p>DAGの「非巡回」（Acyclic）特性は、ワークフローが<span class="marked">決定的（deterministic）である</span>——無限ループがなく、実行経路を完全に予測でき、失敗したノードは個別にリトライできる。</p>
+<blockquote><p>DAGは「低自律性・高予測可能性」の極端な例である。プロセス全体を事前に設計しておく必要がある。これは欠点ではなく、意図的な設計上のトレードオフである。本番環境では、柔軟性よりも決定性が重要な場合がある。</p></blockquote>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: #a50"># DAGワークフローの簡易定義（LangGraph風）</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">from</span> langgraph <span style="color: Green;font-weight:bold;">import</span> StateGraph<br/>
+<br/>
+<span style="color: #a50"># ワークフローの状態を定義 —— ノード間で受け渡されるデータオブジェクト</span><br/>
+<span style="color: Green;font-weight:bold;">class</span> PipelineState:<br/>
+    raw_data: <span style="color: Teal;">str</span> <span style="color: Gray;">=</span> <span style="color: #a11;">""</span>         <span style="color: #a50"># 元の入力データ</span><br/>
+    cleaned_data: <span style="color: Teal;">str</span> <span style="color: Gray;">=</span> <span style="color: #a11;">""</span>     <span style="color: #a50"># クレンジング後のデータ</span><br/>
+    analysis_result: <span style="color: Teal;">dict</span> <span style="color: Gray;">=</span> <span style="color: Olive;">{</span><span style="color: Olive;">}</span> <span style="color: #a50"># 分析結果</span><br/>
+    final_report: <span style="color: Teal;">str</span> <span style="color: Gray;">=</span> <span style="color: #a11;">""</span>     <span style="color: #a50"># 最終レポート</span><br/>
+<br/>
+<span style="color: #a50"># DAGノードを定義 —— 各ノードは独立した処理ユニット</span><br/>
+<span style="color: Green;font-weight:bold;">def</span> extract_data<span style="color: Olive;">(</span>state: PipelineState<span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> PipelineState:<br/>
+    <span style="color: #a11;">"""ノード1：runoobデータベースから元データを抽出"""</span><br/>
+    state.<span style="color: #05a;">raw_data</span> <span style="color: Gray;">=</span> query_database<span style="color: Olive;">(</span><span style="color: #a11;">"SELECT * FROM logs"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> state<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> clean_data<span style="color: Olive;">(</span>state: PipelineState<span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> PipelineState:<br/>
+    <span style="color: #a11;">"""ノード2：データのクレンジング（重複排除、形式の標準化）"""</span><br/>
+    state.<span style="color: #05a;">cleaned_data</span> <span style="color: Gray;">=</span> preprocess<span style="color: Olive;">(</span>state.<span style="color: #05a;">raw_data</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> state<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> analyze_data<span style="color: Olive;">(</span>state: PipelineState<span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> PipelineState:<br/>
+    <span style="color: #a11;">"""ノード3：統計分析"""</span><br/>
+    state.<span style="color: #05a;">analysis_result</span> <span style="color: Gray;">=</span> statistical_analysis<span style="color: Olive;">(</span>state.<span style="color: #05a;">cleaned_data</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> state<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> generate_report<span style="color: Olive;">(</span>state: PipelineState<span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> PipelineState:<br/>
+    <span style="color: #a11;">"""ノード4：LLMを使用してレポートを生成"""</span><br/>
+    state.<span style="color: #05a;">final_report</span> <span style="color: Gray;">=</span> llm.<span style="color: #05a;">generate</span><span style="color: Olive;">(</span><br/>
+        f<span style="color: #a11;">"以下の分析結果に基づいてレポートを生成：{state.analysis_result}"</span><br/>
+    <span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> state<br/>
+<br/>
+<span style="color: #a50"># DAGを構築：ノードとエッジ（データフロー）を定義</span><br/>
+workflow <span style="color: Gray;">=</span> StateGraph<span style="color: Olive;">(</span>PipelineState<span style="color: Olive;">)</span><br/>
+workflow.<span style="color: #05a;">add_node</span><span style="color: Olive;">(</span><span style="color: #a11;">"extract"</span><span style="color: Gray;">,</span> extract_data<span style="color: Olive;">)</span><br/>
+workflow.<span style="color: #05a;">add_node</span><span style="color: Olive;">(</span><span style="color: #a11;">"clean"</span><span style="color: Gray;">,</span> clean_data<span style="color: Olive;">)</span><br/>
+workflow.<span style="color: #05a;">add_node</span><span style="color: Olive;">(</span><span style="color: #a11;">"analyze"</span><span style="color: Gray;">,</span> analyze_data<span style="color: Olive;">)</span><br/>
+workflow.<span style="color: #05a;">add_node</span><span style="color: Olive;">(</span><span style="color: #a11;">"report"</span><span style="color: Gray;">,</span> generate_report<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># エッジを定義：extract → clean → analyze → report</span><br/>
+workflow.<span style="color: #05a;">add_edge</span><span style="color: Olive;">(</span><span style="color: #a11;">"extract"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"clean"</span><span style="color: Olive;">)</span><br/>
+workflow.<span style="color: #05a;">add_edge</span><span style="color: Olive;">(</span><span style="color: #a11;">"clean"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"analyze"</span><span style="color: Olive;">)</span><br/>
+workflow.<span style="color: #05a;">add_edge</span><span style="color: Olive;">(</span><span style="color: #a11;">"analyze"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"report"</span><span style="color: Olive;">)</span><br/>
+workflow.<span style="color: #05a;">set_entry_point</span><span style="color: Olive;">(</span><span style="color: #a11;">"extract"</span><span style="color: Olive;">)</span><br/>
+workflow.<span style="color: #05a;">set_finish_point</span><span style="color: Olive;">(</span><span style="color: #a11;">"report"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># コンパイルして実行</span><br/>
+app <span style="color: Gray;">=</span> workflow.<span style="color: Teal;">compile</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+result <span style="color: Gray;">=</span> app.<span style="color: #05a;">invoke</span><span style="color: Olive;">(</span>PipelineState<span style="color: Olive;">(</span><span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>result.<span style="color: #05a;">final_report</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<h4>利点</h4>
+<ul>
+<li>予測可能、監査可能、再試行可能</li>
+<li>並列実行による高速化をサポート</li>
+<li>エンジニアリング水準が高く、運用に優しい</li>
+</ul>
+<h4>欠点</h4>
+<ul>
+<li>プロセスを事前に設計する必要があり、柔軟性が低い</li>
+<li>予期しない状況への対応が難しい</li>
+<li>オーケストレーションフレームワークの学習が必要</li>
+</ul>
+<hr/>
+<h2>横断的な比較と選択方法</h2>
+<p>6つのアーキテクチャを複数の観点から比較し、最適な選択肢を素早く見つけるのに役立つ。</p>
+<table class="reference">
+<tr><th>アーキテクチャ</th><th>自律性</th><th>予測可能性</th><th>並列能力</th><th>適したタスク複雑度</th><th>代表的な実装</th></tr>
+<tr><td>単一Agentループ</td><td>高</td><td>低</td><td>无</td><td>中低</td><td>Claude Code デフォルトモード</td></tr>
+<tr><td>プランニング + 実行</td><td>中</td><td>中</td><td>部分的</td><td>中高</td><td>Claude Code Plan Mode</td></tr>
+<tr><td>マルチAgent協調</td><td>高</td><td>低</td><td>强</td><td>高</td><td>AutoGen, CrewAI</td></tr>
+<tr><td>自己反省 / 自己修正</td><td>中</td><td>中</td><td>无</td><td>中</td><td>Reflexion, Self-Refine</td></tr>
+<tr><td>RAG + Agent</td><td>高</td><td>中</td><td>无</td><td>中高</td><td>LangChain RAG Agent</td></tr>
+<tr><td>ワークフローオーケストレーション</td><td>低</td><td>高</td><td>强</td><td>高（固定フロー）</td><td>LangGraph, Prefect</td></tr>
+</table>
+<h3>よくある組み合わせパターン</h3>
+<p>実際の本番システムでは通常、複数のアーキテクチャを組み合わせて使用する。以下は成熟した組み合わせパターンである：</p>
+<p><span class="tag1 purple">ワークフローオーケストレーション + マルチAgent：DAGでメインフローを定義し、各ノード内部は独立したAgentである。例えばCI/CDパイプラインでは、コードチェックノードはCode Review Agent、セキュリティスキャンノードはSecurity Agentである。</span>：用 DAG 定义主流程，每个节点内部是一个独立的 Agent。例如 CI/CD 流水线中，代码检查节点是 Code Review Agent，安全扫描节点是 Security Agent。</p>
+<p><span class="tag1 purple">マルチエージェント + RAG</span>: 複数のSubagentが同じベクトル知識ベースを共有し、各々がサブタスクに応じて必要に応じて検索します。例えば、カスタマーサービスシステムでは、注文照会Agentと返金処理Agentが同じ知識ベースを照会しますが、異なる内容を検索します。</p>
+<p><span class="tag1 purple">計画実行 + 反省</span>: まず計画してから実行しますが、各ステップの実行後に反省のプロセスを追加して品質を確保します。品質要求が極めて高いタスクに適しています。</p>
+<blockquote><p>どこから始めればよいかわからない場合は、シングルエージェントループから始めてください。それが最も実装とデバッグが簡単です。コンテキストウィンドウが足りないことに気づいたら、マルチエージェントを検討してください。品質保証が必要な場合は、反省レイヤーを追加してください。プロセスが安定してきたら、信頼性を高めるためにDAGにリファクタリングしてください。</p></blockquote>
+<h3>よくある誤解</h3>
+<p><span class="tag1">誤解その1: アーキテクチャは複雑なほど良い</span></p>
+<p>マルチエージェントの連携は強力に見えますが、タスクがシングルエージェントループで5ステップ以内に完了するなら、オーケストレーションのオーバーヘッドを導入すると逆に効率が低下します。原則: 要件を満たす最もシンプルなアーキテクチャを使用する。</p>
+<p><span class="tag1">誤解その2: 反省は必ず品質を向上させる</span></p>
+<p>自己反省の有効性はモデルの自己評価能力に依存します。品質要求が非常に厳しい場合は、Criticモデルの使用や外部検証（コードの自動テストなど）の導入を検討してください。</p>
+<p><span class="tag1">誤解その3: DAGワークフローにエージェントは不要</span></p>
+<p>DAGはプロセスの骨格を定義しますが、各ノード内部は依然としてエージェント呼び出しにできます。ワークフローオーケストレーションとエージェント機能は排他的ではなく、補完的です——DAGは信頼性を提供し、エージェントは柔軟性を提供します。</p>
+<p><span class="tag1">誤解その4: コンテキストウィンドウが大きくなればRAGは不要</span></p>
+<p>モデルが1Mトークンのコンテキストウィンドウをサポートしていても、すべてのドキュメントを詰め込むのは最適な方法ではありません。RAGの価値は「収容できる」ことだけでなく、さらに<span class="marked">精密な検索</span>——ノイズを減らし、推論コストを下げ、回答の正確性を高めることです。</p>
+<hr/>
+<h2>まとめ</h2>
+<p>6つのエージェントアーキテクチャは、高度に自律的から高度に制御可能までの完全なスペクトルをカバーしています。</p>
+<p>アーキテクチャを選択する際の核となる考慮事項は次の2つだけです:<span class="marked">想定外の状況に対応するために必要な柔軟性の大きさ</span>、および<span class="marked">結果の信頼性を保証するために必要な確実性の大きさ</span>。</p>
+<p>シンプルに始め、本当に必要なときにのみ複雑さを追加する。これがエージェントアーキテクチャ選定の第一原則です。</p> その他の拡張
+</div>
+</div>
+<div class="archive-list" style="display:none;font-size: 14px;line-height: 1.8;margin-top: 20px;padding: 10px;">
+<div class="archive-list-item">
+<div class="post-intro" id="ai-info" style="width: 100%;">AI思考中...</div>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../ai-agent/vertical-applications.html" rel="prev">AIエージェントの垂直応用シーン</a> </div>
+<div class="next-design-link"><a href="../ai-agent/vector-database.html" rel="next">ベクトルデータベース（Vector Database）</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="sidebar-box">
+</div>
+ノートリスト
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>クリックしてノートを共有</h3>
+&lt;p style="font-size:14px;"&gt;ノートは本記事の内容の拡張である必要があります！&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;記事投稿はこちらをクリック&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; ノートを共有する前に&lt;a href=";.html" class="runoob-pop"&gt;ログイン&lt;/a&gt;が必要です！&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=";.html" id="cancel-comment-reply-link">キャンセル</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="30789"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>ノートを共有</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">ニックネーム</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">ニックネーム (必須)</span></li>
+<li class="form-inline"><label class="hide" for="email">メールアドレス</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">メールアドレス (必須)</span></li>
+<li class="form-inline"><label class="hide" for="url">引用アドレス</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">引用アドレス</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  30789;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 30789, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":30789},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+</div>
+</div>
+<!-- 右边栏 -->
+<div class="fivecol last right-column">
+<style>
+.sidebar-tree .double-li {
+    width:300px;
+}
+.sidebar-tree .double-li li {
+    width: 44%;
+    line-height: 1.5em;
+    border-bottom: 1px solid #ccc;
+    float: left;
+    display: inline;
+}
+</style>
+<div class="sidebar-box re-box re-box-large">
+<div class="sidebar-box recommend-here" style="margin: 0 auto;">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;"> <i aria-hidden="true" class="fa fa-list"></i> 分类导航</a>
+</div>
+<div class="sidebar-box sidebar-cate">
+<div class="sidebar-tree">
+<ul><li style="margin: 0;"><a class="tit" href="#"> Python / 数据科学</a><ul class="double-li"><li><a href="../python3/python3-tutorial.html" title="Python 教程">Python 教程</a></li><li><a href="../python/python-tutorial.html" title="Python2.x 教程">Python2.x 教程</a></li><li><a href="../fastapi/fastapi-tutorial.html" title="FastAPI 教程">FastAPI 教程</a></li><li><a href="../flask/flask-tutorial.html" title="Flask 教程">Flask 教程</a></li><li><a href="../django/django-tutorial.html" title="Django 教程">Django 教程</a></li><li><a href="../numpy/numpy-tutorial.html" title="NumPy 教程">NumPy 教程</a></li><li><a href="../pandas/pandas-tutorial.html" title="Pandas 教程">Pandas 教程</a></li><li><a href="../scipy/scipy-tutorial.html" title="SciPy 教程">SciPy 教程</a></li><li><a href="../matplotlib/matplotlib-tutorial.html" title="Matplotlib 教程">Matplotlib 教程</a></li><li><a href="../dash/dash-tutorial.html" title="Dash 教程">Dash 教程</a></li><li><a href="../jupyter-notebook/jupyter-notebook-tutorial.html" title="Jupyter Notebook 教程">Jupyter Notebook 教程</a></li><li><a href="../pillow/pillow-tutorial.html" title="Pillow 教程">Pillow 教程</a></li><li><a href="../qt/qt-tutorial.html" title="量化交易">量化交易</a></li><li><a href="../r/r-tutorial.html" title="R 教程">R 教程</a></li><li><a href="../julia/julia-tutorial.html" title="Julia 教程">Julia 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> AI / 智能开发</a><ul class="double-li"><li><a href="../ai-agent/ai-agent-tutorial.html" title="AI Agent（智能体）">AI Agent（智能体）</a></li><li><a href="../ai/ai-tutorial.html" title="AI（人工智能）">AI（人工智能）</a></li><li><a href="../codex/codex-tutorial.html" title="Codex 教程">Codex 教程</a></li><li><a href="../vibe-coding/vibe-coding-tutorial.html" title="Vibe Coding 教程">Vibe Coding 教程</a></li><li><a href="../claude-code/claude-code-tutorial.html" title="Claude Code">Claude Code</a></li><li><a href="../opencode/opencode-tutorial.html" title="OpenCode">OpenCode</a></li><li><a href="../skills/skills-tutorial.html" title="Skills（技能）">Skills（技能）</a></li><li><a href="../ollama/ollama-tutorial.html" title="Ollama 教程">Ollama 教程</a></li><li><a href="../hermes-agent/hermes-agent-tutorial.html" title="Hermes Agent">Hermes Agent</a></li><li><a href="../deepseek-harness/deepseek-harness-tutorial.html" title="DeepSeek Harness">DeepSeek Harness</a></li><li><a href="../pi-agent/pi-agent-tutorial.html" title="Pi Agent">Pi Agent</a></li><li><a href="../ai-math/ai-math-tutorial.html" title="AI 数学基础">AI 数学基础</a></li><li><a href="../tensorflow/tensorflow-tutorial.html" title="TensorFlow 教程">TensorFlow 教程</a></li><li><a href="../pytorch/pytorch-tutorial.html" title="PyTorch 教程">PyTorch 教程</a></li><li><a href="../sklearn/sklearn-tutorial.html" title="Scikit-learn 教程">Scikit-learn 教程</a></li><li><a href="../ml/ml-tutorial.html" title="机器 教程">机器 教程</a></li><li><a href="../langchain/langchain-tutorial.html" title="LangChain">LangChain</a></li><li><a href="../nlp/nlp-tutorial.html" title="自然语言处理 NLP">自然语言处理 NLP</a></li><li><a href="../opencv/opencv-tutorial.html" title="OpenCV 教程">OpenCV 教程</a></li><li><a href="../selenium/selenium-tutorial.html" title="Selenium 教程">Selenium 教程</a></li><li><a href="../playwright/playwright-tutorial.html" title="Playwright 教程">Playwright 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 前端开发</a><ul class="double-li"><li><a href="../html/html-tutorial.html" title="HTML 教程">HTML 教程</a></li><li><a href="../html/html5-intro.html" title="HTML5 教程">HTML5 教程</a></li><li><a href="../css/css-tutorial.html" title="CSS 教程">CSS 教程</a></li><li><a href="../css3/css3-tutorial.html" title="CSS3 教程">CSS3 教程</a></li><li><a href="../js/js-tutorial.html" title="JavaScript 教程">JavaScript 教程</a></li><li><a href="../htmldom/htmldom-tutorial.html" title="HTML DOM 教程">HTML DOM 教程</a></li><li><a href="../typescript/ts-tutorial.html" title="TypeScript 教程">TypeScript 教程</a></li><li><a href="../ajax/ajax-tutorial.html" title="AJAX 教程">AJAX 教程</a></li><li><a href="../json/json-tutorial.html" title="JSON 教程">JSON 教程</a></li><li><a href="../tailwindcss/tailwindcss-tutorial.html" title="Tailwind CSS 教程">Tailwind CSS 教程</a></li><li><a href="../bootstrap4/bootstrap4-tutorial.html" title="Bootstrap4 教程">Bootstrap4 教程</a></li><li><a href="../bootstrap5/bootstrap5-tutorial.html" title="Bootstrap5 教程">Bootstrap5 教程</a></li><li><a href="../foundation/foundation-tutorial.html" title="Foundation 教程">Foundation 教程</a></li><li><a href="../vue2/vue-tutorial.html" title="Vue.js 教程">Vue.js 教程</a></li><li><a href="../vue3/vue3-tutorial.html" title="Vue3 教程">Vue3 教程</a></li><li><a href="../react/react-tutorial.html" title="React 教程">React 教程</a></li><li><a href="../nextjs/nextjs-tutorial.html" title="Next.js 教程">Next.js 教程</a></li><li><a href="../angularjs/angularjs-tutorial.html" title="AngularJS 教程">AngularJS 教程</a></li><li><a href="../angularjs2/angularjs2-tutorial.html" title="Angular 教程">Angular 教程</a></li><li><a href="../jquery/jquery-tutorial.html" title="jQuery 教程">jQuery 教程</a></li><li><a href="../jqueryui/jqueryui-tutorial.html" title="jQuery UI 教程">jQuery UI 教程</a></li><li><a href="../jeasyui/jqueryeasyui-tutorial.html" title="jQuery EasyUI 教程">jQuery EasyUI 教程</a></li><li><a href="../echarts/echarts-tutorial.html" title="ECharts 教程">ECharts 教程</a></li><li><a href="../chartjs/chartjs-tutorial.html" title="Chart.js 教程">Chart.js 教程</a></li><li><a href="../highcharts/highcharts-tutorial.html" title="Highcharts 教程">Highcharts 教程</a></li><li><a href="../googleapi/google-maps-basic.html" title="Google 地图 教程">Google 地图 教程</a></li><li><a href="../svg/svg-tutorial.html" title="SVG 教程">SVG 教程</a></li><li><a href="../font-awesome/fontawesome-tutorial.html" title="Font Awesome 教程">Font Awesome 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 后端开发</a><ul class="double-li"><li><a href="../nodejs/nodejs-tutorial.html" title="Node.js 教程">Node.js 教程</a></li><li><a href="../electron/electron-tutorial.html" title="Electron 教程">Electron 教程</a></li><li><a href="../php/php-tutorial.html" title="PHP 教程">PHP 教程</a></li><li><a href="../java/java-tutorial.html" title="Java 教程">Java 教程</a></li><li><a href="../go/go-tutorial.html" title="Go 教程">Go 教程</a></li><li><a href="../rust/rust-tutorial.html" title="Rust 教程">Rust 教程</a></li><li><a href="../csharp/csharp-tutorial.html" title="C# 教程">C# 教程</a></li><li><a href="../servlet/servlet-tutorial.html" title="Servlet 教程">Servlet 教程</a></li><li><a href="../jsp/jsp-tutorial.html" title="JSP 教程">JSP 教程</a></li><li><a href="../asp/asp-tutorial.html" title="ASP 教程">ASP 教程</a></li><li><a href="../appml/appml-tutorial.html" title="AppML 教程">AppML 教程</a></li><li><a href="../vbscript/vbscript-tutorial.html" title="VBScript 教程">VBScript 教程</a></li><li><a href="../swagger/swagger-tutorial.html" title="Swagger 教程">Swagger 教程</a></li><li><a href="../restfulapi/restful-api-tutorial.html" title="RESTful API 教程">RESTful API 教程</a></li><li><a href="../docker/docker-tutorial.html" title="Docker 教程">Docker 教程</a></li><li><a href="../linux/linux-tutorial.html" title="Linux 教程">Linux 教程</a></li><li><a href="../w3cnote/zookeeper-tutorial.html" title="ZooKeeper 教程">ZooKeeper 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 数据库</a><ul class="double-li"><li><a href="../sql/sql-tutorial.html" title="SQL 教程">SQL 教程</a></li><li><a href="../mysql/mysql-tutorial.html" title="MySQL 教程">MySQL 教程</a></li><li><a href="../postgresql/postgresql-tutorial.html" title="PostgreSQL 教程">PostgreSQL 教程</a></li><li><a href="../sqlite/sqlite-tutorial.html" title="SQLite 教程">SQLite 教程</a></li><li><a href="../mongodb/mongodb-tutorial.html" title="MongoDB 教程">MongoDB 教程</a></li><li><a href="../redis/redis-tutorial.html" title="Redis 教程">Redis 教程</a></li><li><a href="../memcached/memcached-tutorial.html" title="Memcached 教程">Memcached 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 移动开发</a><ul class="double-li"><li><a href="../w3cnote/android-tutorial-intro.html" title="Android 教程">Android 教程</a></li><li><a href="../flutter/flutter-tutorial.html" title="Flutter 教程">Flutter 教程</a></li><li><a href="../ionic/ionic-tutorial.html" title="Ionic 教程">Ionic 教程</a></li><li><a href="../jquerymobile/jquerymobile-tutorial.html" title="jQuery Mobile 教程">jQuery Mobile 教程</a></li><li><a href="../swift/swift-tutorial.html" title="Swift 教程">Swift 教程</a></li><li><a href="../kotlin/kotlin-tutorial.html" title="Kotlin 教程">Kotlin 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> DevOps / 工程化</a><ul class="double-li"><li><a href="../git/git-tutorial.html" title="Git 教程">Git 教程</a></li><li><a href="../svn/svn-tutorial.html" title="SVN 教程">SVN 教程</a></li><li><a href="../cmake/cmake-tutorial.html" title="CMake 教程">CMake 教程</a></li><li><a href="../maven/maven-tutorial.html" title="Maven 教程">Maven 教程</a></li><li><a href="../vscode/vscode-tutorial.html" title="VS Code 教程">VS Code 教程</a></li><li><a href="../obsidian/obsidian-tutorial.html" title="Obsidian 教程">Obsidian 教程</a></li><li><a href="../pycharm/pycharm-tutorial.html" title="PyCharm 教程">PyCharm 教程</a></li><li><a href="../eclipse/eclipse-tutorial.html" title="Eclipse 教程">Eclipse 教程</a></li><li><a href="../markdown/md-tutorial.html" title="Markdown 教程">Markdown 教程</a></li><li><a href="../latex/latex-tutorial.html" title="LaTeX 教程">LaTeX 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 编程语言</a><ul class="double-li"><li><a href="../c/c-tutorial.html" title="C 教程">C 教程</a></li><li><a href="../cplusplus/cpp-tutorial.html" title="C++ 教程">C++ 教程</a></li><li><a href="../zig/zig-tutorial.html" title="Zig 教程">Zig 教程</a></li><li><a href="../scala/scala-tutorial.html" title="Scala 教程">Scala 教程</a></li><li><a href="../ruby/ruby-tutorial.html" title="Ruby 教程">Ruby 教程</a></li><li><a href="../perl/perl-tutorial.html" title="Perl 教程">Perl 教程</a></li><li><a href="../lua/lua-tutorial.html" title="Lua 教程">Lua 教程</a></li><li><a href="../dart/dart-tutorial.html" title="Dart 教程">Dart 教程</a></li><li><a href="../assembly/assembly-tutorial.html" title="汇编语言 教程">汇编语言 教程</a></li><li><a href="../w3cnote/verilog-tutorial.html" title="Verilog 教程">Verilog 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 计算机基础</a><ul class="double-li"><li><a href="../computer-organization/computer-organization-tutorial.html" title="计算机组成原理">计算机组成原理</a></li><li><a href="../data-structures/data-structures-tutorial.html" title="数据结构与算法">数据结构与算法</a></li><li><a href="../c-dsa/c-dsa-tutorial.html" title="C 语言数据结构与算法">C 语言数据结构与算法</a></li><li><a href="../design-pattern/design-pattern-tutorial.html" title="设计模式">设计模式</a></li><li><a href="../python-design-pattern/python-design-pattern-tutorial.html" title="Python 设计模式">Python 设计模式</a></li><li><a href="../regexp/regexp-tutorial.html" title="正则表达式">正则表达式</a></li><li><a href="../http/http-tutorial.html" title="HTTP 教程">HTTP 教程</a></li><li><a href="../tcpip/tcpip-tutorial.html" title="TCP/IP 教程">TCP/IP 教程</a></li><li><a href="../np/np-tutorial.html" title="网络协议">网络协议</a></li><li><a href="../w3c/w3c-tutorial.html" title="W3C 教程">W3C 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> XML / Web Service</a><ul class="double-li"><li><a href="../xml/xml-tutorial.html" title="XML 教程">XML 教程</a></li><li><a href="../dtd/dtd-tutorial.html" title="DTD 教程">DTD 教程</a></li><li><a href="../dom/dom-tutorial.html" title="XML DOM 教程">XML DOM 教程</a></li><li><a href="../xsl/xsl-tutorial.html" title="XSLT 教程">XSLT 教程</a></li><li><a href="../xpath/xpath-tutorial.html" title="XPath 教程">XPath 教程</a></li><li><a href="../xquery/xquery-tutorial.html" title="XQuery 教程">XQuery 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XLink 教程">XLink 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XPointer 教程">XPointer 教程</a></li><li><a href="../schema/schema-tutorial.html" title="XML Schema 教程">XML Schema 教程</a></li><li><a href="../xslfo/xslfo-tutorial.html" title="XSL-FO 教程">XSL-FO 教程</a></li><li><a href="../webservices/webservices-tutorial.html" title="Web Service 教程">Web Service 教程</a></li><li><a href="../wsdl/wsdl-tutorial.html" title="WSDL 教程">WSDL 教程</a></li><li><a href="../soap/soap-tutorial.html" title="SOAP 教程">SOAP 教程</a></li><li><a href="../rss/rss-tutorial.html" title="RSS 教程">RSS 教程</a></li><li><a href="../rdf/rdf-tutorial.html" title="RDF 教程">RDF 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> .NET</a><ul class="double-li"><li><a href="../aspnet/aspnet-tutorial.html" title="ASP.NET 教程">ASP.NET 教程</a></li><li><a href="../aspnet/mvc-intro.html" title="MVC 教程">MVC 教程</a></li><li><a href="../aspnet/razor-intro.html" title="Razor 教程">Razor 教程</a></li><li><a href="../aspnet/aspnet-intro.html" title="Web Forms 教程">Web Forms 教程</a></li><li><a href="../aspnet/webpages-intro.html" title="Web Pages 教程">Web Pages 教程</a></li><li><a href="../powershell/powershell-tutorial.html" title="PowerShell 教程">PowerShell 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 网站建设</a><ul class="double-li"><li><a href="../web/web-buildingprimer.html" title="网站建设指南">网站建设指南</a></li><li><a href="../browsers/browser-information.html" title="浏览器信息">浏览器信息</a></li><li><a href="../hosting/hosting-tutorial.html" title="网站主机教程">网站主机教程</a></li><li><a href="../quality/quality-tutorial.html" title="网站品质">网站品质</a></li></ul></li></ul> </div>
+</div>
+</div>
+<br/>
+<div class="sidebar-box re-box re-box-large">
+</div>
+</div></div>
+</div>
+<script>
+var aid = 30789;
+function coll() {
+	$.post( '/wp-content/themes/runoob/option/user/userinfo.php', {aid:aid, action:"collarticle", opt:'add'},function( data ) {
+		if(data.error==0) {
+			$("#content").find("h1:first").find("a").attr("href","javascript:void(0);");
+			$("#content").find("h1:first").find("img").attr("src","http://www.runoob.com/wp-content/themes/runoob/assets/img/coll2.png").css({width:32+"px",height:32+"px"});
+		}
+		alert(data.msg);
+	},'json');
+}
+
+(function () {
+    // 1. 仅 HTML 页面
+    if (!document.contentType || !document.contentType.includes('text/html')) return;
+
+    // 2. 容器判断
+    var container = document.querySelector('.article-intro');
+    if (!container) return;
+
+    var h1 = container.querySelector('h1');
+    if (!h1) return;
+
+    // 3. URL 判断
+    var url = window.location.href.toLowerCase();
+    var version = null;
+
+    if (url.includes('/python3/')) {
+        version = 'Python3.x';
+    } else if (url.includes('/python/')) {
+        version = 'Python2.x';
+    }
+
+    if (!version) return;
+
+    // 4. 防重复
+    if (h1.querySelector('.py-version-badge')) return;
+
+    // 5. 创建标签
+    var badge = document.createElement('span');
+    badge.className = 'py-version-badge';
+    badge.innerText = version;
+
+    // 6. 样式（核心：float 实现右上角）
+    badge.style.float = 'right';
+    badge.style.fontSize = '12px';
+    badge.style.padding = '2px 8px';
+    badge.style.borderRadius = '999px';
+
+   // 自适应亮/暗色 + 渐变背景（增强版）
+	badge.style.color = 'inherit';
+
+	// 渐变背景（低透明度，不影响暗黑模式）
+	if (version.includes('3')) {
+		badge.style.background = 'linear-gradient(90deg, rgba(79,172,254,0.15), rgba(0,242,254,0.15))';
+	} else {
+		badge.style.background = 'linear-gradient(90deg, rgba(161,140,209,0.15), rgba(251,194,235,0.15))';
+	}
+
+	// 边框弱化（更精致）
+	badge.style.border = '1px solid rgba(127,127,127,0.3)';
+
+	// 提升可读性
+	badge.style.opacity = '0.95';
+
+    // 微调位置（更贴近“右上角”）
+    badge.style.marginTop = '4px';
+    badge.style.marginLeft = '10px';
+
+    // 7. 插入到 h1 最前面（让 float 生效更稳定）
+    h1.insertBefore(badge, h1.firstChild);
+
+})();
+</script>
+<!-- 反馈对话框开始 -->
+<script src="../wp-content/themes/runoob/assets/js/runoob-article-dir.min.js"></script>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>2.2 Aprende Picasso de forma integral (2) | Tutorial para novatos</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="./android-advance-picasso2.html" rel="canonical"/>
+<meta content="2.2 带你全方位学习Picasso（二）" name="keywords"/>
+<meta content="目录   图像请求排序 tag() 分组请求 回调, RemoteView与Notifications 图像旋转与转换 图像缓存 缓存指示器，日志，统计 使用 Picasso.Builder 自定义Picasso 自定义请求处理 picasso2-okhttp3-downloader 与 picasso-transformations   图像请求排序 优先级：HIGH,MEDIUM,LOW 假设有一种场景，就是图片加载需要优先级显示，.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div><!-- 导航栏 -->
+<!--  内容  -->
+<div class="container main">
+<div class="row">
+<div class="col middle-column big-middle-column">
+<div class="article">
+<div class="article-heading">
+<h2>2.2 Aprende Picasso de forma integral (2)</h2> <h3><em>Categoría</em> <a href="../w3cnote_genre/android-advance.html" title="Android 扩展教程">Tutorial de extensión de Android</a> </h3>
+</div>
+<div class="article-body note-body">
+<div class="article-intro">
+<!-- ad start-->
+<!-- ad end-->
+<h2>Índice</h2>
+<ol>
+<li>Orden de solicitudes de imágenes</li>
+<li>tag() Agrupar solicitudes</li>
+<li>Callbacks, RemoteView y Notifications</li>
+<li>Rotación y transformación de imágenes</li>
+<li>Caché de imágenes</li>
+<li>Indicador de caché, registro, estadísticas</li>
+<li>Personalizar Picasso usando Picasso.Builder</li>
+<li>Manejo personalizado de solicitudes</li>
+<li>picasso2-okhttp3-downloader y picasso-transformations</li>
+</ol>
+<hr/>
+<h2>Orden de solicitudes de imágenes</h2>
+<h3>Prioridad: HIGH, MEDIUM, LOW</h3>
+<p>Supongamos un escenario en el que la carga de imágenes necesita mostrarse por prioridad; en ese caso se usará<code>priority()</code>Este método requiere uno de los tres parámetros:<code>HIGH,MEDIUM,LOW</code>, por defecto, todas las solicitudes son MEDIUM.</p>
+<pre>
+//HIGH
+Picasso  
+    .with(context)
+    .load(UsageExampleListViewAdapter.eatFoodyImages[0])
+    .fit()
+    .priority(Picasso.Priority.HIGH)
+    .into(imageViewHero);
+
+//LOW
+Picasso  
+    .with(context)
+    .load(UsageExampleListViewAdapter.eatFoodyImages[2])
+    .fit()
+    .priority(Picasso.Priority.LOW)
+    .into(imageViewLowPrioRight);
+</pre><p><strong>注</strong>: usar<code>priority()</code>No garantiza al 100% el orden de visualización de las imágenes, solo es la prioridad de la solicitud.</p>
+<hr/>
+<h2>tag() Agrupar solicitudes</h2><p>Ya conoce la prioridad de las solicitudes de imágenes, pero quizás no sea suficiente. Supongamos que necesitamos cancelar, pausar y reanudar varias solicitudes de imágenes al mismo tiempo; para esto se usará<code>tag()</code></p>
+<p><code>tag()</code>Puede usar cualquier objeto de Java como parámetro, porque con base en estos podemos construir grupos de imágenes. El grupo de imágenes tiene las siguientes opciones:</p>
+<ul>
+<li>Pausar solicitudes pauseTag()</li>
+<li>Reanudar solicitudes resumeTag()</li>
+<li>Cancelar solicitudes cancelTag()</li>
+</ul><p>Quizás todavía no entienda qué es esto exactamente; veamos un pequeño ejemplo.</p>
+<h3>Ejemplo: pauseTag() y resumeTag()</h3>
+<p>Supongamos que tenemos una aplicación de correo, cuyo contenido se muestra principalmente<code>ListView</code>usando.</p>
+<p><img alt="" decoding="async" src="../wp-content/uploads/2017/01/2.png"/></p>
+<p>Ahora, imaginemos una situación: el usuario busca cierta información y luego se desplaza rápidamente. ListView normalmente recicla y reutiliza rápidamente cada contenedor; sin embargo, Picasso intentará hacer una solicitud para cada elemento y luego la cancelará inmediatamente, porque el usuario se desplaza rápidamente.</p>
+<p>Para reducir más solicitudes, podemos esperar a que ListView termine de desplazarse para cargar las imágenes; el usuario no notará ninguna diferencia, pero así se habrá reducido la cantidad de solicitudes.</p>
+<p>La implementación es muy fácil. Primero, agregue una etiqueta a su solicitud de Picasso.</p>
+<pre>
+Picasso  
+    .with(context)
+    .load(UsageExampleListViewAdapter.eatFoodyImages[0])
+    .tag("Profile ListView") // can be any Java object
+    .into(imageViewWithTag);
+
+//接着，实现一个  `AbsListView.OnScrollListener` 和重写  `onScrollStateChanged()`
+
+@Override
+public void onScrollStateChanged(AbsListView view, int scrollState) {
+final Picasso picasso = Picasso.with(context);
+
+if (scrollState == SCROLL_STATE_IDLE || scrollState == SCROLL_STATE_TOUCH_SCROLL) {
+      picasso.resumeTag(context);
+} else {
+      picasso.pauseTag(context);
+}
+}
+
+//最后一步
+listView.setOnScrollListener(onScrollListener);
+</pre>
+<blockquote>
+<p>Cuando ListView está en un estado de desplazamiento muy rápido, pausa todas las solicitudes; cuando el desplazamiento es normal o se detiene, reanuda las solicitudes.</p>
+<p><a href="https://github.com/square/picasso/blob/master/picasso-sample/src/main/java/com/example/picasso/SampleScrollListener.java">Código de ejemplo del sitio oficial</a> </p>
+</blockquote>
+<p>Nota: este artículo usa principalmente String como tag; quizás quiera usar un objeto diferente, quizás piense en<code>Context or Activity, Fragment</code>, pero la documentación oficial advierte<strong>Si el usuario abandona<code>Activity</code>, el recolector de basura podría no poder destruir el objeto Activity debido a Picasso, y se produciría una fuga de memoria.</strong></p>
+<hr/>
+<h2>Callbacks, RemoteView y Notifications</h2>
+<h3>Diferencias entre fetch(), get() y Target</h3>
+<p><strong>fetch()：</strong> <code>fetch()</code>Cargará la imagen de forma asíncrona en un subproceso en segundo plano, pero no la mostrará en<code>ImageView</code>ni devolverá un Bitmap; este método solo la guardará en la caché de disco y de memoria. Se puede usar para cargar la imagen actual más adelante.</p>
+<p><strong>get()：</strong> <code>get()</code>Carga la imagen de forma síncrona y devuelve un<code>Bitmap</code>objeto.<strong>Targets：</strong>La opción into, además de pasar un objeto ImageView, también puede pasar un Target, que es un callback.</p>
+<h3>Usar Target como mecanismo de callback</h3>
+<p>Hasta ahora,<code>.into()</code>siempre hemos estado pasando un objeto ImageView; por supuesto, este método también tiene sobrecargas. Veamos directamente un ejemplo y quizás lo entienda de inmediato.</p>
+<pre>
+Picasso  
+    .with(context)
+    .load(UsageExampleListViewAdapter.eatFoodyImages[0])
+    .into(target);
+
+//下面是重点
+private Target target = new Target() {  
+    @Override
+    public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from){
+        // 图片加载成功
+    }
+    @Override
+    public void onBitmapFailed(Drawable errorDrawable) {
+        // 图片加载失败
+    }
+    @Override
+    public void onPrepareLoad(Drawable placeHolderDrawable) {
+        //图片加载中
+    }
+};
+</pre><p><strong>Nota:</strong>Aquí no se recomienda usar clases anónimas; el mecanismo de recolección de basura podría recolectar su objetivo y no obtendrá el Bitmap</p>
+<h3>Usar RemoteView para cargar imágenes en Notifications personalizadas</h3>
+<p><code>RemoteView</code>Se usa para<code>Widgets</code>和<code>自定义notification</code></p>
+<p>Veamos primero una notificación personalizada.</p>
+<pre>
+// create RemoteViews
+final RemoteViews remoteViews = new RemoteViews(getPackageName(), R.layout.remoteview_notification);
+
+remoteViews.setImageViewResource(R.id.remoteview_notification_icon, R.mipmap.future_studio_launcher);
+
+remoteViews.setTextViewText(R.id.remoteview_notification_headline, "Headline");  
+remoteViews.setTextViewText(R.id.remoteview_notification_short_message, "Short Message");
+
+remoteViews.setTextColor(R.id.remoteview_notification_headline, getResources().getColor(android.R.color.black));  
+remoteViews.setTextColor(R.id.remoteview_notification_short_message, getResources().getColor(android.R.color.black));
+
+// build notification
+NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(UsageExampleTargetsAndRemoteViews.this)  
+    .setSmallIcon(R.mipmap.future_studio_launcher)
+    .setContentTitle("Content Title")
+    .setContentText("Content Text")
+    .setContent(remoteViews)
+    .setPriority(NotificationCompat.PRIORITY_MIN);
+
+final Notification notification = mBuilder.build();
+
+// set big content view for newer androids
+if (android.os.Build.VERSION.SDK_INT &gt;= 16) {  
+    notification.bigContentView = remoteViews;
+}
+
+NotificationManager mNotificationManager = (NotificationManager) this.getSystemService(Context.NOTIFICATION_SERVICE);  
+mNotificationManager.notify(NOTIFICATION_ID, notification); 
+</pre>
+<p>Los códigos anteriores crean una notificación con un diseño personalizado, pero no entraremos en detalles porque no es el punto principal. Para implementar este requisito con Picasso, es muy fácil:<code>.into(android.widget.RemoteViews remoteViews, int viewId, int notificationId, android.app.Notification notification)</code></p>
+<pre>
+Picasso  
+    .with(UsageExampleTargetsAndRemoteViews.this)
+    .load(UsageExampleListViewAdapter.eatFoodyImages[0])
+    .into(remoteViews, R.id.remoteview_notification_icon, NOTIFICATION_ID, notification);
+</pre>
+<blockquote>
+<p>Si no sabe qué es cada variable, puede consultar el código anterior. Veamos primero la imagen del resultado.</p>
+</blockquote>
+<p><img alt="" decoding="async" src="../wp-content/uploads/2017/01/3.jpg"/></p>
+<hr/>
+<h2>Rotación y transformación de imágenes</h2>
+<h3>Rotación</h3>
+<p>Picasso tiene una función de rotación integrada; veamos directamente el código, porque no es difícil de entender.</p>
+<pre>
+Picasso  
+    .with(context)
+    .load(UsageExampleListViewAdapter.eatFoodyImages[0])
+    .rotate(90f)
+    .into(imageViewSimpleRotate);
+</pre><p>Además de rotar por defecto alrededor del centro, a veces podemos necesitar rotar alrededor de otros ejes; podemos llamar a<code>rotate(float degrees, float pivotX, float pivotY)</code>。</p>
+<pre>
+Picasso  
+    .with(context)
+    .load(R.drawable.floorplan)
+    .rotate(45f, 200f, 100f)
+    .into(imageViewComplexRotate);
+</pre><h3>Transformación</h3>
+<p>La rotación es solo una pequeña parte de las técnicas de procesamiento de imágenes; Picasso también proporciona<code>Transformation</code>para el procesamiento de imágenes. Solo necesita implementar<code>Transformation</code>un método principal de la interfaz<code>transform(android.graphics.Bitmap source)</code>, este método recibe un Bitmap y devuelve el transformado. Después de implementar esta interfaz, solo necesita llamar en Picasso<code>transform(Transformation transformation)</code>para completar la transformación de la imagen. Después de tanto hablar, veamos dos ejemplos.</p>
+<p><strong>Desenfoque de imagen</strong></p>
+<p>Primero, necesitamos implementar<code>Transformation</code>la interfaz, mediante el uso de<code>RenderScript</code>. Pero este artículo no tiene la intención de presentar<code>RenderScript</code>, pero debemos entender que se puede usar para desenfocar imágenes.</p>
+<pre>
+public class BlurTransformation implements Transformation {
+
+    RenderScript rs;
+
+    public BlurTransformation(Context context) {
+        super();
+        rs = Renderscript.create(context);
+    }
+
+    @Override
+    public Bitmap transform(Bitmap bitmap) {
+        // 创建一个位图，
+        Bitmap blurredBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true);
+
+        // 分配内存
+        Allocation input = Allocation.createFromBitmap(rs, blurredBitmap, Allocation.MipmapControl.MIPMAP_FULL, Allocation.USAGE_SHARED);
+        Allocation output = Allocation.createTyped(rs, input.getType());
+
+        // 加载一个特定的脚本
+        ScriptIntrinsicBlur script = ScriptIntrinsicBlur.create(rs, Element.U8_4(rs));
+        script.setInput(input);
+
+        // 设置模糊半径
+        script.setRadius(10);
+
+        // 启动ScriptIntrinisicBlur
+        script.forEach(output);
+
+        // 输出
+        output.copyTo(blurredBitmap);
+
+        bitmap.recycle();
+        return blurredBitmap;
+    }
+
+    @Override
+    public String key() {
+        return "blur";
+    }
+}
+</pre>
+<p>Una vez completada la definición, la llamada en Picasso será muy sencilla.</p>
+<pre>
+Picasso  
+    .with(context)
+    .load(UsageExampleListViewAdapter.eatFoodyImages[0])
+    .transform(new BlurTransformation(context))
+    .into(imageViewTransformationBlur);
+</pre>
+<p><strong>Desenfoque y escala de grises</strong>No solo eso, el<code>transform</code>método de Picasso también proporciona<code>transform(List&lt;? extends Transformation&gt; transformations)</code>, lo que significa que podemos aplicar una serie de transformaciones a la imagen. Aquí, implementaremos además una escala de grises.</p>
+<pre>
+public class GrayscaleTransformation implements Transformation {
+
+    private final Picasso picasso;
+
+    public GrayscaleTransformation(Picasso picasso) {
+        this.picasso = picasso;
+    }
+
+    @Override
+    public Bitmap transform(Bitmap source) {
+        Bitmap result = createBitmap(source.getWidth(), source.getHeight(), source.getConfig());
+        Bitmap noise;
+        try {
+            noise = picasso.load(R.drawable.noise).get();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to apply transformation! Missing resource.");
+        }
+
+        BitmapShader shader = new BitmapShader(noise, REPEAT, REPEAT);
+
+        ColorMatrix colorMatrix = new ColorMatrix();
+        colorMatrix.setSaturation(0);
+        ColorMatrixColorFilter filter = new ColorMatrixColorFilter(colorMatrix);
+
+        Paint paint = new Paint(ANTI_ALIAS_FLAG);
+        paint.setColorFilter(filter);
+
+        Canvas canvas = new Canvas(result);
+        canvas.drawBitmap(source, 0, 0, paint);
+
+        paint.setColorFilter(null);
+        paint.setShader(shader);
+        paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.MULTIPLY));
+
+        canvas.drawRect(0, 0, canvas.getWidth(), canvas.getHeight(), paint);
+
+        source.recycle();
+        noise.recycle();
+
+        return result;
+    }
+
+    @Override
+    public String key() {
+        return "grayscaleTransformation()";
+    }
+}
+</pre>
+<p>Después de completarlo, volvemos a la referencia en Picasso; esta vez solo necesitamos crear una colección List.</p>
+<pre>
+List&lt;Transformation&gt; transformations = new ArrayList&lt;&gt;();
+
+transformations.add(new GrayscaleTransformation(Picasso.with(context)));  
+transformations.add(new BlurTransformation(context));
+
+Picasso  
+    .with(context)
+    .load(UsageExampleListViewAdapter.eatFoodyImages[0])
+    .transform(transformations)
+    .into(imageViewTransformationsMultiple);
+</pre><hr/><h2>Caché de imágenes</h2><p>Configuración de caché predeterminada de Picasso.</p>
+<blockquote>
+<p>Caché de memoria LRU: 15% de la RAM disponible
+Caché de disco: 2% del espacio de almacenamiento, hasta 50mb, pero no menos de 5mb
+Tres subprocesos de descarga para acceso a disco y red</p>
+</blockquote>
+<p>Podemos cambiar el tamaño de la caché, pero eso está fuera del alcance de este blog. Volviendo al tema de la caché de imágenes, Picasso primero intenta cargar la imagen desde la caché de memoria; si no está, busca en la caché de disco; si tampoco está en el disco, inicia una solicitud de red (memoria -&gt; disco -&gt; solicitud de red). Además, todas las imágenes solicitadas se almacenan en ambas cachés (hasta que deben eliminarse para liberar espacio).
+Si cree que esta estrategia de caché no es suficiente para usted, podemos ver<code>MemoryPolicy</code></p>
+<h3>Estrategia de memoria</h3>
+<p>Primero, Picasso obtiene la imagen solicitada preferentemente de la memoria; si desea omitir este paso, puede usar<code>memoryPolicy(MemoryPolicy policy, MemoryPolicy... additional)</code>。 <code>MemoryPolicy</code>es una enumeración simple con dos valores<code>NO_CACHE和NO_STORE</code>。</p>
+<pre>
+Picasso  
+    .with(context)
+    .load(UsageExampleListViewAdapter.eatFoodyImages[1])
+    .memoryPolicy(MemoryPolicy.NO_CACHE)
+    .into(imageViewFromDisk);
+</pre><p>Si quiere saber para qué se usa NO_STORE: es para que la imagen solicitada no se almacene en caché en la memoria. Veamos el siguiente ejemplo.</p>
+<pre>
+Picasso  
+    .with(context)
+    .load(UsageExampleListViewAdapter.eatFoodyImages[1])
+    .memoryPolicy(MemoryPolicy.NO_CACHE, MemoryPolicy.NO_STORE)
+    .into(imageViewFromDisk);
+</pre><p>Esto hace que la imagen solicitada no se almacene en caché en memoria y que Picasso tampoco la busque en memoria. La ventaja es que acelera la recuperación de memoria, porque la API existente no puede limpiar la caché de memoria.</p>
+<h3>Estrategia de red</h3>
+<p>Si desea omitir la caché de disco, puede llamar a<code>.networkPolicy(NetworkPolicy policy, NetworkPolicy... additional)</code> 与 <code>NetworkPolicy.NO_CACHE</code>como parámetro.</p>
+<pre>
+Picasso  
+    .with(context)
+    .load(UsageExampleListViewAdapter.eatFoodyImages[2])
+    .networkPolicy(NetworkPolicy.NO_CACHE)
+    .into(imageViewFromNetwork);
+</pre>
+<p>Finalmente, también se proporciona una tercera opción<code>NetworkPolicy：OFFLINE</code>. Si se usa esto como parámetro, Picasso solo buscará la imagen en la caché y no enviará una solicitud incluso si hay red.</p>
+<hr/>
+<h2>Indicador de caché, registro, estadísticas</h2>
+<h3>Indicador de caché</h3><p>Como desarrolladores competentes, a veces necesitamos analizar de dónde provienen las imágenes. La forma más sencilla es activar el indicador de caché; solo tenemos que usar<code>.setIndicatorsEnabled(true)</code> 。</p>
+<pre>
+Picasso  
+    .with(context)
+    .setIndicatorsEnabled(true);
+</pre>
+<p>A partir de entonces, todas las imágenes tendrán un pequeño indicador en la esquina superior izquierda.</p>
+<p><img alt="" decoding="async" src="../wp-content/uploads/2017/01/4.png"/></p>
+<ul>
+<li>Verde (la imagen proviene de la memoria)</li>
+<li>Azul (la imagen proviene del disco)</li>
+<li>Rojo (la imagen proviene de la red)</li>
+</ul><h3>Registro</h3>
+<p>A veces es posible que necesitemos más información; podemos activar el log,<code>.setLoggingEnabled(true)</code>。</p>
+<pre>
+Picasso  
+    .with(context)
+    .setLoggingEnabled(true);
+</pre><p>Esto hará que todas las cargas de imágenes impriman un log.</p>
+<pre>
+D/Picasso﹕ Main        created      [R0] Request{http://i.imgur.com/rT5vXE1.jpg}  
+D/Picasso﹕ Dispatcher  enqueued     [R0]+21ms  
+D/Picasso﹕ Hunter      executing    [R0]+26ms  
+D/Picasso﹕ Hunter      decoded      [R0]+575ms  
+D/Picasso﹕ Dispatcher  batched      [R0]+576ms for completion  
+D/Picasso﹕ Main        completed    [R0]+807ms from NETWORK  
+D/Picasso﹕ Dispatcher  delivered    [R0]+809ms  
+</pre><hr/><h2>Estadísticas</h2><p>Podemos obtener el resultado promedio de las solicitudes.</p>
+<pre>
+StatsSnapshot picassoStats = Picasso.with(context).getSnapshot();
+
+Log.d("Picasso Stats", picassoStats.toString());
+</pre><p>La consola mostrará</p>
+<pre>
+D/Picasso Stats﹕ StatsSnapshot{
+maxSize=28760941, 
+size=26567204, 
+cacheHits=30, 
+cacheMisses=58, 
+downloadCount=0, 
+totalDownloadSize=0, 
+averageDownloadSize=0, 
+totalOriginalBitmapSize=118399432, 
+totalTransformedBitmapSize=96928004, 
+averageOriginalBitmapSize=2466654, 
+averageTransformedBitmapSize=2019333, 
+originalBitmapCount=48, 
+transformedBitmapCount=41, 
+timeStamp=1432576918067}
+</pre><hr/><h2>Personalizar Picasso usando Picasso.Builder</h2><p>Picasso tiene métodos directos para modificar la instancia de Picasso.<code>Picasso.Builder类</code>Se puede usar esto para personalizar Picasso.</p><h3>Personalización local de Picasso</h3><p>Antes de entrar en la personalización de Picasso, necesitamos repasar brevemente cómo obtener una instancia estándar de Picasso.</p>
+<pre>
+Picasso picasso = Picasso.with(Context);  
+</pre><p>Este método devuelve el Picasso estándar. Si necesitas crear una instancia personalizada, una forma es crear<code>Picasso.Builder</code>el objeto para hacer ajustes.</p>
+<pre>
+// 创建 Picasso.Builder 对象
+Picasso.Builder picassoBuilder = new Picasso.Builder(context);
+// TODO
+Picasso picasso = picassoBuilder.build()
+</pre><p>A continuación, podemos usar el Picasso personalizado para cargar imágenes.</p>
+<pre>
+picasso  
+    .load(UsageExampleListViewAdapter.eatFoodyImages[0])
+    .into(imageView1)
+</pre>
+<h3>Usar Picasso personalizado globalmente</h3><p>La forma de crear y modificar instancias de Picasso se mantiene igual.</p>
+<pre>
+// 创建 Picasso.Builder 对象
+Picasso.Builder picassoBuilder = new Picasso.Builder(context);
+
+//TODO
+Picasso picasso = picassoBuilder.build(); 
+</pre><p>Para hacer que este Picasso sea global, solo tenemos que llamar a<code>Picasso.setSingletonInstance(picasso);</code>Normalmente, esto debería inicializarse al iniciar la aplicación.</p>
+<pre>
+try {  
+    Picasso.setSingletonInstance(picasso);
+} catch (IllegalStateException ignored) {
+}
+</pre><p>Una vez que hayas personalizado el Picasso global, todas las<code>Picasso.with(Context context)</code>llamadas devolverán el Picasso personalizado.</p>
+<p>Aunque hemos aprendido a personalizar Picasso, todavía no entendemos qué se puede hacer con un Picasso personalizado.</p>
+<h3>Personalizar Picasso: cambiar el descargador</h3><p>Picasso usa por defecto los mejores componentes de caché y red disponibles. Si quieres cambiar el descargador predeterminado, puedes<code>Picasso.Builder</code>llamar a<code>downloader(Downloader downloader)</code>, por ejemplo, nuestro OkHttp.</p>
+<pre>
+Picasso.Builder picassoBuilder = new Picasso.Builder(context);
+
+//更改下载器。
+picassoBuilder.downloader(new OkHttpDownloader(new OkHttpClient()));
+
+Picasso picasso = picassoBuilder.build();
+</pre><p>Pero hay un punto a tener en cuenta: si las imágenes que cargas provienen de tu propio servidor, y el servidor usa HTTPS, y además requiere una firma, en ese caso OkHttp no podrá cargar las imágenes debido a problemas de SSL. En ese momento puedes optar por usar UnsafeOkHttpClient para evitar ese problema.</p>
+<pre>
+picassoBuilder.downloader(  
+    new OkHttpDownloader(
+        UnsafeOkHttpClient.getUnsafeOkHttpClient()
+    )
+);
+</pre><h3>Manejo personalizado de solicitudes</h3><p>Seguimos con la personalización de Picasso; primero veamos un fragmento de código.</p>
+<pre>
+Picasso.Builder picassoBuilder = new Picasso.Builder(context);
+
+picassoBuilder.addRequestHandler(new EatFoodyRequestHandler());
+
+Picasso picasso = picassoBuilder.build();  
+</pre><p>Lo único que puede resultar confuso es<code>EatFoodyRequestHandler</code>, que es una clase que extendemos<code>RequestHandler</code>de tipo personalizado (procesamiento de solicitudes); así que veamos qué es<code>RequestHandler</code>。</p>
+<h3>Implementación de RequestHandler</h3><p>Esta es una clase abstracta que tiene dos métodos que deben implementarse.</p>
+<pre>
+boolean canHandleRequest(Request data) Result load(Request request, int networkPolicy)
+</pre><p>El primer método le permite a Picasso saber si este manejador de solicitudes puede manejar la solicitud actual; si es así, la solicitud se pasará a<code>load()</code>el método.</p>
+<p>Veamos cómo se implementa esta clase en su totalidad.</p>
+<pre>
+public class EatFoodyRequestHandler extends RequestHandler {  
+    private static final String EAT_FOODY_RECIPE_SCHEME = "eatfoody";
+    @Override
+    public boolean canHandleRequest(Request data) {
+        return EAT_FOODY_RECIPE_SCHEME.equals(data.uri.getScheme());
+    }
+
+    @Override
+    public Result load(Request request, int networkPolicy) throws IOException {
+        //获取请求的host
+       String imageKey = request.uri.getHost(); 
+       Bitmap bitmap;
+       if (imageKey.contentEquals("cupcake")) {
+           bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.cupcake);
+       }else if (imageKey.contentEquals("full_cake")) {
+           bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.full_cake);
+       }else {
+           bitmap = BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher);
+       }
+       return new Result(bitmap, Picasso.LoadedFrom.DISK);
+    }
+}
+</pre><p>El código no parece difícil de entender; primero<code>canHandleRequest</code>en el método se comprueba si el protocolo de la uri es igual a<code>eatfoody</code>Si no es así, Picasso vuelve al flujo de descarga estándar. Si es así, entonces entrará en<code>load</code>el método. Dentro del<code>load</code>método, juzgamos la<code>host</code>parte de la uri; luego, según el resultado, devolvemos el bitmap correspondiente.</p>
+<pre>
+//这会按照标准的流程加载图片
+picasso  
+    .load("http://i.imgur.com/DvpvklR.png")
+    .into(imageView1);
+
+//他会进入 load 方法中的逻辑判断去加载 `R.drawable.full_cake`
+picasso  
+    .load("eatfoody://cupcake")
+    .into(imageView2)
+</pre><hr/>
+<h2>picasso2-okhttp3-downloader y picasso-transformations</h2>
+<p>Si has leído atentamente el contenido anterior, creo que ya entiendes el descargador y las transformaciones. Su extensibilidad es innegable, por lo que, naturalmente, muchos desarrolladores excelentes nos proporcionarán los frameworks correspondientes.</p>
+<ul>
+<li><a href="https://github.com/wasabeef/picasso-transformations" target="_blank">picasso-transformations</a></li>
+<li><a href="https://github.com/JakeWharton/picasso2-okhttp3-downloader" target="_blank">picasso2-okhttp3-downloader</a></li>
+</ul>
+<p>Pero necesitamos agregar las dependencias correspondientes. Esto no es difícil; puedes consultar GitHub por tu cuenta, y también se proporcionan ejemplos.</p><hr/>
+<h2>Resumen</h2><p>El tutorial de uso de Picasso llega por ahora hasta aquí. Si tenemos la oportunidad, más adelante te guiaremos para leer su código fuente, pero el blogger admite que por ahora no está lo suficientemente maduro, así que lo dejamos para más adelante. Debido a que su filosofía de diseño y su extensibilidad son realmente excelentes, incluso Glide, que el blogger usa actualmente, se basa en un patrón de diseño similar, solo que con ligeras diferencias en la estrategia. Al mismo tiempo, también tenemos que aprender Glide; aunque los dos se parecen bastante, es para aquellos que lo necesiten... Por supuesto, no puede faltar el análisis comparativo del blogger entre ambos, lo cual quizás sea más interesante.</p>
+<blockquote>
+<p><strong>译</strong> <a href="https://futurestud.io/tutorials/picasso-getting-started-simple-loading" target="_blank">Future Studio - Picasso</a></p></blockquote>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link">← <a href="./android-advance-picasso1.html" rel="prev">2.1 Aprende Picasso de forma integral (I)</a> </div>
+<div class="next-design-link"></div>
+</div>
+<style>
+@media screen and (max-width: 768px) {
+	#w3cnote-ad728 {
+		display: none;
+	}
+}
+p.note-author {
+    border-bottom: 1px solid #ddd;
+    font-size: 18px;
+    font-weight: bold;
+    color: #78a15a;
+    padding-bottom: 2px;
+    margin-bottom: 4px;
+}
+</style>
+<script>
+var aid = 18234;
+</script>
+</div>
+</div>
+<div class="listcol last right-column">
+<script type="text/javascript">
+jQuery(document).ready(function ($){
+	var total = $(".membership li").length;
+	var left_list = '';
+	href = window.location.href;
+	
+	$(".membership li").each(function(index, value){
+
+		left_list += $(this).html();
+
+		cur_href = $(this).find("a").attr("href");
+		cur_obj = $(this);
+		
+		if(href.match(cur_href) != null) {
+			if(index==0) {
+				$(".previous-design-link").hide();
+			}
+			if(index==(total-1)) {
+				$(".next-design-link").hide();
+			}
+			prev_href = cur_obj.prev("li").find("a").attr("href");
+			prev_title = cur_obj.prev("li").find("a").attr("title");
+
+			next_href = cur_obj.next("li").find("a").attr("href");
+			next_title = cur_obj.next("li").find("a").attr("title");
+			if(prev_title) {
+				$(".previous-design-link a").attr("href", prev_href);
+				$(".previous-design-link a").attr("title", prev_title);
+				$(".previous-design-link a").text(prev_title);
+			} else {
+				$(".previous-design-link").html("");
+			}
+
+			if(next_title) {
+				$(".next-design-link a").attr("href", next_href);
+				$(".next-design-link a").attr("title", next_title);
+				$(".next-design-link a").text(next_title);
+			} else {
+				$(".next-design-link").html("");
+			}
+		}
+	});
+
+	$("#leftcolumn").html(left_list);
+});
+	</script>
+<div class="sidebar-box cate-list">
+<div class="sidebar-box recommend-here list-link">
+<a href="#">Android 进阶教程</a> </div>
+<ul class="membership">
+<li><a data-id="17013" href="./android-advance-screen-adaptation.html" target="_top" title="1.1 Android 中喜闻乐见的屏幕适配">1.1 Android 中喜闻乐见的屏幕适配</a></li>
+<li><a data-id="17036" href="./android-advance-custom-view.html" target="_top" title="1.2 自定义 View">1.2 自定义 View</a></li>
+<li><a data-id="17085" href="./android-advance-viewgrouphtml.html" target="_top" title="1.3 自定义 ViewGroup">1.3 自定义 ViewGroup</a></li>
+<li><a data-id="17090" href="./android-advance-authority-management.html" target="_top" title="1.4 Android6.0权限管理-开源框架源码分析">1.4 Android6.0权限管理-开源框架源码分析</a></li>
+<li><a data-id="18227" href="./android-advance-plug-in-development.html" target="_top" title="2.0 Android 插件式开发">2.0 Android 插件式开发</a></li>
+<li><a data-id="18230" href="./android-advance-picasso1.html" target="_top" title="2.1 带你全方位学习Picasso（一）">2.1 带你全方位学习Picasso（一）</a></li>
+<li>
+	2.2 带你全方位学习Picasso（二）	</li>
+</ul></div> </div>
+</div>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+</div><script src="../../lang-switcher.js"></script>
+</body>
+</html>

@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Instalación del servidor Nginx y explicación detallada del archivo de configuración | Tutorial para novatos</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="./nginx-install-and-config.html" rel="canonical"/>
+<meta content="Nginx 服务器安装及配置文件详解" name="keywords"/>
+<meta content="1. 安装nginx 1.1 选择稳定版本 我们编译安装nginx来定制自己的模块，机器CentOS 6.2 x86_64。首先安装缺少的依赖包： # yum -y install gcc gcc-c++ make libtool zlib zlib-devel openssl openssl-devel pcre pcre-devel 这些软件包如果yum上没有的话可以下载源码来编译安装，只是要注意编译时默认安装的目录，确保下面在安装.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div><!-- 导航栏 -->
+<!--  内容  -->
+<div class="container main">
+<div class="row">
+<div class="col middle-column big-middle-column">
+<div class="article">
+<div class="article-heading">
+<h2>Instalación del servidor Nginx y explicación detallada del archivo de configuración</h2> <h3><em>Categoría</em> <a href="../w3cnote_genre/code.html" title="编程技术">Tecnología de programación</a> </h3>
+</div>
+<div class="article-body note-body">
+<div class="article-intro">
+<!-- ad start-->
+<!-- ad end-->
+<h2>1. Instalar nginx</h2>
+<h3>1.1 Elegir la versión estable</h3>
+<p>Compilamos e instalamos nginx para personalizar nuestros propios módulos, en una máquina CentOS 6.2 x86_64. Primero instalamos los paquetes de dependencias que faltan:</p>
+<pre># yum -y install gcc gcc-c++ make libtool zlib zlib-devel openssl openssl-devel pcre pcre-devel</pre>
+<p>Si estos paquetes no están disponibles en yum, se puede descargar el código fuente y compilarlo para instalarlo. Solo hay que tener en cuenta el directorio de instalación predeterminado al compilar, para asegurarse de que al instalar nginx se puedan encontrar esos archivos de bibliotecas dinámicas (ldconfig).</p>
+<p><img alt="nginx 服务器安装及配置文件详解" decoding="async" fetchpriority="high" height="266" src="../wp-content/uploads/2015/07/151329vtoxmfhwxhih1glz.jpg" width="700"/></p>
+<p>从 <a href="http://nginx.org/en/download.html" rel="external noopener noreferrer" target="_blank">http://nginx.org/en/download.html</a>Descargue la versión estable nginx-1.6.3.tar.gz y descomprímala en /usr/local/src.</p>
+<p>Para preparaciones posteriores, descargamos también 2 módulos de complementos:<a href="https://github.com/yaoweibin/nginx_upstream_check_module/releases" rel="external noopener noreferrer" target="_blank">nginx_upstream_check_module-0.3.0.tar.gz</a>— Comprobar el estado del servidor backend,<a href="https://bitbucket.org/nginx-goodies/nginx-sticky-module-ng/downloads" rel="external noopener noreferrer" target="_blank">nginx-goodies-nginx-sticky-module-ng-bd312d586752.tar.gz</a>(Se recomienda renombrar el directorio a nginx-sticky-module-ng-1.2.5 después de descomprimir en /usr/local/src) — para el backend hacer<span class="wp_keywordlink"><a href="http://www.codeceo.com/article/balanced-algorithm.html" rel="noopener noreferrer" target="_blank" title="负载均衡">balanceo de carga</a></span>Resolver el problema de sesión sticky (para usarlo junto con el módulo upstream_check se necesita aplicar un parche adicional, consulte<a href="http://seanlook.com/2015/06/02/nginx-cache-check/" rel="external noopener noreferrer" target="_blank">Práctica de configuración de balanceo de carga con nginx</a>）。</p>
+<p>Tenga en cuenta la compatibilidad de versiones entre los complementos y nginx. Por lo general, cuanto más nuevos sean los complementos, mejor; no es necesario perseguir las últimas versiones de nginx, la estabilidad es lo primero. La combinación nginx-1.4.7, nginx-sticky-module-1.1 y nginx_upstream_check_module-0.2.0 tampoco presenta problemas. sticky-1.1 con nginx-1.6 dio errores de compilación porque las actualizaciones no siguieron el ritmo. (Se puede usar directamente Tengine, que incluye estos módulos por defecto).</p>
+<pre>
+[root@cachets nginx-1.6.3]# pwd
+/usr/local/src/nginx-1.6.3
+[root@cachets nginx-1.6.3]# ./configure --prefix=/usr/local/nginx-1.6 --with-pcre /
+&gt; --with-http_stub_status_module --with-http_ssl_module /
+&gt; --with-http_gzip_static_module --with-http_realip_module /
+&gt; --add-module=../nginx_upstream_check_module-0.3.0
+[root@cachets nginx-1.6.3]# make &amp;&amp; make install
+</pre>
+<h3>1.2 Explicación de las opciones de compilación comunes</h3>
+<p>La mayoría de los módulos comunes de nginx se instalan por defecto al compilar; los que comienzan con --without en ./configure --help están instalados por defecto.</p>
+<ul>
+<li>--prefix=PATH: especifica el directorio de instalación de nginx. Por defecto /usr/local/nginx</li>
+<li>--conf-path=PATH: establece la ruta del archivo de configuración nginx.conf. nginx permite iniciar con diferentes archivos de configuración mediante la opción -c en la línea de comandos. Por defecto es<em>prefix/conf/nginx.conf</em></li>
+<li>--user=name: establece el usuario de los procesos de trabajo de nginx. Después de la instalación, se puede cambiar la directiva user en cualquier momento en el archivo de configuración nginx.conf. El nombre de usuario predeterminado es nobody. --group=name es similar.</li>
+<li>--with-pcre: establece la ruta del código fuente de la biblioteca PCRE. Si ya se instaló mediante yum, use --with-pcre para encontrar automáticamente los archivos de la biblioteca. Al usar --with-pcre=PATH, debe descargar el código fuente de la biblioteca pcre (versiones 4.4 – 8.30) desde el sitio web de PCRE y descomprimirlo; el resto lo completan ./configure y make de Nginx. Las expresiones regulares Perl se usan en la directiva location y en el módulo ngx_http_rewrite_module.</li>
+<li>--with-zlib=PATH: especifica el directorio de descompresión del código fuente de zlib (versiones 1.1.3 – 1.2.5). Se necesita zlib cuando se usa el módulo de compresión de transferencia de red ngx_http_gzip_module, que está habilitado por defecto.</li>
+<li>--with-http_ssl_module: módulo para usar el protocolo https. De forma predeterminada, este módulo no se construye. El requisito previo es que openssl y openssl-devel estén instalados.</li>
+<li>--with-http_stub_status_module: se usa para monitorear el estado actual de Nginx</li>
+<li>--with-http_realip_module: este módulo nos permite cambiar el valor de la dirección IP del cliente en los encabezados de solicitud del cliente (por ejemplo, X-Real-IP o X-Forwarded-For). Su importancia radica en que permite que los servidores backend registren la dirección IP original del cliente.</li>
+<li>--add-module=PATH: agrega módulos externos de terceros, como nginx-sticky-module-ng o módulos de caché. Cada vez que se agrega un nuevo módulo, es necesario recompilar (Tengine no requiere recompilar al añadir un módulo nuevo).</li>
+</ul>
+<p><strong>A continuación se ofrece otra opción de compilación</strong>：</p>
+<pre>
+./configure /
+&gt; --prefix=/usr /
+&gt; --sbin-path=/usr/sbin/nginx /
+&gt; --conf-path=/etc/nginx/nginx.conf /
+&gt; --error-log-path=/var/log/nginx/error.log /
+&gt; --http-log-path=/var/log/nginx/access.log /
+&gt; --pid-path=/var/run/nginx/nginx.pid  /
+&gt; --lock-path=/var/lock/nginx.lock /   
+&gt; --user=nginx /
+&gt; --group=nginx /
+&gt; --with-http_ssl_module /
+&gt; --with-http_stub_status_module /
+&gt; --with-http_gzip_static_module /
+&gt; --http-client-body-temp-path=/var/tmp/nginx/client/ /
+&gt; --http-proxy-temp-path=/var/tmp/nginx/proxy/ /
+&gt; --http-fastcgi-temp-path=/var/tmp/nginx/fcgi/ /
+&gt; --http-uwsgi-temp-path=/var/tmp/nginx/uwsgi /
+&gt; --with-pcre=../pcre-7.8
+&gt; --with-zlib=../zlib-1.2.3
+</pre>
+<h3>1.3 Iniciar y detener nginx</h3>
+<pre>
+## 检查配置文件是否正确
+# /usr/local/nginx-1.6/sbin/nginx -t 
+# ./sbin/nginx -V     # 可以看到编译选项
+## 启动、关闭
+# ./sbin/nginx        # 默认配置文件 conf/nginx.conf，-c 指定
+# ./sbin/nginx -s stop
+或 pkill nginx
+## 重启，不会改变启动时指定的配置文件
+# ./sbin/nginx -s reload
+或 kill -HUP `cat /usr/local/nginx-1.6/logs/nginx.pid`
+</pre>
+<p>Por supuesto, también se puede gestionar nginx como un servicio del sistema: descargue nginx a /etc/init.d/, modifique las rutas dentro y luego otorgue permisos de ejecución.</p>
+<pre># service nginx {start|stop|status|restart|reload|configtest}</pre>
+<h3>1.4 Instalación con yum</h3>
+<p>Instalar el paquete rpm con yum es mucho más sencillo que compilar e instalar. Por defecto se instalan muchos módulos, pero la desventaja es que si más adelante desea instalar módulos de terceros, no hay forma de hacerlo.</p>
+<pre>
+# vi /etc/yum.repo.d/nginx.repo 
+[nginx] 
+name=nginx repo 
+baseurl=http://nginx.org/packages/centos/$releasever/$basearch/ 
+gpgcheck=0 
+enabled=1
+</pre>
+<p>El resto se resuelve con yum install nginx; también se puede usar yum install nginx-1.6.3 para instalar una versión específica (siempre que vea que hay una versión correspondiente en packages; por defecto se instala la última versión estable).</p>
+<h2>2. Archivo de configuración nginx.conf</h2>
+<p>El archivo de configuración de Nginx se divide principalmente en cuatro partes: main (configuración global), server (configuración del host), upstream (configuración de servidores upstream, principalmente relacionada con proxy inverso y balanceo de carga) y location (configuración después de que la URL coincida con una ubicación específica). Cada parte contiene varias directivas. Las directivas establecidas en la parte main afectan a la configuración de todas las demás partes; las directivas de la parte server se usan principalmente para especificar el dominio, la IP y el puerto del host virtual; las directivas de upstream se usan para configurar una serie de servidores backend, establecer el proxy inverso y el balanceo de carga de los servidores backend; la parte location se usa para hacer coincidir las ubicaciones de la página web (por ejemplo, el directorio raíz "/", "/images", etc.). La relación entre ellos es: server hereda de main, location hereda de server; upstream no hereda directivas ni es heredado. Tiene sus propias directivas especiales y no necesita aplicarse en otros lugares.</p>
+<p>Varios contextos de directivas compatibles actualmente con nginx:</p>
+<h3>2.1 General</h3>
+<p>El siguiente nginx.conf es un ejemplo simple de nginx actuando como servidor de proxy inverso en el frontend, manejando archivos estáticos como js, png, y reenviando solicitudes dinámicas como jsp a otros servidores tomcat:</p>
+<pre>
+user  www www;
+worker_processes  2;
+error_log  logs/error.log;
+#error_log  logs/error.log  notice;
+#error_log  logs/error.log  info;
+pid        logs/nginx.pid;
+events {
+    use epoll;
+    worker_connections  2048;
+}
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+    #log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+    #                  '$status $body_bytes_sent "$http_referer" '
+    #                  '"$http_user_agent" "$http_x_forwarded_for"';
+    #access_log  logs/access.log  main;
+    sendfile        on;
+    # tcp_nopush     on;
+    keepalive_timeout  65;
+  # gzip压缩功能设置
+    gzip on;
+    gzip_min_length 1k;
+    gzip_buffers    4 16k;
+    gzip_http_version 1.0;
+    gzip_comp_level 6;
+    gzip_types text/html text/plain text/css text/javascript application/json application/javascript application/x-javascript application/xml;
+    gzip_vary on;
+
+  # http_proxy 设置
+    client_max_body_size   10m;
+    client_body_buffer_size   128k;
+    proxy_connect_timeout   75;
+    proxy_send_timeout   75;
+    proxy_read_timeout   75;
+    proxy_buffer_size   4k;
+    proxy_buffers   4 32k;
+    proxy_busy_buffers_size   64k;
+    proxy_temp_file_write_size  64k;
+    proxy_temp_path   /usr/local/nginx/proxy_temp 1 2;
+  # 设定负载均衡后台服务器列表 
+    upstream  backend  { 
+              #ip_hash; 
+              server   192.168.10.100:8080 max_fails=2 fail_timeout=30s ;  
+              server   192.168.10.101:8080 max_fails=2 fail_timeout=30s ;  
+    }
+  # 很重要的虚拟主机配置
+    server {
+        listen       80;
+        server_name  itoatest.example.com;
+        root   /apps/oaapp;
+        charset utf-8;
+        access_log  logs/host.access.log  main;
+        #对 / 所有做负载均衡+反向代理
+        location / {
+            root   /apps/oaapp;
+            index  index.jsp index.html index.htm;
+            proxy_pass        http://backend;  
+            proxy_redirect off;
+            # 后端的Web服务器可以通过X-Forwarded-For获取用户真实IP
+            proxy_set_header  Host  $host;
+            proxy_set_header  X-Real-IP  $remote_addr;  
+            proxy_set_header  X-Forwarded-For  $proxy_add_x_forwarded_for;
+            proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
+
+        }
+        #静态文件，nginx自己处理，不去backend请求tomcat
+        location  ~* /download/ {  
+            root /apps/oa/fs;  
+
+        }
+        location ~ .*/.(gif|jpg|jpeg|bmp|png|ico|txt|js|css)$   
+        {   
+            root /apps/oaapp;   
+            expires      7d; 
+        }
+           location /nginx_status {
+            stub_status on;
+            access_log off;
+            allow 192.168.10.0/24;
+            deny all;
+        }
+        location ~ ^/(WEB-INF)/ {   
+            deny all;   
+        }
+        #error_page  404              /404.html;
+        # redirect server error pages to the static page /50x.html
+        #
+        error_page   500 502 503 504  /50x.html;
+        location = /50x.html {
+            root   html;
+        }
+    }
+  ## 其它虚拟主机，server 指令开始
+}
+</pre>
+<h3>2.2 Explicación de las directivas comunes</h3>
+<h4>2.2.1 Configuración global main</h4>
+<p>nginx tiene algunos parámetros en tiempo de ejecución que no están relacionados con funciones comerciales específicas (como el servicio http o el proxy de servicio de correo electrónico), por ejemplo, el número de procesos de trabajo, la identidad de ejecución, etc.</p>
+<ul>
+<li>woker_processes 2<br/>En el nivel superior del archivo de configuración<em>main</em>parte, el número de procesos de trabajo con rol de worker. El proceso master recibe y asigna las solicitudes a los workers para que las procesen. Este valor se puede establecer simplemente como el número de núcleos de CPU: grep ^processor /proc/cpuinfo | wc -l; también es el valor de auto. Si ssl y gzip están habilitados, es mejor establecerlo igual al número de CPU lógicas o incluso al doble, para reducir las operaciones de E/S. Si el servidor nginx también tiene otros servicios, se puede considerar reducir apropiadamente.</li>
+<li>worker_cpu_affinity<br/>También se escribe en<em>main</em>parte. En situaciones de alta concurrencia, configurando la afinidad de CPU se reduce la pérdida de rendimiento causada por la reconstrucción de contexto, como los registros, debido al cambio entre múltiples núcleos de CPU. Por ejemplo: worker_cpu_affinity 0001 0010 0100 1000; (cuatro núcleos).</li>
+<li>worker_connections 2048<br/>Se escribe en<em>events</em>parte. El número máximo de conexiones que cada proceso worker puede manejar (iniciar) de forma concurrente (incluye todas las conexiones con el cliente o con los servidores proxy del backend). Cuando nginx actúa como servidor de proxy inverso, la fórmula de cálculo es: número máximo de conexiones = worker_processes * worker_connections / 4, por lo que aquí el número máximo de conexiones del cliente es 1024. Se puede aumentar incluso a 8192 sin problema, dependiendo de la situación, pero no debe superar el worker_rlimit_nofile mencionado más adelante. Cuando nginx actúa como servidor http, la fórmula se divide entre 2.</li>
+<li>worker_rlimit_nofile 10240<br/>Se escribe en<em>main</em>parte. Por defecto no está establecido; se puede limitar al máximo del sistema operativo, 65535.</li>
+<li>use epoll<br/>Se escribe en la parte events. En el sistema operativo Linux, nginx usa por defecto el modelo de eventos epoll; gracias a esto, nginx es bastante eficiente en Linux. Además, Nginx utiliza el modelo de eventos eficiente kqueue, similar a epoll, en sistemas operativos OpenBSD o FreeBSD. Solo cuando el sistema operativo no admite estos modelos eficientes se utiliza select.</li>
+</ul>
+<h4>2.2.2 Servidor http</h4>
+<p>Algunos parámetros de configuración relacionados con la prestación del servicio http. Por ejemplo: si usar keepalive, si usar gzip para comprimir, etc.</p>
+<ul>
+<li>sendfile on<br/>Activa el modo de transferencia de archivos de alta eficiencia. La directiva sendfile especifica si nginx llama a la función sendfile para enviar archivos, reduciendo los cambios de contexto del espacio de usuario al espacio del kernel. Para aplicaciones normales, se establece en on; si se usa para aplicaciones con carga pesada de E/S de disco, como descargas, se puede establecer en off para equilibrar la velocidad de procesamiento de E/S entre disco y red y reducir la carga del sistema.</li>
+<li>keepalive_timeout 65: tiempo de espera de conexión persistente, en segundos. Este parámetro es muy sensible; se relaciona con el tipo de navegador, la configuración de tiempo de espera del servidor backend y la configuración del sistema operativo, y daría para otro artículo. Cuando se solicitan muchos archivos pequeños mediante conexiones persistentes, se puede reducir el coste de restablecer conexiones, pero si hay carga de archivos grandes y no se completa en 65 s, fallará. Si el tiempo se establece demasiado largo y hay muchos usuarios, mantener las conexiones durante mucho tiempo consumirá una gran cantidad de recursos.</li>
+<li>send_timeout: se utiliza para especificar el tiempo de espera para responder al cliente. Este tiempo de espera se limita al tiempo entre dos actividades de conexión; si transcurre ese tiempo sin que el cliente tenga ninguna actividad, Nginx cerrará la conexión.</li>
+<li>client_max_body_size 10m<br/>Permite el número máximo de bytes de un solo archivo solicitado por el cliente. Si hay que subir archivos grandes, establezca su valor límite.</li>
+<li>client_body_buffer_size 128k<br/>El número máximo de bytes que el búfer del proxy utiliza para almacenar en búfer las solicitudes del cliente.</li>
+</ul>
+<h5>Módulo http_proxy:</h5>
+<p>Este módulo implementa la función de nginx como servidor proxy inverso, incluyendo la función de caché (ver también<a href="http://seanlook.com/2015/06/02/nginx-cache-check/" rel="external noopener noreferrer" target="_blank">el artículo</a>）</p>
+<ul>
+<li>proxy_connect_timeout 60<br/>Tiempo de espera de conexión entre nginx y el servidor backend (tiempo de espera de conexión del proxy)</li>
+<li>proxy_read_timeout 60<br/>Después de una conexión exitosa, el tiempo de espera entre dos operaciones de respuesta exitosas con el servidor backend (tiempo de espera de recepción del proxy)</li>
+<li>proxy_buffer_size 4k<br/>Configura, para que el servidor proxy (nginx) lea y guarde desde el realserver backend, el<strong>头</strong>tamaño del búfer de la información del usuario; el valor predeterminado es el mismo que el tamaño de proxy_buffers; de hecho, este valor de directiva se puede establecer un poco más pequeño.</li>
+<li>proxy_buffers 4 32k<br/>El búfer proxy_buffers: nginx, para una única conexión, almacena en caché las<strong>respuestas del realserver backend</strong>; si las páginas web tienen un tamaño promedio inferior a 32k, se configura así.</li>
+<li>proxy_busy_buffers_size 64k<br/>Tamaño del búfer en condiciones de alta carga (proxy_buffers*2)</li>
+<li>proxy_max_temp_file_size<br/>Cuando proxy_buffers no puede contener el contenido de la respuesta del servidor backend, una parte se guardará en un archivo temporal en el disco duro. Este valor se utiliza para establecer el tamaño máximo del archivo temporal; el valor predeterminado es 1024M, y no tiene relación con proxy_cache. Si supera este valor, se transmitirá desde el servidor upstream. Establecerlo en 0 lo desactiva.</li>
+<li>proxy_temp_file_write_size 64k<br/>Cuando la respuesta del servidor proxyado se almacena en caché en un archivo temporal, esta opción limita el tamaño de cada escritura en el archivo temporal. proxy_temp_path (se puede especificar en tiempo de compilación) indica en qué directorio se escribe.</li>
+</ul>
+<p>proxy_pass y proxy_redirect, consulte la sección location.</p>
+<h5>Módulo http_gzip:</h5>
+<ul>
+<li>gzip on: activa la salida de compresión gzip para reducir la transmisión de red.<ul>
+<li>gzip_min_length 1k: establece el número mínimo de bytes de página permitidos para la compresión; el número de bytes de la página se obtiene del content-length del encabezado. El valor predeterminado es 20. Se recomienda establecer un valor mayor que 1k; con menos de 1k, es posible que al comprimir quede más grande.</li>
+<li>gzip_buffers 4 16k: establece cuántas unidades de caché obtiene el sistema para almacenar el flujo de datos de los resultados de compresión gzip. 4 16k significa que se toma 16k como unidad y se solicita memoria según 4 veces el tamaño de los datos originales en unidades de 16k.</li>
+<li>gzip_http_version 1.0: se utiliza para identificar la versión del protocolo http. Los navegadores antiguos no soportaban la compresión Gzip, por lo que los usuarios veían caracteres confusos; por eso se añadió esta opción para soportar versiones anteriores. Si utiliza el proxy inverso de Nginx y desea habilitar también la compresión Gzip, dado que la comunicación del extremo final es http/1.0, configúrelo como 1.0.</li>
+<li>gzip_comp_level 6: nivel de compresión gzip; 1 tiene el menor nivel de compresión y la velocidad de procesamiento más rápida; 9 tiene el mayor nivel de compresión pero la velocidad de procesamiento más lenta (transmisión rápida pero consume bastante CPU).</li>
+<li>gzip_types: comprime según el tipo MIME. Independientemente de si se especifica o no, el tipo "text/html" siempre se comprimirá.</li>
+<li>gzip_proxied any: se habilita cuando Nginx actúa como proxy inverso; decide si se comprime o no el resultado devuelto por el servidor backend. La premisa para que coincida es que el servidor backend debe devolver un encabezado que contenga "Via".</li>
+<li>gzip_vary on: está relacionado con el encabezado http; añade un encabezado Vary: Accept-Encoding a la respuesta, lo que permite que el servidor de caché del frontend almacene en caché las páginas comprimidas con gzip. Por ejemplo, usar Squid para almacenar en caché los datos comprimidos por Nginx.</li>
+</ul>
+</li>
+</ul>
+<h4>2.2.3 Host virtual (server)</h4>
+<p>El servicio http admite varios hosts virtuales. Cada host virtual tiene un elemento de configuración server correspondiente, que contiene la configuración relacionada con ese host virtual. Al proporcionar servicios de proxy de correo, también se pueden crear varios server. Cada server se distingue por su dirección de escucha o puerto.</p>
+<ul>
+<li>listen<br/>Puerto de escucha, por defecto 80; los menores de 1024 deben iniciarse como root. Puede adoptar formas como listen *:80, listen 127.0.0.1:80, etc.</li>
+<li>server_name<br/>Nombre del servidor, como localhost, www.example.com; se puede hacer coincidir mediante expresiones regulares.</li>
+</ul>
+<h5>Módulo http_stream</h5>
+<p>Este módulo implementa el equilibrio de carga de las IP de los clientes hacia los servidores backend mediante un algoritmo de programación simple. Después de upstream se coloca el nombre del balanceador de carga; los realservers backend se organizan en {} en el formato host:port options;. Si solo hay un servidor backend al que se hace proxy, también se puede escribir directamente en proxy_pass.</p>
+<h4>2.2.4 location</h4>
+<p>En el servicio http, una serie de elementos de configuración que corresponden a ciertas URL específicas.</p>
+<ul>
+<li>root /var/www/html<br/>Define la ubicación del directorio raíz web predeterminado del servidor. Si la URL de location coincide con un subdirectorio o archivo, root no tiene mucho efecto; generalmente se coloca dentro de la directiva server o bajo /.</li>
+<li>index index.jsp index.html index.htm<br/>Define el nombre de archivo de acceso predeterminado en una ruta; generalmente se coloca junto con root.</li>
+<li>proxy_pass http:/backend<br/>Redirige la solicitud a la lista de servidores definida por backend, es decir, el proxy inverso, correspondiente al balanceador de carga upstream. También se puede usar proxy_pass http://ip:port.</li>
+<li>proxy_redirect off;<br/>
+proxy_set_header Host $host;<br/>
+proxy_set_header X-Real-IP $remote_addr;<br/>
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;<br/>Estos cuatro, por ahora, se configuran así; si se profundiza, cada uno involucra contenido muy complejo, que también se explicará en otro artículo.</li>
+</ul>
+<p>En cuanto a la escritura de las reglas de coincidencia de location, se puede decir que es especialmente crítica y básica; consulte el artículo<a href="http://seanlook.com/2015/05/17/nginx-location-rewrite/" rel="external noopener noreferrer" target="_blank">Resumen de la configuración de location en nginx y escritura de reglas rewrite</a>;</p>
+<h3>2.3 Otros</h3>
+<h4>2.3.1 Control de acceso allow/deny</h4>
+<p>El módulo de control de acceso de Nginx se instala por defecto y su sintaxis es muy simple. Puede haber varios allow y deny para permitir o denegar el acceso de una IP o rango de IP; en cuanto se cumple cualquiera de las reglas, se detiene la coincidencia. Por ejemplo:</p>
+<pre>
+location /nginx-status {
+  stub_status on;
+  access_log off;
+#  auth_basic   "NginxStatus";
+#  auth_basic_user_file   /usr/local/nginx-1.6/htpasswd;
+  allow 192.168.10.100;
+  allow 172.29.73.0/24;
+  deny all;
+}
+</pre>
+<p>También solemos usar htpasswd de la herramienta httpd-devel para establecer una contraseña de inicio de sesión para las rutas de acceso:</p>
+<pre>
+# htpasswd -c htpasswd admin
+New passwd:
+Re-type new password:
+Adding password for user admin
+# htpasswd htpasswd admin    //修改admin密码
+# htpasswd htpasswd sean    //多添加一个认证用户
+</pre>
+<p>Así se genera un archivo de contraseñas cifrado con CRYPT por defecto. Descomente las dos líneas de comentario de nginx-status mencionadas arriba y reinicie nginx para que surta efecto.</p>
+<h4>2.3.2 Listado de directorios autoindex</h4>
+<p>Nginx no permite listar el directorio completo por defecto. Si se necesita esta función, abra el archivo nginx.conf y añada autoindex on; en la sección location, server o http; también es recomendable añadir los otros dos parámetros:</p>
+<ul>
+<li>autoindex_exact_size off; por defecto es on, y muestra el tamaño exacto del archivo en bytes. Al cambiarlo a off, muestra el tamaño aproximado del archivo en kB, MB o GB.</li>
+<li>autoindex_localtime on;<br/>El valor predeterminado es off y la hora del archivo mostrada es la hora GMT. Al cambiarlo a on, la hora del archivo mostrada es la hora del servidor del archivo.</li>
+</ul>
+<pre>
+location /images {
+  root   /var/www/nginx-default/images;
+  autoindex on;
+  autoindex_exact_size off;
+  autoindex_localtime on;
+}
+</pre>
+<h2><strong>Referencias</strong></h2>
+<ul>
+<li><a href="http://liuqunying.blog.51cto.com/3984207/1420556" rel="external noopener noreferrer" target="_blank">http://liuqunying.blog.51cto.com/3984207/1420556</a></li>
+<li><a href="http://nginx.org/en/docs/ngx_core_module.html#worker_cpu_affinity" rel="external noopener noreferrer" target="_blank">http://nginx.org/en/docs/ngx_core_module.html#worker_cpu_affinity</a></li>
+<li><a href="http://wiki.nginx.org/HttpCoreModule#sendfile" rel="external noopener noreferrer" target="_blank">http://wiki.nginx.org/HttpCoreModule#sendfile</a></li>
+</ul>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link">← <a href="./getting-started-with-react.html" rel="prev">Tutorial de introducción a React</a> </div>
+<div class="next-design-link"><a href="./sphinx-sql-search-engine.html" rel="next">Sphinx: motor de búsqueda de texto completo SQL de alto rendimiento</a> →</div>
+</div>
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>Haz clic para compartir notas</h3>
+&lt;p style="font-size:14px;"&gt;¡Las notas deben ser una extensión del contenido de este artículo!&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;Para enviar un artículo, haga clic aquí&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;Cómo obtener el código de invitación de registro&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; ¡Debe &lt;a href=".." class="runoob-pop"&gt;iniciar sesión&lt;/a&gt; antes de compartir notas!&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;Cómo obtener el código de invitación de registro&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=".." id="cancel-comment-reply-link">Cancelar</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="12557"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>Compartir notas</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">Apodo</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">Apodo (obligatorio)</span></li>
+<li class="form-inline"><label class="hide" for="email">Correo electrónico</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">Correo electrónico (obligatorio)</span></li>
+<li class="form-inline"><label class="hide" for="url">Dirección de referencia</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">Dirección de referencia</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  12557;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 12557, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":12557},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+<style>
+@media screen and (max-width: 768px) {
+	#w3cnote-ad728 {
+		display: none;
+	}
+}
+p.note-author {
+    border-bottom: 1px solid #ddd;
+    font-size: 18px;
+    font-weight: bold;
+    color: #78a15a;
+    padding-bottom: 2px;
+    margin-bottom: 4px;
+}
+</style>
+<script>
+var aid = 12557;
+</script>
+</div>
+</div>
+<div class="listcol last right-column">
+<!--
+	<div class="tab tab-light-blue"> 订阅</div>
+	<div class="sidebar-box">
+		<div class="socialicons">
+			<a href="../feed.html" class="rss">RSS 订阅</a>
+		
+			<form action="..//list.qq.com/cgi-bin/qf_compose_send" method="post">
+			<input type="hidden" value="qf_booked_feedback" name="t">
+			<input type="hidden" value="4b67b6b6c1f5e792559940cab4aebb8f1126fba880bff1a8" name="id">
+			<input class="placeholder" id="feed_email" name="to" value="输入邮箱 订阅笔记" autocomplete="off">
+			<input type="submit" value="订阅" class="btn btn-primary">
+			</form>
+		
+		</div>
+ 
+	</div>
+-->
+<!--
+	<div class="sidebar-box cate-list">
+	<div class="sidebar-box recommend-here list-link">
+			<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">笔记列表</a>
+		</div>
+
+ 
+
+</div>
+-->
+<div class="sidebar-box cate-list" style="display:none;">
+<div class="sidebar-box recommend-here list-link">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">热门文章</a>
+</div>
+<div class="membership">
+<ul class="membership">
+<li><a href="https://mp.weixin.qq.com/s/ZaP6YNgKTCHYy3r2WPBBaw" target="_blank" title="2024 年 04 月 JavaScript 框架排行榜">2024 年 04 月 JavaScript 框架排行榜</a></li>
+<li><a href="https://mp.weixin.qq.com/s/JBR2twC0t6krjjuxqvhsEQ" target="_blank" title="免费、开源、好用的 SQL 客户端合集">免费、开源、好用的 SQL 客户端合集</a></li>
+<li><a href="https://mp.weixin.qq.com/s/TwV3YQjA1glyaW7TiHvhlA" target="_blank" title="优雅的代码规范，提升代码质量">优雅的代码规范，提升代码质量</a></li>
+<li><a href="https://mp.weixin.qq.com/s/CnUJ-2OHPbBKlnVpjDzavA" target="_blank" title="命令行中的趣味世界，牛也能说话，有趣又好玩">命令行中的趣味世界，牛也能说话，有趣又好玩</a></li>
+<li><a href="https://mp.weixin.qq.com/s/7NKl-mD7N8CeSNQlbKDEWA" target="_blank" title="2024 年 05 月编程语言排行榜，Fortran 进入前 10 名，发生了什么？">2024 年 05 月编程语言排行榜，Fortran 进入前 10 名，发生了什么？</a></li>
+<li><a href="https://mp.weixin.qq.com/s/yWlSVDKobtDhThnhirVRpw" target="_blank" title="免费开源的 IDE、数据库管理工具、SSH客户端和FTP客户端">免费开源的 IDE、数据库管理工具、SSH客户端和FTP客户端</a></li>
+</ul>
+</div>
+</div>
+<div class="sidebar-box cate-list">
+<div class="sidebar-box recommend-here list-link">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">教程列表</a>
+</div>
+<div class="cate-items">
+<a href="../ado.html">ADO 教程</a>
+<a href="../ai-agent.html">AI Agent 教程</a>
+<a href="../ai.html">AI 入门教程</a>
+<a href="../ai-math.html">AI 数学基础</a>
+<a href="../ajax.html">Ajax 教程</a>
+<a href="../android.html">Android 教程</a>
+<a href="../angularjs2.html">Angular2 教程</a>
+<a href="../angularjs.html">AngularJS 教程</a>
+<a href="../appml.html">AppML 教程</a>
+<a href="../asp.html">ASP 教程</a>
+<a href="../aspnet.html">ASP.NET 教程</a>
+<a href="../bootstrap.html">Bootstrap 教程</a>
+<a href="../bootstrap4.html">Bootstrap4 教程</a>
+<a href="../bootstrap5.html">Bootstrap5 教程</a>
+<a href="../cprogramming.html">C 教程</a>
+<a href="../c-dsa.html">C 语言数据结构与算法</a>
+<a href="../csharp.html">C# 教程</a>
+<a href="../cplusplus.html">C++ 教程</a>
+<a href="../chartjs.html">Chart.js 教程</a>
+<a href="../claude-code.html">Claude Code 教程</a>
+<a href="../cmake.html">CMake 教程</a>
+<a href="../codex.html">Codex 教程</a>
+<a href="../cssref.html">CSS 参考手册</a>
+<a href="../css.html">CSS 教程</a>
+<a href="../css3.html">CSS3 教程</a>
+<a href="../cursor.html">Cursor 教程</a>
+<a href="../dart.html">Dart 教程</a>
+<a href="../dash.html">Dash 教程</a>
+<a href="../deepseek-harness.html">DeepSeek Harness</a>
+<a href="../django.html">Django 教程</a>
+<a href="../docker.html">Docker 教程</a>
+<a href="../dtd.html">DTD 教程</a>
+<a href="../echarts.html">ECharts 教程</a>
+<a href="../eclipse.html">Eclipse 教程</a>
+<a href="../electron.html">Electron 教程</a>
+<a href="../fastapi.html">FastAPI 教程</a>
+<a href="../firebug.html">Firebug 教程</a>
+<a href="../flask.html">Flask 教程</a>
+<a href="../flutter.html">Flutter 教程</a>
+<a href="../font-awesome.html">Font Awesome 图标</a>
+<a href="../foundation.html">Foundation 教程</a>
+<a href="../git.html">Git 教程</a>
+<a href="../go.html">Go 语言教程</a>
+<a href="../googleapi.html">Google 地图 API 教程</a>
+<a href="../hermes-agent.html">Hermes Agent</a>
+<a href="../highcharts.html">Highcharts 教程</a>
+<a href="../htmldom.html">HTML DOM 教程</a>
+<a href="../tags.html">HTML 参考手册</a>
+<a href="../charsets.html">HTML 字符集</a>
+<a href="../html.html">HTML 教程</a>
+<a href="../http.html">HTTP 教程</a>
+<a href="../ionic.html">ionic 教程</a>
+<a href="../ios.html">iOS 教程</a>
+<a href="../java.html">Java 教程</a>
+<a href="../jsref.html">JavaScript 参考手册</a>
+<a href="../js.html">Javascript 教程</a>
+<a href="../jeasyui.html">jQuery EasyUI 教程</a>
+<a href="../jquerymobile.html">jQuery Mobile 教程</a>
+<a href="../jqueryui.html">jQuery UI 教程</a>
+<a href="../jquery.html">jQuery 教程</a>
+<a href="../json.html">JSON 教程</a>
+<a href="../jsp.html">JSP 教程</a>
+<a href="../julia.html">Julia 教程</a>
+<a href="../jupyter-notebook.html">Jupyter Notebook 教程</a>
+<a href="../kotlin.html">Kotlin 教程</a>
+<a href="../langchain.html">LangChain 教程</a>
+<a href="../latex.html">LaTeX 教程</a>
+<a href="../linux.html">Linux 教程</a>
+<a href="../lua.html">Lua 教程</a>
+<a href="../markdown.html">Markdown 教程</a>
+<a href="../matplotlib.html">Matplotlib 教程</a>
+<a href="../maven.html">Maven 教程</a>
+<a href="../memcached.html">Memcached 教程</a>
+<a href="../mongodb.html">MongoDB 教程</a>
+<a href="../mysql.html">MySQL 教程</a>
+<a href="../nextjs.html">Next.js 教程</a>
+<a href="../nlp.html">NLP 教程</a>
+<a href="../nodejs.html">Node.js 教程</a>
+<a href="../numpy.html">NumPy 教程</a>
+<a href="../obsidian.html">Obsidian 教程</a>
+<a href="../ollama.html">Ollama 教程</a>
+<a href="../opencode.html">OpenCode 教程</a>
+<a href="../opencv.html">OpenCV 教程</a>
+<a href="../pandas.html">Pandas 教程</a>
+<a href="../perl.html">Perl 教程</a>
+<a href="../php.html">PHP 教程</a>
+<a href="../pi-agent.html">Pi Agent</a>
+<a href="../pillow.html">Pillow 教程</a>
+<a href="../playwright.html">Playwright 教程</a>
+<a href="../postgresql.html">PostgreSQL 教程</a>
+<a href="../powershell.html">PowerShell</a>
+<a href="../pycharm.html">Pycharm 教程</a>
+<a href="../python3.html">Python 3 教程</a>
+<a href="../python.html">Python 基础教程</a>
+<a href="../python-design-pattern.html">Python 设计模式</a>
+<a href="../python-qt.html">Python 量化交易</a>
+<a href="../pytorch.html">PyTorch 教程</a>
+<a href="../r.html">R 教程</a>
+<a href="../rdf.html">RDF 教程</a>
+<a href="../react.html">React 教程</a>
+<a href="../redis.html">Redis 教程</a>
+<a href="../restfulapi.html">RESTful API</a>
+<a href="../rss.html">RSS 教程</a>
+<a href="../ruby.html">Ruby 教程</a>
+<a href="../rust.html">Rust 教程</a>
+<a href="../sass.html">Sass 教程</a>
+<a href="../scala.html">Scala 教程</a>
+<a href="../scipy.html">SciPy 教程</a>
+<a href="../selenium.html">Selenium 教程</a>
+<a href="../servlet.html">Servlet 教程</a>
+<a href="../skills.html">Skills 教程</a>
+<a href="../sklearn.html">Sklearn 教程</a>
+<a href="../soap.html">SOAP 教程</a>
+<a href="../sql.html">SQL 教程</a>
+<a href="../sqlite.html">SQLite 教程</a>
+<a href="../svg.html">SVG 教程</a>
+<a href="../svn.html">SVN 教程</a>
+<a href="../swagger.html">Swagger 教程</a>
+<a href="../swift.html">Swift 教程</a>
+<a href="../tailwindcss.html">Tailwind CSS 教程</a>
+<a href="../tcpip.html">TCP/IP 教程</a>
+<a href="../tensorflow.html">TensorFlow 教程</a>
+<a href="../typescript.html">TypeScript 教程</a>
+<a href="../uniapp.html">uni-app 教程</a>
+<a href="../vbscript.html">VBScript 教程</a>
+<a href="../vibe-coding.html">Vibe Coding 教程</a>
+<a href="../vscode.html">VSCode 教程</a>
+<a href="../vue2.html">Vue.js 教程</a>
+<a href="../vue3.html">Vue3 教程</a>
+<a href="../w3c.html">W3C 教程</a>
+<a href="../webservices.html">Web Service 教程</a>
+<a href="../wsdl.html">WSDL 教程</a>
+<a href="../xlink.html">XLink 教程</a>
+<a href="../dom.html">XML DOM 教程</a>
+<a href="../schema.html">XML Schema 教程</a>
+<a href="../xml.html">XML 教程</a>
+<a href="../xpath.html">XPath 教程</a>
+<a href="../xquery.html">XQuery 教程</a>
+<a href="../xslfo.html">XSLFO 教程</a>
+<a href="../xsl.html">XSLT 教程</a>
+<a href="../zig.html">Zig 教程</a>
+<a href="../data-structures.html">数据结构</a>
+<a href="../ml.html">机器学习</a>
+<a href="../regexp.html">正则表达式</a>
+<a href="../assembly.html">汇编语言</a>
+<a href="../quiz.html">测验</a>
+<a href="../browsers.html">浏览器</a>
+<a href="../quality.html">网站品质</a>
+<a href="../web.html">网站建设指南</a>
+<a href="../hosting.html">网站服务器教程</a>
+<a href="../np.html">网络协议</a>
+<a href="../computer-organization.html">计算机组成原理</a>
+<a href="../design-pattern.html">设计模式</a>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

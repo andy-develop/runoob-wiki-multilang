@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Explicación detallada de las estructuras de datos de Redis | Tutorial para principiantes</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="./redis-intro-data-structure.html" rel="canonical"/>
+<meta content="Redis 数据结构详解" name="keywords"/>
+<meta content="Redis 数据类型分为：字符串类型、散列类型、列表类型、集合类型、有序集合类型。 Redis 这么火，它运行有多块？一台普通的笔记本电脑，可以在1秒钟内完成十万次的读写操作。 原子操作：最小的操作单位，不能继续拆分。即最小的执行单位，不会被其他命令插入。高并发下不存在竞态条件。 KEY 的命名：一个良好的建议是 article:1:title 来存储 ID 为 1 的文章的标题。  一、前言 1、获取key的列表：KEYS patte.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div><!-- 导航栏 -->
+<!--  内容  -->
+<div class="container main">
+<div class="row">
+<div class="col middle-column big-middle-column">
+<div class="article">
+<div class="article-heading">
+<h2>Explicación detallada de las estructuras de datos de Redis</h2> <h3><em>Categoría</em> <a href="../w3cnote_genre/code.html" title="编程技术">Tecnología de programación</a> </h3>
+</div>
+<div class="article-body note-body">
+<div class="article-intro">
+<!-- ad start-->
+<!-- ad end-->
+<p>Los tipos de datos de Redis se dividen en: tipo string, tipo hash, tipo lista, tipo conjunto y tipo conjunto ordenado.</p>
+<p>Redis es tan popular, ¿qué tan rápido funciona? Una computadora portátil normal puede completar cien mil operaciones de lectura y escritura en 1 segundo.</p>
+<p>Operación atómica: la unidad de operación más pequeña, no se puede dividir más. Es decir, la unidad de ejecución más pequeña, no puede ser interrumpida por otros comandos. Bajo alta concurrencia no existen condiciones de carrera.</p>
+<p>Nombramiento de claves: un buen consejo es usar article:1:title para almacenar el título del artículo con ID 1.</p>
+<p><img decoding="async" src="../wp-content/uploads/2018/05/redis-data-structure-types.jpeg"/></p>
+<hr/><h2>I. Introducción</h2><ul><li>1. Obtener la lista de claves: KEYS pattern. Los comodines son ? * [] y el escape \.</li><li>2. Comprobar si existe una clave: EXISTS key. Devuelve 1 si existe, 0 si no existe.</li><li>3. Crear y eliminar una clave: SET key y DEL key.</li><li>4. Obtener el tipo de datos de Redis almacenado en la clave: TYPE key. Devuelve string, list, hash, set, zset. A continuación se explicarán estos 5 tipos de datos de Redis uno por uno.</li><li>5. rename oldkey newkey: renombra la clave. Si newkey ya existe, se sobrescribe.</li><li>6. renamenx oldkey newkey: renombra la clave. Si newkey ya existe, no se sobrescribe.</li><li>7. randomkey: devuelve una clave aleatoriamente.</li><li>8. move key db-index: mueve la clave a la base de datos especificada. Si la clave no existe o ya está en esa base de datos, devuelve 0. Si tiene éxito, devuelve 1.</li></ul>
+<hr/><h2>II. Tipos de datos de Redis y comandos de datos de Redis</h2>
+<p>1. Primer tipo de datos de Redis: tipo string. Esto es fácil de entender: una clave almacena una cadena. ¿Y si quieres almacenar datos? Conviértelos a JSON u otra serialización de cadena.</p>
+<p>2. Comandos de datos de Redis para el tipo string:</p>
+<ul><li>1) Asignación: SET key value. Por ejemplo, set hello world</li><li>2) Obtención: GET key. Por ejemplo, get hello. Devuelve world</li><li>3) Incremento: INCR key. Es como AUTO_INCREMENT de MySQL. Cada vez que se ejecuta INCR key, el valor de la clave aumenta en 1. Si la clave no existe, primero se crea un 0, luego se suma 1, y devuelve 1. Si el valor no es un entero, se produce un error. Esta operación es atómica.</li><li>4) Decremento: DECR key. Reduce el valor de la clave especificada en 1. Por ejemplo, DECR num, es num-1</li><li>5) Incremento en N: INCRBY key increment se usa para sumar increment al valor de la clave especificada. Por ejemplo, INCRBY num 5 es num+5</li><li>6) Decremento en N: DECRBY key increment se usa para restar increment al valor de la clave especificada. Por ejemplo, DECRBY num 5 es num-5</li><li>7) Sumar número de punto flotante: INCRBYFLOAT key increment.</li><li>8) Añadir al final: APPEND key value. Por ejemplo, set test:key 123, append test:key 456, get test:key devuelve 123456</li><li>9) Obtener longitud: STRLEN key.</li><li>10) Asignar valores a múltiples claves simultáneamente: MSET title este es el título description esta es la descripción content este es el contenido.</li><li>11) Obtener valores de múltiples claves simultáneamente: MGET title description content</li><li>12) Operación de bits - obtener: GETBIT key offset. Por ejemplo, el carácter 'a' se almacena en Redis como 01100001 (ASCII 98), entonces GETBIT key 2 es 1, GET key 0 es 0.</li><li>13) Operación de bits - establecer: SETBIT key offset value. Por ejemplo, el carácter 'a' se almacena en Redis como 01100001 (ASCII 98), entonces SETBIT key 6 0, SETBIT key 5 1, y get key devuelve 'b'. Porque el binario resultante es 01100010.</li><li>14) Operación de bits - conteo: BITCOUNT key [start] [end]: BITCOUNT key se usa para obtener el número de bits que son 1 en el valor de la clave. Mientras que BITCOUNT key start end se usa para contar el número de bits que son 1 en la subcadena entre start y end del valor de la clave (¡qué confuso!).</li><li>15) Operación de bits - operaciones bit a bit: BITOP operation resultKey key1 key2. operation es la operación de bits, que puede ser AND, OR, XOR, NOT. resultKey es donde se almacena el resultado de la operación. key1 y key2 son las claves que participan en la operación; se pueden especificar múltiples claves.</li></ul>
+<hr/><h2>3. Segundo tipo de datos de Redis: tipo hash:</h2>
+<p>Redis almacena en forma de diccionario (array asociativo), una clave corresponde a un valor. En el tipo string, el valor solo puede ser una cadena. En el tipo hash, también llamado tipo hash, el valor corresponde a un diccionario (array asociativo). Entonces se puede entender que en el tipo hash de Redis, el valor correspondiente a una clave es un array bidimensional. Pero el valor de un campo solo puede ser una cadena. Es decir, solo puede ser un array bidimensional, no puede tener más dimensiones.</p>
+<hr/><h2>4. Comandos de datos de Redis para el tipo hash:</h2><ul><li>1) Asignación: HSET key field value. Por ejemplo, hset user name lane. hset user age 23</li><li>2) Obtención: HGET key field. Por ejemplo, hget user name, devuelve lane.</li><li>3) Asignar múltiples campos de la misma clave: HMSET key field1 value1 field2 value2...</li><li>4) Obtener múltiples campos de la misma clave: HMGET key field1 field2...</li><li>5) Obtener todos los campos y valores de una clave: HGETALL key. Por ejemplo, HGETALL user devuelve name lane age 23. Cada valor devuelto es una línea independiente.</li><li>6) Verificar si existe un campo: HEXISTS key field. Devuelve 1 si existe, 0 si no existe.</li><li>7) Asignar solo si el campo no existe: HSETNX key field value. Si el campo field bajo la clave no existe, se crea el campo field con el valor value. Si el campo field existe, no se realiza ninguna operación. Su efecto equivale a HEXISTS + HSET. Pero la ventaja de este comando es que es una operación atómica. No hay que temer ni a la concurrencia más alta.</li><li>8) Incremento en N: HINCREBY key field increment. Igual que el incremento del tipo string, no se explica de nuevo.</li><li>9) Eliminar campos: DEL key field1 field2... Elimina uno o más campos de la clave especificada.</li><li>10) Obtener solo los nombres de los campos: HKEYS key. Similar a HGETALL, pero solo obtiene los nombres de los campos, no los valores.</li><li>11) Obtener solo los valores de los campos: HVALS key. Similar a HGETALL, pero solo obtiene los valores, no los nombres.</li><li>12) Obtener el número de campos: HLEN key.</li></ul>
+<hr/><h2>5. Tercer tipo de datos de Redis: tipo lista</h2>
+<p>El tipo lista almacena una lista ordenada de cadenas. La operación común es insertar nuevos elementos en ambos extremos. La complejidad temporal es O(1). La estructura es una lista enlazada. Registra las direcciones de la cabeza y la cola. Al ver esto, surge un papel importante del tipo lista de Redis: la cola. Las nuevas solicitudes se insertan al final, y las procesadas se eliminan desde la cabeza. Además, por ejemplo, las novedades de Weibo, como los registros. El tipo lista es un array cuyo índice comienza en 0. Debido al almacenamiento en lista enlazada, cuanto más cerca de la cabeza y la cola esté el elemento, más rápida será la operación; cuanto más cerca del centro, más lenta.</p>
+<hr/><h2>6. Comandos de datos de Redis para el tipo lista:</h2><ul><li>1) Insertar al principio: LPUSH key value1 value2... Devuelve la longitud de la lista después de la inserción.</li><li>2) Inserción por la cola: RPUSH key value1 value2... Devuelve la longitud de la lista después de la inserción.</li><li>3) Extracción por la cabeza: LPOP key. Devuelve el valor del elemento extraído. Esta operación primero elimina el primer elemento de la lista key y luego lo devuelve.</li><li>4) Extracción por la cola: RPOP key. Devuelve el valor del elemento extraído.</li><li>5) Número de elementos de la lista: LLEN key. Si key no existe, devuelve 0.</li><li>6) Obtener el subconjunto de la lista: LRANGE start end. Devuelve la lista de los elementos desde el índice start hasta el índice end. Incluye start y end. Admite índices negativos. -1 indica el último elemento, -2 indica el penúltimo elemento.</li><li>7) Eliminar valores específicos de la lista: LREM key count value. Elimina de la lista key todos los elementos con valor value, pero solo elimina count. Si hay count+1, conserva el último. Si count no existe o es 0, elimina todos. Si count es mayor que 0, elimina count elementos de principio a fin; si count es menor que 0, elimina count elementos de fin a principio.</li><li>8) Obtener el valor por índice: LINDEX key index. Por ejemplo, LINDEX key 0 es el primer elemento de la lista. index puede ser negativo.</li><li>9) Establecer índice y valor: LSET key index value. Esta operación solo modifica el valor del índice especificado en la key especificada. Si el index no existe, devuelve un error.</li><li>10) Conservar un segmento, eliminar el resto: LTRIM key start end. Conserva todos los elementos entre start y end, incluidos start y end. Elimina todo lo demás.</li><li>11) Insertar un elemento en la lista: LINSERT key BEFORE/AFTER value1 value2. Recorre desde el principio de la lista, se detiene al encontrar el valor value1, inserta value2, y según BEFORE o AFTER lo inserta antes o después de value1.</li><li>12) Transferir un elemento de una lista a otra: RPOPLPUSH list1 list2. Elimina el elemento de la derecha de la lista list1 e inserta ese elemento en la izquierda de la lista list2. Operación atómica.</li></ul>
+<hr/><h2>7. Cuarto tipo de datos de Redis: tipo conjunto:</h2>
+<p>El tipo de conjunto está diseñado para facilitar operaciones y cálculos sobre múltiples conjuntos. Cada elemento del conjunto es diferente y no tiene concepto de orden; cada elemento es, y solo puede ser, una cadena. Las operaciones comunes son inserción, eliminación, verificación, etc. La complejidad temporal es O(1). Se pueden realizar operaciones de intersección, unión y diferencia. Por ejemplo, el artículo 1 tiene 3 etiquetas, almacenadas en un tipo de conjunto de Redis. El artículo 2 tiene 3 etiquetas, almacenadas en un tipo de conjunto de Redis. El artículo 1 es sobre mysql, el artículo 2 es sobre redis. Entonces, ¿la intersección no daría como resultado una base de datos? (Suponiendo que la etiqueta 'base de datos' esté presente en ambos artículos). El almacenamiento del tipo de conjunto en Redis es una tabla hash con valores vacíos.</p>
+<hr/><h2>8. Comandos de datos de Redis para el tipo conjunto:</h2><ul><li>1) Agregar: SADD key value.</li><li>2) Eliminar: SREM key value.</li><li>3) Obtener todos los elementos del conjunto especificado: SMEMBERS key.</li><li>4) Determinar si un elemento existe: SISMEMBER key value.</li><li>5) Operación de diferencia: SDIFF key1 key2... Realiza la operación de diferencia sobre múltiples conjuntos.</li><li>6) Operación de intersección: SINNER key1 key2... Realiza la operación de intersección sobre múltiples conjuntos.</li><li>7) Operación de unión: SUNION key1 key2... Realiza la operación de unión sobre múltiples conjuntos.</li><li>8) Obtener el número de elementos del conjunto: SCARD key. Devuelve el número total de elementos del conjunto.</li><li>9) Almacenar el resultado de las operaciones de diferencia, intersección y unión en una key especificada: SDIFFSTORE storekey key1 key2. Calcula la diferencia entre key1 y key2, y almacena el resultado en el conjunto con key storekey. SINNERSTORE y SUNIONSTORE son similares.</li><li>10) Obtener un elemento aleatorio del conjunto: SRANDMEMBER key [count]. El parámetro count es opcional; si count no existe, devuelve uno aleatorio. Si count es mayor que 0, devuelve count elementos no repetidos. Si count es menor que 0, devuelve un total de |count| elementos, que pueden repetirse.</li><li>11) Extraer aleatoriamente un elemento: SPOP key. Extrae y elimina aleatoriamente un elemento del conjunto y devuelve su valor.</li></ul>
+<hr/><h2>9. Quinto tipo de datos de Redis: tipo conjunto ordenado:</h2>
+<p>El tipo de conjunto es desordenado y cada elemento es único. El conjunto ordenado, por su parte, es ordenado y cada elemento es único. La diferencia entre el tipo de conjunto ordenado y el tipo de conjunto es que el conjunto ordenado asigna a cada elemento un atributo: la puntuación (score). El conjunto ordenado se ordena según la puntuación. El conjunto ordenado se implementa mediante una tabla hash y una tabla de saltos (skip list). Por lo tanto, en comparación con las listas, la velocidad de operar sobre elementos intermedios también es muy rápida. La complejidad temporal es O(log(N)). El tipo de conjunto ordenado en los tipos de datos de Redis consume más recursos que el tipo de lista en los tipos de datos de Redis.</p>
+<hr/><h2>10. Comandos de datos de Redis para el tipo conjunto ordenado</h2><ul><li>1) Agregar: ZADD key sorce1 value1 sorce2 value2...</li><li>2) Obtener la puntuación: ZSCORE key value. Obtiene la puntuación del elemento con valor value en el conjunto ordenado de la key.</li><li>3) Obtener la lista de elementos clasificados en un rango: ZRANFGE key start stop [WITHSCORE]. Obtiene la lista de elementos entre las posiciones start y end, incluyendo start y end (los dos elementos). Cada elemento en una línea. Si se incluye el parámetro WITHSCORE, una línea para el valor del elemento y una línea para la puntuación. La complejidad temporal es O(LOGn+m). Si las puntuaciones son iguales, entonces 0&lt;0.<a<z<a<z。< li=""><li>4) Obtener los elementos dentro de un rango de puntuación especificado: ZRANGEBYSCORE key min max [WITHSCORE] [LIMIT offset count]. Obtiene la lista de elementos cuya puntuación está entre min y max. Incluye ambos extremos. Cada elemento en una línea. Si se incluye el parámetro WITHSCORE, una línea para el valor del elemento y una línea para la puntuación. Si min es mayor que max, el orden se invierte.</li><li>5) Incrementar la puntuación de un elemento: ZINCRBY key increment value. La puntuación del elemento con valor value en el conjunto ordenado especificado se incrementa en increment. Devuelve la puntuación modificada.</li><li>6) Obtener el número de elementos del conjunto: ZCARD key.</li><li>7) Obtener el número de elementos dentro de un rango de puntuación especificado: ZCOUNT key min max.</li><li>8) Eliminar uno o más elementos: ZREM key value1 value2...</li><li>9) Eliminar elementos según el rango: ZREMRANGEBYRANK key start end. Elimina los elementos cuya clasificación esté entre start y end.</li><li>10) Eliminar elementos según el rango de puntuación: ZREMRANGEBYSCORE key min max.</li><li>11) Obtener la clasificación de un elemento (orden ascendente): ZRANK key value. Obtiene la clasificación de value en el conjunto, de menor a mayor.</li><li>12) Obtener la clasificación de un elemento (orden descendente): ZREVRANK key value. Obtiene la clasificación de value en el conjunto, de mayor a menor.</li><li>13) Intersección de conjuntos ordenados: ZINTERSTORE storekey key1 key2...[WEIGHTS weight [weight..]] [AGGREGATE SUM|MIN|MAX]. Se utiliza para calcular la intersección de múltiples conjuntos, y el resultado se almacena en storekey. El valor de retorno es el número de elementos de storekey. Si AGGREGATE es SUM, la puntuación de cada elemento del conjunto storekey es la suma de las puntuaciones de los conjuntos participantes. MIN es el valor mínimo de las puntuaciones participantes. MAX es el valor máximo de las puntuaciones participantes. WEIGHTS establece el peso de cada conjunto, por ejemplo, WEIGHTS 1 0.1. Entonces la puntuación de cada elemento del conjunto A se multiplica por 1, y la puntuación de cada elemento del conjunto B se multiplica por 0.1.</li><li>14) Unión de conjuntos ordenados: ZUNIONSTORE storekey key1 kye2...[WEIGHTS weight [weight..]] [AGGREGATE SUM|MIN|MAX]</li></a<z<a<z。<></li></ul> </div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link">← <a href="./scala-different-function-method.html" rel="prev">Diferencias entre métodos y funciones en Scala</a> </div>
+<div class="next-design-link"><a href="./js-redirect-to-another-webpage.html" rel="next">JavaScript: salto de página, redirección de página</a> →</div>
+</div>
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>Haz clic para compartir notas</h3>
+&lt;p style="font-size:14px;"&gt;¡Las notas deben ser una extensión del contenido de este artículo!&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;Envío de artículos, haz clic aquí&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;Cómo obtener el código de invitación de registro&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; ¡Debes &lt;a href=".." class="runoob-pop"&gt;iniciar sesión&lt;/a&gt; antes de compartir notas!&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;Cómo obtener el código de invitación de registro&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=".." id="cancel-comment-reply-link">Cancelar</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="20011"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>Compartir notas</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">Apodo</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">Apodo (obligatorio)</span></li>
+<li class="form-inline"><label class="hide" for="email">Correo electrónico</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">Correo electrónico (obligatorio)</span></li>
+<li class="form-inline"><label class="hide" for="url">Dirección de referencia</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">Dirección de referencia</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  20011;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 20011, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":20011},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+<style>
+@media screen and (max-width: 768px) {
+	#w3cnote-ad728 {
+		display: none;
+	}
+}
+p.note-author {
+    border-bottom: 1px solid #ddd;
+    font-size: 18px;
+    font-weight: bold;
+    color: #78a15a;
+    padding-bottom: 2px;
+    margin-bottom: 4px;
+}
+</style>
+<script>
+var aid = 20011;
+</script>
+</div>
+</div>
+<div class="listcol last right-column">
+<!--
+	<div class="tab tab-light-blue"> 订阅</div>
+	<div class="sidebar-box">
+		<div class="socialicons">
+			<a href="../feed.html" class="rss">RSS 订阅</a>
+		
+			<form action="..//list.qq.com/cgi-bin/qf_compose_send" method="post">
+			<input type="hidden" value="qf_booked_feedback" name="t">
+			<input type="hidden" value="4b67b6b6c1f5e792559940cab4aebb8f1126fba880bff1a8" name="id">
+			<input class="placeholder" id="feed_email" name="to" value="输入邮箱 订阅笔记" autocomplete="off">
+			<input type="submit" value="订阅" class="btn btn-primary">
+			</form>
+		
+		</div>
+ 
+	</div>
+-->
+<!--
+	<div class="sidebar-box cate-list">
+	<div class="sidebar-box recommend-here list-link">
+			<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">笔记列表</a>
+		</div>
+
+ 
+
+</div>
+-->
+<div class="sidebar-box cate-list" style="display:none;">
+<div class="sidebar-box recommend-here list-link">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">热门文章</a>
+</div>
+<div class="membership">
+<ul class="membership">
+<li><a href="https://mp.weixin.qq.com/s/ZaP6YNgKTCHYy3r2WPBBaw" target="_blank" title="2024 年 04 月 JavaScript 框架排行榜">2024 年 04 月 JavaScript 框架排行榜</a></li>
+<li><a href="https://mp.weixin.qq.com/s/JBR2twC0t6krjjuxqvhsEQ" target="_blank" title="免费、开源、好用的 SQL 客户端合集">免费、开源、好用的 SQL 客户端合集</a></li>
+<li><a href="https://mp.weixin.qq.com/s/TwV3YQjA1glyaW7TiHvhlA" target="_blank" title="优雅的代码规范，提升代码质量">优雅的代码规范，提升代码质量</a></li>
+<li><a href="https://mp.weixin.qq.com/s/CnUJ-2OHPbBKlnVpjDzavA" target="_blank" title="命令行中的趣味世界，牛也能说话，有趣又好玩">命令行中的趣味世界，牛也能说话，有趣又好玩</a></li>
+<li><a href="https://mp.weixin.qq.com/s/7NKl-mD7N8CeSNQlbKDEWA" target="_blank" title="2024 年 05 月编程语言排行榜，Fortran 进入前 10 名，发生了什么？">2024 年 05 月编程语言排行榜，Fortran 进入前 10 名，发生了什么？</a></li>
+<li><a href="https://mp.weixin.qq.com/s/yWlSVDKobtDhThnhirVRpw" target="_blank" title="免费开源的 IDE、数据库管理工具、SSH客户端和FTP客户端">免费开源的 IDE、数据库管理工具、SSH客户端和FTP客户端</a></li>
+</ul>
+</div>
+</div>
+<div class="sidebar-box cate-list">
+<div class="sidebar-box recommend-here list-link">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">教程列表</a>
+</div>
+<div class="cate-items">
+<a href="../ado.html">ADO 教程</a>
+<a href="../ai-agent.html">AI Agent 教程</a>
+<a href="../ai.html">AI 入门教程</a>
+<a href="../ai-math.html">AI 数学基础</a>
+<a href="../ajax.html">Ajax 教程</a>
+<a href="../android.html">Android 教程</a>
+<a href="../angularjs2.html">Angular2 教程</a>
+<a href="../angularjs.html">AngularJS 教程</a>
+<a href="../appml.html">AppML 教程</a>
+<a href="../asp.html">ASP 教程</a>
+<a href="../aspnet.html">ASP.NET 教程</a>
+<a href="../bootstrap.html">Bootstrap 教程</a>
+<a href="../bootstrap4.html">Bootstrap4 教程</a>
+<a href="../bootstrap5.html">Bootstrap5 教程</a>
+<a href="../cprogramming.html">C 教程</a>
+<a href="../c-dsa.html">C 语言数据结构与算法</a>
+<a href="../csharp.html">C# 教程</a>
+<a href="../cplusplus.html">C++ 教程</a>
+<a href="../chartjs.html">Chart.js 教程</a>
+<a href="../claude-code.html">Claude Code 教程</a>
+<a href="../cmake.html">CMake 教程</a>
+<a href="../codex.html">Codex 教程</a>
+<a href="../cssref.html">CSS 参考手册</a>
+<a href="../css.html">CSS 教程</a>
+<a href="../css3.html">CSS3 教程</a>
+<a href="../cursor.html">Cursor 教程</a>
+<a href="../dart.html">Dart 教程</a>
+<a href="../dash.html">Dash 教程</a>
+<a href="../deepseek-harness.html">DeepSeek Harness</a>
+<a href="../django.html">Django 教程</a>
+<a href="../docker.html">Docker 教程</a>
+<a href="../dtd.html">DTD 教程</a>
+<a href="../echarts.html">ECharts 教程</a>
+<a href="../eclipse.html">Eclipse 教程</a>
+<a href="../electron.html">Electron 教程</a>
+<a href="../fastapi.html">FastAPI 教程</a>
+<a href="../firebug.html">Firebug 教程</a>
+<a href="../flask.html">Flask 教程</a>
+<a href="../flutter.html">Flutter 教程</a>
+<a href="../font-awesome.html">Font Awesome 图标</a>
+<a href="../foundation.html">Foundation 教程</a>
+<a href="../git.html">Git 教程</a>
+<a href="../go.html">Go 语言教程</a>
+<a href="../googleapi.html">Google 地图 API 教程</a>
+<a href="../hermes-agent.html">Hermes Agent</a>
+<a href="../highcharts.html">Highcharts 教程</a>
+<a href="../htmldom.html">HTML DOM 教程</a>
+<a href="../tags.html">HTML 参考手册</a>
+<a href="../charsets.html">HTML 字符集</a>
+<a href="../html.html">HTML 教程</a>
+<a href="../http.html">HTTP 教程</a>
+<a href="../ionic.html">ionic 教程</a>
+<a href="../ios.html">iOS 教程</a>
+<a href="../java.html">Java 教程</a>
+<a href="../jsref.html">JavaScript 参考手册</a>
+<a href="../js.html">Javascript 教程</a>
+<a href="../jeasyui.html">jQuery EasyUI 教程</a>
+<a href="../jquerymobile.html">jQuery Mobile 教程</a>
+<a href="../jqueryui.html">jQuery UI 教程</a>
+<a href="../jquery.html">jQuery 教程</a>
+<a href="../json.html">JSON 教程</a>
+<a href="../jsp.html">JSP 教程</a>
+<a href="../julia.html">Julia 教程</a>
+<a href="../jupyter-notebook.html">Jupyter Notebook 教程</a>
+<a href="../kotlin.html">Kotlin 教程</a>
+<a href="../langchain.html">LangChain 教程</a>
+<a href="../latex.html">LaTeX 教程</a>
+<a href="../linux.html">Linux 教程</a>
+<a href="../lua.html">Lua 教程</a>
+<a href="../markdown.html">Markdown 教程</a>
+<a href="../matplotlib.html">Matplotlib 教程</a>
+<a href="../maven.html">Maven 教程</a>
+<a href="../memcached.html">Memcached 教程</a>
+<a href="../mongodb.html">MongoDB 教程</a>
+<a href="../mysql.html">MySQL 教程</a>
+<a href="../nextjs.html">Next.js 教程</a>
+<a href="../nlp.html">NLP 教程</a>
+<a href="../nodejs.html">Node.js 教程</a>
+<a href="../numpy.html">NumPy 教程</a>
+<a href="../obsidian.html">Obsidian 教程</a>
+<a href="../ollama.html">Ollama 教程</a>
+<a href="../opencode.html">OpenCode 教程</a>
+<a href="../opencv.html">OpenCV 教程</a>
+<a href="../pandas.html">Pandas 教程</a>
+<a href="../perl.html">Perl 教程</a>
+<a href="../php.html">PHP 教程</a>
+<a href="../pi-agent.html">Pi Agent</a>
+<a href="../pillow.html">Pillow 教程</a>
+<a href="../playwright.html">Playwright 教程</a>
+<a href="../postgresql.html">PostgreSQL 教程</a>
+<a href="../powershell.html">PowerShell</a>
+<a href="../pycharm.html">Pycharm 教程</a>
+<a href="../python3.html">Python 3 教程</a>
+<a href="../python.html">Python 基础教程</a>
+<a href="../python-design-pattern.html">Python 设计模式</a>
+<a href="../python-qt.html">Python 量化交易</a>
+<a href="../pytorch.html">PyTorch 教程</a>
+<a href="../r.html">R 教程</a>
+<a href="../rdf.html">RDF 教程</a>
+<a href="../react.html">React 教程</a>
+<a href="../redis.html">Redis 教程</a>
+<a href="../restfulapi.html">RESTful API</a>
+<a href="../rss.html">RSS 教程</a>
+<a href="../ruby.html">Ruby 教程</a>
+<a href="../rust.html">Rust 教程</a>
+<a href="../sass.html">Sass 教程</a>
+<a href="../scala.html">Scala 教程</a>
+<a href="../scipy.html">SciPy 教程</a>
+<a href="../selenium.html">Selenium 教程</a>
+<a href="../servlet.html">Servlet 教程</a>
+<a href="../skills.html">Skills 教程</a>
+<a href="../sklearn.html">Sklearn 教程</a>
+<a href="../soap.html">SOAP 教程</a>
+<a href="../sql.html">SQL 教程</a>
+<a href="../sqlite.html">SQLite 教程</a>
+<a href="../svg.html">SVG 教程</a>
+<a href="../svn.html">SVN 教程</a>
+<a href="../swagger.html">Swagger 教程</a>
+<a href="../swift.html">Swift 教程</a>
+<a href="../tailwindcss.html">Tailwind CSS 教程</a>
+<a href="../tcpip.html">TCP/IP 教程</a>
+<a href="../tensorflow.html">TensorFlow 教程</a>
+<a href="../typescript.html">TypeScript 教程</a>
+<a href="../uniapp.html">uni-app 教程</a>
+<a href="../vbscript.html">VBScript 教程</a>
+<a href="../vibe-coding.html">Vibe Coding 教程</a>
+<a href="../vscode.html">VSCode 教程</a>
+<a href="../vue2.html">Vue.js 教程</a>
+<a href="../vue3.html">Vue3 教程</a>
+<a href="../w3c.html">W3C 教程</a>
+<a href="../webservices.html">Web Service 教程</a>
+<a href="../wsdl.html">WSDL 教程</a>
+<a href="../xlink.html">XLink 教程</a>
+<a href="../dom.html">XML DOM 教程</a>
+<a href="../schema.html">XML Schema 教程</a>
+<a href="../xml.html">XML 教程</a>
+<a href="../xpath.html">XPath 教程</a>
+<a href="../xquery.html">XQuery 教程</a>
+<a href="../xslfo.html">XSLFO 教程</a>
+<a href="../xsl.html">XSLT 教程</a>
+<a href="../zig.html">Zig 教程</a>
+<a href="../data-structures.html">数据结构</a>
+<a href="../ml.html">机器学习</a>
+<a href="../regexp.html">正则表达式</a>
+<a href="../assembly.html">汇编语言</a>
+<a href="../quiz.html">测验</a>
+<a href="../browsers.html">浏览器</a>
+<a href="../quality.html">网站品质</a>
+<a href="../web.html">网站建设指南</a>
+<a href="../hosting.html">网站服务器教程</a>
+<a href="../np.html">网络协议</a>
+<a href="../computer-organization.html">计算机组成原理</a>
+<a href="../design-pattern.html">设计模式</a>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

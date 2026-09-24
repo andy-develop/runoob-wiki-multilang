@@ -1,0 +1,1878 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ベクトルデータベース | 菜鸟教程</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<link href="../manifest.webmanifest.html" rel="manifest"/>
+<meta content="#10151c" name="theme-color"/>
+<link href="../pwa/icon-192.png.html" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="application-name"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="../ai/ai-vector-database.html" rel="canonical"/>
+<meta content="向量数据库" name="keywords"/>
+<meta content="向量数据库   在 AI 时代，我们处理的数据形态发生了根本变化。  传统数据库存储的是结构化数据：数字、字符串、日期。  AI 应用处理的是语义：一段文本的含义、一张图片的内容、一段语音的意思，这些语义信息被表示成向量——一串浮点数，比如 [0.123, -0.456, 0.789, ...]。  向量数据库就是专门用来存储、索引、查询这些向量的数据库，没有它，RAG（检索增强生成）做不了，语义搜索实现不了，推荐系统也无法高效运行。 .." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div>
+<!-- 导航栏 -->
+<style>
+/* 主题切换按钮 */
+/* ===== 主题变量（核心）===== */
+:root {
+  --theme-bg: #ffffff;
+  --theme-border: #e5e7eb;
+  --theme-icon: #333;
+  --theme-hover: #f3f4f6;
+}
+
+.dark {
+  --theme-bg: #1f2937;
+  --theme-border: #374151;
+  --theme-icon: #e5e7eb;
+  --theme-hover: #374151;
+}
+
+/* ===== 按钮容器 ===== */
+.nav-theme-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== 按钮本体 ===== */
+.nav-theme-toggle button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  border-radius: 6px;
+  border: 1px solid var(--theme-border);
+
+  background: var(--theme-bg);
+  color: var(--theme-icon);
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* ===== 图标大小 ===== */
+.nav-theme-toggle i {
+  font-size: 14px;
+}
+
+/* ===== hover 效果 ===== */
+.nav-theme-toggle button:hover {
+  background: var(--theme-hover);
+  transform: translateY(-1px);
+}
+
+/* ===== 点击反馈 ===== */
+.nav-theme-toggle button:active {
+  transform: scale(0.95);
+}
+
+/* ===== 当前激活态（可选）===== */
+.nav-theme-toggle button.active {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+</style>
+<!-- 导航栏 -->
+<nav aria-label="主导航" class="container navigation">
+<div class="row">
+<div class="col nav">
+<!-- PC 导航 -->
+<ul class="pc-nav" id="runoob-detail-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../js/js-tutorial.html">JavaScript</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a data-id="vue" href="#">Vue</a></li>
+<li><a href="../react/react-tutorial.html">React</a></li>
+<li><a href="../python3/python3-tutorial.html">Python3</a></li>
+<li><a href="../java/java-tutorial.html">Java</a></li>
+<li><a href="../cprogramming/c-tutorial.html">C</a></li>
+<li><a href="../cplusplus/cpp-tutorial.html">C++</a></li>
+<li><a href="../csharp/csharp-tutorial.html">C#</a></li>
+<li><a data-id="aiNav" href="#">AI</a></li>
+<li><a href="../go/go-tutorial.html">Go</a></li>
+<li><a href="../sql/sql-tutorial.html">SQL</a></li>
+<li><a href="../linux/linux-tutorial.html">Linux</a></li>
+<li><a href="../vscode/vscode-tutorial.html">VS Code</a></li>
+<li><a data-id="bootstrap" href="#">Bootstrap</a></li>
+<li><a href="../git/git-tutorial.html">Git</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<!-- 主题切换按钮，固定在最右侧 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+<!-- 移动端导航 -->
+<ul class="mobile-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a href="../js/js-tutorial.html">JS</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<li><a class="search-reveal" href="#">搜索</a></li>
+<!-- 移动端主题切换 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon-mobile" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun-mobile" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<!-- 二级导航 -->
+<!--  内容  -->
+<div class="container main">
+<!-- 中间 -->
+<div class="row">
+<div class="runoob-col-md2">
+<div class="left-column">
+<div class="tab" style="overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
+<i aria-hidden="true" class="fa fa-list"></i>
+<span>AI 入门教程</span>
+</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+<a data-p="par" href="../ai/ai-tutorial.html" target="_top" title="AI 入门教程">
+			AI 入门教程			</a>
+<a data-p="par" href="../ai/ai-into.html" target="_top" title="AI 简介">
+			AI 简介			</a>
+<a href="../ai/agi-intro.html" target="_top" title="AGI 简介">AGI 简介</a>
+<a href="../ai/llm-intro.html" target="_top" title="大模型相关概念">大模型相关概念</a> <a data-p="par" href="../ai/ai-prompt.html" target="_top" title="Prompt 提示词">
+			Prompt 提示词			</a>
+<a data-p="par" href="../ai/ai-tools.html" target="_top" title="AI 工具全景">
+			AI 工具全景			</a>
+<a data-p="par" href="../ai/how-ai-works.html" target="_top" title="AI 工作原理">
+			AI 工作原理			</a>
+<a data-p="par" href="../ai/ai-ethics.html" target="_top" title="AI 伦理与安全">
+			AI 伦理与安全			</a>
+<a data-p="par" href="../ai/ai-use-cases.html" target="_top" title="AI 应用场景">
+			AI 应用场景			</a>
+<a data-p="par" href="../ai/ai-industry.html" target="_top" title="AI 行业生态">
+			AI 行业生态			</a>
+<a data-p="par" href="../ai/prompt-engineering-advance.html" target="_top" title="Prompt 工程进阶">
+			Prompt 工程进阶			</a>
+<a data-p="par" href="../ai/ai-api-development.html" target="_top" title="AI API 开发">
+			AI API 开发			</a>
+<a data-p="par" href="../ai/ai-rag.html" target="_top" title="RAG 检索增强生成">
+			RAG 检索增强生成			</a>
+<a href="../ai/ai-agent.html" target="_top" title="AI 智能体">AI 智能体</a> <a data-p="par" href="../ai/ai-multimodal.html" target="_top" title="AI 多模态">
+			AI 多模态			</a>
+<a data-p="par" href="../ai/ai-workflow-auto.html" target="_top" title="AI 工作流自动化">
+			AI 工作流自动化			</a>
+<a data-p="par" href="../ai/ai-product-design.html" target="_top" title="AI 产品设计">
+			AI 产品设计			</a>
+<a data-p="par" href="../ai/ai-local-model-deployment.html" target="_top" title="本地模型部署">
+			本地模型部署			</a>
+<a data-p="par" href="../ai/ai-security.html" target="_top" title="AI 安全进阶">
+			AI 安全进阶			</a>
+<a data-p="par" href="../ai/ai-transformer.html" target="_top" title="Transformer 深度解析">
+			Transformer 深度解析			</a>
+<a data-p="par" href="../ai/ai-fine-tuning.html" target="_top" title="模型微调 Fine-tuning">
+			模型微调 Fine-tuning			</a>
+<a data-p="par" href="../ai/ai-rlhf.html" target="_top" title="RLHF 对齐训练">
+			RLHF 对齐训练			</a>
+<a data-p="par" href="../ai/ai-vector-database.html" target="_top" title="向量数据库">
+			向量数据库			</a>
+<a data-p="par" href="../ai/ai-deployment.html" target="_top" title="AI 工程化部署">
+			AI 工程化部署			</a>
+<a data-p="par" href="../ai/ai-deep-learning.html" target="_top" title="深度学习基础">
+			深度学习基础			</a>
+<a data-p="par" href="../ai/ai-computer-vision.html" target="_top" title="计算机视觉 AI">
+			计算机视觉 AI			</a>
+<a data-p="par" href="../ai/ai-nlp-advanced.html" target="_top" title="NLP 进阶技术">
+			NLP 进阶技术			</a>
+<a data-p="par" href="../ai/ai-frontier-research.html" target="_top" title="前沿研究动态">
+			前沿研究动态			</a>
+<a data-p="par" href="../ai/ai-system-architecture.html" target="_top" title="AI 系统架构">
+			AI 系统架构			</a>
+<a data-p="par" href="../ai/ai-evaluation.html" target="_top" title="AI 评测与安全研究">
+			AI 评测与安全研究			</a>
+</div>
+</div>
+</div>
+</div> <div class="col middle-column">
+<div class="article">
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../ai/ai-rlhf.html" rel="prev">RLHF アライメント訓練</a> </div>
+<div class="next-design-link"><a href="../ai/ai-deployment.html" rel="next">AI エンジニアリング展開</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="article-body">
+<div class="article-intro" id="content">
+<h1>ベクトルデータベース</h1>
+<p>AI時代において、私たちが扱うデータの形態は根本的に変化しました。</p>
+<p>従来のデータベースが格納していたのは構造化データです：数値、文字列、日付。</p>
+<p>AIアプリケーションが処理するのはセマンティクス（意味）です：テキストの意味、画像の内容、音声の意味。これらの意味情報はベクトル——浮動小数点の列、例えば [0.123, -0.456, 0.789, ...] として表現されます。</p>
+<p>ベクトルデータベースとは、これらのベクトルを保存・インデックス化・検索することに特化したデータベースです。これがなければ、RAG（検索拡張生成）はできず、セマンティック検索も実現できず、レコメンドシステムも効率的に動作しません。</p>
+<p><img decoding="async" src="../wp-content/uploads/2026/06/55d6a8baff534e58acd9db3d3fec3514a4354163-1200x628-1.png"/></p>
+<blockquote>
+<p>ベクトルデータベースの核心的価値：<span class="marked">100万規模から10億規模のベクトルの中から、クエリベクトルに最も類似した上位K件の結果をミリ秒単位で見つけ出す</span>。</p>
+</blockquote>
+<hr/>
+<h2>ベクトル類似度検索の課題</h2>
+<p>問題の本質を理解して初めて、なぜ専用のアルゴリズムが必要なのかを理解できます。</p>
+<h3>力任せ検索の複雑性の問題</h3>
+<p>最も単純な考え方は力任せ検索です：クエリベクトルとライブラリ内の全ベクトルとの類似度を計算し、ソートして上位K件を取得します。</p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># 力任せ検索のデモ：単純だが非効率</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">import</span> numpy <span style="color: Green;font-weight:bold;">as</span> np<br/>
+<span style="color: Green;font-weight:bold;">from</span> typing <span style="color: Green;font-weight:bold;">import</span> List<span style="color: Gray;">,</span> Tuple<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> l2_distance<span style="color: Olive;">(</span>v1: np.<span style="color: #05a;">ndarray</span><span style="color: Gray;">,</span> v2: np.<span style="color: #05a;">ndarray</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">float</span>:<br/>
+    <span style="color: #a11;">"""L2ユークリッド距離を計算：小さいほど類似"""</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> np.<span style="color: #05a;">sqrt</span><span style="color: Olive;">(</span>np.<span style="color: Teal;">sum</span><span style="color: Olive;">(</span><span style="color: Olive;">(</span>v1 - v2<span style="color: Olive;">)</span> ** <span style="color: Maroon;">2</span><span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> brute_force_search<span style="color: Olive;">(</span><br/>
+    query: np.<span style="color: #05a;">ndarray</span><span style="color: Gray;">,</span><br/>
+    vectors: List<span style="color: Olive;">[</span>np.<span style="color: #05a;">ndarray</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span><br/>
+    top_k: <span style="color: Teal;">int</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">5</span><br/>
+<span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> List<span style="color: Olive;">[</span>Tuple<span style="color: Olive;">[</span><span style="color: Teal;">int</span><span style="color: Gray;">,</span> <span style="color: Teal;">float</span><span style="color: Olive;">]</span><span style="color: Olive;">]</span>:<br/>
+    <span style="color: #a11;">"""<br/>力任せ検索：全ベクトルとの距離を計算し、ソートしてTop Kを返す<br/>利点：単純で正確、100%リコール<br/>欠点：データ量が多いと非常に遅い<br/>
+    """</span><br/>
+    <span style="color: #a50"># 各ベクトルとの距離を計算</span><br/>
+    distances <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+    <span style="color: Green;font-weight:bold;">for</span> idx<span style="color: Gray;">,</span> vec <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">enumerate</span><span style="color: Olive;">(</span>vectors<span style="color: Olive;">)</span>:<br/>
+        dist <span style="color: Gray;">=</span> l2_distance<span style="color: Olive;">(</span>query<span style="color: Gray;">,</span> vec<span style="color: Olive;">)</span><br/>
+        distances.<span style="color: #05a;">append</span><span style="color: Olive;">(</span><span style="color: Olive;">(</span>idx<span style="color: Gray;">,</span> dist<span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 距離でソートして上位K個を取得</span><br/>
+    distances.<span style="color: #05a;">sort</span><span style="color: Olive;">(</span>key<span style="color: Gray;">=</span><span style="color: Green;font-weight:bold;">lambda</span> x: x<span style="color: Olive;">[</span><span style="color: Maroon;">1</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> distances<span style="color: Olive;">[</span>:top_k<span style="color: Olive;">]</span><br/>
+<br/>
+<br/>
+<span style="color: #a50"># 10000個の128次元ランダムベクトルを生成（ベクトルライブラリを模擬）</span><br/>
+np.<span style="color: #05a;">random</span>.<span style="color: #05a;">seed</span><span style="color: Olive;">(</span><span style="color: Maroon;">42</span><span style="color: Olive;">)</span><br/>
+vector_count <span style="color: Gray;">=</span> <span style="color: Maroon;">10000</span><br/>
+dimension <span style="color: Gray;">=</span> <span style="color: Maroon;">128</span><br/>
+vectors <span style="color: Gray;">=</span> <span style="color: Olive;">[</span>np.<span style="color: #05a;">random</span>.<span style="color: #05a;">randn</span><span style="color: Olive;">(</span>dimension<span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>vector_count<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+<br/>
+<span style="color: #a50"># クエリベクトルを生成</span><br/>
+query_vector <span style="color: Gray;">=</span> np.<span style="color: #05a;">random</span>.<span style="color: #05a;">randn</span><span style="color: Olive;">(</span>dimension<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 力任せ検索を実行</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"{vector_count} 個のベクトルから Top 5 を検索中..."</span><span style="color: Olive;">)</span><br/>
+results <span style="color: Gray;">=</span> brute_force_search<span style="color: Olive;">(</span>query_vector<span style="color: Gray;">,</span> vectors<span style="color: Gray;">,</span> top_k<span style="color: Gray;">=</span><span style="color: Maroon;">5</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"検索結果："</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">for</span> idx<span style="color: Gray;">,</span> dist <span style="color: Green;font-weight:bold;">in</span> results:<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  ベクトル {idx:4d}, 距離 = {dist:.4f}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 出力例：</span><br/>
+<span style="color: #a50"># 10000 個のベクトルから Top 5 を検索中...</span><br/>
+<span style="color: #a50"># 検索結果：</span><br/>
+<span style="color: #a50">#   ベクトル 8236, 距離 = 13.3986</span><br/>
+<span style="color: #a50">#   ベクトル 8946, 距離 = 13.5604</span><br/>
+<span style="color: #a50">#   ベクトル 9891, 距離 = 13.5688</span><br/>
+<span style="color: #a50">#   ベクトル 5172, 距離 = 13.5987</span><br/>
+<span style="color: #a50">#   ベクトル 5223, 距離 = 13.6081</span><br/>
+</div>
+</div>
+<p>力任せ検索の問題は明らかです：毎回のクエリですべてのベクトルを走査する必要があります。</p>
+<p>100万個のベクトルがあれば、毎回のクエリで100万回の距離計算が必要です。</p>
+<p>10億個のベクトルがあれば、毎回10億回の計算が必要になります——これは本番環境では全く受け入れられません。</p>
+<h3>高次元空間の「次元の呪い」</h3>
+<p>さらに悪いことに、ベクトルは通常高次元です。</p>
+<p>OpenAI の text-embedding-3-small は1536次元、large は3072次元です。</p>
+<p>高次元空間では、従来の空間インデックス手法（例：KD-Tree）の効率が急激に低下し、力任せ検索よりも遅くなることさえあります。</p>
+<table class="reference">
+<tr><th>データ規模</th><th>力任せ検索の所要時間（推定）</th><th>受け入れられるか？</th></tr>
+<tr><td>1万</td><td>~1ミリ秒</td><td>受け入れ可能</td></tr>
+<tr><td>100万</td><td>~100ミリ秒</td><td>やや遅い</td></tr>
+<tr><td>1000万</td><td>~1秒</td><td>遅すぎる</td></tr>
+<tr><td>1億</td><td>~10秒</td><td>全く受け入れられない</td></tr>
+<tr><td>10億</td><td>~100秒</td><td>使用不可</td></tr>
+</table>
+<p>これが必要な理由は<span class="marked">近似最近傍（ANN）アルゴリズム</span>：100%の正確さを犠牲にして、100倍、いや1000倍の速度向上を得る。</p>
+<hr/>
+<h2>近似最近傍（ANN）アルゴリズム</h2>
+<p>ANN アルゴリズムの核となる考え方：<span class="marked">インデックス構造を構築し、クエリ時にすべてのベクトルを走査しなくて済むようにする</span>。</p>
+<p>主要なアルゴリズムは3つあります：HNSW、IVF、PQ。</p>
+<h3>HNSW：階層的スモールワールドグラフ</h3>
+<p>HNSW（Hierarchical Navigable Small World）は現在最も人気のあるアルゴリズムの1つで、その着想は六次の隔たり理論——世界の任意の2人は、最大6人の中継人を介せばつながることができる——に由来しています。</p>
+<p>HNSWは多層の疎なスモールワールドグラフを用いて、最上層の疎なノードから高速に大まかな位置を特定し、層を下るごとに最下層の全量データ層へ到達して精密に検索します。階層的なジャンプで距離計算回数を大幅に減らし、高速かつ高リコールな近似最近傍検索を実現します。</p>
+<p><img alt="HNSW 分层小世界图结构示意图" decoding="async" src="../wp-content/uploads/2026/06/1ziU6_KIDqfmaDXKA1cMa8w.webp"/></p>
+<p>
+<strong>階層構造：</strong>最下層のLayer0には全ベクトルを格納；層が上がるほどノードは少なくなり、高速チャネルとして機能します。同じベクトルは層をまたいで点線で垂直に関連付けられます。</p>
+<p><strong>検索フロー（青線のパス）：</strong></p>
+<ul>
+<li>最上層の入口から大まかに検索し、その層でクエリベクトルに最も近い点を見つけます。</li>
+<li>垂直に中間層へ落下し、再度おおまかに位置を特定します。</li>
+<li>Layer0の全量層に落ちて精密に走査し、最近傍を出力します。</li></ul>
+<p>
+<strong>核心原理：</strong>上位層で検索範囲を素早く絞り込み、下位層で精密にマッチングすることで、力任せ検索を対数複雑度に最適化し、速度が速くリコールも高い、主流のベクトル検索アルゴリズムです。</p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># HNSW 原理の簡易デモ（本番実装ではない）</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">import</span> numpy <span style="color: Green;font-weight:bold;">as</span> np<br/>
+<span style="color: Green;font-weight:bold;">import</span> <span style="color: #05a;">random</span><br/>
+<span style="color: Green;font-weight:bold;">from</span> typing <span style="color: Green;font-weight:bold;">import</span> List<span style="color: Gray;">,</span> Dict<span style="color: Gray;">,</span> Set<span style="color: Gray;">,</span> Tuple<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> SimpleHNSW:<br/>
+    <span style="color: #a11;">"""簡易版 HNSW。原理のデモのみを目的とする"""</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> dim: <span style="color: Teal;">int</span><span style="color: Gray;">,</span> max_level: <span style="color: Teal;">int</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">3</span><span style="color: Gray;">,</span> ef_construction: <span style="color: Teal;">int</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">5</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">dim</span> <span style="color: Gray;">=</span> dim<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">max_level</span> <span style="color: Gray;">=</span> max_level  <span style="color: #a50"># 最大層数</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">ef_construction</span> <span style="color: Gray;">=</span> ef_construction  <span style="color: #a50"># グラフ構築時に考慮する候補数</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">levels</span>: List<span style="color: Olive;">[</span>Dict<span style="color: Olive;">[</span><span style="color: Teal;">int</span><span style="color: Gray;">,</span> np.<span style="color: #05a;">ndarray</span><span style="color: Olive;">]</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">{</span><span style="color: Olive;">}</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>max_level<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">edges</span>: List<span style="color: Olive;">[</span>Dict<span style="color: Olive;">[</span><span style="color: Teal;">int</span><span style="color: Gray;">,</span> Set<span style="color: Olive;">[</span><span style="color: Teal;">int</span><span style="color: Olive;">]</span><span style="color: Olive;">]</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">{</span><span style="color: Olive;">}</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>max_level<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">next_id</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">0</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">enter_point</span> <span style="color: Gray;">=</span> <span style="color: Teal;">None</span>  <span style="color: #a50"># 入口点（最上層のどこかの点）</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> _random_level<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">int</span>:<br/>
+        <span style="color: #a11;">"""層をランダムに選択：上がるほど確率は小さくなる"""</span><br/>
+        level <span style="color: Gray;">=</span> <span style="color: Maroon;">0</span><br/>
+        <span style="color: Green;font-weight:bold;">while</span> <span style="color: #05a;">random</span>.<span style="color: #05a;">random</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span> <span style="color: Gray;">&lt;</span> <span style="color: Maroon;">0.5</span> <span style="color: Green;font-weight:bold;">and</span> level <span style="color: Gray;">&lt;</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">max_level</span> - <span style="color: Maroon;">1</span>:<br/>
+            level +<span style="color: Gray;">=</span> <span style="color: Maroon;">1</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> level<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> _distance<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> v1: np.<span style="color: #05a;">ndarray</span><span style="color: Gray;">,</span> v2: np.<span style="color: #05a;">ndarray</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">float</span>:<br/>
+        <span style="color: #a11;">"""L2 距離"""</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> np.<span style="color: #05a;">sqrt</span><span style="color: Olive;">(</span>np.<span style="color: Teal;">sum</span><span style="color: Olive;">(</span><span style="color: Olive;">(</span>v1 - v2<span style="color: Olive;">)</span> ** <span style="color: Maroon;">2</span><span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> _search_layer<span style="color: Olive;">(</span><br/>
+        <span style="color: Teal;">self</span><span style="color: Gray;">,</span><br/>
+        query: np.<span style="color: #05a;">ndarray</span><span style="color: Gray;">,</span><br/>
+        level: <span style="color: Teal;">int</span><span style="color: Gray;">,</span><br/>
+        entry: <span style="color: Teal;">int</span><span style="color: Gray;">,</span><br/>
+        ef: <span style="color: Teal;">int</span><br/>
+    <span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> List<span style="color: Olive;">[</span>Tuple<span style="color: Olive;">[</span><span style="color: Teal;">float</span><span style="color: Gray;">,</span> <span style="color: Teal;">int</span><span style="color: Olive;">]</span><span style="color: Olive;">]</span>:<br/>
+        <span style="color: #a11;">"""特定の層での検索：entry から始めて、貪欲に ef 個の最近点を見つける"""</span><br/>
+        <span style="color: Green;font-weight:bold;">if</span> entry <span style="color: Green;font-weight:bold;">not</span> <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">levels</span><span style="color: Olive;">[</span>level<span style="color: Olive;">]</span>:<br/>
+            <span style="color: Green;font-weight:bold;">return</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+<br/>
+        visited <span style="color: Gray;">=</span> <span style="color: Teal;">set</span><span style="color: Olive;">(</span><span style="color: Olive;">[</span>entry<span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+        candidates <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span>._distance<span style="color: Olive;">(</span>query<span style="color: Gray;">,</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">levels</span><span style="color: Olive;">[</span>level<span style="color: Olive;">]</span><span style="color: Olive;">[</span>entry<span style="color: Olive;">]</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span> entry<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+        result <span style="color: Gray;">=</span> <span style="color: Teal;">list</span><span style="color: Olive;">(</span>candidates<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">while</span> candidates:<br/>
+            <span style="color: #a50"># 現在最も近い候補を取り出す</span><br/>
+            candidates.<span style="color: #05a;">sort</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+            dist<span style="color: Gray;">,</span> current <span style="color: Gray;">=</span> candidates.<span style="color: #05a;">pop</span><span style="color: Olive;">(</span><span style="color: Maroon;">0</span><span style="color: Olive;">)</span><br/>
+<br/>
+            <span style="color: #a50"># 近傍を走査</span><br/>
+            <span style="color: Green;font-weight:bold;">if</span> current <span style="color: Green;font-weight:bold;">not</span> <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">edges</span><span style="color: Olive;">[</span>level<span style="color: Olive;">]</span>:<br/>
+                <span style="color: Green;font-weight:bold;">continue</span><br/>
+<br/>
+            <span style="color: Green;font-weight:bold;">for</span> neighbor <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">edges</span><span style="color: Olive;">[</span>level<span style="color: Olive;">]</span><span style="color: Olive;">[</span>current<span style="color: Olive;">]</span>:<br/>
+                <span style="color: Green;font-weight:bold;">if</span> neighbor <span style="color: Green;font-weight:bold;">in</span> visited:<br/>
+                    <span style="color: Green;font-weight:bold;">continue</span><br/>
+                visited.<span style="color: #05a;">add</span><span style="color: Olive;">(</span>neighbor<span style="color: Olive;">)</span><br/>
+<br/>
+                neighbor_dist <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>._distance<span style="color: Olive;">(</span>query<span style="color: Gray;">,</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">levels</span><span style="color: Olive;">[</span>level<span style="color: Olive;">]</span><span style="color: Olive;">[</span>neighbor<span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+<br/>
+                <span style="color: #a50"># 候補と結果セットに追加</span><br/>
+                candidates.<span style="color: #05a;">append</span><span style="color: Olive;">(</span><span style="color: Olive;">(</span>neighbor_dist<span style="color: Gray;">,</span> neighbor<span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+                result.<span style="color: #05a;">append</span><span style="color: Olive;">(</span><span style="color: Olive;">(</span>neighbor_dist<span style="color: Gray;">,</span> neighbor<span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<br/>
+            <span style="color: #a50"># 結果セットのサイズを ef 以内に保つ</span><br/>
+            result.<span style="color: #05a;">sort</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+            result <span style="color: Gray;">=</span> result<span style="color: Olive;">[</span>:ef<span style="color: Olive;">]</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">return</span> result<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> add<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> vector: np.<span style="color: #05a;">ndarray</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">int</span>:<br/>
+        <span style="color: #a11;">"""ベクトルを追加する"""</span><br/>
+        vec_id <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">next_id</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">next_id</span> +<span style="color: Gray;">=</span> <span style="color: Maroon;">1</span><br/>
+<br/>
+        <span style="color: #a50"># このベクトルがどの層に現れるかをランダムに決定</span><br/>
+        max_level_for_vec <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>._random_level<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># すべての層にベクトルを格納（実際の実装では通常、最下層にのみ完全なベクトルを格納）</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> level <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>max_level_for_vec + <span style="color: Maroon;">1</span><span style="color: Olive;">)</span>:<br/>
+            <span style="color: Teal;">self</span>.<span style="color: #05a;">levels</span><span style="color: Olive;">[</span>level<span style="color: Olive;">]</span><span style="color: Olive;">[</span>vec_id<span style="color: Olive;">]</span> <span style="color: Gray;">=</span> vector<br/>
+            <span style="color: Teal;">self</span>.<span style="color: #05a;">edges</span><span style="color: Olive;">[</span>level<span style="color: Olive;">]</span><span style="color: Olive;">[</span>vec_id<span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: Teal;">set</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># 最初の点であれば、入口に設定</span><br/>
+        <span style="color: Green;font-weight:bold;">if</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">enter_point</span> <span style="color: Green;font-weight:bold;">is</span> <span style="color: Teal;">None</span>:<br/>
+            <span style="color: Teal;">self</span>.<span style="color: #05a;">enter_point</span> <span style="color: Gray;">=</span> vec_id<br/>
+            <span style="color: Green;font-weight:bold;">return</span> vec_id<br/>
+<br/>
+        <span style="color: #a50"># 最上層から下に向かって検索し、各層の挿入位置を見つける</span><br/>
+        current_entry <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">enter_point</span><br/>
+<br/>
+        <span style="color: #a50"># まず max_level_for_vec より上の層で検索し、入口を更新</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> level <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span>.<span style="color: #05a;">max_level</span> - <span style="color: Maroon;">1</span><span style="color: Gray;">,</span> max_level_for_vec<span style="color: Gray;">,</span> -<span style="color: Maroon;">1</span><span style="color: Olive;">)</span>:<br/>
+            <span style="color: Green;font-weight:bold;">if</span> current_entry <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">levels</span><span style="color: Olive;">[</span>level<span style="color: Olive;">]</span>:<br/>
+                layer_result <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>._search_layer<span style="color: Olive;">(</span>vector<span style="color: Gray;">,</span> level<span style="color: Gray;">,</span> current_entry<span style="color: Gray;">,</span> <span style="color: Maroon;">1</span><span style="color: Olive;">)</span><br/>
+                <span style="color: Green;font-weight:bold;">if</span> layer_result:<br/>
+                    current_entry <span style="color: Gray;">=</span> layer_result<span style="color: Olive;">[</span><span style="color: Maroon;">0</span><span style="color: Olive;">]</span><span style="color: Olive;">[</span><span style="color: Maroon;">1</span><span style="color: Olive;">]</span><br/>
+<br/>
+        <span style="color: #a50"># max_level_for_vec 以下の層で接続を確立</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> level <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>max_level_for_vec<span style="color: Gray;">,</span> -<span style="color: Maroon;">1</span><span style="color: Gray;">,</span> -<span style="color: Maroon;">1</span><span style="color: Olive;">)</span>:<br/>
+            <span style="color: #a50"># この層で最も近い ef_construction 個の点を検索</span><br/>
+            layer_result <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>._search_layer<span style="color: Olive;">(</span>vector<span style="color: Gray;">,</span> level<span style="color: Gray;">,</span> current_entry<span style="color: Gray;">,</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">ef_construction</span><span style="color: Olive;">)</span><br/>
+<br/>
+            <span style="color: #a50"># これらの点に接続（簡略化：双方向接続）</span><br/>
+            <span style="color: Green;font-weight:bold;">for</span> dist<span style="color: Gray;">,</span> neighbor_id <span style="color: Green;font-weight:bold;">in</span> layer_result:<br/>
+                <span style="color: Teal;">self</span>.<span style="color: #05a;">edges</span><span style="color: Olive;">[</span>level<span style="color: Olive;">]</span><span style="color: Olive;">[</span>vec_id<span style="color: Olive;">]</span>.<span style="color: #05a;">add</span><span style="color: Olive;">(</span>neighbor_id<span style="color: Olive;">)</span><br/>
+                <span style="color: Teal;">self</span>.<span style="color: #05a;">edges</span><span style="color: Olive;">[</span>level<span style="color: Olive;">]</span><span style="color: Olive;">[</span>neighbor_id<span style="color: Olive;">]</span>.<span style="color: #05a;">add</span><span style="color: Olive;">(</span>vec_id<span style="color: Olive;">)</span><br/>
+<br/>
+            <span style="color: #a50"># 次の層の入口を更新</span><br/>
+            <span style="color: Green;font-weight:bold;">if</span> layer_result:<br/>
+                current_entry <span style="color: Gray;">=</span> layer_result<span style="color: Olive;">[</span><span style="color: Maroon;">0</span><span style="color: Olive;">]</span><span style="color: Olive;">[</span><span style="color: Maroon;">1</span><span style="color: Olive;">]</span><br/>
+<br/>
+        <span style="color: #a50"># 最上層の入口を更新</span><br/>
+        <span style="color: Green;font-weight:bold;">if</span> max_level_for_vec <span style="color: Gray;">&gt;</span> <span style="color: Teal;">self</span>._random_level<span style="color: Olive;">(</span><span style="color: Olive;">)</span>:  <span style="color: #a50"># 簡略化した判断</span><br/>
+            <span style="color: Teal;">self</span>.<span style="color: #05a;">enter_point</span> <span style="color: Gray;">=</span> vec_id<br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">return</span> vec_id<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> search<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> query: np.<span style="color: #05a;">ndarray</span><span style="color: Gray;">,</span> top_k: <span style="color: Teal;">int</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">5</span><span style="color: Gray;">,</span> ef: <span style="color: Teal;">int</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">10</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> List<span style="color: Olive;">[</span>Tuple<span style="color: Olive;">[</span><span style="color: Teal;">int</span><span style="color: Gray;">,</span> <span style="color: Teal;">float</span><span style="color: Olive;">]</span><span style="color: Olive;">]</span>:<br/>
+        <span style="color: #a11;">"""最近傍 Top K を検索"""</span><br/>
+        <span style="color: Green;font-weight:bold;">if</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">enter_point</span> <span style="color: Green;font-weight:bold;">is</span> <span style="color: Teal;">None</span>:<br/>
+            <span style="color: Green;font-weight:bold;">return</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+<br/>
+        current_entry <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">enter_point</span><br/>
+<br/>
+        <span style="color: #a50"># 最上位層から下へ、最初の層まで</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> level <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span>.<span style="color: #05a;">max_level</span> - <span style="color: Maroon;">1</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0</span><span style="color: Gray;">,</span> -<span style="color: Maroon;">1</span><span style="color: Olive;">)</span>:<br/>
+            <span style="color: Green;font-weight:bold;">if</span> current_entry <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">levels</span><span style="color: Olive;">[</span>level<span style="color: Olive;">]</span>:<br/>
+                layer_result <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>._search_layer<span style="color: Olive;">(</span>query<span style="color: Gray;">,</span> level<span style="color: Gray;">,</span> current_entry<span style="color: Gray;">,</span> <span style="color: Maroon;">1</span><span style="color: Olive;">)</span><br/>
+                <span style="color: Green;font-weight:bold;">if</span> layer_result:<br/>
+                    current_entry <span style="color: Gray;">=</span> layer_result<span style="color: Olive;">[</span><span style="color: Maroon;">0</span><span style="color: Olive;">]</span><span style="color: Olive;">[</span><span style="color: Maroon;">1</span><span style="color: Olive;">]</span><br/>
+<br/>
+        <span style="color: #a50"># 最下層で ef 個のポイントを検索し、Top K を返す</span><br/>
+        layer_result <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>._search_layer<span style="color: Olive;">(</span>query<span style="color: Gray;">,</span> <span style="color: Maroon;">0</span><span style="color: Gray;">,</span> current_entry<span style="color: Gray;">,</span> ef<span style="color: Olive;">)</span><br/>
+        layer_result.<span style="color: #05a;">sort</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">return</span> <span style="color: Olive;">[</span><span style="color: Olive;">(</span>vec_id<span style="color: Gray;">,</span> dist<span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> dist<span style="color: Gray;">,</span> vec_id <span style="color: Green;font-weight:bold;">in</span> layer_result<span style="color: Olive;">[</span>:top_k<span style="color: Olive;">]</span><span style="color: Olive;">]</span><br/>
+<br/>
+<br/>
+<span style="color: #a50"># テスト</span><br/>
+np.<span style="color: #05a;">random</span>.<span style="color: #05a;">seed</span><span style="color: Olive;">(</span><span style="color: Maroon;">42</span><span style="color: Olive;">)</span><br/>
+dim <span style="color: Gray;">=</span> <span style="color: Maroon;">128</span><br/>
+hnsw <span style="color: Gray;">=</span> SimpleHNSW<span style="color: Olive;">(</span>dim<span style="color: Gray;">=</span>dim<span style="color: Gray;">,</span> max_level<span style="color: Gray;">=</span><span style="color: Maroon;">3</span><span style="color: Gray;">,</span> ef_construction<span style="color: Gray;">=</span><span style="color: Maroon;">5</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 100 個のベクトルを追加</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"HNSW インデックスを構築中（100 個のベクトルを追加）..."</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">for</span> i <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Maroon;">100</span><span style="color: Olive;">)</span>:<br/>
+    vec <span style="color: Gray;">=</span> np.<span style="color: #05a;">random</span>.<span style="color: #05a;">randn</span><span style="color: Olive;">(</span>dim<span style="color: Olive;">)</span><br/>
+    hnsw.<span style="color: #05a;">add</span><span style="color: Olive;">(</span>vec<span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"インデックスの構築が完了しました。入口点 = {hnsw.enter_point}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># クエリベクトルを生成</span><br/>
+query <span style="color: Gray;">=</span> np.<span style="color: #05a;">random</span>.<span style="color: #05a;">randn</span><span style="color: Olive;">(</span>dim<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 検索</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>HNSW 検索を実行中..."</span><span style="color: Olive;">)</span><br/>
+results <span style="color: Gray;">=</span> hnsw.<span style="color: #05a;">search</span><span style="color: Olive;">(</span>query<span style="color: Gray;">,</span> top_k<span style="color: Gray;">=</span><span style="color: Maroon;">5</span><span style="color: Gray;">,</span> ef<span style="color: Gray;">=</span><span style="color: Maroon;">10</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"検索結果："</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">for</span> vec_id<span style="color: Gray;">,</span> dist <span style="color: Green;font-weight:bold;">in</span> results:<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  ベクトル {vec_id:3d}, 距離 = {dist:.4f}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 出力例：</span><br/>
+<span style="color: #a50"># HNSW インデックスを構築中（100 個のベクトルを追加）...</span><br/>
+<span style="color: #a50"># インデックスの構築が完了しました。入口点 = 54</span><br/>
+<span style="color: #a50">#</span><br/>
+<span style="color: #a50"># HNSW 検索を実行中...</span><br/>
+<span style="color: #a50"># 検索結果：</span><br/>
+<span style="color: #a50">#   ベクトル  86, 距離 = 13.7515</span><br/>
+<span style="color: #a50">#   ベクトル  30, 距離 = 13.8651</span><br/>
+<span style="color: #a50">#   ベクトル  28, 距離 = 14.0754</span><br/>
+<span style="color: #a50">#   ベクトル  56, 距離 = 14.1106</span><br/>
+<span style="color: #a50">#   ベクトル  34, 距離 = 14.2131</span><br/>
+</div>
+</div>
+<p>HNSW の利点：</p>
+<ul>
+<li><p>1. <strong>検索が高速</strong>：通常、少数のノードを訪問するだけで最近傍を見つけられます。</p></li>
+<li>
+<p>2. <strong>構築が高速</strong>：ベクトルをインクリメンタルに追加でき、インデックス全体を再構築する必要がありません。</p></li>
+<li>
+<p>3. <strong>パラメータがシンプル</strong>：主に ef_construction（グラフの品質）と ef（検索品質）を調整します。</p></li></ul>
+<h3>IVF：転置ファイルインデックス</h3>
+<p>IVF（Inverted File）の考え方は「分割して統治する」（divide and conquer）です。</p>
+<p>手順：</p>
+<ul>
+<li>
+<p>1. <strong>クラスタリング</strong>：ベクトル空間を K 個の「バケット」に分割します（K-Means クラスタリングを使用）。</p></li>
+<li>
+<p>2. <strong>インデックス</strong>：各ベクトルを最も近いバケットに割り当てます。</p></li>
+<li>
+<p>3. <strong>クエリ</strong>：まずクエリベクトルに最も近い N 個のバケットを見つけ、その N 個のバケット内でのみ検索します。</p></li></ul>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># IVF の原理の簡易デモ</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">import</span> numpy <span style="color: Green;font-weight:bold;">as</span> np<br/>
+<span style="color: Green;font-weight:bold;">from</span> typing <span style="color: Green;font-weight:bold;">import</span> List<span style="color: Gray;">,</span> Tuple<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> SimpleIVF:<br/>
+    <span style="color: #a11;">"""簡易版 IVF。原理のデモのみを目的とします"""</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> dim: <span style="color: Teal;">int</span><span style="color: Gray;">,</span> nlist: <span style="color: Teal;">int</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">10</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">dim</span> <span style="color: Gray;">=</span> dim<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">nlist</span> <span style="color: Gray;">=</span> nlist  <span style="color: #a50"># クラスタ中心の数（バケットの数）</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">centroids</span>: np.<span style="color: #05a;">ndarray</span> <span style="color: Gray;">=</span> <span style="color: Teal;">None</span>  <span style="color: #a50"># クラスタ中心</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">inverted_lists</span>: List<span style="color: Olive;">[</span>List<span style="color: Olive;">[</span>Tuple<span style="color: Olive;">[</span><span style="color: Teal;">int</span><span style="color: Gray;">,</span> np.<span style="color: #05a;">ndarray</span><span style="color: Olive;">]</span><span style="color: Olive;">]</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">[</span><span style="color: Olive;">]</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>nlist<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">next_id</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">0</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> _l2_distance<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> v1: np.<span style="color: #05a;">ndarray</span><span style="color: Gray;">,</span> v2: np.<span style="color: #05a;">ndarray</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">float</span>:<br/>
+        <span style="color: #a11;">"""L2 距離"""</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> np.<span style="color: #05a;">sqrt</span><span style="color: Olive;">(</span>np.<span style="color: Teal;">sum</span><span style="color: Olive;">(</span><span style="color: Olive;">(</span>v1 - v2<span style="color: Olive;">)</span> ** <span style="color: Maroon;">2</span><span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> _find_nearest_centroid<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> vector: np.<span style="color: #05a;">ndarray</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">int</span>:<br/>
+        <span style="color: #a11;">"""最も近いクラスタ中心を見つける"""</span><br/>
+        distances <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Teal;">self</span>._l2_distance<span style="color: Olive;">(</span>vector<span style="color: Gray;">,</span> c<span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> c <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">centroids</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> <span style="color: Teal;">int</span><span style="color: Olive;">(</span>np.<span style="color: #05a;">argmin</span><span style="color: Olive;">(</span>distances<span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> fit<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> vectors: List<span style="color: Olive;">[</span>np.<span style="color: #05a;">ndarray</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""K-Means でクラスタ中心を初期化（簡易版：ランダムに選択）"""</span><br/>
+        <span style="color: #a50"># 簡略化：nlist 個のベクトルをランダムに初期中心として選択</span><br/>
+        <span style="color: #a50"># 実際の実装では K-Means の反復を使用すべき</span><br/>
+        indices <span style="color: Gray;">=</span> np.<span style="color: #05a;">random</span>.<span style="color: #05a;">choice</span><span style="color: Olive;">(</span><span style="color: Teal;">len</span><span style="color: Olive;">(</span>vectors<span style="color: Olive;">)</span><span style="color: Gray;">,</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">nlist</span><span style="color: Gray;">,</span> replace<span style="color: Gray;">=</span><span style="color: Teal;">False</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">centroids</span> <span style="color: Gray;">=</span> np.<span style="color: #05a;">array</span><span style="color: Olive;">(</span><span style="color: Olive;">[</span>vectors<span style="color: Olive;">[</span>i<span style="color: Olive;">]</span> <span style="color: Green;font-weight:bold;">for</span> i <span style="color: Green;font-weight:bold;">in</span> indices<span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> add<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> vector: np.<span style="color: #05a;">ndarray</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">int</span>:<br/>
+        <span style="color: #a11;">"""ベクトルを追加"""</span><br/>
+        vec_id <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">next_id</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">next_id</span> +<span style="color: Gray;">=</span> <span style="color: Maroon;">1</span><br/>
+<br/>
+        <span style="color: #a50"># 最も近いバケットを見つける</span><br/>
+        centroid_idx <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>._find_nearest_centroid<span style="color: Olive;">(</span>vector<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># このバケットに入れる</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">inverted_lists</span><span style="color: Olive;">[</span>centroid_idx<span style="color: Olive;">]</span>.<span style="color: #05a;">append</span><span style="color: Olive;">(</span><span style="color: Olive;">(</span>vec_id<span style="color: Gray;">,</span> vector<span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">return</span> vec_id<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> search<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> query: np.<span style="color: #05a;">ndarray</span><span style="color: Gray;">,</span> top_k: <span style="color: Teal;">int</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">5</span><span style="color: Gray;">,</span> nprobe: <span style="color: Teal;">int</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">3</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> List<span style="color: Olive;">[</span>Tuple<span style="color: Olive;">[</span><span style="color: Teal;">int</span><span style="color: Gray;">,</span> <span style="color: Teal;">float</span><span style="color: Olive;">]</span><span style="color: Olive;">]</span>:<br/>
+        <span style="color: #a11;">"""<br/>Top K を検索<br/>nprobe: いくつのバケットを検索するか（多いほど正確ですが、遅くなります）<br/>
+        """</span><br/>
+        <span style="color: #a50"># 最も近い nprobe 個のバケットを見つける</span><br/>
+        centroid_distances <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><br/>
+            <span style="color: Olive;">(</span><span style="color: Teal;">self</span>._l2_distance<span style="color: Olive;">(</span>query<span style="color: Gray;">,</span> c<span style="color: Olive;">)</span><span style="color: Gray;">,</span> i<span style="color: Olive;">)</span><br/>
+            <span style="color: Green;font-weight:bold;">for</span> i<span style="color: Gray;">,</span> c <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">enumerate</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span>.<span style="color: #05a;">centroids</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Olive;">]</span><br/>
+        centroid_distances.<span style="color: #05a;">sort</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+        nearest_centroids <span style="color: Gray;">=</span> <span style="color: Olive;">[</span>i <span style="color: Green;font-weight:bold;">for</span> dist<span style="color: Gray;">,</span> i <span style="color: Green;font-weight:bold;">in</span> centroid_distances<span style="color: Olive;">[</span>:nprobe<span style="color: Olive;">]</span><span style="color: Olive;">]</span><br/>
+<br/>
+        <span style="color: #a50"># この nprobe 個のバケット内でのみ検索</span><br/>
+        candidates <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> centroid_idx <span style="color: Green;font-weight:bold;">in</span> nearest_centroids:<br/>
+            <span style="color: Green;font-weight:bold;">for</span> vec_id<span style="color: Gray;">,</span> vec <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">inverted_lists</span><span style="color: Olive;">[</span>centroid_idx<span style="color: Olive;">]</span>:<br/>
+                dist <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>._l2_distance<span style="color: Olive;">(</span>query<span style="color: Gray;">,</span> vec<span style="color: Olive;">)</span><br/>
+                candidates.<span style="color: #05a;">append</span><span style="color: Olive;">(</span><span style="color: Olive;">(</span>dist<span style="color: Gray;">,</span> vec_id<span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># ソートして Top K を返す</span><br/>
+        candidates.<span style="color: #05a;">sort</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> <span style="color: Olive;">[</span><span style="color: Olive;">(</span>vec_id<span style="color: Gray;">,</span> dist<span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> dist<span style="color: Gray;">,</span> vec_id <span style="color: Green;font-weight:bold;">in</span> candidates<span style="color: Olive;">[</span>:top_k<span style="color: Olive;">]</span><span style="color: Olive;">]</span><br/>
+<br/>
+<br/>
+<span style="color: #a50"># テスト</span><br/>
+np.<span style="color: #05a;">random</span>.<span style="color: #05a;">seed</span><span style="color: Olive;">(</span><span style="color: Maroon;">42</span><span style="color: Olive;">)</span><br/>
+dim <span style="color: Gray;">=</span> <span style="color: Maroon;">128</span><br/>
+<br/>
+<span style="color: #a50"># 1000 個のベクトルを生成</span><br/>
+vectors <span style="color: Gray;">=</span> <span style="color: Olive;">[</span>np.<span style="color: #05a;">random</span>.<span style="color: #05a;">randn</span><span style="color: Olive;">(</span>dim<span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Maroon;">1000</span><span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+<br/>
+<span style="color: #a50"># IVF インデックスを構築</span><br/>
+ivf <span style="color: Gray;">=</span> SimpleIVF<span style="color: Olive;">(</span>dim<span style="color: Gray;">=</span>dim<span style="color: Gray;">,</span> nlist<span style="color: Gray;">=</span><span style="color: Maroon;">20</span><span style="color: Olive;">)</span><br/>
+ivf.<span style="color: #05a;">fit</span><span style="color: Olive;">(</span>vectors<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># ベクトルを追加</span><br/>
+<span style="color: Green;font-weight:bold;">for</span> vec <span style="color: Green;font-weight:bold;">in</span> vectors:<br/>
+    ivf.<span style="color: #05a;">add</span><span style="color: Olive;">(</span>vec<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"IVF インデックスの構築が完了しました。バケット数 = {ivf.nlist}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">for</span> i <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>ivf.<span style="color: #05a;">nlist</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  バケット {i:2d}: {len(ivf.inverted_lists[i])} 個のベクトル"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># クエリ</span><br/>
+query <span style="color: Gray;">=</span> np.<span style="color: #05a;">random</span>.<span style="color: #05a;">randn</span><span style="color: Olive;">(</span>dim<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>IVF 検索を実行中（nprobe=3）..."</span><span style="color: Olive;">)</span><br/>
+results <span style="color: Gray;">=</span> ivf.<span style="color: #05a;">search</span><span style="color: Olive;">(</span>query<span style="color: Gray;">,</span> top_k<span style="color: Gray;">=</span><span style="color: Maroon;">5</span><span style="color: Gray;">,</span> nprobe<span style="color: Gray;">=</span><span style="color: Maroon;">3</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"検索結果："</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">for</span> vec_id<span style="color: Gray;">,</span> dist <span style="color: Green;font-weight:bold;">in</span> results:<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  ベクトル {vec_id:3d}, 距離 = {dist:.4f}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 出力例：</span><br/>
+<span style="color: #a50"># IVF インデックスの構築が完了しました。バケット数 = 20</span><br/>
+<span style="color: #a50">#   バケット  0: 63 個のベクトル</span><br/>
+<span style="color: #a50">#   バケット  1: 56 個のベクトル</span><br/>
+<span style="color: #a50">#   ...</span><br/>
+<span style="color: #a50">#</span><br/>
+<span style="color: #a50"># IVF 検索を実行中（nprobe=3）...</span><br/>
+<span style="color: #a50"># 検索結果：</span><br/>
+<span style="color: #a50">#   ベクトル 863, 距離 = 13.5409</span><br/>
+<span style="color: #a50">#   ベクトル 189, 距離 = 13.7083</span><br/>
+<span style="color: #a50">#   ベクトル 491, 距離 = 13.8628</span><br/>
+<span style="color: #a50">#   ベクトル 264, 距離 = 13.9812</span><br/>
+<span style="color: #a50">#   ベクトル 781, 距離 = 14.0021</span><br/>
+</div>
+</div>
+<p>IVF の利点はメモリ使用量が少ないことで、クエリ時の nprobe パラメータを動的に調整して速度と精度のバランスを取れます。</p>
+<h3>PQ：積量子化</h3>
+<p>PQ（Product Quantization）は圧縮アルゴリズムです。</p>
+<p>核心的な考え方：</p>
+<ul>
+<li>
+<p>1. <strong>分割</strong>：高次元ベクトルを複数の小さなセグメント（subvectors）に分割します。</p></li>
+<li>
+<p>2. <strong>量子化</strong>：各セグメントを個別にクラスタリングし、クラスタ中心の ID で元のベクトルを置き換えます。</p></li>
+<li>
+<p>3. <strong>テーブル参照</strong>：クエリ時にテーブル参照法を使って近似距離を高速に計算します。</p></li></ul>
+<p>例えば 128 次元ベクトルを 8 セグメントに分割し、各セグメント 16 次元、各セグメントを 256 個の中心で量子化すると、各ベクトルはわずか 8 バイトで格納できます（元は 128 * 4 = 512 バイト必要でした）。</p>
+<h3>IVF-PQ の組み合わせ</h3>
+<p>本番環境では通常、IVF と PQ を組み合わせて使用します：</p>
+<p>IVF は「バケット分割」で検索範囲を減らし、PQ は「圧縮」でメモリと計算量を減らします。</p>
+<table class="reference">
+<tr><th>アルゴリズム</th><th>速度</th><th>精度</th><th>メモリ</th><th>適用シナリオ</th></tr>
+<tr><td>ブルートフォース検索</td><td>慢</td><td>100%</td><td>高</td><td>データ量が少なく、100% の正確さが必要</td></tr>
+<tr><td>HNSW</td><td>非常に高速</td><td>高</td><td>中</td><td>クエリが集中し、低レイテンシが必要</td></tr>
+<tr><td>IVF</td><td>快</td><td>中</td><td>低</td><td>大規模データで、わずかな精度の低下を許容できる</td></tr>
+<tr><td>IVF-PQ</td><td>非常に高速</td><td>中</td><td>極めて低い</td><td>超大規模データ、メモリ制約がある</td></tr>
+</table>
+<hr/>
+<h2>類似度の指標</h2>
+<p>「類似」を計算する方法は複数あり、正しい尺度を選ぶことが重要です。</p>
+<h3>コサイン類似度</h3>
+<p>コサイン類似度は 2 つのベクトル方向のなす角を測定し、値の範囲は [-1, 1] です。</p>
+<p>値が 1 に近いほど類似し、-1 に近いほど反対になります。</p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># コサイン類似度の計算</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">import</span> numpy <span style="color: Green;font-weight:bold;">as</span> np<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> cosine_similarity<span style="color: Olive;">(</span>v1: np.<span style="color: #05a;">ndarray</span><span style="color: Gray;">,</span> v2: np.<span style="color: #05a;">ndarray</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> <span style="color: Teal;">float</span>:<br/>
+    <span style="color: #a11;">"""<br/>コサイン類似度 = (v1 · v2) / (|v1| * |v2|)<br/>値の範囲は [-1, 1]、1 に近いほど類似<br/>
+    """</span><br/>
+    dot_product <span style="color: Gray;">=</span> np.<span style="color: #05a;">dot</span><span style="color: Olive;">(</span>v1<span style="color: Gray;">,</span> v2<span style="color: Olive;">)</span><br/>
+    norm1 <span style="color: Gray;">=</span> np.<span style="color: #05a;">linalg</span>.<span style="color: #05a;">norm</span><span style="color: Olive;">(</span>v1<span style="color: Olive;">)</span><br/>
+    norm2 <span style="color: Gray;">=</span> np.<span style="color: #05a;">linalg</span>.<span style="color: #05a;">norm</span><span style="color: Olive;">(</span>v2<span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> dot_product / <span style="color: Olive;">(</span>norm1 * norm2<span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: #a50"># テスト</span><br/>
+np.<span style="color: #05a;">random</span>.<span style="color: #05a;">seed</span><span style="color: Olive;">(</span><span style="color: Maroon;">42</span><span style="color: Olive;">)</span><br/>
+v1 <span style="color: Gray;">=</span> np.<span style="color: #05a;">array</span><span style="color: Olive;">(</span><span style="color: Olive;">[</span><span style="color: Maroon;">1</span><span style="color: Gray;">,</span> <span style="color: Maroon;">2</span><span style="color: Gray;">,</span> <span style="color: Maroon;">3</span><span style="color: Gray;">,</span> <span style="color: Maroon;">4</span><span style="color: Gray;">,</span> <span style="color: Maroon;">5</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+v2 <span style="color: Gray;">=</span> np.<span style="color: #05a;">array</span><span style="color: Olive;">(</span><span style="color: Olive;">[</span><span style="color: Maroon;">2</span><span style="color: Gray;">,</span> <span style="color: Maroon;">4</span><span style="color: Gray;">,</span> <span style="color: Maroon;">6</span><span style="color: Gray;">,</span> <span style="color: Maroon;">8</span><span style="color: Gray;">,</span> <span style="color: Maroon;">10</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span>  <span style="color: #a50"># 同じ方向</span><br/>
+v3 <span style="color: Gray;">=</span> np.<span style="color: #05a;">array</span><span style="color: Olive;">(</span><span style="color: Olive;">[</span>-<span style="color: Maroon;">1</span><span style="color: Gray;">,</span> -<span style="color: Maroon;">2</span><span style="color: Gray;">,</span> -<span style="color: Maroon;">3</span><span style="color: Gray;">,</span> -<span style="color: Maroon;">4</span><span style="color: Gray;">,</span> -<span style="color: Maroon;">5</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span>  <span style="color: #a50"># 反対方向</span><br/>
+v4 <span style="color: Gray;">=</span> np.<span style="color: #05a;">random</span>.<span style="color: #05a;">randn</span><span style="color: Olive;">(</span><span style="color: Maroon;">5</span><span style="color: Olive;">)</span>  <span style="color: #a50"># ランダム</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"v1 = {v1}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"v2 = {v2}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"v3 = {v3}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"v4 = {v4}"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"cosine(v1, v2) = {cosine_similarity(v1, v2):.4f}  (同じ方向、1.0 になるはず)"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"cosine(v1, v3) = {cosine_similarity(v1, v3):.4f}  (反対方向、-1.0 になるはず)"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"cosine(v1, v4) = {cosine_similarity(v1, v4):.4f}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 出力：</span><br/>
+<span style="color: #a50"># v1 = [1 2 3 4 5]</span><br/>
+<span style="color: #a50"># v2 = [ 2  4  6  8 10]</span><br/>
+<span style="color: #a50"># v3 = [-1 -2 -3 -4 -5]</span><br/>
+<span style="color: #a50"># v4 = [ 0.4967 -0.1383  0.6477  1.5230 -0.2342]</span><br/>
+<span style="color: #a50">#</span><br/>
+<span style="color: #a50"># cosine(v1, v2) = 1.0000  (同じ方向、1.0 になるはず)</span><br/>
+<span style="color: #a50"># cosine(v1, v3) = -1.0000  (反対方向、-1.0 になるはず)</span><br/>
+<span style="color: #a50"># cosine(v1, v4) = 0.2143</span><br/>
+</div>
+</div>
+<p>コサイン類似度の特徴：ベクトルの長さは気にせず、方向のみに注目します。これはテキスト埋め込みでよく使われます。テキストの「意味」は長さと無関係だからです。</p>
+<h3>L2 ユークリッド距離</h3>
+<p>L2 距離は空間内の 2 点間の直線距離で、小さいほど類似しています。</p>
+<h3>内積（Inner Product / Dot Product）</h3>
+<p>内積 = v1 · v2。ベクトルがすべて正規化されていれば、内積はコサイン類似度と等しくなります。</p>
+<h3>選択ガイド</h3>
+<table class="reference">
+<tr><th>尺度</th><th>値の範囲</th><th>いつ選ぶか</th><th>典型的な使用例</th></tr>
+<tr><td>コサイン類似度</td><td>[-1, 1]</td><td>方向のみを気にし、長さは気にしない</td><td>テキスト埋め込み、セマンティック検索</td></tr>
+<tr><td>L2 距離</td><td>[0, ∞)</td><td>空間的な位置が重要</td><td>画像特徴、レコメンドシステム</td></tr>
+<tr><td>内積</td><td>(-∞, ∞)</td><td>ベクトルが正規化されている、または長さに意味がある</td><td>特定の埋め込みモデル</td></tr>
+</table>
+<blockquote>
+<p>多くの埋め込みモデル（OpenAI の text-embedding シリーズなど）が出力するベクトルは正規化されており、この場合<span class="marked">コサイン類似度 = 内積</span>、どちらを使っても同じです。</p>
+</blockquote>
+<hr/>
+<h2>主要ベクトルデータベースの比較</h2>
+<p>ベクトルデータベースは3種類に分けられます：ローカルライブラリ（FAISS）、軽量オープンソース（Chroma、Qdrant）、エンタープライズ級（Milvus、Pinecone、Weaviate）。</p>
+<h3>FAISS：Facebook 製のローカルライブラリ</h3>
+<p>FAISSは完全なデータベースではなく、C++ライブラリ（Pythonバインディングあり）です。</p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># FAISS基本的な使用デモ</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">import</span> numpy <span style="color: Green;font-weight:bold;">as</span> np<br/>
+<br/>
+<span style="color: #a50"># 注意：実際に実行するにはFAISSのインストールが必要です</span><br/>
+<span style="color: #a50"># pip install faiss-cpu  (CPUバージョン)</span><br/>
+<span style="color: #a50"># または</span><br/>
+<span style="color: #a50"># pip install faiss-gpu  (GPUバージョン)</span><br/>
+<br/>
+<span style="color: #a50"># 以下はFAISSの典型的な使い方です（コード例、実際には実行しません）</span><br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> faiss_example<span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""FAISSの使用例"""</span><br/>
+    <span style="color: #a50"># 1. データの準備</span><br/>
+    dimension <span style="color: Gray;">=</span> <span style="color: Maroon;">128</span><br/>
+    nb <span style="color: Gray;">=</span> <span style="color: Maroon;">10000</span>  <span style="color: #a50"># データベースのベクトル数</span><br/>
+    nq <span style="color: Gray;">=</span> <span style="color: Maroon;">10</span>  <span style="color: #a50"># クエリのベクトル数</span><br/>
+<br/>
+    np.<span style="color: #05a;">random</span>.<span style="color: #05a;">seed</span><span style="color: Olive;">(</span><span style="color: Maroon;">42</span><span style="color: Olive;">)</span><br/>
+    xb <span style="color: Gray;">=</span> np.<span style="color: #05a;">random</span>.<span style="color: #05a;">random</span><span style="color: Olive;">(</span><span style="color: Olive;">(</span>nb<span style="color: Gray;">,</span> dimension<span style="color: Olive;">)</span><span style="color: Olive;">)</span>.<span style="color: #05a;">astype</span><span style="color: Olive;">(</span><span style="color: #a11;">'float32'</span><span style="color: Olive;">)</span>  <span style="color: #a50"># データベース</span><br/>
+    xq <span style="color: Gray;">=</span> np.<span style="color: #05a;">random</span>.<span style="color: #05a;">random</span><span style="color: Olive;">(</span><span style="color: Olive;">(</span>nq<span style="color: Gray;">,</span> dimension<span style="color: Olive;">)</span><span style="color: Olive;">)</span>.<span style="color: #05a;">astype</span><span style="color: Olive;">(</span><span style="color: #a11;">'float32'</span><span style="color: Olive;">)</span>  <span style="color: #a50"># クエリ</span><br/>
+<br/>
+    <span style="color: #a50"># 2. インデックス作成（IVFの例）</span><br/>
+    <span style="color: Green;font-weight:bold;">import</span> faiss<br/>
+<br/>
+    nlist <span style="color: Gray;">=</span> <span style="color: Maroon;">100</span>  <span style="color: #a50"># クラスタ中心数</span><br/>
+    quantizer <span style="color: Gray;">=</span> faiss.<span style="color: #05a;">IndexFlatL2</span><span style="color: Olive;">(</span>dimension<span style="color: Olive;">)</span>  <span style="color: #a50"># 量子化器</span><br/>
+    index <span style="color: Gray;">=</span> faiss.<span style="color: #05a;">IndexIVFFlat</span><span style="color: Olive;">(</span>quantizer<span style="color: Gray;">,</span> dimension<span style="color: Gray;">,</span> nlist<span style="color: Gray;">,</span> faiss.<span style="color: #05a;">METRIC_L2</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 3. インデックスのトレーニング</span><br/>
+    index.<span style="color: #05a;">train</span><span style="color: Olive;">(</span>xb<span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 4. ベクトルの追加</span><br/>
+    index.<span style="color: #05a;">add</span><span style="color: Olive;">(</span>xb<span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 5. 検索時のnprobeの設定</span><br/>
+    index.<span style="color: #05a;">nprobe</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">10</span><br/>
+<br/>
+    <span style="color: #a50"># 6. Top 5の検索</span><br/>
+    k <span style="color: Gray;">=</span> <span style="color: Maroon;">5</span><br/>
+    distances<span style="color: Gray;">,</span> indices <span style="color: Gray;">=</span> index.<span style="color: #05a;">search</span><span style="color: Olive;">(</span>xq<span style="color: Gray;">,</span> k<span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"検索結果（最初の2つのクエリのTop 5）："</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">for</span> i <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Teal;">min</span><span style="color: Olive;">(</span><span style="color: Maroon;">2</span><span style="color: Gray;">,</span> nq<span style="color: Olive;">)</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"クエリ {i}:"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> j <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span>k<span style="color: Olive;">)</span>:<br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  インデックス {indices[i][j]}, 距離 {distances[i][j]:.4f}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">return</span> index<br/>
+<br/>
+<br/>
+<span style="color: #a50"># HNSWインデックスの例</span><br/>
+<span style="color: Green;font-weight:bold;">def</span> faiss_hnsw_example<span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""FAISS HNSWインデックス"""</span><br/>
+    <span style="color: Green;font-weight:bold;">import</span> faiss<br/>
+<br/>
+    dimension <span style="color: Gray;">=</span> <span style="color: Maroon;">128</span><br/>
+    index <span style="color: Gray;">=</span> faiss.<span style="color: #05a;">IndexHNSWFlat</span><span style="color: Olive;">(</span>dimension<span style="color: Gray;">,</span> <span style="color: Maroon;">32</span><span style="color: Olive;">)</span>  <span style="color: #a50"># 32 = Mパラメータ（各ノードの接続数）</span><br/>
+    index.<span style="color: #05a;">hnsw</span>.<span style="color: #05a;">efConstruction</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">40</span>  <span style="color: #a50"># グラフ構築時のef</span><br/>
+    index.<span style="color: #05a;">hnsw</span>.<span style="color: #05a;">efSearch</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">16</span>  <span style="color: #a50"># 検索時のef</span><br/>
+<br/>
+    <span style="color: #a50"># データの追加...</span><br/>
+    <span style="color: #a50"># index.add(xb)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">return</span> index<br/>
+<br/>
+<br/>
+<span style="color: #a50"># FAISSがインストールされている場合は、下のコメントを外して実行できます</span><br/>
+<span style="color: #a50"># faiss_example()</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"FAISSサンプルコード：これはFAISSの典型的な使い方です。"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"重要な手順：インデックス作成 → トレーニング → ベクトル追加 → 検索。"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"FAISSでよく使われるインデックスタイプ："</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - IndexFlatL2: 力任せ探索（正確だが遅い）"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - IndexIVFFlat: IVFバケット分割探索"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - IndexIVFPQ: IVF + PQ圧縮"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - IndexHNSWFlat: HNSWグラフインデックス"</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<p>FAISSの特徴：</p>
+<ul>
+<li>
+<p>1. <strong>非常に高速</strong>：C++実装で、極限まで最適化されています。</p></li>
+<li>
+<p>2. <strong>機能が充実</strong>：ほぼすべての主要なANNアルゴリズムをサポート。</p></li>
+<li>
+<p>3. <strong>ローカル</strong>：ネットワーク不要、永続化なし（インデックスファイルを自分で保存する必要があります）。</p></li></ul>
+<p>適用シーン：オフラインのバッチ処理、サービスを構築したくない、データ量がそれほど大きくない。</p>
+<h3>Chroma：軽量でローカル優先</h3>
+<p>Chromaはシンプルで使いやすいベクトルデータベースで、設計目標は「AIアプリ開発をより速くすること」です。</p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># Chromaの基本的な使用デモ</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: #a50"># インストール：pip install chromadb</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> chroma_example<span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""Chromaの使用例"""</span><br/>
+    <span style="color: Green;font-weight:bold;">import</span> chromadb<br/>
+    <span style="color: Green;font-weight:bold;">from</span> chromadb.<span style="color: #05a;">utils</span> <span style="color: Green;font-weight:bold;">import</span> embedding_functions<br/>
+<br/>
+    <span style="color: #a50"># 1. クライアントの初期化（ローカルモード、データはディスクに保存）</span><br/>
+    client <span style="color: Gray;">=</span> chromadb.<span style="color: #05a;">PersistentClient</span><span style="color: Olive;">(</span>path<span style="color: Gray;">=</span><span style="color: #a11;">"./runoob-chroma-db"</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 2. コレクションの作成または取得</span><br/>
+    collection <span style="color: Gray;">=</span> client.<span style="color: #05a;">get_or_create_collection</span><span style="color: Olive;">(</span><br/>
+        name<span style="color: Gray;">=</span><span style="color: #a11;">"runoob_docs"</span><span style="color: Gray;">,</span><br/>
+        metadata<span style="color: Gray;">=</span><span style="color: Olive;">{</span><span style="color: #a11;">"description"</span>: <span style="color: #a11;">"菜鳥教程（Runoob）ドキュメントコレクション"</span><span style="color: Olive;">}</span><br/>
+    <span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 3. ドキュメントの追加（Chromaがembeddingを自動処理）</span><br/>
+    <span style="color: #a50"># OpenAI、Cohereなどを使用でき、自分でベクトルを提供することもできます</span><br/>
+    documents <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><br/>
+        <span style="color: #a11;">"Pythonはインタプリタ型の高水準で汎用的なプログラミング言語です。"</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">"JavaScriptは軽量でインタプリタ型のプログラミング言語です。"</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">"ベクトルデータベースはベクトル埋め込みの保存と検索に使用されます。"</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">"RAG、すなわち検索拡張生成は、検索と生成を組み合わせた技術です。"</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a11;">"HNSWは階層型スモールワールドグラフによる近似最近傍アルゴリズムです。"</span><br/>
+    <span style="color: Olive;">]</span><br/>
+<br/>
+    metadatas <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><br/>
+        <span style="color: Olive;">{</span><span style="color: #a11;">"category"</span>: <span style="color: #a11;">"programming"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"language"</span>: <span style="color: #a11;">"Python"</span><span style="color: Olive;">}</span><span style="color: Gray;">,</span><br/>
+        <span style="color: Olive;">{</span><span style="color: #a11;">"category"</span>: <span style="color: #a11;">"programming"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"language"</span>: <span style="color: #a11;">"JavaScript"</span><span style="color: Olive;">}</span><span style="color: Gray;">,</span><br/>
+        <span style="color: Olive;">{</span><span style="color: #a11;">"category"</span>: <span style="color: #a11;">"database"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"topic"</span>: <span style="color: #a11;">"vector"</span><span style="color: Olive;">}</span><span style="color: Gray;">,</span><br/>
+        <span style="color: Olive;">{</span><span style="color: #a11;">"category"</span>: <span style="color: #a11;">"ai"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"topic"</span>: <span style="color: #a11;">"rag"</span><span style="color: Olive;">}</span><span style="color: Gray;">,</span><br/>
+        <span style="color: Olive;">{</span><span style="color: #a11;">"category"</span>: <span style="color: #a11;">"algorithm"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"topic"</span>: <span style="color: #a11;">"hnsw"</span><span style="color: Olive;">}</span><br/>
+    <span style="color: Olive;">]</span><br/>
+<br/>
+    ids <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: #a11;">"doc1"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"doc2"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"doc3"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"doc4"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"doc5"</span><span style="color: Olive;">]</span><br/>
+<br/>
+    <span style="color: #a50"># 追加（ここでは模擬ベクトルを使用、実際は埋め込みモデルを使うべき）</span><br/>
+    <span style="color: Green;font-weight:bold;">import</span> numpy <span style="color: Green;font-weight:bold;">as</span> np<br/>
+    np.<span style="color: #05a;">random</span>.<span style="color: #05a;">seed</span><span style="color: Olive;">(</span><span style="color: Maroon;">42</span><span style="color: Olive;">)</span><br/>
+    embeddings <span style="color: Gray;">=</span> <span style="color: Olive;">[</span>np.<span style="color: #05a;">random</span>.<span style="color: #05a;">randn</span><span style="color: Olive;">(</span><span style="color: Maroon;">128</span><span style="color: Olive;">)</span>.<span style="color: #05a;">tolist</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> _ <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Maroon;">5</span><span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+<br/>
+    collection.<span style="color: #05a;">add</span><span style="color: Olive;">(</span><br/>
+        documents<span style="color: Gray;">=</span>documents<span style="color: Gray;">,</span><br/>
+        metadatas<span style="color: Gray;">=</span>metadatas<span style="color: Gray;">,</span><br/>
+        ids<span style="color: Gray;">=</span>ids<span style="color: Gray;">,</span><br/>
+        embeddings<span style="color: Gray;">=</span>embeddings  <span style="color: #a50"># 渡さない場合は、Chromaはデフォルトのembed関数を使用します</span><br/>
+    <span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"コレクションには {collection.count()} 個のドキュメントがあります"</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 4. クエリ</span><br/>
+    query_embedding <span style="color: Gray;">=</span> np.<span style="color: #05a;">random</span>.<span style="color: #05a;">randn</span><span style="color: Olive;">(</span><span style="color: Maroon;">128</span><span style="color: Olive;">)</span>.<span style="color: #05a;">tolist</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+    results <span style="color: Gray;">=</span> collection.<span style="color: #05a;">query</span><span style="color: Olive;">(</span><br/>
+        query_embeddings<span style="color: Gray;">=</span><span style="color: Olive;">[</span>query_embedding<span style="color: Olive;">]</span><span style="color: Gray;">,</span><br/>
+        n_results<span style="color: Gray;">=</span><span style="color: Maroon;">3</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a50"># メタデータフィルタを追加できます</span><br/>
+        <span style="color: #a50"># where={"category": "ai"}</span><br/>
+    <span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>検索結果："</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">for</span> i <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Teal;">len</span><span style="color: Olive;">(</span>results<span style="color: Olive;">[</span><span style="color: #a11;">'ids'</span><span style="color: Olive;">]</span><span style="color: Olive;">[</span><span style="color: Maroon;">0</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"ID: {results['ids'][0][i]}"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"ドキュメント: {results['documents']</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"距離: {results['distances']</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"---"</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">return</span> collection<br/>
+<br/>
+<br/>
+<span style="color: #a50"># Chromaがインストールされている場合は、下のコメントを外して実行できます</span><br/>
+<span style="color: #a50"># chroma_example()</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Chromaサンプルコード：設計がシンプルで、そのまま使えます。"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Chromaの特徴："</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - シンプル：APIが使いやすく、数分で使い始められる"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - ローカルファースト：ディスクに永続化でき、メモリ上でも動作可能"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - 組み込みembedding：OpenAI、Cohere、Sentence-Transformersをサポート"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - メタデータフィルタリング対応：クエリ時にメタデータを組み合わせて絞り込み可能"</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<h3>Qdrant：本番グレードのオープンソース</h3>
+<p>QdrantはRustで書かれたベクトルデータベースで、性能が良く、機能も充実しています。</p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># Qdrantの基本的な使用デモ</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: #a50"># インストール：pip install qdrant-client</span><br/>
+<span style="color: #a50"># サービスの起動：docker run -p 6333:6333 qdrant/qdrant</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> qdrant_example<span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""Qdrantの使用例"""</span><br/>
+    <span style="color: Green;font-weight:bold;">from</span> qdrant_client <span style="color: Green;font-weight:bold;">import</span> QdrantClient<br/>
+    <span style="color: Green;font-weight:bold;">from</span> qdrant_client.<span style="color: #05a;">models</span> <span style="color: Green;font-weight:bold;">import</span> Distance<span style="color: Gray;">,</span> VectorParams<span style="color: Gray;">,</span> PointStruct<span style="color: Gray;">,</span> Filter<span style="color: Gray;">,</span> FieldCondition<span style="color: Gray;">,</span> MatchValue<br/>
+<br/>
+    <span style="color: #a50"># 1. クライアントへの接続</span><br/>
+    client <span style="color: Gray;">=</span> QdrantClient<span style="color: Olive;">(</span>host<span style="color: Gray;">=</span><span style="color: #a11;">"localhost"</span><span style="color: Gray;">,</span> port<span style="color: Gray;">=</span><span style="color: Maroon;">6333</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 2. コレクションの作成</span><br/>
+    client.<span style="color: #05a;">recreate_collection</span><span style="color: Olive;">(</span><br/>
+        collection_name<span style="color: Gray;">=</span><span style="color: #a11;">"runoob_collection"</span><span style="color: Gray;">,</span><br/>
+        vectors_config<span style="color: Gray;">=</span>VectorParams<span style="color: Olive;">(</span><br/>
+            size<span style="color: Gray;">=</span><span style="color: Maroon;">128</span><span style="color: Gray;">,</span><br/>
+            distance<span style="color: Gray;">=</span>Distance.<span style="color: #05a;">COSINE</span>  <span style="color: #a50"># または L2, DOT</span><br/>
+        <span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a50"># 任意：HNSWインデックスパラメータを設定</span><br/>
+        <span style="color: #a50"># hnsw_config=HnswConfig(m=16, ef_construct=100)</span><br/>
+    <span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 3. ポイントの追加</span><br/>
+    <span style="color: Green;font-weight:bold;">import</span> numpy <span style="color: Green;font-weight:bold;">as</span> np<br/>
+    np.<span style="color: #05a;">random</span>.<span style="color: #05a;">seed</span><span style="color: Olive;">(</span><span style="color: Maroon;">42</span><span style="color: Olive;">)</span><br/>
+<br/>
+    points <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><br/>
+        PointStruct<span style="color: Olive;">(</span><br/>
+            <span style="color: Teal;">id</span><span style="color: Gray;">=</span>i<span style="color: Gray;">,</span><br/>
+            vector<span style="color: Gray;">=</span>np.<span style="color: #05a;">random</span>.<span style="color: #05a;">randn</span><span style="color: Olive;">(</span><span style="color: Maroon;">128</span><span style="color: Olive;">)</span>.<span style="color: #05a;">tolist</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span><br/>
+            payload<span style="color: Gray;">=</span><span style="color: Olive;">{</span><br/>
+                <span style="color: #a11;">"text"</span>: f<span style="color: #a11;">"ドキュメント {i} の内容"</span><span style="color: Gray;">,</span><br/>
+                <span style="color: #a11;">"category"</span>: <span style="color: #a11;">"tech"</span> <span style="color: Green;font-weight:bold;">if</span> i % <span style="color: Maroon;">2</span> <span style="color: Gray;">==</span> <span style="color: Maroon;">0</span> <span style="color: Green;font-weight:bold;">else</span> <span style="color: #a11;">"life"</span><span style="color: Gray;">,</span><br/>
+                <span style="color: #a11;">"author"</span>: f<span style="color: #a11;">"author_{i % 3}"</span><br/>
+            <span style="color: Olive;">}</span><br/>
+        <span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">for</span> i <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Maroon;">100</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Olive;">]</span><br/>
+<br/>
+    client.<span style="color: #05a;">upsert</span><span style="color: Olive;">(</span><br/>
+        collection_name<span style="color: Gray;">=</span><span style="color: #a11;">"runoob_collection"</span><span style="color: Gray;">,</span><br/>
+        points<span style="color: Gray;">=</span>points<br/>
+    <span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: #a50"># 4. クエリ</span><br/>
+    query_vector <span style="color: Gray;">=</span> np.<span style="color: #05a;">random</span>.<span style="color: #05a;">randn</span><span style="color: Olive;">(</span><span style="color: Maroon;">128</span><span style="color: Olive;">)</span>.<span style="color: #05a;">tolist</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<br/>
+    results <span style="color: Gray;">=</span> client.<span style="color: #05a;">search</span><span style="color: Olive;">(</span><br/>
+        collection_name<span style="color: Gray;">=</span><span style="color: #a11;">"runoob_collection"</span><span style="color: Gray;">,</span><br/>
+        query_vector<span style="color: Gray;">=</span>query_vector<span style="color: Gray;">,</span><br/>
+        limit<span style="color: Gray;">=</span><span style="color: Maroon;">5</span><span style="color: Gray;">,</span><br/>
+        <span style="color: #a50"># フィルタを追加できます</span><br/>
+        <span style="color: #a50"># query_filter=Filter(</span><br/>
+        <span style="color: #a50">#     must=[</span><br/>
+        <span style="color: #a50">#         FieldCondition(key="category", match=MatchValue(value="tech"))</span><br/>
+        <span style="color: #a50">#     ]</span><br/>
+        <span style="color: #a50"># )</span><br/>
+    <span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"検索結果："</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">for</span> result <span style="color: Green;font-weight:bold;">in</span> results:<br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"ID: {result.id}, スコア: {result.score:.4f}"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Payload: {result.payload}"</span><span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"---"</span><span style="color: Olive;">)</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">return</span> client<br/>
+<br/>
+<br/>
+<span style="color: #a50"># Qdrantを起動している場合は、下のコメントを外して実行できます</span><br/>
+<span style="color: #a50"># qdrant_example()</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Qdrantサンプルコード：Rust実装で、機能が充実しています。"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Qdrantの特徴："</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - 高性能：Rust + HNSW"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - 機能充実：フィルタリング、グループ化、集計、ページネーションをサポート"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - デプロイ容易：Dockerでワンクリック起動"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - シャーディング対応：水平スケーリング可能"</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<h3>主要ベクトルデータベース比較表</h3>
+<table class="reference">
+<tr><th>製品</th><th>タイプ</th><th>デプロイ</th><th>特徴</th><th>適用シーン</th></tr>
+<tr><td>FAISS</td><td>ローカルライブラリ</td><td>无</td><td>非常に高速、機能充実、自分でメンテナンスが必要</td><td>オフライン処理、サービスを構築したくない</td></tr>
+<tr><td>Chroma</td><td>軽量級</td><td>ローカル/サーバー</td><td>シンプルで使いやすい、Python優先</td><td>プロトタイプ開発、小規模プロジェクト</td></tr>
+<tr><td>Qdrant</td><td>オープンソース</td><td>Docker/K8s</td><td>性能が良い、機能充実、Rust</td><td>本番環境、中規模</td></tr>
+<tr><td>Milvus</td><td>オープンソース</td><td>分散</td><td>エンタープライズ級、最も機能が充実</td><td>大規模な本番環境</td></tr>
+<tr><td>Weaviate</td><td>オープンソース</td><td>Docker/K8s</td><td>モジュール化、エコシステムが良好</td><td>機能を柔軟に組み合わせる必要がある</td></tr>
+<tr><td>Pinecone</td><td>クラウドサービス</td><td>SaaS</td><td>完全マネージド、オンデマンドで拡張</td><td>運用したくない、すぐにリリースしたい</td></tr>
+</table>
+<hr/>
+<h2>埋め込みモデルの選択</h2>
+<p>ベクトルデータベースは単なるインフラであり、効果を本当に決めるのは埋め込みモデルです。</p>
+<h3>主要埋め込みモデルの比較</h3>
+<table class="reference">
+<tr><th>モデル</th><th>次元</th><th>特徴</th><th>価格</th></tr>
+<tr><td>OpenAI text-embedding-3-small</td><td>1536</td><td>コストパフォーマンスが高い、総合品質が良い</td><td>$0.00002 / 1K tokens</td></tr>
+<tr><td>OpenAI text-embedding-3-large</td><td>3072</td><td>品質が最高、次元が大きい</td><td>$0.00013 / 1K tokens</td></tr>
+<tr><td>Cohere Embed v3</td><td>1024</td><td>多言語サポートが良い</td><td>$0.0001 / 1K tokens</td></tr>
+<tr><td>bge-large-zh-v1.5</td><td>1024</td><td>中国語に効果的、オープンソースで無料</td><td>無料</td></tr>
+<tr><td>bge-m3</td><td>1024</td><td>多言語、多機能</td><td>無料</td></tr>
+<tr><td>gte-large</td><td>1024</td><td>バランスの取れた選択肢、オープンソース</td><td>無料</td></tr>
+</table>
+<h3>次元数 vs パフォーマンスのトレードオフ</h3>
+<p>次元が高いほど、通常は効果が良くなりますが、ただし：</p>
+<ul>
+<li>
+<p>1. <strong>ストレージが高くなる</strong>：3072次元は1536次元の2倍の領域を占有します。</p></li>
+<li>
+<p>2. <strong>計算が遅くなる</strong>：距離計算量は次元に比例します。</p></li>
+<li>
+<p>3. <strong>インデックスが大きくなる</strong>：HNSW/IVFインデックスもより大きくなります。</p></li></ul>
+<blockquote>
+<p>提案：<span class="marked">まずは低次元モデルで効果をテストし、不十分なら高次元に上げる</span>。多くのシナリオでは、1536次元で十分すぎるほど良い。</p>
+</blockquote>
+<hr/>
+<h2>ハイブリッド検索（Hybrid Search）</h2>
+<p>純粋なベクトル検索は「意味」しかマッチせず、「キーワード」にはマッチしないため、不十分な場合があります。</p>
+<p>ハイブリッド検索 = ベクトル検索 + キーワード検索、そして結果を融合する。</p>
+<h3>BM25 スパース検索</h3>
+<p>BM25は従来の検索における古典的なアルゴリズムで、キーワードの一致度を評価します。</p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># BM25 キーワード検索デモ</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">import</span> <span style="color: #05a;">math</span><br/>
+<span style="color: Green;font-weight:bold;">from</span> typing <span style="color: Green;font-weight:bold;">import</span> List<span style="color: Gray;">,</span> Dict<span style="color: Gray;">,</span> Set<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">class</span> SimpleBM25:<br/>
+    <span style="color: #a11;">"""簡易版 BM25 実装"""</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> <span style="color: Navy;">__init__</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> k1: <span style="color: Teal;">float</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">1.5</span><span style="color: Gray;">,</span> b: <span style="color: Teal;">float</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">0.75</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">k1</span> <span style="color: Gray;">=</span> k1<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">b</span> <span style="color: Gray;">=</span> b<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">documents</span>: List<span style="color: Olive;">[</span>List<span style="color: Olive;">[</span><span style="color: Teal;">str</span><span style="color: Olive;">]</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">doc_lengths</span>: List<span style="color: Olive;">[</span><span style="color: Teal;">int</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">avg_doc_length</span>: <span style="color: Teal;">float</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">0</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">term_freqs</span>: List<span style="color: Olive;">[</span>Dict<span style="color: Olive;">[</span><span style="color: Teal;">str</span><span style="color: Gray;">,</span> <span style="color: Teal;">int</span><span style="color: Olive;">]</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">doc_freq</span>: Dict<span style="color: Olive;">[</span><span style="color: Teal;">str</span><span style="color: Gray;">,</span> <span style="color: Teal;">int</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: Olive;">{</span><span style="color: Olive;">}</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">num_docs</span>: <span style="color: Teal;">int</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">0</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> _tokenize<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> text: <span style="color: Teal;">str</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> List<span style="color: Olive;">[</span><span style="color: Teal;">str</span><span style="color: Olive;">]</span>:<br/>
+        <span style="color: #a11;">"""簡易トークン化（スペースと句読点で分割）"""</span><br/>
+        <span style="color: #a50"># 簡略化：小文字に変換し、英数字以外で分割</span><br/>
+        <span style="color: Green;font-weight:bold;">import</span> <span style="color: #05a;">re</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> <span style="color: Olive;">[</span>t.<span style="color: #05a;">lower</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">for</span> t <span style="color: Green;font-weight:bold;">in</span> <span style="color: #05a;">re</span>.<span style="color: #05a;">findall</span><span style="color: Olive;">(</span>r<span style="color: #a11;">'<span style="color: #000099; font-weight: bold;">\w</span>+'</span><span style="color: Gray;">,</span> text<span style="color: Olive;">)</span><span style="color: Olive;">]</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> fit<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> documents: List<span style="color: Olive;">[</span><span style="color: Teal;">str</span><span style="color: Olive;">]</span><span style="color: Olive;">)</span>:<br/>
+        <span style="color: #a11;">"""インデックスを構築"""</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">documents</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">doc_lengths</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">term_freqs</span> <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">doc_freq</span> <span style="color: Gray;">=</span> <span style="color: Olive;">{</span><span style="color: Olive;">}</span><br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">num_docs</span> <span style="color: Gray;">=</span> <span style="color: Teal;">len</span><span style="color: Olive;">(</span>documents<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">for</span> doc <span style="color: Green;font-weight:bold;">in</span> documents:<br/>
+            tokens <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>._tokenize<span style="color: Olive;">(</span>doc<span style="color: Olive;">)</span><br/>
+            <span style="color: Teal;">self</span>.<span style="color: #05a;">documents</span>.<span style="color: #05a;">append</span><span style="color: Olive;">(</span>tokens<span style="color: Olive;">)</span><br/>
+            <span style="color: Teal;">self</span>.<span style="color: #05a;">doc_lengths</span>.<span style="color: #05a;">append</span><span style="color: Olive;">(</span><span style="color: Teal;">len</span><span style="color: Olive;">(</span>tokens<span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<br/>
+            <span style="color: #a50"># 語頻度を集計</span><br/>
+            tf: Dict<span style="color: Olive;">[</span><span style="color: Teal;">str</span><span style="color: Gray;">,</span> <span style="color: Teal;">int</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: Olive;">{</span><span style="color: Olive;">}</span><br/>
+            <span style="color: Green;font-weight:bold;">for</span> <span style="color: #05a;">token</span> <span style="color: Green;font-weight:bold;">in</span> tokens:<br/>
+                tf<span style="color: Olive;">[</span><span style="color: #05a;">token</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> tf.<span style="color: #05a;">get</span><span style="color: Olive;">(</span><span style="color: #05a;">token</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0</span><span style="color: Olive;">)</span> + <span style="color: Maroon;">1</span><br/>
+            <span style="color: Teal;">self</span>.<span style="color: #05a;">term_freqs</span>.<span style="color: #05a;">append</span><span style="color: Olive;">(</span>tf<span style="color: Olive;">)</span><br/>
+<br/>
+            <span style="color: #a50"># 文書頻度を更新</span><br/>
+            <span style="color: Green;font-weight:bold;">for</span> <span style="color: #05a;">token</span> <span style="color: Green;font-weight:bold;">in</span> tf.<span style="color: #05a;">keys</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+                <span style="color: Teal;">self</span>.<span style="color: #05a;">doc_freq</span><span style="color: Olive;">[</span><span style="color: #05a;">token</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">doc_freq</span>.<span style="color: #05a;">get</span><span style="color: Olive;">(</span><span style="color: #05a;">token</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0</span><span style="color: Olive;">)</span> + <span style="color: Maroon;">1</span><br/>
+<br/>
+        <span style="color: Teal;">self</span>.<span style="color: #05a;">avg_doc_length</span> <span style="color: Gray;">=</span> <span style="color: Teal;">sum</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span>.<span style="color: #05a;">doc_lengths</span><span style="color: Olive;">)</span> / <span style="color: Teal;">self</span>.<span style="color: #05a;">num_docs</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> score<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> query: <span style="color: Teal;">str</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> List<span style="color: Olive;">[</span><span style="color: Teal;">float</span><span style="color: Olive;">]</span>:<br/>
+        <span style="color: #a11;">"""各ドキュメントのBM25スコアを計算"""</span><br/>
+        query_tokens <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>._tokenize<span style="color: Olive;">(</span>query<span style="color: Olive;">)</span><br/>
+        scores <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Maroon;">0.0</span><span style="color: Olive;">]</span> * <span style="color: Teal;">self</span>.<span style="color: #05a;">num_docs</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">for</span> <span style="color: #05a;">token</span> <span style="color: Green;font-weight:bold;">in</span> query_tokens:<br/>
+            <span style="color: Green;font-weight:bold;">if</span> <span style="color: #05a;">token</span> <span style="color: Green;font-weight:bold;">not</span> <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">doc_freq</span>:<br/>
+                <span style="color: Green;font-weight:bold;">continue</span><br/>
+<br/>
+            <span style="color: #a50"># IDF計算</span><br/>
+            df <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">doc_freq</span><span style="color: Olive;">[</span><span style="color: #05a;">token</span><span style="color: Olive;">]</span><br/>
+            idf <span style="color: Gray;">=</span> <span style="color: #05a;">math</span>.<span style="color: #05a;">log</span><span style="color: Olive;">(</span><span style="color: Maroon;">1</span> + <span style="color: Olive;">(</span><span style="color: Teal;">self</span>.<span style="color: #05a;">num_docs</span> - df + <span style="color: Maroon;">0.5</span><span style="color: Olive;">)</span> / <span style="color: Olive;">(</span>df + <span style="color: Maroon;">0.5</span><span style="color: Olive;">)</span><span style="color: Olive;">)</span><br/>
+<br/>
+            <span style="color: #a50"># 各ドキュメントのスコアを計算</span><br/>
+            <span style="color: Green;font-weight:bold;">for</span> doc_idx <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">range</span><span style="color: Olive;">(</span><span style="color: Teal;">self</span>.<span style="color: #05a;">num_docs</span><span style="color: Olive;">)</span>:<br/>
+                doc_len <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">doc_lengths</span><span style="color: Olive;">[</span>doc_idx<span style="color: Olive;">]</span><br/>
+                tf <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">term_freqs</span><span style="color: Olive;">[</span>doc_idx<span style="color: Olive;">]</span>.<span style="color: #05a;">get</span><span style="color: Olive;">(</span><span style="color: #05a;">token</span><span style="color: Gray;">,</span> <span style="color: Maroon;">0</span><span style="color: Olive;">)</span><br/>
+<br/>
+                <span style="color: #a50"># BM25の核心的な式</span><br/>
+                numerator <span style="color: Gray;">=</span> tf * <span style="color: Olive;">(</span><span style="color: Teal;">self</span>.<span style="color: #05a;">k1</span> + <span style="color: Maroon;">1</span><span style="color: Olive;">)</span><br/>
+                denominator <span style="color: Gray;">=</span> tf + <span style="color: Teal;">self</span>.<span style="color: #05a;">k1</span> * <span style="color: Olive;">(</span><span style="color: Maroon;">1</span> - <span style="color: Teal;">self</span>.<span style="color: #05a;">b</span> + <span style="color: Teal;">self</span>.<span style="color: #05a;">b</span> * doc_len / <span style="color: Teal;">self</span>.<span style="color: #05a;">avg_doc_length</span><span style="color: Olive;">)</span><br/>
+                scores<span style="color: Olive;">[</span>doc_idx<span style="color: Olive;">]</span> +<span style="color: Gray;">=</span> idf * numerator / denominator<br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">return</span> scores<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">def</span> search<span style="color: Olive;">(</span><span style="color: Teal;">self</span><span style="color: Gray;">,</span> query: <span style="color: Teal;">str</span><span style="color: Gray;">,</span> top_k: <span style="color: Teal;">int</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">5</span><span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> List<span style="color: Olive;">[</span>Dict<span style="color: Olive;">]</span>:<br/>
+        <span style="color: #a11;">"""Top Kを検索"""</span><br/>
+        scores <span style="color: Gray;">=</span> <span style="color: Teal;">self</span>.<span style="color: #05a;">score</span><span style="color: Olive;">(</span>query<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: #a50"># ソート</span><br/>
+        results <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><br/>
+            <span style="color: Olive;">{</span><span style="color: #a11;">"doc_idx"</span>: i<span style="color: Gray;">,</span> <span style="color: #a11;">"score"</span>: s<span style="color: Olive;">}</span><br/>
+            <span style="color: Green;font-weight:bold;">for</span> i<span style="color: Gray;">,</span> s <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">enumerate</span><span style="color: Olive;">(</span>scores<span style="color: Olive;">)</span><br/>
+        <span style="color: Olive;">]</span><br/>
+        results.<span style="color: #05a;">sort</span><span style="color: Olive;">(</span>key<span style="color: Gray;">=</span><span style="color: Green;font-weight:bold;">lambda</span> x: x<span style="color: Olive;">[</span><span style="color: #a11;">"score"</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span> reverse<span style="color: Gray;">=</span><span style="color: Teal;">True</span><span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">return</span> results<span style="color: Olive;">[</span>:top_k<span style="color: Olive;">]</span><br/>
+<br/>
+<br/>
+<span style="color: #a50"># テスト</span><br/>
+documents <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><br/>
+    <span style="color: #a11;">"Pythonはプログラミング言語で、簡単に学べます。"</span><span style="color: Gray;">,</span><br/>
+    <span style="color: #a11;">"JavaScriptはWeb開発に使われ、フロントエンドとバックエンドの両方で使えます。"</span><span style="color: Gray;">,</span><br/>
+    <span style="color: #a11;">"ベクトルデータベースはベクトル埋め込みの保存と検索に使われます。"</span><span style="color: Gray;">,</span><br/>
+    <span style="color: #a11;">"データベースには多くの種類があります。例えば、リレーショナルデータベース、NoSQLデータベースなどです。"</span><span style="color: Gray;">,</span><br/>
+    <span style="color: #a11;">"HNSWは近似最近傍探索アルゴリズムです。"</span><br/>
+<span style="color: Olive;">]</span><br/>
+<br/>
+bm25 <span style="color: Gray;">=</span> SimpleBM25<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+bm25.<span style="color: #05a;">fit</span><span style="color: Olive;">(</span>documents<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 検索</span><br/>
+query <span style="color: Gray;">=</span> <span style="color: #a11;">"データベース"</span><br/>
+results <span style="color: Gray;">=</span> bm25.<span style="color: #05a;">search</span><span style="color: Olive;">(</span>query<span style="color: Gray;">,</span> top_k<span style="color: Gray;">=</span><span style="color: Maroon;">5</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"クエリ：<span style="color: #000099; font-weight: bold;">\"</span>{query}<span style="color: #000099; font-weight: bold;">\"</span>"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"BM25検索結果："</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">for</span> r <span style="color: Green;font-weight:bold;">in</span> results:<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  ドキュメント {r['doc_idx']}: {documents[r['doc_idx']]}"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"    スコア = {r['score']:.4f}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 出力は次のようになります：</span><br/>
+<span style="color: #a50"># クエリ："データベース"</span><br/>
+<span style="color: #a50"># BM25検索結果：</span><br/>
+<span style="color: #a50">#   ドキュメント 2: ベクトルデータベースはベクトル埋め込みの保存と検索に使われます。</span><br/>
+<span style="color: #a50">#     スコア = 0.7134</span><br/>
+<span style="color: #a50">#   ドキュメント 3: データベースには多くの種類があります。例えば、リレーショナルデータベース、NoSQLデータベースなどです。</span><br/>
+<span style="color: #a50">#     スコア = 0.6148</span><br/>
+<span style="color: #a50">#   ...</span><br/>
+</div>
+</div>
+<h3>RRF：逆順位融合（Reciprocal Rank Fusion）</h3>
+<p>RRF（Reciprocal Rank Fusion）は、複数の検索結果を融合するシンプルで効果的な方法です。</p>
+<p>式：score = 1 / (k + rank)、ここでkは通常60です。</p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># RRF融合デモ</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">from</span> typing <span style="color: Green;font-weight:bold;">import</span> List<span style="color: Gray;">,</span> Dict<span style="color: Gray;">,</span> Any<br/>
+<br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> rrf_fuse<span style="color: Olive;">(</span><br/>
+    result_lists: List<span style="color: Olive;">[</span>List<span style="color: Olive;">[</span>Any<span style="color: Olive;">]</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span><br/>
+    k: <span style="color: Teal;">int</span> <span style="color: Gray;">=</span> <span style="color: Maroon;">60</span><br/>
+<span style="color: Olive;">)</span> -<span style="color: Gray;">&gt;</span> Dict<span style="color: Olive;">[</span>Any<span style="color: Gray;">,</span> <span style="color: Teal;">float</span><span style="color: Olive;">]</span>:<br/>
+    <span style="color: #a11;">"""<br/>RRF融合：各結果リストについて、1/(k + rank) でスコアを付けて合算する。<br/>result_lists: ソート済みの複数の結果リスト<br/>
+    """</span><br/>
+    scores: Dict<span style="color: Olive;">[</span>Any<span style="color: Gray;">,</span> <span style="color: Teal;">float</span><span style="color: Olive;">]</span> <span style="color: Gray;">=</span> <span style="color: Olive;">{</span><span style="color: Olive;">}</span><br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">for</span> results <span style="color: Green;font-weight:bold;">in</span> result_lists:<br/>
+        <span style="color: Green;font-weight:bold;">for</span> rank<span style="color: Gray;">,</span> item <span style="color: Green;font-weight:bold;">in</span> <span style="color: Teal;">enumerate</span><span style="color: Olive;">(</span>results<span style="color: Olive;">)</span>:<br/>
+            score <span style="color: Gray;">=</span> <span style="color: Maroon;">1.0</span> / <span style="color: Olive;">(</span>k + rank<span style="color: Olive;">)</span><br/>
+            scores<span style="color: Olive;">[</span>item<span style="color: Olive;">]</span> <span style="color: Gray;">=</span> scores.<span style="color: #05a;">get</span><span style="color: Olive;">(</span>item<span style="color: Gray;">,</span> <span style="color: Maroon;">0</span><span style="color: Olive;">)</span> + score<br/>
+<br/>
+    <span style="color: Green;font-weight:bold;">return</span> scores<br/>
+<br/>
+<br/>
+<span style="color: #a50"># 例：ベクトル検索結果 と BM25検索結果</span><br/>
+vector_results <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: #a11;">"doc3"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"doc1"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"doc4"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"doc2"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"doc5"</span><span style="color: Olive;">]</span>  <span style="color: #a50"># ベクトル検索は doc3 が最も関連性が高いと見なす</span><br/>
+bm25_results <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: #a11;">"doc2"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"doc4"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"doc3"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"doc5"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"doc1"</span><span style="color: Olive;">]</span>    <span style="color: #a50"># BM25は doc2 が最も関連性が高いと見なす</span><br/>
+<br/>
+<span style="color: #a50"># RRF融合</span><br/>
+fused <span style="color: Gray;">=</span> rrf_fuse<span style="color: Olive;">(</span><span style="color: Olive;">[</span>vector_results<span style="color: Gray;">,</span> bm25_results<span style="color: Olive;">]</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># ソート</span><br/>
+final_rank <span style="color: Gray;">=</span> <span style="color: Teal;">sorted</span><span style="color: Olive;">(</span>fused.<span style="color: #05a;">items</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><span style="color: Gray;">,</span> key<span style="color: Gray;">=</span><span style="color: Green;font-weight:bold;">lambda</span> x: x<span style="color: Olive;">[</span><span style="color: Maroon;">1</span><span style="color: Olive;">]</span><span style="color: Gray;">,</span> reverse<span style="color: Gray;">=</span><span style="color: Teal;">True</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"ベクトル検索結果："</span><span style="color: Gray;">,</span> vector_results<span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"BM25検索結果："</span><span style="color: Gray;">,</span> bm25_results<span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"RRF融合後の最終ランキング："</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">for</span> doc<span style="color: Gray;">,</span> score <span style="color: Green;font-weight:bold;">in</span> final_rank:<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"  {doc}: {score:.6f}"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># 出力：</span><br/>
+<span style="color: #a50"># ベクトル検索結果： ['doc3', 'doc1', 'doc4', 'doc2', 'doc5']</span><br/>
+<span style="color: #a50"># BM25検索結果： ['doc2', 'doc4', 'doc3', 'doc5', 'doc1']</span><br/>
+<span style="color: #a50">#</span><br/>
+<span style="color: #a50"># RRF融合後の最終ランキング：</span><br/>
+<span style="color: #a50">#   doc3: 0.032787</span><br/>
+<span style="color: #a50">#   doc2: 0.032787</span><br/>
+<span style="color: #a50">#   doc4: 0.032520</span><br/>
+<span style="color: #a50">#   doc1: 0.016393</span><br/>
+<span style="color: #a50">#   doc5: 0.016393</span><br/>
+</div>
+</div>
+<h3>融合重みのチューニング</h3>
+<p>RRF以外にも、重み付き線形融合も使えます：</p>
+<p>final_score = α * vector_score + (1 - α) * bm25_score</p>
+<p>αはベクトル検索の重みであり、実際のデータに基づいて調整する必要があります。</p>
+<hr/>
+<h2>Re-ranking（再ランク付け）</h2>
+<p>ハイブリッド検索はさらに改善できます。まず候補を一括でリコールし、より強力なモデルで再ランキングします。</p>
+<h3>Cross-Encoder の原理</h3>
+<p>Bi-Encoder（リコール用）：queryとdocumentをそれぞれエンコードし、類似度で比較する。</p>
+<p>Cross-Encoder（再ランキング用）：queryとdocumentを連結してモデルに入力し、関連性スコアを直接出力する。</p>
+<p>Cross-Encoderはより正確ですが遅いため、上位50〜100件の候補だけを再ランキングするのに適しています。</p>
+<div class="example">
+<h2 class="example">例</h2>
+<div class="example_code">
+<span style="color: #a50"># ============================================</span><br/>
+<span style="color: #a50"># Re-ranking プロセスのデモ</span><br/>
+<span style="color: #a50"># ============================================</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> reranking_pipeline_example<span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""<br/>2段階検索プロセス：<br/>1. 粗いリコール：ベクトル検索でTop 100を高速に見つける<br/>2. 精密なランキング：Cross-EncoderでTop 100を再ランキングする<br/>
+    """</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"2段階検索プロセス："</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"ステージ 1: 粗いリコール（ベクトル検索）"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - 目標：高速、低遅延"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - 方法：HNSW/IVFベクトル検索"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - 出力：Top 100の候補"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"ステージ 2: 精密なランキング（Cross-Encoder）"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - 目標：正確、高品質"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - 方法：Cross-Encoderでペアごとにスコアリング"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - 出力：最終Top 10"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"典型的な設定："</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - リコール段階：HNSW efSearch = 128、100件をリコール"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - 再ランキング段階：bge-reranker または Cohere Rerankを使用"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"なぜ最初からCross-Encoderですべてを検索しないのか？"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - Cross-Encoderは遅すぎて、100万件を検索するのは現実的ではありません"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"  - ベクトル検索で100万件は高速、Cross-Encoderで100件の再ランキングも高速"</span><span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+<span style="color: #a50"># Cohere Rerank API の例（擬似コード）</span><br/>
+<span style="color: Green;font-weight:bold;">def</span> cohere_rerank_example<span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""<br/>Cohere Rerank APIの使用例<br/>
+    """</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Cohere Rerank APIの典型的な使い方："</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">'''<br/>
+    import cohere<br/>
+<br/>
+    co = cohere.Client(api_key="your-api-key")<br/>
+<br/>query = "ベクトルデータベースとは何ですか？"<br/>
+    documents = [<br/>"ドキュメント1の内容...",<br/>"ドキュメント2の内容...",<br/>...  # 上位100件の候補<br/>
+    ]<br/>
+<br/>
+    results = co.rerank(<br/>
+        query=query,<br/>
+        documents=documents,<br/>
+        top_n=10,<br/>
+        model="rerank-english-v3.0"<br/>
+    )<br/>
+<br/>
+    for r in results:<br/>
+        print(r.index, r.relevance_score, documents[r.index])<br/>
+    '''</span><span style="color: Olive;">)</span><br/>
+<br/>
+<br/>
+reranking_pipeline_example<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<h3>パフォーマンスとレイテンシのトレードオフ</h3>
+<table class="reference">
+<tr><th>方式</th><th>品質</th><th>速度</th><th>コスト</th><th>適用シナリオ</th></tr>
+<tr><td>純ベクトル検索</td><td>中</td><td>極めて高速</td><td>低</td><td>速度要求が非常に高い場合</td></tr>
+<tr><td>ハイブリッド検索</td><td>中高</td><td>快</td><td>中</td><td>バランスの取れた選択</td></tr>
+<tr><td>ベクトル + 再ランキング</td><td>高</td><td>中</td><td>中高</td><td>品質重視</td></tr>
+<tr><td>ハイブリッド + 再ランキング</td><td>最高</td><td>中〜低速</td><td>高</td><td>品質優先</td></tr>
+</table>
+<hr/>
+<h2>本番環境での最適化</h2>
+<p>Demoから本番まで、注意すべき詳細がたくさんあります。</p>
+<h3>インデックスシャーディング戦略</h3>
+<p>データ量が単一マシンの容量を超えた場合は、シャーディングが必要です：</p>
+<ul>
+<li>
+<p>1. <strong>IDによるシャーディング</strong>：シンプルですが、クエリ時にはすべてのシャードを検索する必要があります。</p></li><li>
+<p>2. <strong>ベクトルクラスタリングによるシャーディング</strong>：クエリ時に関連するいくつかのシャードだけを検索します。</p></li></ul>
+<h3>メタデータフィルタリング</h3>
+<p>本番環境では、ほとんどの場合メタデータフィルタリングを組み合わせる必要があります。</p>
+<p>2つの戦略：</p>
+<ul>
+<li>
+<p>1. <strong>プリフィルタ（事前フィルタリング）</strong>：最初にメタデータでフィルタリングし、次にベクトル検索を実行します。</p></li><li>
+<p>2. <strong>ポストフィルタ（事後フィルタリング）</strong>：最初にベクトル検索を実行し、次にメタデータでフィルタリングします。</p></li></ul>
+<p>選択の原則：フィルタリング後に残るベクトルが多い場合はプリフィルタを使用し、残りが少ない場合はポストフィルタを使用します。</p>
+<h3>増分更新</h3>
+<p>多くのベクトルデータベースはインクリメンタル追加をサポートしていますが、注意点があります：</p>
+<ul>
+<li>
+<p>1. <strong>バッチ追加</strong>：一度にバッチで追加し、1件ずつ追加しないでください。</p></li><li>
+<p>2. <strong>インデックス再構築</strong>：一部のインデックス（IVFなど）は定期的な再トレーニングが必要です。</p></li><li>
+<p>3. <strong>バージョン管理</strong>：旧バージョンのインデックスを保持し、更新時にロールバックできます。</p></li></ul>
+<h3>監視メトリクス</h3>
+<p>本番環境では以下を監視する必要があります：</p>
+<ul>
+<li>
+<p>1. <strong>クエリレイテンシ</strong>：P50、P95、P99。</p></li>
+<li>
+<p>2. <strong>リコール率</strong>：Top K結果の品質を定期的に確認します。</p></li>
+<li>
+<p>3. <strong>インデックスサイズ</strong>：メモリ/ディスク使用量。</p></li>
+<li>
+<p>4. <strong>QPS</strong>：1秒あたりのクエリ数。</p></li></ul>
+その他の拡張
+</div>
+</div>
+<div class="archive-list" style="display:none;font-size: 14px;line-height: 1.8;margin-top: 20px;padding: 10px;">
+<div class="archive-list-item">
+<div class="post-intro" id="ai-info" style="width: 100%;">AI思考中...</div>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../ai/ai-rlhf.html" rel="prev">RLHFアライメントトレーニング</a> </div>
+<div class="next-design-link"><a href="../ai/ai-deployment.html" rel="next">AIエンジニアリング展開</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="sidebar-box">
+</div>
+ノート一覧
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>クリックしてノートを共有</h3>
+&lt;p style="font-size:14px;"&gt;ノートはこの記事の内容を拡張したものである必要があります！&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;記事投稿は、こちらをクリック&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; ノートを共有する前に&lt;a href=";.html" class="runoob-pop"&gt;ログイン&lt;/a&gt;が必要です！&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=";.html" id="cancel-comment-reply-link">キャンセル</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="31519"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>ノートを共有</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">ニックネーム</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">ニックネーム（必須）</span></li>
+<li class="form-inline"><label class="hide" for="email">メールアドレス</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">メールアドレス（必須）</span></li>
+<li class="form-inline"><label class="hide" for="url">引用アドレス</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">引用アドレス</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  31519;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 31519, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":31519},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+</div>
+</div>
+<!-- 右边栏 -->
+<div class="fivecol last right-column">
+<style>
+.sidebar-tree .double-li {
+    width:300px;
+}
+.sidebar-tree .double-li li {
+    width: 44%;
+    line-height: 1.5em;
+    border-bottom: 1px solid #ccc;
+    float: left;
+    display: inline;
+}
+</style>
+<div class="sidebar-box re-box re-box-large">
+<div class="sidebar-box recommend-here" style="margin: 0 auto;">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;"> <i aria-hidden="true" class="fa fa-list"></i> 分类导航</a>
+</div>
+<div class="sidebar-box sidebar-cate">
+<div class="sidebar-tree">
+<ul><li style="margin: 0;"><a class="tit" href="#"> Python / 数据科学</a><ul class="double-li"><li><a href="../python3/python3-tutorial.html" title="Python 教程">Python 教程</a></li><li><a href="../python/python-tutorial.html" title="Python2.x 教程">Python2.x 教程</a></li><li><a href="../fastapi/fastapi-tutorial.html" title="FastAPI 教程">FastAPI 教程</a></li><li><a href="../flask/flask-tutorial.html" title="Flask 教程">Flask 教程</a></li><li><a href="../django/django-tutorial.html" title="Django 教程">Django 教程</a></li><li><a href="../numpy/numpy-tutorial.html" title="NumPy 教程">NumPy 教程</a></li><li><a href="../pandas/pandas-tutorial.html" title="Pandas 教程">Pandas 教程</a></li><li><a href="../scipy/scipy-tutorial.html" title="SciPy 教程">SciPy 教程</a></li><li><a href="../matplotlib/matplotlib-tutorial.html" title="Matplotlib 教程">Matplotlib 教程</a></li><li><a href="../dash/dash-tutorial.html" title="Dash 教程">Dash 教程</a></li><li><a href="../jupyter-notebook/jupyter-notebook-tutorial.html" title="Jupyter Notebook 教程">Jupyter Notebook 教程</a></li><li><a href="../pillow/pillow-tutorial.html" title="Pillow 教程">Pillow 教程</a></li><li><a href="../qt/qt-tutorial.html" title="量化交易">量化交易</a></li><li><a href="../r/r-tutorial.html" title="R 教程">R 教程</a></li><li><a href="../julia/julia-tutorial.html" title="Julia 教程">Julia 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> AI / 智能开发</a><ul class="double-li"><li><a href="../ai-agent/ai-agent-tutorial.html" title="AI Agent（智能体）">AI Agent（智能体）</a></li><li><a href="../ai/ai-tutorial.html" title="AI（人工智能）">AI（人工智能）</a></li><li><a href="../codex/codex-tutorial.html" title="Codex 教程">Codex 教程</a></li><li><a href="../vibe-coding/vibe-coding-tutorial.html" title="Vibe Coding 教程">Vibe Coding 教程</a></li><li><a href="../claude-code/claude-code-tutorial.html" title="Claude Code">Claude Code</a></li><li><a href="../opencode/opencode-tutorial.html" title="OpenCode">OpenCode</a></li><li><a href="../skills/skills-tutorial.html" title="Skills（技能）">Skills（技能）</a></li><li><a href="../ollama/ollama-tutorial.html" title="Ollama 教程">Ollama 教程</a></li><li><a href="../hermes-agent/hermes-agent-tutorial.html" title="Hermes Agent">Hermes Agent</a></li><li><a href="../deepseek-harness/deepseek-harness-tutorial.html" title="DeepSeek Harness">DeepSeek Harness</a></li><li><a href="../pi-agent/pi-agent-tutorial.html" title="Pi Agent">Pi Agent</a></li><li><a href="../ai-math/ai-math-tutorial.html" title="AI 数学基础">AI 数学基础</a></li><li><a href="../tensorflow/tensorflow-tutorial.html" title="TensorFlow 教程">TensorFlow 教程</a></li><li><a href="../pytorch/pytorch-tutorial.html" title="PyTorch 教程">PyTorch 教程</a></li><li><a href="../sklearn/sklearn-tutorial.html" title="Scikit-learn 教程">Scikit-learn 教程</a></li><li><a href="../ml/ml-tutorial.html" title="机器 教程">机器 教程</a></li><li><a href="../langchain/langchain-tutorial.html" title="LangChain">LangChain</a></li><li><a href="../nlp/nlp-tutorial.html" title="自然语言处理 NLP">自然语言处理 NLP</a></li><li><a href="../opencv/opencv-tutorial.html" title="OpenCV 教程">OpenCV 教程</a></li><li><a href="../selenium/selenium-tutorial.html" title="Selenium 教程">Selenium 教程</a></li><li><a href="../playwright/playwright-tutorial.html" title="Playwright 教程">Playwright 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 前端开发</a><ul class="double-li"><li><a href="../html/html-tutorial.html" title="HTML 教程">HTML 教程</a></li><li><a href="../html/html5-intro.html" title="HTML5 教程">HTML5 教程</a></li><li><a href="../css/css-tutorial.html" title="CSS 教程">CSS 教程</a></li><li><a href="../css3/css3-tutorial.html" title="CSS3 教程">CSS3 教程</a></li><li><a href="../js/js-tutorial.html" title="JavaScript 教程">JavaScript 教程</a></li><li><a href="../htmldom/htmldom-tutorial.html" title="HTML DOM 教程">HTML DOM 教程</a></li><li><a href="../typescript/ts-tutorial.html" title="TypeScript 教程">TypeScript 教程</a></li><li><a href="../ajax/ajax-tutorial.html" title="AJAX 教程">AJAX 教程</a></li><li><a href="../json/json-tutorial.html" title="JSON 教程">JSON 教程</a></li><li><a href="../tailwindcss/tailwindcss-tutorial.html" title="Tailwind CSS 教程">Tailwind CSS 教程</a></li><li><a href="../bootstrap4/bootstrap4-tutorial.html" title="Bootstrap4 教程">Bootstrap4 教程</a></li><li><a href="../bootstrap5/bootstrap5-tutorial.html" title="Bootstrap5 教程">Bootstrap5 教程</a></li><li><a href="../foundation/foundation-tutorial.html" title="Foundation 教程">Foundation 教程</a></li><li><a href="../vue2/vue-tutorial.html" title="Vue.js 教程">Vue.js 教程</a></li><li><a href="../vue3/vue3-tutorial.html" title="Vue3 教程">Vue3 教程</a></li><li><a href="../react/react-tutorial.html" title="React 教程">React 教程</a></li><li><a href="../nextjs/nextjs-tutorial.html" title="Next.js 教程">Next.js 教程</a></li><li><a href="../angularjs/angularjs-tutorial.html" title="AngularJS 教程">AngularJS 教程</a></li><li><a href="../angularjs2/angularjs2-tutorial.html" title="Angular 教程">Angular 教程</a></li><li><a href="../jquery/jquery-tutorial.html" title="jQuery 教程">jQuery 教程</a></li><li><a href="../jqueryui/jqueryui-tutorial.html" title="jQuery UI 教程">jQuery UI 教程</a></li><li><a href="../jeasyui/jqueryeasyui-tutorial.html" title="jQuery EasyUI 教程">jQuery EasyUI 教程</a></li><li><a href="../echarts/echarts-tutorial.html" title="ECharts 教程">ECharts 教程</a></li><li><a href="../chartjs/chartjs-tutorial.html" title="Chart.js 教程">Chart.js 教程</a></li><li><a href="../highcharts/highcharts-tutorial.html" title="Highcharts 教程">Highcharts 教程</a></li><li><a href="../googleapi/google-maps-basic.html" title="Google 地图 教程">Google 地图 教程</a></li><li><a href="../svg/svg-tutorial.html" title="SVG 教程">SVG 教程</a></li><li><a href="../font-awesome/fontawesome-tutorial.html" title="Font Awesome 教程">Font Awesome 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 后端开发</a><ul class="double-li"><li><a href="../nodejs/nodejs-tutorial.html" title="Node.js 教程">Node.js 教程</a></li><li><a href="../electron/electron-tutorial.html" title="Electron 教程">Electron 教程</a></li><li><a href="../php/php-tutorial.html" title="PHP 教程">PHP 教程</a></li><li><a href="../java/java-tutorial.html" title="Java 教程">Java 教程</a></li><li><a href="../go/go-tutorial.html" title="Go 教程">Go 教程</a></li><li><a href="../rust/rust-tutorial.html" title="Rust 教程">Rust 教程</a></li><li><a href="../csharp/csharp-tutorial.html" title="C# 教程">C# 教程</a></li><li><a href="../servlet/servlet-tutorial.html" title="Servlet 教程">Servlet 教程</a></li><li><a href="../jsp/jsp-tutorial.html" title="JSP 教程">JSP 教程</a></li><li><a href="../asp/asp-tutorial.html" title="ASP 教程">ASP 教程</a></li><li><a href="../appml/appml-tutorial.html" title="AppML 教程">AppML 教程</a></li><li><a href="../vbscript/vbscript-tutorial.html" title="VBScript 教程">VBScript 教程</a></li><li><a href="../swagger/swagger-tutorial.html" title="Swagger 教程">Swagger 教程</a></li><li><a href="../restfulapi/restful-api-tutorial.html" title="RESTful API 教程">RESTful API 教程</a></li><li><a href="../docker/docker-tutorial.html" title="Docker 教程">Docker 教程</a></li><li><a href="../linux/linux-tutorial.html" title="Linux 教程">Linux 教程</a></li><li><a href="../w3cnote/zookeeper-tutorial.html" title="ZooKeeper 教程">ZooKeeper 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 数据库</a><ul class="double-li"><li><a href="../sql/sql-tutorial.html" title="SQL 教程">SQL 教程</a></li><li><a href="../mysql/mysql-tutorial.html" title="MySQL 教程">MySQL 教程</a></li><li><a href="../postgresql/postgresql-tutorial.html" title="PostgreSQL 教程">PostgreSQL 教程</a></li><li><a href="../sqlite/sqlite-tutorial.html" title="SQLite 教程">SQLite 教程</a></li><li><a href="../mongodb/mongodb-tutorial.html" title="MongoDB 教程">MongoDB 教程</a></li><li><a href="../redis/redis-tutorial.html" title="Redis 教程">Redis 教程</a></li><li><a href="../memcached/memcached-tutorial.html" title="Memcached 教程">Memcached 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 移动开发</a><ul class="double-li"><li><a href="../w3cnote/android-tutorial-intro.html" title="Android 教程">Android 教程</a></li><li><a href="../flutter/flutter-tutorial.html" title="Flutter 教程">Flutter 教程</a></li><li><a href="../ionic/ionic-tutorial.html" title="Ionic 教程">Ionic 教程</a></li><li><a href="../jquerymobile/jquerymobile-tutorial.html" title="jQuery Mobile 教程">jQuery Mobile 教程</a></li><li><a href="../swift/swift-tutorial.html" title="Swift 教程">Swift 教程</a></li><li><a href="../kotlin/kotlin-tutorial.html" title="Kotlin 教程">Kotlin 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> DevOps / 工程化</a><ul class="double-li"><li><a href="../git/git-tutorial.html" title="Git 教程">Git 教程</a></li><li><a href="../svn/svn-tutorial.html" title="SVN 教程">SVN 教程</a></li><li><a href="../cmake/cmake-tutorial.html" title="CMake 教程">CMake 教程</a></li><li><a href="../maven/maven-tutorial.html" title="Maven 教程">Maven 教程</a></li><li><a href="../vscode/vscode-tutorial.html" title="VS Code 教程">VS Code 教程</a></li><li><a href="../obsidian/obsidian-tutorial.html" title="Obsidian 教程">Obsidian 教程</a></li><li><a href="../pycharm/pycharm-tutorial.html" title="PyCharm 教程">PyCharm 教程</a></li><li><a href="../eclipse/eclipse-tutorial.html" title="Eclipse 教程">Eclipse 教程</a></li><li><a href="../markdown/md-tutorial.html" title="Markdown 教程">Markdown 教程</a></li><li><a href="../latex/latex-tutorial.html" title="LaTeX 教程">LaTeX 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 编程语言</a><ul class="double-li"><li><a href="../c/c-tutorial.html" title="C 教程">C 教程</a></li><li><a href="../cplusplus/cpp-tutorial.html" title="C++ 教程">C++ 教程</a></li><li><a href="../zig/zig-tutorial.html" title="Zig 教程">Zig 教程</a></li><li><a href="../scala/scala-tutorial.html" title="Scala 教程">Scala 教程</a></li><li><a href="../ruby/ruby-tutorial.html" title="Ruby 教程">Ruby 教程</a></li><li><a href="../perl/perl-tutorial.html" title="Perl 教程">Perl 教程</a></li><li><a href="../lua/lua-tutorial.html" title="Lua 教程">Lua 教程</a></li><li><a href="../dart/dart-tutorial.html" title="Dart 教程">Dart 教程</a></li><li><a href="../assembly/assembly-tutorial.html" title="汇编语言 教程">汇编语言 教程</a></li><li><a href="../w3cnote/verilog-tutorial.html" title="Verilog 教程">Verilog 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 计算机基础</a><ul class="double-li"><li><a href="../computer-organization/computer-organization-tutorial.html" title="计算机组成原理">计算机组成原理</a></li><li><a href="../data-structures/data-structures-tutorial.html" title="数据结构与算法">数据结构与算法</a></li><li><a href="../c-dsa/c-dsa-tutorial.html" title="C 语言数据结构与算法">C 语言数据结构与算法</a></li><li><a href="../design-pattern/design-pattern-tutorial.html" title="设计模式">设计模式</a></li><li><a href="../python-design-pattern/python-design-pattern-tutorial.html" title="Python 设计模式">Python 设计模式</a></li><li><a href="../regexp/regexp-tutorial.html" title="正则表达式">正则表达式</a></li><li><a href="../http/http-tutorial.html" title="HTTP 教程">HTTP 教程</a></li><li><a href="../tcpip/tcpip-tutorial.html" title="TCP/IP 教程">TCP/IP 教程</a></li><li><a href="../np/np-tutorial.html" title="网络协议">网络协议</a></li><li><a href="../w3c/w3c-tutorial.html" title="W3C 教程">W3C 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> XML / Web Service</a><ul class="double-li"><li><a href="../xml/xml-tutorial.html" title="XML 教程">XML 教程</a></li><li><a href="../dtd/dtd-tutorial.html" title="DTD 教程">DTD 教程</a></li><li><a href="../dom/dom-tutorial.html" title="XML DOM 教程">XML DOM 教程</a></li><li><a href="../xsl/xsl-tutorial.html" title="XSLT 教程">XSLT 教程</a></li><li><a href="../xpath/xpath-tutorial.html" title="XPath 教程">XPath 教程</a></li><li><a href="../xquery/xquery-tutorial.html" title="XQuery 教程">XQuery 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XLink 教程">XLink 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XPointer 教程">XPointer 教程</a></li><li><a href="../schema/schema-tutorial.html" title="XML Schema 教程">XML Schema 教程</a></li><li><a href="../xslfo/xslfo-tutorial.html" title="XSL-FO 教程">XSL-FO 教程</a></li><li><a href="../webservices/webservices-tutorial.html" title="Web Service 教程">Web Service 教程</a></li><li><a href="../wsdl/wsdl-tutorial.html" title="WSDL 教程">WSDL 教程</a></li><li><a href="../soap/soap-tutorial.html" title="SOAP 教程">SOAP 教程</a></li><li><a href="../rss/rss-tutorial.html" title="RSS 教程">RSS 教程</a></li><li><a href="../rdf/rdf-tutorial.html" title="RDF 教程">RDF 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> .NET</a><ul class="double-li"><li><a href="../aspnet/aspnet-tutorial.html" title="ASP.NET 教程">ASP.NET 教程</a></li><li><a href="../aspnet/mvc-intro.html" title="MVC 教程">MVC 教程</a></li><li><a href="../aspnet/razor-intro.html" title="Razor 教程">Razor 教程</a></li><li><a href="../aspnet/aspnet-intro.html" title="Web Forms 教程">Web Forms 教程</a></li><li><a href="../aspnet/webpages-intro.html" title="Web Pages 教程">Web Pages 教程</a></li><li><a href="../powershell/powershell-tutorial.html" title="PowerShell 教程">PowerShell 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 网站建设</a><ul class="double-li"><li><a href="../web/web-buildingprimer.html" title="网站建设指南">网站建设指南</a></li><li><a href="../browsers/browser-information.html" title="浏览器信息">浏览器信息</a></li><li><a href="../hosting/hosting-tutorial.html" title="网站主机教程">网站主机教程</a></li><li><a href="../quality/quality-tutorial.html" title="网站品质">网站品质</a></li></ul></li></ul> </div>
+</div>
+</div>
+<br/>
+<div class="sidebar-box re-box re-box-large">
+</div>
+</div></div>
+</div>
+<script>
+var aid = 31519;
+function coll() {
+	$.post( '/wp-content/themes/runoob/option/user/userinfo.php', {aid:aid, action:"collarticle", opt:'add'},function( data ) {
+		if(data.error==0) {
+			$("#content").find("h1:first").find("a").attr("href","javascript:void(0);");
+			$("#content").find("h1:first").find("img").attr("src","http://www.runoob.com/wp-content/themes/runoob/assets/img/coll2.png").css({width:32+"px",height:32+"px"});
+		}
+		alert(data.msg);
+	},'json');
+}
+
+(function () {
+    // 1. 仅 HTML 页面
+    if (!document.contentType || !document.contentType.includes('text/html')) return;
+
+    // 2. 容器判断
+    var container = document.querySelector('.article-intro');
+    if (!container) return;
+
+    var h1 = container.querySelector('h1');
+    if (!h1) return;
+
+    // 3. URL 判断
+    var url = window.location.href.toLowerCase();
+    var version = null;
+
+    if (url.includes('/python3/')) {
+        version = 'Python3.x';
+    } else if (url.includes('/python/')) {
+        version = 'Python2.x';
+    }
+
+    if (!version) return;
+
+    // 4. 防重复
+    if (h1.querySelector('.py-version-badge')) return;
+
+    // 5. 创建标签
+    var badge = document.createElement('span');
+    badge.className = 'py-version-badge';
+    badge.innerText = version;
+
+    // 6. 样式（核心：float 实现右上角）
+    badge.style.float = 'right';
+    badge.style.fontSize = '12px';
+    badge.style.padding = '2px 8px';
+    badge.style.borderRadius = '999px';
+
+   // 自适应亮/暗色 + 渐变背景（增强版）
+	badge.style.color = 'inherit';
+
+	// 渐变背景（低透明度，不影响暗黑模式）
+	if (version.includes('3')) {
+		badge.style.background = 'linear-gradient(90deg, rgba(79,172,254,0.15), rgba(0,242,254,0.15))';
+	} else {
+		badge.style.background = 'linear-gradient(90deg, rgba(161,140,209,0.15), rgba(251,194,235,0.15))';
+	}
+
+	// 边框弱化（更精致）
+	badge.style.border = '1px solid rgba(127,127,127,0.3)';
+
+	// 提升可读性
+	badge.style.opacity = '0.95';
+
+    // 微调位置（更贴近“右上角”）
+    badge.style.marginTop = '4px';
+    badge.style.marginLeft = '10px';
+
+    // 7. 插入到 h1 最前面（让 float 生效更稳定）
+    h1.insertBefore(badge, h1.firstChild);
+
+})();
+</script>
+<!-- 反馈对话框开始 -->
+<script src="../wp-content/themes/runoob/assets/js/runoob-article-dir.min.js"></script>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

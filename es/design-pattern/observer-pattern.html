@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Patrón Observador | Tutorial de Novato</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<link href="../manifest.webmanifest.html" rel="manifest"/>
+<meta content="#10151c" name="theme-color"/>
+<link href="../pwa/icon-192.png.html" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="application-name"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="../design-pattern/observer-pattern.html" rel="canonical"/>
+<meta content="观察者模式" name="keywords"/>
+<meta content="观察者模式 观察者模式是一种行为型设计模式，它定义了一种一对多的依赖关系，当一个对象的状态发生改变时，其所有依赖者都会收到通知并自动更新。 当对象间存在一对多关系时，则使用观察者模式（Observer Pattern）。比如，当一个对象被修改时，则会自动通知依赖它的对象。观察者模式属于行为型模式。  介绍 意图创建了对象间的一种一对多的依赖关系，当一个对象状态改变时，所有依赖于它的对象都会得到通知并自动更新。。 主要解决的问题  观察者.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div>
+<!-- 导航栏 -->
+<style>
+/* 主题切换按钮 */
+/* ===== 主题变量（核心）===== */
+:root {
+  --theme-bg: #ffffff;
+  --theme-border: #e5e7eb;
+  --theme-icon: #333;
+  --theme-hover: #f3f4f6;
+}
+
+.dark {
+  --theme-bg: #1f2937;
+  --theme-border: #374151;
+  --theme-icon: #e5e7eb;
+  --theme-hover: #374151;
+}
+
+/* ===== 按钮容器 ===== */
+.nav-theme-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== 按钮本体 ===== */
+.nav-theme-toggle button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  border-radius: 6px;
+  border: 1px solid var(--theme-border);
+
+  background: var(--theme-bg);
+  color: var(--theme-icon);
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* ===== 图标大小 ===== */
+.nav-theme-toggle i {
+  font-size: 14px;
+}
+
+/* ===== hover 效果 ===== */
+.nav-theme-toggle button:hover {
+  background: var(--theme-hover);
+  transform: translateY(-1px);
+}
+
+/* ===== 点击反馈 ===== */
+.nav-theme-toggle button:active {
+  transform: scale(0.95);
+}
+
+/* ===== 当前激活态（可选）===== */
+.nav-theme-toggle button.active {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+</style>
+<!-- 导航栏 -->
+<nav aria-label="主导航" class="container navigation">
+<div class="row">
+<div class="col nav">
+<!-- PC 导航 -->
+<ul class="pc-nav" id="runoob-detail-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../js/js-tutorial.html">JavaScript</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a data-id="vue" href="#">Vue</a></li>
+<li><a href="../react/react-tutorial.html">React</a></li>
+<li><a href="../python3/python3-tutorial.html">Python3</a></li>
+<li><a href="../java/java-tutorial.html">Java</a></li>
+<li><a href="../cprogramming/c-tutorial.html">C</a></li>
+<li><a href="../cplusplus/cpp-tutorial.html">C++</a></li>
+<li><a href="../csharp/csharp-tutorial.html">C#</a></li>
+<li><a data-id="aiNav" href="#">AI</a></li>
+<li><a href="../go/go-tutorial.html">Go</a></li>
+<li><a href="../sql/sql-tutorial.html">SQL</a></li>
+<li><a href="../linux/linux-tutorial.html">Linux</a></li>
+<li><a href="../vscode/vscode-tutorial.html">VS Code</a></li>
+<li><a data-id="bootstrap" href="#">Bootstrap</a></li>
+<li><a href="../git/git-tutorial.html">Git</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<!-- 主题切换按钮，固定在最右侧 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+<!-- 移动端导航 -->
+<ul class="mobile-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a href="../js/js-tutorial.html">JS</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<li><a class="search-reveal" href="#">搜索</a></li>
+<!-- 移动端主题切换 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon-mobile" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun-mobile" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<!-- 二级导航 -->
+<!--  内容  -->
+<div class="container main">
+<!-- 中间 -->
+<div class="row">
+<div class="runoob-col-md2">
+<div class="left-column">
+<div class="tab" style="overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
+<i aria-hidden="true" class="fa fa-list"></i>
+<span>设计模式</span>
+</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+<a data-p="par" href="../design-pattern/design-pattern-tutorial.html" target="_top" title="设计模式">
+			设计模式			</a>
+<a data-p="par" href="../design-pattern/design-pattern-intro.html" target="_top" title="设计模式简介">
+			设计模式简介			</a>
+<a data-p="par" href="../design-pattern/factory-pattern.html" target="_top" title="工厂模式">
+			工厂模式			</a>
+<a data-p="par" href="../design-pattern/abstract-factory-pattern.html" target="_top" title="抽象工厂模式">
+			抽象工厂模式			</a>
+<a data-p="par" href="../design-pattern/singleton-pattern.html" target="_top" title="单例模式">
+			单例模式			</a>
+<a data-p="par" href="../design-pattern/builder-pattern.html" target="_top" title="建造者模式">
+			建造者模式			</a>
+<a data-p="par" href="../design-pattern/prototype-pattern.html" target="_top" title="原型模式">
+			原型模式			</a>
+<a data-p="par" href="../design-pattern/adapter-pattern.html" target="_top" title="适配器模式">
+			适配器模式			</a>
+<a data-p="par" href="../design-pattern/bridge-pattern.html" target="_top" title="桥接模式">
+			桥接模式			</a>
+<a data-p="par" href="../design-pattern/filter-pattern.html" target="_top" title="过滤器模式">
+			过滤器模式			</a>
+<a data-p="par" href="../design-pattern/composite-pattern.html" target="_top" title="组合模式">
+			组合模式			</a>
+<a data-p="par" href="../design-pattern/decorator-pattern.html" target="_top" title="装饰器模式">
+			装饰器模式			</a>
+<a data-p="par" href="../design-pattern/facade-pattern.html" target="_top" title="外观模式">
+			外观模式			</a>
+<a data-p="par" href="../design-pattern/flyweight-pattern.html" target="_top" title="享元模式">
+			享元模式			</a>
+<a data-p="par" href="../design-pattern/proxy-pattern.html" target="_top" title="代理模式">
+			代理模式			</a>
+<a data-p="par" href="../design-pattern/chain-of-responsibility-pattern.html" target="_top" title="责任链模式">
+			责任链模式			</a>
+<a data-p="par" href="../design-pattern/command-pattern.html" target="_top" title="命令模式">
+			命令模式			</a>
+<a data-p="par" href="../design-pattern/interpreter-pattern.html" target="_top" title="解释器模式">
+			解释器模式			</a>
+<a data-p="par" href="../design-pattern/iterator-pattern.html" target="_top" title="迭代器模式">
+			迭代器模式			</a>
+<a data-p="par" href="../design-pattern/mediator-pattern.html" target="_top" title="中介者模式">
+			中介者模式			</a>
+<a data-p="par" href="../design-pattern/memento-pattern.html" target="_top" title="备忘录模式">
+			备忘录模式			</a>
+<a data-p="par" href="../design-pattern/observer-pattern.html" target="_top" title="观察者模式">
+			观察者模式			</a>
+<a data-p="par" href="../design-pattern/state-pattern.html" target="_top" title="状态模式">
+			状态模式			</a>
+<a data-p="par" href="../design-pattern/null-object-pattern.html" target="_top" title="空对象模式">
+			空对象模式			</a>
+<a data-p="par" href="../design-pattern/strategy-pattern.html" target="_top" title="策略模式">
+			策略模式			</a>
+<a data-p="par" href="../design-pattern/template-pattern.html" target="_top" title="模板模式">
+			模板模式			</a>
+<a data-p="par" href="../design-pattern/visitor-pattern.html" target="_top" title="访问者模式">
+			访问者模式			</a>
+<a data-p="par" href="../design-pattern/mvc-pattern.html" target="_top" title="MVC 模式">
+			MVC 模式			</a>
+<a data-p="par" href="../design-pattern/business-delegate-pattern.html" target="_top" title="业务代表模式">
+			业务代表模式			</a>
+<a data-p="par" href="../design-pattern/composite-entity-pattern.html" target="_top" title="组合实体模式">
+			组合实体模式			</a>
+<a data-p="par" href="../design-pattern/data-access-object-pattern.html" target="_top" title="数据访问对象模式">
+			数据访问对象模式			</a>
+<a data-p="par" href="../design-pattern/front-controller-pattern.html" target="_top" title="前端控制器模式">
+			前端控制器模式			</a>
+<a data-p="par" href="../design-pattern/intercepting-filter-pattern.html" target="_top" title="拦截过滤器模式">
+			拦截过滤器模式			</a>
+<a data-p="par" href="../design-pattern/service-locator-pattern.html" target="_top" title="服务定位器模式">
+			服务定位器模式			</a>
+<a data-p="par" href="../design-pattern/transfer-object-pattern.html" target="_top" title="传输对象模式">
+			传输对象模式			</a>
+<br/><h2 class="left">Patrones de diseño<span class="left_h2">其他</span></h2> <a data-p="par" href="../design-pattern/design-pattern-resources.html" target="_top" title="设计模式资源">
+			设计模式资源			</a>
+</div>
+</div>
+</div>
+</div> <div class="col middle-column">
+<div class="article">
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../design-pattern/memento-pattern.html" rel="prev">Patrón Memento</a> </div>
+<div class="next-design-link"><a href="../design-pattern/state-pattern.html" rel="next">Patrón de Estado</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="article-body">
+<div class="article-intro" id="content">
+<h1>Patrón Observador</h1>
+<p>El patrón observador es un patrón de diseño de comportamiento que define una relación de dependencia de uno a muchos. Cuando el estado de un objeto cambia, todos sus dependientes reciben una notificación y se actualizan automáticamente.</p>
+<p>Cuando existe una relación de uno a muchos entre objetos, se utiliza el patrón observador (Observer Pattern). Por ejemplo, cuando un objeto es modificado, automáticamente notifica a los objetos que dependen de él. El patrón observador pertenece a los patrones de comportamiento.</p>
+<h2 class="tutheader">Introducción</h2>
+<h3>Intención</h3><p>Crea una relación de dependencia de uno a muchos entre objetos. Cuando el estado de un objeto cambia, todos los objetos que dependen de él reciben una notificación y se actualizan automáticamente.</p>
+<h3>Problema principal que resuelve</h3>
+<ul>
+<li>El patrón observador resuelve el problema de cómo notificar automáticamente a otros objetos dependientes cuando el estado de un objeto cambia, manteniendo al mismo tiempo un bajo acoplamiento y una alta colaboración entre objetos.</li>
+</ul>
+<h3>Escenarios de uso</h3>
+<ul>
+<li>Cuando un cambio de estado de un objeto necesita actualizar simultáneamente otros objetos.</li>
+</ul>
+<h3>Método de implementación</h3>
+<ul>
+<li><strong>Definir la interfaz del observador</strong>: contiene un método de actualización.</li>
+<li><strong>Crear observadores concretos</strong>: implementan la interfaz del observador y definen el comportamiento al recibir una notificación.</li>
+<li><strong>Definir la interfaz del sujeto</strong>: contiene métodos para agregar, eliminar y notificar a los observadores.</li>
+<li><strong>Crear sujetos concretos</strong>: implementan la interfaz del sujeto, gestionan la lista de observadores y les notifican cuando cambia el estado.</li>
+</ul>
+<h3>Código clave</h3>
+<ul>
+<li><strong>Lista de observadores</strong>: se mantiene una lista de observadores en el sujeto.</li>
+</ul>
+<h3>Ejemplos de aplicación</h3>
+<ul>
+<li><strong>Sistema de subastas</strong>: el subastador actúa como sujeto, los postores como observadores; cuando el precio de la subasta se actualiza, se notifica a todos los postores.</li>
+<li><strong>Historia de Viaje al Oeste</strong>: el Bodhisattva rocía agua como cambio de estado, y la tortuga vieja, como observador, observa este cambio.</li>
+</ul>
+<h3>Ventajas</h3>
+<ul>
+<li><strong>Acoplamiento abstracto</strong>: entre el observador y el sujeto existe un acoplamiento abstracto.</li>
+<li><strong>Mecanismo de activación</strong>: se establece un mecanismo de activación y notificación para cuando cambia el estado.</li>
+</ul>
+<h3>Desventajas</h3>
+<ul>
+<li><strong>Problemas de rendimiento</strong>: si hay muchos observadores, el proceso de notificación puede llevar tiempo.</li>
+<li><strong>Dependencia circular</strong>: puede provocar llamadas circulares y fallos del sistema.</li>
+<li><strong>Falta de detalles del cambio</strong>: el observador no sabe cómo cambia el sujeto, solo sabe que ocurrió el cambio.</li>
+</ul>
+<h3>Recomendaciones de uso</h3>
+<ul>
+<li>Úselo cuando se necesite reducir el acoplamiento entre objetos y cuando los cambios de estado de un objeto deban desencadenar cambios en otros objetos.</li>
+<li>Considere usar las clases de soporte integradas de Java para el patrón observador, como<code class="">java.util.Observable</code>和<code class="">java.util.Observer</code>。</li>
+</ul>
+<h3>Notas</h3>
+<ul>
+<li><strong>Evitar referencias circulares</strong>: preste atención a la relación de dependencia entre observador y sujeto para evitar referencias circulares.</li>
+<li><strong>Ejecución asíncrona</strong>: considere usar notificaciones asíncronas para evitar que un único punto de fallo bloquee todo el sistema.</li>
+</ul><h3>Estructura</h3>
+<p><strong>El patrón observador incluye los siguientes roles principales:</strong></p>
+<ul><li>Sujeto (Subject): también llamado observado u observable, es un objeto con estado y mantiene una lista de observadores. El sujeto proporciona métodos para agregar, eliminar y notificar a los observadores.</li><li>Observador (Observer): es el objeto que recibe las notificaciones del sujeto. El observador debe implementar un método de actualización; cuando recibe la notificación del sujeto, llama a dicho método para realizar la actualización.</li><li>Sujeto concreto (Concrete Subject): es la clase de implementación concreta del sujeto. Mantiene la lista de observadores y les notifica cuando cambia su estado.</li><li>Observador concreto (Concrete Observer): es la clase de implementación concreta del observador. Implementa el método de actualización y define las operaciones concretas que debe ejecutar al recibir la notificación del sujeto.</li></ul>
+<p>El patrón observador logra un acoplamiento flojo entre objetos al desacoplar el sujeto y el observador. Cuando el estado del sujeto cambia, todos los observadores que dependen de él reciben la notificación y realizan la actualización correspondiente.</p>
+<h2 class="tutheader">Implementación</h2>
+<p>El patrón observador utiliza tres clases: Subject, Observer y Client. El objeto Subject tiene métodos para vincular observadores al objeto Client y desvincularlos del objeto Client. Creamos<i>Subject</i>la clase,<i>Observer</i>la clase abstracta y extienden la clase abstracta<i>Observer</i>las clases de entidad.</p>
+<p><i>ObserverPatternDemo</i>, nuestra clase de demostración usa<i>Subject</i>y objetos de clases de entidad para demostrar el patrón observador.</p>
+<img alt="观察者模式的 UML 图" decoding="async" src="../wp-content/uploads/2014/08/observer_pattern_uml_diagram.jpg"/>
+<h3>Paso 1</h3>
+<p>Cree la clase Subject.</p>
+<div class="example">
+<h2 class="example">Subject.java</h2>
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">import</span><span class="hl-code"> </span><span class="hl-identifier">java</span><span class="hl-code">.</span><span class="hl-identifier">util</span><span class="hl-code">.</span><span class="hl-identifier">ArrayList</span><span class="hl-code">;
+</span><span class="hl-reserved">import</span><span class="hl-code"> </span><span class="hl-identifier">java</span><span class="hl-code">.</span><span class="hl-identifier">util</span><span class="hl-code">.</span><span class="hl-identifier">List</span><span class="hl-code">;
+ 
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-reserved">class</span><span class="hl-code"> </span><span class="hl-identifier">Subject</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-identifier">List</span><span class="hl-code">&lt;</span><span class="hl-identifier">Observer</span><span class="hl-code">&gt; </span><span class="hl-identifier">observers</span><span class="hl-code"> 
+      = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">ArrayList</span><span class="hl-code">&lt;</span><span class="hl-identifier">Observer</span><span class="hl-code">&gt;</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+   </span><span class="hl-reserved">private</span><span class="hl-code"> </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">state</span><span class="hl-code">;
+ 
+   </span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">getState</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">return</span><span class="hl-code"> </span><span class="hl-identifier">state</span><span class="hl-code">;
+   </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">setState</span><span class="hl-brackets">(</span><span class="hl-types">int</span><span class="hl-code"> </span><span class="hl-identifier">state</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">this</span><span class="hl-code">.</span><span class="hl-identifier">state</span><span class="hl-code"> = </span><span class="hl-identifier">state</span><span class="hl-code">;
+      </span><span class="hl-identifier">notifyAllObservers</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+   </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">attach</span><span class="hl-brackets">(</span><span class="hl-identifier">Observer</span><span class="hl-code"> </span><span class="hl-identifier">observer</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">observers</span><span class="hl-code">.</span><span class="hl-identifier">add</span><span class="hl-brackets">(</span><span class="hl-identifier">observer</span><span class="hl-brackets">)</span><span class="hl-code">;      
+   </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">notifyAllObservers</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">for</span><span class="hl-code"> </span><span class="hl-brackets">(</span><span class="hl-identifier">Observer</span><span class="hl-code"> </span><span class="hl-identifier">observer</span><span class="hl-code"> : </span><span class="hl-identifier">observers</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">observer</span><span class="hl-code">.</span><span class="hl-identifier">update</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+      </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span></div>
+</div></div>
+<h3>Paso 2</h3>
+<p>Cree la clase Observer.</p>
+<div class="example">
+<h2 class="example">Observer.java</h2>
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-reserved">abstract</span><span class="hl-code"> </span><span class="hl-reserved">class</span><span class="hl-code"> </span><span class="hl-identifier">Observer</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">protected</span><span class="hl-code"> </span><span class="hl-identifier">Subject</span><span class="hl-code"> </span><span class="hl-identifier">subject</span><span class="hl-code">;
+   </span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-reserved">abstract</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">update</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+</span><span class="hl-brackets">}</span></div>
+</div></div>
+<h3>Paso 3</h3>
+<p>Cree las clases de observadores concretos.</p>
+<div class="example">
+<h2 class="example">BinaryObserver.java</h2>
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-reserved">class</span><span class="hl-code"> </span><span class="hl-identifier">BinaryObserver</span><span class="hl-code"> </span><span class="hl-reserved">extends</span><span class="hl-code"> </span><span class="hl-identifier">Observer</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-identifier">BinaryObserver</span><span class="hl-brackets">(</span><span class="hl-identifier">Subject</span><span class="hl-code"> </span><span class="hl-identifier">subject</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">this</span><span class="hl-code">.</span><span class="hl-identifier">subject</span><span class="hl-code"> = </span><span class="hl-identifier">subject</span><span class="hl-code">;
+      </span><span class="hl-reserved">this</span><span class="hl-code">.</span><span class="hl-identifier">subject</span><span class="hl-code">.</span><span class="hl-identifier">attach</span><span class="hl-brackets">(</span><span class="hl-reserved">this</span><span class="hl-brackets">)</span><span class="hl-code">;
+   </span><span class="hl-brackets">}</span><span class="hl-code">
+ 
+   @</span><span class="hl-identifier">Override</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">update</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">System</span><span class="hl-code">.</span><span class="hl-identifier">out</span><span class="hl-code">.</span><span class="hl-identifier">println</span><span class="hl-brackets">(</span><span class="hl-code"> </span><span class="hl-quotes">"</span><span class="hl-string">Binary String: </span><span class="hl-quotes">"</span><span class="hl-code"> 
+      + </span><span class="hl-identifier">Integer</span><span class="hl-code">.</span><span class="hl-identifier">toBinaryString</span><span class="hl-brackets">(</span><span class="hl-code"> </span><span class="hl-identifier">subject</span><span class="hl-code">.</span><span class="hl-identifier">getState</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">)</span><span class="hl-code">; 
+   </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span></div>
+</div></div>
+<div class="example">
+<h2 class="example">OctalObserver.java</h2>
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-reserved">class</span><span class="hl-code"> </span><span class="hl-identifier">OctalObserver</span><span class="hl-code"> </span><span class="hl-reserved">extends</span><span class="hl-code"> </span><span class="hl-identifier">Observer</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-identifier">OctalObserver</span><span class="hl-brackets">(</span><span class="hl-identifier">Subject</span><span class="hl-code"> </span><span class="hl-identifier">subject</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">this</span><span class="hl-code">.</span><span class="hl-identifier">subject</span><span class="hl-code"> = </span><span class="hl-identifier">subject</span><span class="hl-code">;
+      </span><span class="hl-reserved">this</span><span class="hl-code">.</span><span class="hl-identifier">subject</span><span class="hl-code">.</span><span class="hl-identifier">attach</span><span class="hl-brackets">(</span><span class="hl-reserved">this</span><span class="hl-brackets">)</span><span class="hl-code">;
+   </span><span class="hl-brackets">}</span><span class="hl-code">
+ 
+   @</span><span class="hl-identifier">Override</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">update</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">System</span><span class="hl-code">.</span><span class="hl-identifier">out</span><span class="hl-code">.</span><span class="hl-identifier">println</span><span class="hl-brackets">(</span><span class="hl-code"> </span><span class="hl-quotes">"</span><span class="hl-string">Octal String: </span><span class="hl-quotes">"</span><span class="hl-code"> 
+     + </span><span class="hl-identifier">Integer</span><span class="hl-code">.</span><span class="hl-identifier">toOctalString</span><span class="hl-brackets">(</span><span class="hl-code"> </span><span class="hl-identifier">subject</span><span class="hl-code">.</span><span class="hl-identifier">getState</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">)</span><span class="hl-code">; 
+   </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span></div>
+</div></div>
+<div class="example">
+<h2 class="example">HexaObserver.java</h2>
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-reserved">class</span><span class="hl-code"> </span><span class="hl-identifier">HexaObserver</span><span class="hl-code"> </span><span class="hl-reserved">extends</span><span class="hl-code"> </span><span class="hl-identifier">Observer</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-identifier">HexaObserver</span><span class="hl-brackets">(</span><span class="hl-identifier">Subject</span><span class="hl-code"> </span><span class="hl-identifier">subject</span><span class="hl-brackets">)</span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">this</span><span class="hl-code">.</span><span class="hl-identifier">subject</span><span class="hl-code"> = </span><span class="hl-identifier">subject</span><span class="hl-code">;
+      </span><span class="hl-reserved">this</span><span class="hl-code">.</span><span class="hl-identifier">subject</span><span class="hl-code">.</span><span class="hl-identifier">attach</span><span class="hl-brackets">(</span><span class="hl-reserved">this</span><span class="hl-brackets">)</span><span class="hl-code">;
+   </span><span class="hl-brackets">}</span><span class="hl-code">
+ 
+   @</span><span class="hl-identifier">Override</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">update</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">System</span><span class="hl-code">.</span><span class="hl-identifier">out</span><span class="hl-code">.</span><span class="hl-identifier">println</span><span class="hl-brackets">(</span><span class="hl-code"> </span><span class="hl-quotes">"</span><span class="hl-string">Hex String: </span><span class="hl-quotes">"</span><span class="hl-code"> 
+      + </span><span class="hl-identifier">Integer</span><span class="hl-code">.</span><span class="hl-identifier">toHexString</span><span class="hl-brackets">(</span><span class="hl-code"> </span><span class="hl-identifier">subject</span><span class="hl-code">.</span><span class="hl-identifier">getState</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">)</span><span class="hl-code">.</span><span class="hl-identifier">toUpperCase</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">)</span><span class="hl-code">; 
+   </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span></div>
+</div></div>
+<h3>Paso 4</h3>
+<p>Use<i>Subject</i>y objetos de observadores concretos.</p>
+<div class="example">
+<h2 class="example">ObserverPatternDemo.java</h2>
+<div class="example_code">
+<div class="hl-main"><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-reserved">class</span><span class="hl-code"> </span><span class="hl-identifier">ObserverPatternDemo</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-reserved">public</span><span class="hl-code"> </span><span class="hl-types">static</span><span class="hl-code"> </span><span class="hl-types">void</span><span class="hl-code"> </span><span class="hl-identifier">main</span><span class="hl-brackets">(</span><span class="hl-identifier">String</span><span class="hl-brackets">[</span><span class="hl-brackets">]</span><span class="hl-code"> </span><span class="hl-identifier">args</span><span class="hl-brackets">)</span><span class="hl-code"> </span><span class="hl-brackets">{</span><span class="hl-code">
+</span><span class="hl-identifier">Subject</span><span class="hl-code"> </span><span class="hl-identifier">subject</span><span class="hl-code"> = </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">Subject</span><span class="hl-brackets">(</span><span class="hl-brackets">)</span><span class="hl-code">;
+ 
+      </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">HexaObserver</span><span class="hl-brackets">(</span><span class="hl-identifier">subject</span><span class="hl-brackets">)</span><span class="hl-code">;
+      </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">OctalObserver</span><span class="hl-brackets">(</span><span class="hl-identifier">subject</span><span class="hl-brackets">)</span><span class="hl-code">;
+      </span><span class="hl-reserved">new</span><span class="hl-code"> </span><span class="hl-identifier">BinaryObserver</span><span class="hl-brackets">(</span><span class="hl-identifier">subject</span><span class="hl-brackets">)</span><span class="hl-code">;
+ 
+      </span><span class="hl-identifier">System</span><span class="hl-code">.</span><span class="hl-identifier">out</span><span class="hl-code">.</span><span class="hl-identifier">println</span><span class="hl-brackets">(</span><span class="hl-quotes">"</span><span class="hl-string">First state change: 15</span><span class="hl-quotes">"</span><span class="hl-brackets">)</span><span class="hl-code">;   
+      </span><span class="hl-identifier">subject</span><span class="hl-code">.</span><span class="hl-identifier">setState</span><span class="hl-brackets">(</span><span class="hl-number">15</span><span class="hl-brackets">)</span><span class="hl-code">;
+      </span><span class="hl-identifier">System</span><span class="hl-code">.</span><span class="hl-identifier">out</span><span class="hl-code">.</span><span class="hl-identifier">println</span><span class="hl-brackets">(</span><span class="hl-quotes">"</span><span class="hl-string">Second state change: 10</span><span class="hl-quotes">"</span><span class="hl-brackets">)</span><span class="hl-code">;  
+      </span><span class="hl-identifier">subject</span><span class="hl-code">.</span><span class="hl-identifier">setState</span><span class="hl-brackets">(</span><span class="hl-number">10</span><span class="hl-brackets">)</span><span class="hl-code">;
+   </span><span class="hl-brackets">}</span><span class="hl-code">
+</span><span class="hl-brackets">}</span></div>
+</div></div>
+<h3>Paso 5</h3>
+<p>Ejecute el programa y muestre el resultado:</p>
+<pre class="result">
+First state change: 15
+Hex String: F
+Octal String: 17
+Binary String: 1111
+Second state change: 10
+Hex String: A
+Octal String: 12
+Binary String: 1010
+</pre> Otras extensiones
+</div>
+</div>
+<div class="archive-list" style="display:none;font-size: 14px;line-height: 1.8;margin-top: 20px;padding: 10px;">
+<div class="archive-list-item">
+<div class="post-intro" id="ai-info" style="width: 100%;">Pensando...</div>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../design-pattern/memento-pattern.html" rel="prev">Patrón Memento</a> </div>
+<div class="next-design-link"><a href="../design-pattern/state-pattern.html" rel="next">Patrón de Estado</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="sidebar-box">
+</div>
+Lista de notas
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="title" id="comments">
+<h2 class="">
+<div class="altblock">
+<i aria-hidden="true" class="fa fa-plus-square" style="font-size:28px;margin-top: 8px;"></i>
+</div>
+<span class="mw-headline" id="qa_headline">11 notas</span>
+<span class="mw-headline" id="user_add_note" style="float:right;line-height: 62px;padding-right: 14px;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>Escribir nota</span>
+</h2>
+</div>
+<div id="postcomments" style="display:none;">
+<ol class="commentlist">
+<li class="comment even thread-even depth-1" id="comment-24259"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>   fatcheung</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  134***7025@qq.com</p></div><div class="upvotejs" data-commid="24259" id="runoobvote-id-24259"><a class="upvote"></a> <span class="count">124</span></div></div><div class="comt-main" id="div-comment-24259"><p>El patrón observador, según mi entendimiento, es el proceso en el que el observador se suscribe al estado del observado, y cuando el estado del observado cambia, notifica a todos los observadores suscritos. Por lo tanto, ¿no sería esta siguiente forma más fácil de entender?</p>
+<p>Interfaz del observador:</p>
+<pre>public abstract class Observer {    
+    public abstract void update(String msg);
+}</pre>
+<p>Primer observador:</p>
+<pre>public class F_Observer extends Observer {
+    public void update(String msg) {
+        System.out.println(F_Observer.class.getName() + " : " + msg);
+    }
+}</pre>
+<p>Segundo observador:</p>
+<pre>public class S_Observer extends Observer {
+    public void update(String msg) {
+        System.out.println(S_Observer.class.getName() + " : " + msg);
+    }
+}</pre>
+<p>Tercer observador:</p>
+<pre>public class T_Observer extends Observer {
+    public void update(String msg) {
+        System.out.println(T_Observer.class.getName() + " : " + msg);
+    }
+}</pre>
+<p>El observado:</p>
+<pre>public class Subject {        
+    private List&lt;Observer&gt; observers = new ArrayList&lt;&gt;();    //状态改变    
+    public void setMsg(String msg) {        
+        notifyAll(msg);    
+    }   
+     //订阅    
+    public void addAttach(Observer observer) {        
+        observers.add(observer);    
+    }    
+    //通知所有订阅的观察者    
+    private void notifyAll(String msg) {        
+        for (Observer observer : observers) {            
+            observer.update(msg);        
+        }   
+    }
+}</pre>
+<p>Método de uso:</p>
+<pre>public class Main {    
+    public static void main(String[] args) {        
+        F_Observer fObserver = new F_Observer();        
+        S_Observer sObserver = new S_Observer();        
+        T_Observer tObserver = new T_Observer();                
+        Subject subject = new Subject();        
+        subject.addAttach(fObserver);        
+        subject.addAttach(sObserver);        
+        subject.addAttach(tObserver);                
+        subject.setMsg("msg change");    
+    }
+}</pre>Resultado de la ejecución:
+test.F_Observer : msg 
+changetest.S_Observer : msg 
+changetest.T_Observer : msg change<div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">fatcheung</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>   fatcheung</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  134***7025@qq.com</p></div></span>Hace 9 años (2018-02-23)</div></div></li><!-- #comment-## -->
+<li class="comment odd alt thread-odd thread-alt depth-1" id="comment-33659"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>   DHclly</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  335***817@qq.com</p></div><div class="upvotejs" data-commid="33659" id="runoobvote-id-33659"><a class="upvote"></a> <span class="count">11</span></div></div><div class="comt-main" id="div-comment-33659"><p>Implementé el ejemplo en C# y lo optimicé un poco:</p>
+<p><strong>Subject.cs</strong></p>
+<pre>public class Subject
+{
+    private readonly List&lt;Observer&gt; _observers = new List&lt;Observer&gt;();
+
+    private int _state;
+
+    public int State
+    {
+        get =&gt; _state;
+        set
+        {
+            _state = value;
+            NotifyAllObservers();
+        }
+
+    }
+
+    public void AddObserver(Observer observer)
+    {
+        observer.Subject = this;
+        _observers.Add(observer);
+    }
+
+    public void NotifyAllObservers() =&gt; _observers.ForEach(o =&gt; o.Update());
+}</pre>
+<p><strong>Observer.cs</strong></p>
+<pre>public abstract class Observer
+{
+    public Subject Subject;
+    
+    public abstract void Update();
+}</pre>
+<p><strong>BinaryObserver.cs</strong></p>
+<pre>public class BinaryObserver:Observer
+{
+    public BinaryObserver()
+    {
+        
+    }
+    public BinaryObserver(Subject subject)
+    {
+        subject.AddObserver(this);
+    }
+    public override void Update()
+    {
+        Console.WriteLine($"Binary String: {Convert.ToString(Subject.State, 2)}");
+    }
+}</pre>
+<p><strong>OctalObserver.cs</strong></p>
+<pre>public class OctalObserver:Observer
+{
+    public OctalObserver()
+    {
+        
+    }
+    public OctalObserver(Subject subject)
+    {
+        subject.AddObserver(this);
+    }
+
+    public override void Update()
+    {
+        Console.WriteLine($"Octal  String: {Convert.ToString(Subject.State, 8)}");
+    }
+}</pre>
+<p><strong>HexaObserver.cs</strong></p>
+<pre>public class HexaObserver:Observer
+{
+    public HexaObserver()
+    {
+        
+    }
+    public HexaObserver(Subject subject)
+    {
+        subject.AddObserver(this);
+    }
+    public override void Update()
+    {
+        Console.WriteLine($"Hex   String: {Convert.ToString(Subject.State, 16)}");
+    }
+}</pre>
+<p><strong>Demo.cs</strong></p>
+<pre>public void NumberChange()
+{
+    Subject subject1 = new Subject();
+    new BinaryObserver(subject1);
+    new OctalObserver(subject1);
+    new HexaObserver(subject1);
+    Console.WriteLine("1 state=15");
+    subject1.State = 15;
+    Console.WriteLine("1 state=10");
+    subject1.State = 10;
+
+    Subject subject2 = new Subject();
+    subject2.AddObserver(new BinaryObserver());
+    subject2.AddObserver(new OctalObserver());
+    subject2.AddObserver(new HexaObserver(subject1));
+    Console.WriteLine("2 state=15");
+    subject1.State = 15;
+    Console.WriteLine("2 state=10");
+    subject1.State = 10;
+}</pre>
+<div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">DHclly</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>   DHclly</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  335***817@qq.com</p></div></span>Hace 8 años (2018-08-06)</div></div></li><!-- #comment-## -->
+<li class="comment even thread-even depth-1" id="comment-35228"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>   jade</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  guo***u_study@163.com</p></div><div class="upvotejs" data-commid="35228" id="runoobvote-id-35228"><a class="upvote"></a> <span class="count">20</span></div></div><div class="comt-main" id="div-comment-35228"><p>Definición del patrón Observer: este patrón<b>define una relación de dependencia de uno a muchos entre objetos</b>, el objeto Subject es el uno, el objeto Observer es el muchos.<b>Cuando el estado del objeto Subject cambia, todos los objetos Observer que dependen de ese objeto Subject reciben una notificación</b>，<b>y se actualizan automáticamente</b>。</p><p></p><p>Analizando cuidadosamente la definición, para entender con precisión el patrón observador hay que prestar atención a tres puntos principales:</p><p>1. Se define una relación de dependencia de uno a muchos entre objetos;</p><p>2. Cuando el estado del objeto Subject cambia, todos los objetos Observer que dependen de él reciben una notificación;</p><p>3. Después de recibir la notificación, el objeto Observer se actualiza automáticamente, en lugar de ser pasivo;</p><p></p><p>Todos los demás puntos son detalles menores y dependen de los requisitos específicos del negocio. Por ejemplo:</p><p>1. El rol Subject ¿debe definirse como clase? Por ejemplo, el java.util.Observable integrado; ¿o debe definirse como interfaz para evitar el problema de que Java no admite herencia múltiple? Por ejemplo, la práctica recomendada en 'Head First Design Patterns'.</p><p>2. ¿En qué momento se debe suscribir al tema (o registrar el observador)? ¿Al mismo tiempo que se instancia el objeto observador? Como en el ejemplo del autor; ¿o lo decide el cliente de forma autónoma? Como en la primera nota compartida de esta publicación.</p><p>3. ¿Debería implementarse la función de cancelar la suscripción (o cancelar el registro)?</p><p>4. Cuando el objeto sujeto notifica al observador, ¿lleva el mensaje? En otras palabras, ¿es un mensaje 'push' (empujar)? Como en el ejemplo del autor; ¿o un mensaje 'pull' (extraer)?</p><p>5. ¿Admite múltiples hilos (multithreading)?</p><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">jade</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>   jade</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  guo***u_study@163.com</p></div></span>Hace 8 años (2018-09-19)</div></div></li><!-- #comment-## -->
+<li class="comment odd alt thread-odd thread-alt depth-1" id="comment-41760"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>iwh冬</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  630***826@qq.com</p><p><i aria-hidden="true" class="fa fa-external-link"></i> <a href="https://blog.csdn.net/u010913414/article/details/89219755" rel="nofollow" target="_blank">Dirección de referencia</a></p></div><div class="upvotejs" data-commid="41760" id="runoobvote-id-41760"><a class="upvote"></a> <span class="count">1</span></div></div><div class="comt-main" id="div-comment-41760"><p>Después de ver el código anterior, lo implementé en Kotlin:</p>
+<pre>/**
+ * 观察者
+ */
+interface Observer {
+    fun &lt;T : Any?&gt; update(msg: T)
+}
+ 
+/**
+ * 观察者1,2,3
+ */
+class Ob1(private val id: Int = 0) : Observer {
+    override fun &lt;T&gt; update(msg: T) {
+        println("接收消息，观察者$id:$msg")
+    }
+}
+//这里是kotlin的类委托
+class Ob2 : Observer by Ob1(2)
+class Ob3 : Observer by Ob1(3)
+ 
+/**
+ * 被观察者（订阅者）
+ */
+class Subject {
+ 
+    //存放观察者
+    private  var observers =  ArrayList&lt;Observer&gt;()
+    //订阅观察者
+    fun attach(ob: Observer) {
+        observers.add(ob)
+    }
+    //设置数据
+    fun &lt;T : Any?&gt; setMsg(msg: T) {
+        this.notify(msg)
+    }
+    //更新数据
+    private fun &lt;T : Any?&gt; notify(msg: T) {
+        for (iOb in this.observers) {
+            iOb.update(msg)
+        }
+    }
+}
+ 
+/**
+ * Kotlin版 观察者模式
+ * @author IWH
+ * Des：kotlin1.3支持主函数省略参数
+ */
+fun main() {
+ 
+    val sub = Subject().apply {
+        attach(Ob1())
+        attach(Ob2())
+        attach(Ob3())
+    }
+    with(sub){
+        setMsg(123)
+        setMsg("hello world")
+        setMsg('A')
+        setMsg(null)
+    }
+}</pre><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">iwh冬</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>iwh冬</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  630***826@qq.com</p><p><i aria-hidden="true" class="fa fa-external-link"></i> <a href="https://blog.csdn.net/u010913414/article/details/89219755" rel="nofollow" target="_blank">Dirección de referencia</a></p></div></span>Hace 8 años (2019-04-11)</div></div></li><!-- #comment-## -->
+<li class="comment even thread-even depth-1" id="comment-42843"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>   shenshaonian</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  134***3404@qq.com</p></div><div class="upvotejs" data-commid="42843" id="runoobvote-id-42843"><a class="upvote"></a> <span class="count">5</span></div></div><div class="comt-main" id="div-comment-42843"><p>Guanyin rocía agua</p>
+<pre>public class TortoisObserverDemo {
+    public static void main(String[] args){
+        GuanYin guanYin = new GuanYin();
+
+        new SmallTortoise(guanYin);
+        new BigTortoise(guanYin);
+
+        guanYin.watering();
+    }
+}
+
+
+
+public class GuanYin {
+    private List&lt;Observer&gt; observers = new ArrayList&lt;Observer&gt;();
+
+    public void watering(){
+        System.out.println("观音洒水");
+        notifyAllTortoise();
+    }
+
+    private void notifyAllTortoise() {
+        int i = 0;
+        for (Observer o:observers) {
+            o.flyToGuanYin();
+            System.out.println(++i);
+        }
+    }
+
+    public void attach(Observer observer) {
+        observers.add(observer);
+    }
+}
+
+
+public abstract class Observer {
+    protected GuanYin guanYin;
+    protected abstract void flyToGuanYin();
+}
+
+
+
+public class SmallTortoise extends Observer {
+
+    public SmallTortoise(GuanYin guanYin) {
+        this.guanYin = guanYin;
+        this.guanYin.attach(this);
+    }
+
+    @Override
+    protected void flyToGuanYin() {
+        System.out.println("SmallTortoise fly to guanyin");
+    }
+}
+
+
+
+
+public class BigTortoise extends Observer {
+
+    public BigTortoise(GuanYin guanYin) {
+        this.guanYin = guanYin;
+        this.guanYin.attach(this);
+    }
+
+    @Override
+    protected void flyToGuanYin() {
+        System.out.println("BigTortoise fly to guanyin");
+    }
+}</pre><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">shenshaonian</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>   shenshaonian</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  134***3404@qq.com</p></div></span>Hace 7 años (2019-05-17)</div></div></li><!-- #comment-## -->
+<li class="comment odd alt thread-odd thread-alt depth-1" id="comment-44027"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>郭艺宾</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  guo***990@163.com</p></div><div class="upvotejs" data-commid="44027" id="runoobvote-id-44027"><a class="upvote"></a> <span class="count">8</span></div></div><div class="comt-main" id="div-comment-44027"><p>Utilizando el JDK para implementar el patrón observador, en la relación uno a muchos, el código de una parte:</p>
+<pre>import java.util.Observable;
+
+public class Subject extends Observable {
+    private int state;
+
+    public int getState() {
+        return state;
+    }
+
+    public void setState(int state) {
+        this.state = state;
+        this.setChanged();
+        this.notifyObservers();
+    }
+}</pre>
+<p>Código de la parte de muchos:</p>
+<pre>import java.util.Observable;
+import java.util.Observer;
+
+public class BinaryObserver implements Observer {
+    public BinaryObserver(Observable observable) {
+        observable.addObserver(this);
+    }
+
+    @Override
+    public void update(Observable o, Object arg) {
+        if (o instanceof Subject) {
+            System.out.println("Binary String: " + Integer.toBinaryString(((Subject) o).getState()));
+        }
+    }
+}</pre>
+<pre>import java.util.Observable;
+import java.util.Observer;
+
+public class HexaObserver implements Observer {
+    public HexaObserver(Observable observable) {
+        observable.addObserver(this);
+    }
+
+    @Override
+    public void update(Observable o, Object arg) {
+        if (o instanceof Subject) {
+            System.out.println("Binary String: " + Integer.toHexString(((Subject) o).getState()));
+        }
+    }
+}</pre>
+<pre>import java.util.Observable;
+import java.util.Observer;
+
+public class OctalObserver implements Observer {
+    public OctalObserver(Observable observable) {
+        observable.addObserver(this);
+    }
+
+    @Override
+    public void update(Observable o, Object arg) {
+        if (o instanceof Subject) {
+            System.out.println("Binary String: " + Integer.toOctalString(((Subject) o).getState()));
+        }
+    }
+}</pre>
+<p>Ejecute la clase de prueba:</p>
+<pre>public class ObserverPatternDemo {
+    public static void main(String[] args) {
+        Subject subject = new Subject();
+        new BinaryObserver(subject);
+        new OctalObserver(subject);
+        new HexaObserver(subject);
+        System.out.println("First state change: 15");
+        subject.setState(15);
+        System.out.println("Second state change: 10");
+        subject.setState(10);
+    }
+}</pre>
+<p>Resultado de la ejecución:</p>
+<pre>First state change: 15
+Binary String: f
+Binary String: 17
+Binary String: 1111
+Second state change: 10
+Binary String: a
+Binary String: 12
+Binary String: 1010</pre><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">郭艺宾</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>郭艺宾</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  guo***990@163.com</p></div></span>Hace 7 años (2019-06-28)</div></div></li><!-- #comment-## -->
+<li class="comment even thread-even depth-1" id="comment-51086"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>   infiniteH</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  212***971@qq.com</p></div><div class="upvotejs" data-commid="51086" id="runoobvote-id-51086"><a class="upvote"></a> <span class="count">10</span></div></div><div class="comt-main" id="div-comment-51086"><p>Objeto observado y objeto observador</p><p>Un objeto observado está asociado a múltiples objetos observadores</p><p>Por lo tanto, el objeto observado tiene un contenedor para almacenar los objetos observadores</p><p>El objeto observador también tiene una variable miembro del objeto observado</p><p>Cuando cambia alguna propiedad del objeto observado y se desea que todos los objetos observadores asociados respondan, se llama al método de notificación dentro del método que cambia la propiedad. Por lo tanto, es necesario declarar un método de notificación, que consiste en recorrer todos los observadores e invocar un método común a todos ellos, es decir, el método de actualización (update).</p><p>En esencia, después de modificar una propiedad, se recorre un método de todos los elementos; de hecho, también es polimorfismo.</p><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">infiniteH</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>   infiniteH</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  212***971@qq.com</p></div></span>Hace 7 años (2020-02-29)</div></div></li><!-- #comment-## -->
+<li class="comment odd alt thread-odd thread-alt depth-1" id="comment-51090"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>   Siskin.xu</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  sis***@sohu.com</p></div><div class="upvotejs" data-commid="51090" id="runoobvote-id-51090"><a class="upvote"></a> <span class="count">3</span></div></div><div class="comt-main" id="div-comment-51090"><p>Manera en Python:</p>
+<pre># Observer Pattern with Python Code
+from abc import abstractmethod,ABCMeta
+
+# 创建一个目标对象Subject，如果有多种不同的目标，可以抽象subject，用子对象实现
+class Subject:
+    # 建立一个私有集合，存放观察者对象
+    _observers = []
+    _state = ""
+    def getState(self):
+        return self._state
+    def setState(self,inState):
+        self._state = inState
+        self.notifyAllObservers()
+    # 追加观察者
+    def attach(self, inObserver):
+        self._observers.append(inObserver)
+    # 通知观察者
+    def notifyAllObservers(self):
+        for aObser in self._observers :
+            aObser.update()
+
+# 创建观察者抽象类
+class Observer(metaclass=ABCMeta):
+    subject = Subject()
+    @abstractmethod
+    def update(self):
+        pass
+    def __init__(self):
+        self.subject = Subject()
+
+# 实现具体观察者
+class BinaryObserver(Observer):
+    def __init__(self,inSubject):
+        self.subject = inSubject
+        self.subject.attach(self)
+    def update(self):
+        print("Binary String : " + str(bin(self.subject.getState())))
+class OctalObserver(Observer):
+    def __init__(self,inSubject):
+        self.subject = inSubject
+        self.subject.attach(self)
+    def update(self):
+        print("Octal String : " + str(oct(self.subject.getState())))
+class HexaObserver(Observer):
+    def __init__(self,inSubject):
+        self.subject = inSubject
+        self.subject.attach(self)
+    def update(self):
+        print("Hex String : " + str(hex(self.subject.getState())))
+
+# 调用输出
+if __name__ == '__main__':
+    aSubject = Subject()
+
+    HexaObserver(aSubject)
+    OctalObserver(aSubject)
+    BinaryObserver(aSubject)
+
+    print("First state change : 15")
+    aSubject.setState(15);
+    print("======================")
+    print("First state change : 10")
+    aSubject.setState(10);</pre><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">Siskin.xu</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>   Siskin.xu</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  sis***@sohu.com</p></div></span>Hace 7 años (2020-02-29)</div></div></li><!-- #comment-## -->
+<li class="comment even thread-even depth-1" id="comment-76177"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>   glory</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  809***053@qq.com</p></div><div class="upvotejs" data-commid="76177" id="runoobvote-id-76177"><a class="upvote"></a> <span class="count">2</span></div></div><div class="comt-main" id="div-comment-76177"><p>Tu relación de composición entre observador y observado no es buena; se puede cambiar a una relación de dependencia:</p>
+<pre>public  class Subject {    
+   private List observers = new ArrayList();   
+      public void addObserver(Observer observer){       
+      observers.add(observer);  
+      }  
+      protected void notifyObservers(){ 
+      for (Observer o:observers){      
+         o.update(this);    
+      }    
+   }
+}
+public abstract class Observer {    
+   private Action action;    
+   /**     * subject 观察谁 ,action 发生变化做什么     */    
+   public  void observe(E subject,Action action){        
+      subject.addObserver(this);        
+      this.action=action;    
+   }    
+   public void update(Subject subject){        
+      this.action.update(subject);    
+   }    
+   public interface Action{        
+      void update(E subject);    
+   }
+}
+public class Patient extends Subject {    
+   private int age;    
+   private String disease;    
+   public Patient(int age, String disease) {        
+      this.age = age;        
+      this.disease = disease;    
+   }    
+   public void setAge(int age) {        
+      this.age = age;        
+      this.notifyObservers();    
+   }    
+   public void setDisease(String disease) {        
+      this.disease = disease;        
+      this.notifyObservers();    
+   }    
+   public int getAge() {        
+      return age;    
+   }    
+   public String getDisease() {        
+      return disease;    
+   }
+}
+public class Doctor extends Observer {}
+public class Test {    
+   public static void main(String[] args) {        
+      Patient patient = new Patient(10,"高血压");        
+      new Doctor().observe(patient,
+         (subject)-&gt; System.out.println("医生观察到患者变化：年龄-"+subject.getAge()+"岁,疾病-"+subject.getDisease()) );        
+      new Nurse().observe(patient,                
+         (subject)-&gt; System.out.println("护士观察到患者变化：年龄-"+subject.getAge()+"岁,疾病-"+subject.getDisease()));        
+      System.out.println("============变化1========");        
+      patient.setAge(20);        
+      System.out.println("============变化2========");        
+      patient.setDisease("糖尿病");    
+   }
+}
+public class Nurse extends Observer {}</pre>
+<p>Resultado de salida:</p>
+<pre>============变化1========
+医生观察到患者变化：年龄-20岁,疾病-高血压
+护士观察到患者变化：年龄-20岁,疾病-高血压
+============变化2========
+医生观察到患者变化：年龄-20岁,疾病-糖尿病
+护士观察到患者变化：年龄-20岁,疾病-糖尿病</pre><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">glory</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>   glory</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  809***053@qq.com</p></div></span>Hace 4 años (2022-11-04)</div></div></li><!-- #comment-## -->
+<li class="comment byuser comment-author-tianqixin odd alt thread-odd thread-alt depth-1" id="comment-77652"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>Desempleado</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  gjh***04@qq.com</p></div><div class="upvotejs" data-commid="77652" id="runoobvote-id-77652"><a class="upvote"></a> <span class="count">1</span></div></div><div class="comt-main" id="div-comment-77652"><p>Esta forma parece más fácil de entender.</p>
+<pre>public class Subject {
+   private List observers = new ArrayList();
+   private int state;
+
+   public int getState() {
+      return state;
+   }
+
+   public void setState(int state) {
+      this.state = state;
+   }
+
+   public void addObserver(Observer observer) {
+      observers.add(observer);
+   }
+
+   public void notifyAllObservers() {
+      for (Observer observer : observers) {
+         observer.update(this);
+      }
+   }
+} 
+public abstract class Observer {
+   public abstract void update(Subject subject);
+} 
+   
+public class HexaObserver extends Observer{
+
+   @Override
+   public void update(Subject subject) {
+      System.out.println( "Hex String: " + Integer.toHexString( subject.getState() ).toUpperCase() );
+   }
+
+} 
+   
+public class ObserverPatternDemo {
+
+   public static void main(String[] args) {
+      Subject subject = new Subject();
+
+      subject.addObserver(new HexaObserver());
+      subject.addObserver(new OctalObserver());
+      subject.addObserver(new BinaryObserver());
+
+      System.out.println("First state change: 15");
+      subject.setState(15);
+      subject.notifyAllObservers();
+      System.out.println("Second state change: 10");
+      subject.setState(10);
+      subject.notifyAllObservers();
+   }
+
+}</pre><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">Desempleado</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>Desempleado</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  gjh***04@qq.com</p></div></span>Hace 4 años (2023-02-17)</div></div></li><!-- #comment-## -->
+<li class="comment byuser comment-author-tianqixin even thread-even depth-1" id="comment-79914"><span class="comt-f">#0</span><div class="comt-avatar wrapper"><i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i><div class="tooltip"><p><i aria-hidden="true" class="fa fa-user"></i>   RUNOOB</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  429***967@qq.com</p></div><div class="upvotejs" data-commid="79914" id="runoobvote-id-79914"><a class="upvote"></a> <span class="count">2</span></div></div><div class="comt-main" id="div-comment-79914"><p>El patrón de observador puede lograr un acoplamiento flexible, haciendo que la relación entre el sujeto y los observadores sea más flexible. Facilita la adición de nuevos observadores, así como la incorporación, eliminación o modificación dinámica de observadores en tiempo de ejecución. Además, el patrón de observador cumple con el principio de abierto/cerrado, lo que permite que el sujeto y los observadores cambien de forma independiente sin afectarse mutuamente.</p>
+<p>A continuación se muestra un ejemplo sencillo del patrón de observador: supongamos un sistema de monitoreo meteorológico; el sujeto son los datos meteorológicos y los observadores son diferentes dispositivos de visualización que muestran los cambios de los datos meteorológicos en tiempo real:</p>
+<pre>// 主题 - 天气数据
+interface WeatherData {
+    void registerObserver(WeatherObserver observer);
+    void removeObserver(WeatherObserver observer);
+    void notifyObservers();
+}
+
+// 观察者 - 显示设备
+interface WeatherObserver {
+    void update(float temperature, float humidity, float pressure);
+}
+
+// 具体主题 - 天气数据
+class WeatherStation implements WeatherData {
+    private List&lt;WeatherObserver&gt; observers;
+    private float temperature;
+    private float humidity;
+    private float pressure;
+
+    public WeatherStation() {
+        this.observers = new ArrayList&lt;&gt;();
+    }
+
+    public void registerObserver(WeatherObserver observer) {
+        observers.add(observer);
+    }
+
+    public void removeObserver(WeatherObserver observer) {
+        observers.remove(observer);
+    }
+
+    public void notifyObservers() {
+        for (WeatherObserver observer : observers) {
+            observer.update(temperature, humidity, pressure);
+        }
+    }
+
+    public void setMeasurements(float temperature, float humidity, float pressure) {
+        this.temperature = temperature;
+        this.humidity = humidity;
+        this.pressure = pressure;
+        notifyObservers();
+    }
+}
+
+// 具体观察者 - 显示设备
+class DisplayDevice implements WeatherObserver {
+    private String name;
+
+    public DisplayDevice(String name) {
+        this.name = name;
+    }
+
+    public void update(float temperature, float humidity, float pressure) {
+        System.out.println(name + " - Temperature: " + temperature +
+                " Humidity: " + humidity + " Pressure: " + pressure);
+    }
+}
+
+// 客户端代码
+public class Main {
+    public static void main(String[] args) {
+        WeatherStation weatherStation = new WeatherStation();
+
+        DisplayDevice display1 = new DisplayDevice("Display 1");
+        DisplayDevice display2 = new DisplayDevice("Display 2");
+
+        weatherStation.registerObserver(display1);
+        weatherStation.registerObserver(display2);
+
+        weatherStation.setMeasurements(25.5f, 65.2f, 1013.2f);
+        // Output:
+        // Display 1 - Temperature: 25.5 Humidity: 65.2 Pressure: 1013.2
+        // Display 2 - Temperature: 25.5 Humidity: 65.2 Pressure: 1013.2
+
+        weatherStation.removeObserver(display2);
+
+        weatherStation.setMeasurements(27.8f, 62.8f, 1010.5f);
+        // Output:
+        // Display 1 - Temperature: 27.8 Humidity: 62.8 Pressure: 1010.5
+    }
+}</pre>
+<p>En el ejemplo anterior, definimos la interfaz del sujeto WeatherData y la interfaz del observador WeatherObserver, la clase concreta del sujeto WeatherStation y la clase concreta del observador DisplayDevice. A través del proceso de registrar observadores, actualizar el estado y notificar a los observadores, se logra la interacción entre el sujeto y los observadores.</p><div class="comt-meta wrapper"><span class="comt-author"><a href=";.html" target="_blank">RUNOOB</a><div class="tooltip tooltip1"><p><i aria-hidden="true" class="fa fa-user"></i>   RUNOOB</p><p><i aria-hidden="true" class="fa fa-envelope"></i>  429***967@qq.com</p></div></span>Hace 3 años (2023-07-11)</div></div></li><!-- #comment-## -->
+</ol>
+<div class="pagenav">
+</div>
+</div>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style="display:none; padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>Haz clic para compartir notas</h3>
+&lt;p style="font-size:14px;"&gt;¡La nota debe ser una extensión del contenido de este artículo!&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;Puedes hacer clic aquí para enviar un artículo&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;Cómo obtener el código de invitación de registro&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; Antes de compartir una nota, debes &lt;a href=";.html" class="runoob-pop"&gt;iniciar sesión&lt;/a&gt;.&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;Cómo obtener el código de invitación de registro&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=";.html" id="cancel-comment-reply-link">Cancelar</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="8941"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>Compartir nota</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">Apodo</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">Apodo (obligatorio)</span></li>
+<li class="form-inline"><label class="hide" for="email">Correo electrónico</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">Correo electrónico (obligatorio)</span></li>
+<li class="form-inline"><label class="hide" for="url">Dirección de referencia</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">Dirección de referencia</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  8941;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 8941, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":8941},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+</div>
+</div>
+<!-- 右边栏 -->
+<div class="fivecol last right-column">
+<style>
+.sidebar-tree .double-li {
+    width:300px;
+}
+.sidebar-tree .double-li li {
+    width: 44%;
+    line-height: 1.5em;
+    border-bottom: 1px solid #ccc;
+    float: left;
+    display: inline;
+}
+</style>
+<div class="sidebar-box re-box re-box-large">
+<div class="sidebar-box recommend-here" style="margin: 0 auto;">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;"> <i aria-hidden="true" class="fa fa-list"></i> 分类导航</a>
+</div>
+<div class="sidebar-box sidebar-cate">
+<div class="sidebar-tree">
+<ul><li style="margin: 0;"><a class="tit" href="#"> Python / 数据科学</a><ul class="double-li"><li><a href="../python3/python3-tutorial.html" title="Python 教程">Python 教程</a></li><li><a href="../python/python-tutorial.html" title="Python2.x 教程">Python2.x 教程</a></li><li><a href="../fastapi/fastapi-tutorial.html" title="FastAPI 教程">FastAPI 教程</a></li><li><a href="../flask/flask-tutorial.html" title="Flask 教程">Flask 教程</a></li><li><a href="../django/django-tutorial.html" title="Django 教程">Django 教程</a></li><li><a href="../numpy/numpy-tutorial.html" title="NumPy 教程">NumPy 教程</a></li><li><a href="../pandas/pandas-tutorial.html" title="Pandas 教程">Pandas 教程</a></li><li><a href="../scipy/scipy-tutorial.html" title="SciPy 教程">SciPy 教程</a></li><li><a href="../matplotlib/matplotlib-tutorial.html" title="Matplotlib 教程">Matplotlib 教程</a></li><li><a href="../dash/dash-tutorial.html" title="Dash 教程">Dash 教程</a></li><li><a href="../jupyter-notebook/jupyter-notebook-tutorial.html" title="Jupyter Notebook 教程">Jupyter Notebook 教程</a></li><li><a href="../pillow/pillow-tutorial.html" title="Pillow 教程">Pillow 教程</a></li><li><a href="../qt/qt-tutorial.html" title="量化交易">量化交易</a></li><li><a href="../r/r-tutorial.html" title="R 教程">R 教程</a></li><li><a href="../julia/julia-tutorial.html" title="Julia 教程">Julia 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> AI / 智能开发</a><ul class="double-li"><li><a href="../ai-agent/ai-agent-tutorial.html" title="AI Agent（智能体）">AI Agent（智能体）</a></li><li><a href="../ai/ai-tutorial.html" title="AI（人工智能）">AI（人工智能）</a></li><li><a href="../codex/codex-tutorial.html" title="Codex 教程">Codex 教程</a></li><li><a href="../vibe-coding/vibe-coding-tutorial.html" title="Vibe Coding 教程">Vibe Coding 教程</a></li><li><a href="../claude-code/claude-code-tutorial.html" title="Claude Code">Claude Code</a></li><li><a href="../opencode/opencode-tutorial.html" title="OpenCode">OpenCode</a></li><li><a href="../skills/skills-tutorial.html" title="Skills（技能）">Skills（技能）</a></li><li><a href="../ollama/ollama-tutorial.html" title="Ollama 教程">Ollama 教程</a></li><li><a href="../hermes-agent/hermes-agent-tutorial.html" title="Hermes Agent">Hermes Agent</a></li><li><a href="../deepseek-harness/deepseek-harness-tutorial.html" title="DeepSeek Harness">DeepSeek Harness</a></li><li><a href="../pi-agent/pi-agent-tutorial.html" title="Pi Agent">Pi Agent</a></li><li><a href="../ai-math/ai-math-tutorial.html" title="AI 数学基础">AI 数学基础</a></li><li><a href="../tensorflow/tensorflow-tutorial.html" title="TensorFlow 教程">TensorFlow 教程</a></li><li><a href="../pytorch/pytorch-tutorial.html" title="PyTorch 教程">PyTorch 教程</a></li><li><a href="../sklearn/sklearn-tutorial.html" title="Scikit-learn 教程">Scikit-learn 教程</a></li><li><a href="../ml/ml-tutorial.html" title="机器 教程">机器 教程</a></li><li><a href="../langchain/langchain-tutorial.html" title="LangChain">LangChain</a></li><li><a href="../nlp/nlp-tutorial.html" title="自然语言处理 NLP">自然语言处理 NLP</a></li><li><a href="../opencv/opencv-tutorial.html" title="OpenCV 教程">OpenCV 教程</a></li><li><a href="../selenium/selenium-tutorial.html" title="Selenium 教程">Selenium 教程</a></li><li><a href="../playwright/playwright-tutorial.html" title="Playwright 教程">Playwright 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 前端开发</a><ul class="double-li"><li><a href="../html/html-tutorial.html" title="HTML 教程">HTML 教程</a></li><li><a href="../html/html5-intro.html" title="HTML5 教程">HTML5 教程</a></li><li><a href="../css/css-tutorial.html" title="CSS 教程">CSS 教程</a></li><li><a href="../css3/css3-tutorial.html" title="CSS3 教程">CSS3 教程</a></li><li><a href="../js/js-tutorial.html" title="JavaScript 教程">JavaScript 教程</a></li><li><a href="../htmldom/htmldom-tutorial.html" title="HTML DOM 教程">HTML DOM 教程</a></li><li><a href="../typescript/ts-tutorial.html" title="TypeScript 教程">TypeScript 教程</a></li><li><a href="../ajax/ajax-tutorial.html" title="AJAX 教程">AJAX 教程</a></li><li><a href="../json/json-tutorial.html" title="JSON 教程">JSON 教程</a></li><li><a href="../tailwindcss/tailwindcss-tutorial.html" title="Tailwind CSS 教程">Tailwind CSS 教程</a></li><li><a href="../bootstrap4/bootstrap4-tutorial.html" title="Bootstrap4 教程">Bootstrap4 教程</a></li><li><a href="../bootstrap5/bootstrap5-tutorial.html" title="Bootstrap5 教程">Bootstrap5 教程</a></li><li><a href="../foundation/foundation-tutorial.html" title="Foundation 教程">Foundation 教程</a></li><li><a href="../vue2/vue-tutorial.html" title="Vue.js 教程">Vue.js 教程</a></li><li><a href="../vue3/vue3-tutorial.html" title="Vue3 教程">Vue3 教程</a></li><li><a href="../react/react-tutorial.html" title="React 教程">React 教程</a></li><li><a href="../nextjs/nextjs-tutorial.html" title="Next.js 教程">Next.js 教程</a></li><li><a href="../angularjs/angularjs-tutorial.html" title="AngularJS 教程">AngularJS 教程</a></li><li><a href="../angularjs2/angularjs2-tutorial.html" title="Angular 教程">Angular 教程</a></li><li><a href="../jquery/jquery-tutorial.html" title="jQuery 教程">jQuery 教程</a></li><li><a href="../jqueryui/jqueryui-tutorial.html" title="jQuery UI 教程">jQuery UI 教程</a></li><li><a href="../jeasyui/jqueryeasyui-tutorial.html" title="jQuery EasyUI 教程">jQuery EasyUI 教程</a></li><li><a href="../echarts/echarts-tutorial.html" title="ECharts 教程">ECharts 教程</a></li><li><a href="../chartjs/chartjs-tutorial.html" title="Chart.js 教程">Chart.js 教程</a></li><li><a href="../highcharts/highcharts-tutorial.html" title="Highcharts 教程">Highcharts 教程</a></li><li><a href="../googleapi/google-maps-basic.html" title="Google 地图 教程">Google 地图 教程</a></li><li><a href="../svg/svg-tutorial.html" title="SVG 教程">SVG 教程</a></li><li><a href="../font-awesome/fontawesome-tutorial.html" title="Font Awesome 教程">Font Awesome 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 后端开发</a><ul class="double-li"><li><a href="../nodejs/nodejs-tutorial.html" title="Node.js 教程">Node.js 教程</a></li><li><a href="../electron/electron-tutorial.html" title="Electron 教程">Electron 教程</a></li><li><a href="../php/php-tutorial.html" title="PHP 教程">PHP 教程</a></li><li><a href="../java/java-tutorial.html" title="Java 教程">Java 教程</a></li><li><a href="../go/go-tutorial.html" title="Go 教程">Go 教程</a></li><li><a href="../rust/rust-tutorial.html" title="Rust 教程">Rust 教程</a></li><li><a href="../csharp/csharp-tutorial.html" title="C# 教程">C# 教程</a></li><li><a href="../servlet/servlet-tutorial.html" title="Servlet 教程">Servlet 教程</a></li><li><a href="../jsp/jsp-tutorial.html" title="JSP 教程">JSP 教程</a></li><li><a href="../asp/asp-tutorial.html" title="ASP 教程">ASP 教程</a></li><li><a href="../appml/appml-tutorial.html" title="AppML 教程">AppML 教程</a></li><li><a href="../vbscript/vbscript-tutorial.html" title="VBScript 教程">VBScript 教程</a></li><li><a href="../swagger/swagger-tutorial.html" title="Swagger 教程">Swagger 教程</a></li><li><a href="../restfulapi/restful-api-tutorial.html" title="RESTful API 教程">RESTful API 教程</a></li><li><a href="../docker/docker-tutorial.html" title="Docker 教程">Docker 教程</a></li><li><a href="../linux/linux-tutorial.html" title="Linux 教程">Linux 教程</a></li><li><a href="../w3cnote/zookeeper-tutorial.html" title="ZooKeeper 教程">ZooKeeper 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 数据库</a><ul class="double-li"><li><a href="../sql/sql-tutorial.html" title="SQL 教程">SQL 教程</a></li><li><a href="../mysql/mysql-tutorial.html" title="MySQL 教程">MySQL 教程</a></li><li><a href="../postgresql/postgresql-tutorial.html" title="PostgreSQL 教程">PostgreSQL 教程</a></li><li><a href="../sqlite/sqlite-tutorial.html" title="SQLite 教程">SQLite 教程</a></li><li><a href="../mongodb/mongodb-tutorial.html" title="MongoDB 教程">MongoDB 教程</a></li><li><a href="../redis/redis-tutorial.html" title="Redis 教程">Redis 教程</a></li><li><a href="../memcached/memcached-tutorial.html" title="Memcached 教程">Memcached 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 移动开发</a><ul class="double-li"><li><a href="../w3cnote/android-tutorial-intro.html" title="Android 教程">Android 教程</a></li><li><a href="../flutter/flutter-tutorial.html" title="Flutter 教程">Flutter 教程</a></li><li><a href="../ionic/ionic-tutorial.html" title="Ionic 教程">Ionic 教程</a></li><li><a href="../jquerymobile/jquerymobile-tutorial.html" title="jQuery Mobile 教程">jQuery Mobile 教程</a></li><li><a href="../swift/swift-tutorial.html" title="Swift 教程">Swift 教程</a></li><li><a href="../kotlin/kotlin-tutorial.html" title="Kotlin 教程">Kotlin 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> DevOps / 工程化</a><ul class="double-li"><li><a href="../git/git-tutorial.html" title="Git 教程">Git 教程</a></li><li><a href="../svn/svn-tutorial.html" title="SVN 教程">SVN 教程</a></li><li><a href="../cmake/cmake-tutorial.html" title="CMake 教程">CMake 教程</a></li><li><a href="../maven/maven-tutorial.html" title="Maven 教程">Maven 教程</a></li><li><a href="../vscode/vscode-tutorial.html" title="VS Code 教程">VS Code 教程</a></li><li><a href="../obsidian/obsidian-tutorial.html" title="Obsidian 教程">Obsidian 教程</a></li><li><a href="../pycharm/pycharm-tutorial.html" title="PyCharm 教程">PyCharm 教程</a></li><li><a href="../eclipse/eclipse-tutorial.html" title="Eclipse 教程">Eclipse 教程</a></li><li><a href="../markdown/md-tutorial.html" title="Markdown 教程">Markdown 教程</a></li><li><a href="../latex/latex-tutorial.html" title="LaTeX 教程">LaTeX 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 编程语言</a><ul class="double-li"><li><a href="../c/c-tutorial.html" title="C 教程">C 教程</a></li><li><a href="../cplusplus/cpp-tutorial.html" title="C++ 教程">C++ 教程</a></li><li><a href="../zig/zig-tutorial.html" title="Zig 教程">Zig 教程</a></li><li><a href="../scala/scala-tutorial.html" title="Scala 教程">Scala 教程</a></li><li><a href="../ruby/ruby-tutorial.html" title="Ruby 教程">Ruby 教程</a></li><li><a href="../perl/perl-tutorial.html" title="Perl 教程">Perl 教程</a></li><li><a href="../lua/lua-tutorial.html" title="Lua 教程">Lua 教程</a></li><li><a href="../dart/dart-tutorial.html" title="Dart 教程">Dart 教程</a></li><li><a href="../assembly/assembly-tutorial.html" title="汇编语言 教程">汇编语言 教程</a></li><li><a href="../w3cnote/verilog-tutorial.html" title="Verilog 教程">Verilog 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 计算机基础</a><ul class="double-li"><li><a href="../computer-organization/computer-organization-tutorial.html" title="计算机组成原理">计算机组成原理</a></li><li><a href="../data-structures/data-structures-tutorial.html" title="数据结构与算法">数据结构与算法</a></li><li><a href="../c-dsa/c-dsa-tutorial.html" title="C 语言数据结构与算法">C 语言数据结构与算法</a></li><li><a href="../design-pattern/design-pattern-tutorial.html" title="设计模式">设计模式</a></li><li><a href="../python-design-pattern/python-design-pattern-tutorial.html" title="Python 设计模式">Python 设计模式</a></li><li><a href="../regexp/regexp-tutorial.html" title="正则表达式">正则表达式</a></li><li><a href="../http/http-tutorial.html" title="HTTP 教程">HTTP 教程</a></li><li><a href="../tcpip/tcpip-tutorial.html" title="TCP/IP 教程">TCP/IP 教程</a></li><li><a href="../np/np-tutorial.html" title="网络协议">网络协议</a></li><li><a href="../w3c/w3c-tutorial.html" title="W3C 教程">W3C 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> XML / Web Service</a><ul class="double-li"><li><a href="../xml/xml-tutorial.html" title="XML 教程">XML 教程</a></li><li><a href="../dtd/dtd-tutorial.html" title="DTD 教程">DTD 教程</a></li><li><a href="../dom/dom-tutorial.html" title="XML DOM 教程">XML DOM 教程</a></li><li><a href="../xsl/xsl-tutorial.html" title="XSLT 教程">XSLT 教程</a></li><li><a href="../xpath/xpath-tutorial.html" title="XPath 教程">XPath 教程</a></li><li><a href="../xquery/xquery-tutorial.html" title="XQuery 教程">XQuery 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XLink 教程">XLink 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XPointer 教程">XPointer 教程</a></li><li><a href="../schema/schema-tutorial.html" title="XML Schema 教程">XML Schema 教程</a></li><li><a href="../xslfo/xslfo-tutorial.html" title="XSL-FO 教程">XSL-FO 教程</a></li><li><a href="../webservices/webservices-tutorial.html" title="Web Service 教程">Web Service 教程</a></li><li><a href="../wsdl/wsdl-tutorial.html" title="WSDL 教程">WSDL 教程</a></li><li><a href="../soap/soap-tutorial.html" title="SOAP 教程">SOAP 教程</a></li><li><a href="../rss/rss-tutorial.html" title="RSS 教程">RSS 教程</a></li><li><a href="../rdf/rdf-tutorial.html" title="RDF 教程">RDF 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> .NET</a><ul class="double-li"><li><a href="../aspnet/aspnet-tutorial.html" title="ASP.NET 教程">ASP.NET 教程</a></li><li><a href="../aspnet/mvc-intro.html" title="MVC 教程">MVC 教程</a></li><li><a href="../aspnet/razor-intro.html" title="Razor 教程">Razor 教程</a></li><li><a href="../aspnet/aspnet-intro.html" title="Web Forms 教程">Web Forms 教程</a></li><li><a href="../aspnet/webpages-intro.html" title="Web Pages 教程">Web Pages 教程</a></li><li><a href="../powershell/powershell-tutorial.html" title="PowerShell 教程">PowerShell 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 网站建设</a><ul class="double-li"><li><a href="../web/web-buildingprimer.html" title="网站建设指南">网站建设指南</a></li><li><a href="../browsers/browser-information.html" title="浏览器信息">浏览器信息</a></li><li><a href="../hosting/hosting-tutorial.html" title="网站主机教程">网站主机教程</a></li><li><a href="../quality/quality-tutorial.html" title="网站品质">网站品质</a></li></ul></li></ul> </div>
+</div>
+</div>
+<br/>
+<div class="sidebar-box re-box re-box-large">
+</div>
+</div></div>
+</div>
+<script>
+var aid = 8941;
+function coll() {
+	$.post( '/wp-content/themes/runoob/option/user/userinfo.php', {aid:aid, action:"collarticle", opt:'add'},function( data ) {
+		if(data.error==0) {
+			$("#content").find("h1:first").find("a").attr("href","javascript:void(0);");
+			$("#content").find("h1:first").find("img").attr("src","http://www.runoob.com/wp-content/themes/runoob/assets/img/coll2.png").css({width:32+"px",height:32+"px"});
+		}
+		alert(data.msg);
+	},'json');
+}
+
+(function () {
+    // 1. 仅 HTML 页面
+    if (!document.contentType || !document.contentType.includes('text/html')) return;
+
+    // 2. 容器判断
+    var container = document.querySelector('.article-intro');
+    if (!container) return;
+
+    var h1 = container.querySelector('h1');
+    if (!h1) return;
+
+    // 3. URL 判断
+    var url = window.location.href.toLowerCase();
+    var version = null;
+
+    if (url.includes('/python3/')) {
+        version = 'Python3.x';
+    } else if (url.includes('/python/')) {
+        version = 'Python2.x';
+    }
+
+    if (!version) return;
+
+    // 4. 防重复
+    if (h1.querySelector('.py-version-badge')) return;
+
+    // 5. 创建标签
+    var badge = document.createElement('span');
+    badge.className = 'py-version-badge';
+    badge.innerText = version;
+
+    // 6. 样式（核心：float 实现右上角）
+    badge.style.float = 'right';
+    badge.style.fontSize = '12px';
+    badge.style.padding = '2px 8px';
+    badge.style.borderRadius = '999px';
+
+   // 自适应亮/暗色 + 渐变背景（增强版）
+	badge.style.color = 'inherit';
+
+	// 渐变背景（低透明度，不影响暗黑模式）
+	if (version.includes('3')) {
+		badge.style.background = 'linear-gradient(90deg, rgba(79,172,254,0.15), rgba(0,242,254,0.15))';
+	} else {
+		badge.style.background = 'linear-gradient(90deg, rgba(161,140,209,0.15), rgba(251,194,235,0.15))';
+	}
+
+	// 边框弱化（更精致）
+	badge.style.border = '1px solid rgba(127,127,127,0.3)';
+
+	// 提升可读性
+	badge.style.opacity = '0.95';
+
+    // 微调位置（更贴近“右上角”）
+    badge.style.marginTop = '4px';
+    badge.style.marginLeft = '10px';
+
+    // 7. 插入到 h1 最前面（让 float 生效更稳定）
+    h1.insertBefore(badge, h1.firstChild);
+
+})();
+</script>
+<!-- 反馈对话框开始 -->
+<script src="../wp-content/themes/runoob/assets/js/runoob-article-dir.min.js"></script>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

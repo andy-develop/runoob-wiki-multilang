@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Guía completa de optimización de índices MySQL | Tutorial para novatos</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="./mysql-index.html" rel="canonical"/>
+<meta content="MySQL 索引优化全攻略" name="keywords"/>
+<meta content="所谓索引就是为特定的mysql字段进行一些特定的算法排序，比如二叉树的算法和哈希算法，哈希算法是通过建立特征值，然后根据特征值来快速查找。而用的最多，并且是mysql默认的就是二叉树算法 BTREE，通过BTREE算法建立索引的字段，比如扫描20行就能得到未使用BTREE前扫描了2^20行的结果。 Explain优化查询检测 EXPLAIN可以帮助开发人员分析SQL问题，explain显示了mysql如何使用索引来处理select语句以.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div><!-- 导航栏 -->
+<!--  内容  -->
+<div class="container main">
+<div class="row">
+<div class="col middle-column big-middle-column">
+<div class="article">
+<div class="article-heading">
+<h2>Guía completa de optimización de índices MySQL</h2> <h3><em>Categoría</em> <a href="../w3cnote_genre/code.html" title="编程技术">Tecnología de programación</a> </h3>
+</div>
+<div class="article-body note-body">
+<div class="article-intro">
+<!-- ad start-->
+<!-- ad end-->
+<p>El llamado índice consiste en aplicar ciertos algoritmos de ordenamiento específicos a campos concretos de MySQL, como el algoritmo de árbol binario y el algoritmo hash. El algoritmo hash crea valores característicos y luego busca rápidamente según esos valores. Pero el más utilizado, y el predeterminado en MySQL, es el algoritmo de árbol binario BTREE. Con un campo indexado mediante el algoritmo BTREE, por ejemplo, escaneando 20 filas se obtiene el resultado que sin usar BTREE requeriría escanear 2^20 filas.</p>
+<h2>Explain: detección y optimización de consultas</h2>
+<p>EXPLAIN ayuda a los desarrolladores a analizar problemas de SQL. explain muestra cómo MySQL utiliza los índices para procesar sentencias SELECT y tablas de unión, lo que ayuda a elegir mejores índices y a escribir consultas más optimizadas.</p>
+<p>Método de uso: basta con anteponer EXPLAIN a la sentencia SELECT:</p>
+<pre>Explain select * from blog where false;</pre>
+<p>Antes de ejecutar una consulta, MySQL analiza cada sentencia SQL enviada y decide si usar un índice o un escaneo completo de la tabla. Si se envía un `select * from blog where false`, MySQL no ejecutará la consulta, porque tras el análisis del analizador SQL, MySQL ya sabe que ninguna fila cumplirá la condición.</p>
+<p><strong>Ejemplo</strong></p>
+<pre>
+mysql&gt; EXPLAIN SELECT `birday` FROM `user` WHERE `birthday` &lt; "1990/2/2"; 
+-- 结果： 
+id: 1 
+
+select_type: SIMPLE -- 查询类型（简单查询、联合查询、子查询） 
+
+table: user -- 显示这一行的数据是关于哪张表的 。
+
+type: range -- 区间索引（在小于1990/2/2区间的数据)，这是重要的列，显示连接使用了何种类型。从最好到最差的连接类型为system &gt; const &gt; eq_ref &gt; ref &gt; fulltext &gt; ref_or_null &gt; index_merge &gt; unique_subquery &gt; index_subquery &gt; range &gt; index &gt; ALL,const代表一次就命中，ALL代表扫描了全表才确定结果。一般来说，得保证查询至少达到range级别,最好能达到ref。 
+
+possible_keys: birthday  -- 指出MySQL能使用哪个索引在该表中找到行。如果是空的，没有相关的索引。这时要提高性能，可通过检验WHERE子句，看是否引用某些字段，或者检查字段不是适合索引。  
+
+key: birthday -- 实际使用到的索引。如果为NULL，则没有使用索引。如果为primary的话，表示使用了主键。 
+
+key_len: 4 -- 最长的索引宽度。如果键是NULL，长度就是NULL。在不损失精确性的情况下，长度越短越好。
+
+ref: const -- 显示哪个字段或常数与key一起被使用。  
+
+rows: 1 -- 这个数表示mysql要遍历多少数据才能找到，在innodb上是不准确的。 
+
+Extra: Using where; Using index -- 执行状态说明，这里可以看到的坏的例子是Using temporary和Using
+</pre>
+<p><strong>select_type</strong></p>
+<ol>
+<li>simple: SELECT simple (sin usar UNION ni subconsultas).</li>
+<li>primary: el SELECT más externo.</li>
+<li>union: la segunda sentencia SELECT o las siguientes en una UNION.</li>
+<li>dependent union: la segunda sentencia SELECT o las siguientes en una UNION, que dependen de la consulta externa.</li>
+<li>union result: el resultado de la UNION.</li>
+<li>subquery: el primer SELECT de una subconsulta.</li>
+<li>dependent subquery: el primer SELECT de una subconsulta, que depende de la consulta externa.</li>
+<li>derived: el SELECT de la tabla derivada (subconsulta en la cláusula FROM).</li>
+</ol>
+<p><strong>Otras explicaciones</strong></p>
+<ol>
+<li>Distinct: una vez que MYSQL encuentra las filas que coinciden con la unión, deja de buscar.</li>
+<li>Not exists: MYSQL optimiza LEFT JOIN; una vez que encuentra una fila que cumple el estándar de LEFT JOIN, deja de buscar.</li>
+<li>Range checked for each Record (index map:#): no se encontró el índice ideal, por lo tanto, para cada combinación de filas de la tabla anterior, MYSQL comprueba qué índice usar y lo utiliza para devolver filas de la tabla. Esta es una de las uniones más lentas que usan índices.</li>
+<li>Using filesort: al ver esto, la consulta necesita optimización. MYSQL necesita un paso adicional para descubrir cómo ordenar las filas devueltas. Ordena todas las filas según el tipo de unión y los punteros a las filas que almacenan los valores de las claves de ordenación y todas las filas que coinciden con la condición.</li>
+<li>Using index: los datos de las columnas se devuelven de la tabla usando únicamente la información del índice sin leer las filas reales. Esto ocurre cuando todas las columnas solicitadas de la tabla son parte del mismo índice.</li>
+<li>Using temporary: al ver esto, la consulta necesita optimización. Aquí, MYSQL necesita crear una tabla temporal para almacenar el resultado. Esto suele ocurrir al hacer ORDER BY sobre conjuntos de columnas diferentes, en lugar de GROUP BY.</li>
+<li>Where used: se utiliza la cláusula WHERE para limitar qué filas coincidirán con la siguiente tabla o se devolverán al usuario. Esto ocurre si no se desea devolver todas las filas de la tabla y el tipo de unión es ALL o index, o si hay un problema con la consulta. Explicación de los diferentes tipos de unión (ordenados de mayor a menor eficiencia).</li>
+<li>system: la tabla tiene solo una fila: tabla system. Es un caso especial del tipo de unión const.</li>
+<li>const: el valor máximo de un registro en la tabla puede coincidir con esta consulta (el índice puede ser una clave primaria o un índice único). Como solo hay una fila, este valor es en realidad una constante, porque MYSQL primero lee este valor y luego lo trata como una constante.</li>
+<li>eq_ref: en la unión, al realizar la consulta, MYSQL lee desde la tabla anterior un registro por cada combinación de registros, y se usa cuando la consulta utiliza como índice una clave primaria o una clave única en su totalidad.</li>
+<li>ref: este tipo de unión ocurre solo cuando la consulta usa una clave que no es única ni primaria, o una parte de estos tipos (por ejemplo, utilizando el prefijo más a la izquierda). Para cada combinación de filas de la tabla anterior, se leerán todos los registros de la tabla. Este tipo depende en gran medida de cuántos registros coinciden con el índice; cuantos menos, mejor.</li>
+<li>range: este tipo de unión utiliza el índice para devolver filas dentro de un rango, como cuando se usa &gt; o &lt; para buscar algo.</li>
+<li>index: este tipo de unión realiza un escaneo completo para cada combinación de registros de la tabla anterior (mejor que ALL, porque el índice generalmente es más pequeño que los datos de la tabla).</li>
+<li>ALL: este tipo de unión realiza un escaneo completo para cada combinación de registros de la tabla anterior. Generalmente es bastante malo y se debe evitar en lo posible.</li>
+</ol>
+<p>Donde type:</p>
+<ol>
+<li>Si es "Only index", significa que la información se recupera únicamente con la información del árbol de índice, lo cual es más rápido que escanear toda la tabla.</li>
+<li>Si es "where used", significa que se ha utilizado la restricción WHERE.</li>
+<li>Si es "impossible where", indica que no es necesario usar WHERE; generalmente significa que no se encontró nada.</li>
+<li>Si esta información muestra "Using filesort" o "Using temporary", será muy costoso. Los índices de WHERE y ORDER BY a menudo no pueden cubrirse ambos. Si se determina el índice según WHERE, entonces al hacer ORDER BY inevitablemente se producirá "Using filesort". Hay que evaluar si es más conveniente filtrar primero y luego ordenar, u ordenar primero y luego filtrar.</li>
+</ol>
+<h2>Tipos de índices</h2>
+<p><strong>Índice único UNIQUE</strong></p>
+<p>No pueden aparecer valores duplicados, pero puede tener valores NULL.</p>
+<p><strong>Índice normal INDEX</strong></p>
+<p>Permite que aparezcan contenidos de índice duplicados.</p>
+<p><strong>Índice de clave primaria PRIMARY KEY</strong></p>
+<p>No permite valores duplicados ni valores NULL. Una tabla solo puede tener un índice primary_key.</p>
+<p><strong>Índice de texto completo fulltext index</strong></p>
+<p>Los tres tipos de índices anteriores actúan sobre los valores de las columnas, pero el índice de texto completo puede actuar sobre una palabra dentro del valor, como una palabra en un artículo. Sin embargo, no sirve de mucho, porque solo MyISAM y el inglés lo admiten, y su eficiencia deja mucho que desear. Pero se pueden usar aplicaciones de terceros como coreseek y xunsearch para cubrir esta necesidad.</p>
+<h2>CURD de índices</h2>
+<p><strong>Creación de índices</strong></p>
+<p>ALTER TABLE</p>
+<p>Apto para agregar después de que la tabla esté creada.</p>
+<p>`ALTER TABLE nombre_tabla ADD tipo_indice (unique, primary key, fulltext, index) [nombre_indice] (nombre_campo)`</p>
+<pre>
+ALTER TABLE `table_name` ADD INDEX `index_name` (`column_list`) -- 索引名，可要可不要；如果不要，当前的索引名就是该字段名。 
+ALTER TABLE `table_name` ADD UNIQUE (`column_list`) 
+ALTER TABLE `table_name` ADD PRIMARY KEY (`column_list`) 
+ALTER TABLE `table_name` ADD FULLTEXT KEY (`column_list`)
+</pre>
+<p>CREATE INDEX</p>
+<p>CREATE INDEX puede agregar un índice normal o un índice UNIQUE a una tabla.</p>
+<pre>
+--例：只能添加这两种索引 
+CREATE INDEX index_name ON table_name (column_list) 
+CREATE UNIQUE INDEX index_name ON table_name (column_list)
+</pre>
+<p><strong>Además, también se puede agregar al crear la tabla:</strong></p>
+<pre>
+CREATE TABLE `test1` ( 
+  `id` smallint(5) UNSIGNED AUTO_INCREMENT NOT NULL, -- 注意，下面创建了主键索引，这里就不用创建了 
+  `username` varchar(64) NOT NULL COMMENT '用户名', 
+  `nickname` varchar(50) NOT NULL COMMENT '昵称/姓名', 
+  `intro` text, 
+  PRIMARY KEY (`id`),  
+  UNIQUE KEY `unique1` (`username`), -- 索引名称，可要可不要，不要就是和列名一样 
+  KEY `index1` (`nickname`), 
+  FULLTEXT KEY `intro` (`intro`) 
+) ENGINE=MyISAM AUTO_INCREMENT=4 DEFAULT CHARSET=utf8 COMMENT='后台用户表';
+</pre>
+<p><strong>Eliminación de índices</strong></p>
+<pre>
+DROP INDEX `index_name` ON `talbe_name`  
+ALTER TABLE `table_name` DROP INDEX `index_name` 
+-- 这两句都是等价的,都是删除掉table_name中的索引index_name; 
+
+ALTER TABLE `table_name` DROP PRIMARY KEY -- 删除主键索引，注意主键索引只能用这种方式删除
+</pre>
+<p><strong>Visualización de índices</strong></p>
+<pre>show index from tablename;</pre>
+<p><strong>Modificación de índices</strong></p>
+<p>¿Modificar? Ni de broma. Elimínalo y vuelve a crear uno.</p>
+<h2>Consejos para crear índices</h2>
+<ol>
+<li>Crear índices en columnas con alta cardinalidad.</li>
+<ul>
+<li>En las columnas de datos,<b>los valores no duplicados</b>el número de apariciones; cuanto mayor sea este número, mayor será la cardinalidad.</li>
+<li>Por ejemplo, si en la tabla de datos hay 8 filas: a, b, c, d, a, b, c, d, la cardinalidad de esta tabla es 4.</li>
+<li>Se deben crear índices para columnas con cardinalidad alta, como sexo y edad; la cardinalidad de la edad es mayor que la del sexo.</li>
+<li>Columnas como sexo no son adecuadas para crear índices porque su cardinalidad es demasiado baja.</li>
+</ul>
+<li>Usar índices en las columnas que aparecen en WHERE, ON, GROUP BY, ORDER BY.</li>
+<li>Usar índices en columnas de datos más pequeñas, así el archivo de índice será más pequeño y también se podrán cargar más claves de índice en memoria.</li>
+<li>Usar índices de prefijo para cadenas largas.</li>
+<li>No crear demasiados índices. Además de ocupar espacio adicional en disco, afecta en gran medida la velocidad de las operaciones DML, porque cada vez que se inserta, elimina o modifica, hay que reconstruir el índice.</li>
+<li>Usar índices compuestos puede reducir el tamaño del archivo de índice y, al usarlos, la velocidad es mejor que con varios índices de una sola columna.</li>
+</ol>
+<h2>Índices compuestos e índices de prefijo</h2>
+<p>Nota: estos dos nombres son una forma de referirse a técnicas de creación de índices, no son tipos de índices.</p>
+<p><strong>Índice compuesto</strong></p>
+<p>¿Cuál es realmente la diferencia entre un índice de una sola columna y un índice compuesto en MySQL?</p>
+<p>Para compararlos de forma ilustrativa, primero creamos una tabla:</p>
+<pre>
+CREATE TABLE `myIndex` ( 
+  `i_testID` INT NOT NULL AUTO_INCREMENT,  
+  `vc_Name` VARCHAR(50) NOT NULL,  
+  `vc_City` VARCHAR(50) NOT NULL,  
+  `i_Age` INT NOT NULL,  
+  `i_SchoolID` INT NOT NULL,  
+  PRIMARY KEY (`i_testID`)  
+);
+</pre>
+<p>Supongamos que la tabla ya tiene 1000 registros. Entre estos 10000 registros, hay 5 registros con vc_Name=”erquan” distribuidos de forma irregular, solo que las combinaciones de city, age, school son diferentes. Veamos esta T-SQL:</p>
+<pre>
+SELECT `i_testID` FROM `myIndex` WHERE `vc_Name`='erquan' AND `vc_City`='郑州' AND `i_Age`=25; -- 关联搜索;
+</pre>
+<p>Primero consideremos crear un índice de una sola columna en MySQL:</p>
+<p>Se creó un índice en la columna vc_Name. Al ejecutar T-SQL, MySQL rápidamente localizó los 5 registros con vc_Name=erquan, los tomó y los colocó en un conjunto de resultados intermedio. En este conjunto de resultados, primero excluyó los registros cuyo vc_City no era “Zhengzhou”, luego excluyó los registros cuyo i_Age no era 25, y finalmente filtró el único registro que cumplía las condiciones. Aunque se creó un índice en vc_Name, MySQL no necesita escanear toda la tabla durante la consulta, la eficiencia ha mejorado, pero aún está lejos de nuestros requisitos. De manera similar, la eficiencia de los índices de una sola columna creados por separado en vc_City e i_Age es similar.</p>
+<p>Para exprimir aún más la eficiencia de MySQL, hay que considerar la creación de un índice compuesto. Es decir, poner vc_Name, vc_City e i_Age en un solo índice:</p>
+<pre>
+ALTER TABLE `myIndex` ADD INDEX `name_city_age` (vc_Name(10),vc_City,i_Age);
+</pre>
+<p>Al crear la tabla, la longitud de vc_Name es 50. ¿Por qué usar 10 aquí? Esto es el índice de prefijo que se mencionará más adelante, porque en circunstancias normales la longitud del nombre no supera 10, lo que acelera la velocidad de consulta del índice, reduce el tamaño del archivo de índice y mejora la velocidad de actualización de INSERT.</p>
+<p>Al ejecutar T-SQL, ¡MySQL encuentra el único registro sin tener que escanear ningún registro!</p>
+<p>Si se crean índices de una sola columna en vc_Name, vc_City e i_Age respectivamente, haciendo que la tabla tenga 3 índices de una sola columna, ¿será la eficiencia de la consulta la misma que la del índice compuesto anterior? La respuesta es muy diferente, muy inferior a nuestro índice compuesto. Aunque ahora hay tres índices, MySQL solo puede usar el que considera aparentemente más eficiente entre los índices de una sola columna; los otros dos no se utilizan, es decir, sigue siendo un proceso de escaneo de toda la tabla.</p>
+<p>Crear un índice compuesto así equivale en realidad a crear por separado:</p>
+<ul>
+<li>vc_Name,vc_City,i_Age</li>
+<li>vc_Name,vc_City</li>
+<li>vc_Name</li>
+</ul>
+<p>¡Estos tres índices compuestos! ¿Por qué no hay índices compuestos como vc_City, i_Age, etc.? Esto se debe al resultado del “prefijo más a la izquierda” del índice compuesto de MySQL. En pocas palabras, solo se combina comenzando desde la parte más a la izquierda. No todas las consultas que incluyen estas tres columnas usarán este índice compuesto; los siguientes T-SQL lo usarán:</p>
+<pre>
+SELECT * FROM myIndex WHREE vc_Name=”erquan” AND vc_City=”郑州” SELECT * FROM myIndex WHREE vc_Name=”erquan”
+</pre>
+<p>Mientras que los siguientes no lo usarán:</p>
+<pre>
+SELECT * FROM myIndex WHREE i_Age=20 AND vc_City=”郑州” SELECT * FROM myIndex WHREE vc_City=”郑州”
+</pre>
+<p>Es decir, name_city_age(vc_Name(10), vc_City, i_Age) indexa de izquierda a derecha. Si no hay un índice frontal izquierdo, MySQL no ejecuta la búsqueda por índice.</p>
+<p><strong>Índice de prefijo</strong></p>
+<p>Si la longitud de la columna indexada es demasiado larga, este tipo de índice de columna generará un archivo de índice muy grande, difícil de manejar. Se puede utilizar el método de índice de prefijo. El índice de prefijo debe controlarse en un punto adecuado, alrededor del valor áureo de 0.31 (si es mayor que este valor, se puede crear).</p>
+<p>SELECT COUNT(DISTINCT(LEFT(`title`,10)))/COUNT(*) FROM Arctic; — Si este valor es mayor que 0.31, se puede crear un índice de prefijo. DISTINCT elimina duplicados. ALTER TABLE `user` ADD INDEX `uname`(title(10)); — Agrega el SQL del índice de prefijo, estableciendo el índice del nombre en 10, lo que reduce el tamaño del archivo de índice y acelera la velocidad de consulta del índice.</p>
+<h2>¿Qué tipo de SQL no utiliza índices?</h2>
+<p><strong>Se debe tratar de evitar estos SQL que no utilizan índice.</strong></p>
+<pre>
+SELECT `sname` FROM `stu` WHERE `age`+10=30;-- 不会使用索引，因为所有索引列参与了计算 
+
+SELECT `sname` FROM `stu` WHERE LEFT(`date`,4) &lt;1990; -- 不会使用索引，因为使用了函数运算，原理与上面相同 
+
+SELECT * FROM `houdunwang` WHERE `uname` LIKE'后盾%' -- 走索引 
+
+SELECT * FROM `houdunwang` WHERE `uname` LIKE "%后盾%" -- 不走索引 
+
+-- 正则表达式不使用索引，这应该很好理解，所以为什么在SQL中很难看到regexp关键字的原因 
+
+-- 字符串与数字比较不使用索引; 
+CREATE TABLE `a` (`a` char(10)); 
+EXPLAIN SELECT * FROM `a` WHERE `a`="1" -- 走索引 
+EXPLAIN SELECT * FROM `a` WHERE `a`=1 -- 不走索引 
+
+select * from dept where dname='xxx' or loc='xx' or deptno=45 --如果条件中有or，即使其中有条件带索引也不会使用。换言之，就是要求使用的所有字段，都必须建立索引，我们建议大家尽量避免使用or 关键字 
+
+-- 如果mysql估计使用全表扫描要比使用索引快，则不使用索引
+</pre>
+<p>Eficiencia del índice en asociaciones de múltiples tablas</p>
+<ul>
+<li>SELECT `sname` FROM `stu` WHERE LEFT(`date`,4) &lt;1990; — No usará el índice, porque se usa una operación de función; el principio es el mismo que el anterior.</li>
+<li>SELECT * FROM `houdunwang` WHERE `uname` LIKE’后盾%’ — utiliza el índice</li>
+<li>SELECT * FROM `houdunwang` WHERE `uname` LIKE “%后盾%” — no utiliza el índice</li>
+</ul>
+<p><img decoding="async" src="../wp-content/uploads/2015/06/9dc0c2bc09374310718f0dbfd1d2ec54.jpg"/></p>
+<p>De la figura anterior se puede ver que el type de todas las tablas es all, lo que indica un escaneo de tabla completa. Es decir, 6 6 6, con un total de 216 recorridos de consulta.</p>
+<p>Excepto la primera tabla, que representa el escaneo de tabla completa (es necesario, ya que se usa para asociar con otras tablas), las demás son de tipo range (obtenido mediante rango de índice), es decir, 6+1+1+1, con un total de solo 9 recorridos de consulta.</p>
+<p>Por lo tanto, recomendamos unir la menor cantidad de tablas posible al hacer JOIN de múltiples tablas, porque sin cuidado se convierte en un terrible escaneo de producto cartesiano. Además, también recomendamos usar LEFT JOIN tanto como sea posible, para usar la tabla pequeña al asociarse con la grande. Porque al usar JOIN, la primera tabla debe escanearse por completo; usando la tabla pequeña para asociarse con la grande se puede reducir este número de escaneos.</p>
+<h2>Desventajas de los índices</h2>
+<p>No cree índices a ciegas; cree índices solo para las columnas que se consultan con frecuencia. Crear un índice hace que las operaciones de consulta sean más rápidas, pero reduce la velocidad de las operaciones de inserción, eliminación y actualización, porque al ejecutar estas operaciones también se reordenan o actualizan los archivos de índice.</p>
+<p>Sin embargo, en las aplicaciones de Internet, las sentencias de consulta superan con creces a las sentencias DML, incluso pueden representar del 80% al 90%. Así que no hay que preocuparse demasiado; solo durante la importación de grandes volúmenes de datos, se puede eliminar el índice primero, insertar los datos en lote y finalmente volver a añadir el índice.</p> </div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link">← <a href="./swift-flappybird.html" rel="prev">Primer ejercicio de aprendizaje de Swift: un pequeño juego FlappyBird implementado con Swift</a> </div>
+<div class="next-design-link"><a href="./meta.html" rel="next">Recopilación de metaetiquetas comunes</a> →</div>
+</div>
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>Haz clic para compartir mis notas</h3>
+&lt;p style="font-size:14px;"&gt;¡La nota debe ser una extensión del contenido de este artículo!&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;Envía un artículo, haz clic aquí&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;Cómo obtener el código de invitación de registro&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; Antes de compartir notas, debes &lt;a href=".." class="runoob-pop"&gt;iniciar sesión&lt;/a&gt;.&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="./runoob-user-test-intro.html" target="_blank"&gt;Cómo obtener el código de invitación de registro&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=".." id="cancel-comment-reply-link">Cancelar</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="12141"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>Compartir nota</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">Apodo</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">Apodo (obligatorio)</span></li>
+<li class="form-inline"><label class="hide" for="email">Correo electrónico</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">Correo electrónico (obligatorio)</span></li>
+<li class="form-inline"><label class="hide" for="url">Dirección de referencia</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">Dirección de referencia</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  12141;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 12141, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":12141},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+<style>
+@media screen and (max-width: 768px) {
+	#w3cnote-ad728 {
+		display: none;
+	}
+}
+p.note-author {
+    border-bottom: 1px solid #ddd;
+    font-size: 18px;
+    font-weight: bold;
+    color: #78a15a;
+    padding-bottom: 2px;
+    margin-bottom: 4px;
+}
+</style>
+<script>
+var aid = 12141;
+</script>
+</div>
+</div>
+<div class="listcol last right-column">
+<!--
+	<div class="tab tab-light-blue"> 订阅</div>
+	<div class="sidebar-box">
+		<div class="socialicons">
+			<a href="../feed.html" class="rss">RSS 订阅</a>
+		
+			<form action="..//list.qq.com/cgi-bin/qf_compose_send" method="post">
+			<input type="hidden" value="qf_booked_feedback" name="t">
+			<input type="hidden" value="4b67b6b6c1f5e792559940cab4aebb8f1126fba880bff1a8" name="id">
+			<input class="placeholder" id="feed_email" name="to" value="输入邮箱 订阅笔记" autocomplete="off">
+			<input type="submit" value="订阅" class="btn btn-primary">
+			</form>
+		
+		</div>
+ 
+	</div>
+-->
+<!--
+	<div class="sidebar-box cate-list">
+	<div class="sidebar-box recommend-here list-link">
+			<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">笔记列表</a>
+		</div>
+
+ 
+
+</div>
+-->
+<div class="sidebar-box cate-list" style="display:none;">
+<div class="sidebar-box recommend-here list-link">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">热门文章</a>
+</div>
+<div class="membership">
+<ul class="membership">
+<li><a href="https://mp.weixin.qq.com/s/ZaP6YNgKTCHYy3r2WPBBaw" target="_blank" title="2024 年 04 月 JavaScript 框架排行榜">2024 年 04 月 JavaScript 框架排行榜</a></li>
+<li><a href="https://mp.weixin.qq.com/s/JBR2twC0t6krjjuxqvhsEQ" target="_blank" title="免费、开源、好用的 SQL 客户端合集">免费、开源、好用的 SQL 客户端合集</a></li>
+<li><a href="https://mp.weixin.qq.com/s/TwV3YQjA1glyaW7TiHvhlA" target="_blank" title="优雅的代码规范，提升代码质量">优雅的代码规范，提升代码质量</a></li>
+<li><a href="https://mp.weixin.qq.com/s/CnUJ-2OHPbBKlnVpjDzavA" target="_blank" title="命令行中的趣味世界，牛也能说话，有趣又好玩">命令行中的趣味世界，牛也能说话，有趣又好玩</a></li>
+<li><a href="https://mp.weixin.qq.com/s/7NKl-mD7N8CeSNQlbKDEWA" target="_blank" title="2024 年 05 月编程语言排行榜，Fortran 进入前 10 名，发生了什么？">2024 年 05 月编程语言排行榜，Fortran 进入前 10 名，发生了什么？</a></li>
+<li><a href="https://mp.weixin.qq.com/s/yWlSVDKobtDhThnhirVRpw" target="_blank" title="免费开源的 IDE、数据库管理工具、SSH客户端和FTP客户端">免费开源的 IDE、数据库管理工具、SSH客户端和FTP客户端</a></li>
+</ul>
+</div>
+</div>
+<div class="sidebar-box cate-list">
+<div class="sidebar-box recommend-here list-link">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;">教程列表</a>
+</div>
+<div class="cate-items">
+<a href="../ado.html">ADO 教程</a>
+<a href="../ai-agent.html">AI Agent 教程</a>
+<a href="../ai.html">AI 入门教程</a>
+<a href="../ai-math.html">AI 数学基础</a>
+<a href="../ajax.html">Ajax 教程</a>
+<a href="../android.html">Android 教程</a>
+<a href="../angularjs2.html">Angular2 教程</a>
+<a href="../angularjs.html">AngularJS 教程</a>
+<a href="../appml.html">AppML 教程</a>
+<a href="../asp.html">ASP 教程</a>
+<a href="../aspnet.html">ASP.NET 教程</a>
+<a href="../bootstrap.html">Bootstrap 教程</a>
+<a href="../bootstrap4.html">Bootstrap4 教程</a>
+<a href="../bootstrap5.html">Bootstrap5 教程</a>
+<a href="../cprogramming.html">C 教程</a>
+<a href="../c-dsa.html">C 语言数据结构与算法</a>
+<a href="../csharp.html">C# 教程</a>
+<a href="../cplusplus.html">C++ 教程</a>
+<a href="../chartjs.html">Chart.js 教程</a>
+<a href="../claude-code.html">Claude Code 教程</a>
+<a href="../cmake.html">CMake 教程</a>
+<a href="../codex.html">Codex 教程</a>
+<a href="../cssref.html">CSS 参考手册</a>
+<a href="../css.html">CSS 教程</a>
+<a href="../css3.html">CSS3 教程</a>
+<a href="../cursor.html">Cursor 教程</a>
+<a href="../dart.html">Dart 教程</a>
+<a href="../dash.html">Dash 教程</a>
+<a href="../deepseek-harness.html">DeepSeek Harness</a>
+<a href="../django.html">Django 教程</a>
+<a href="../docker.html">Docker 教程</a>
+<a href="../dtd.html">DTD 教程</a>
+<a href="../echarts.html">ECharts 教程</a>
+<a href="../eclipse.html">Eclipse 教程</a>
+<a href="../electron.html">Electron 教程</a>
+<a href="../fastapi.html">FastAPI 教程</a>
+<a href="../firebug.html">Firebug 教程</a>
+<a href="../flask.html">Flask 教程</a>
+<a href="../flutter.html">Flutter 教程</a>
+<a href="../font-awesome.html">Font Awesome 图标</a>
+<a href="../foundation.html">Foundation 教程</a>
+<a href="../git.html">Git 教程</a>
+<a href="../go.html">Go 语言教程</a>
+<a href="../googleapi.html">Google 地图 API 教程</a>
+<a href="../hermes-agent.html">Hermes Agent</a>
+<a href="../highcharts.html">Highcharts 教程</a>
+<a href="../htmldom.html">HTML DOM 教程</a>
+<a href="../tags.html">HTML 参考手册</a>
+<a href="../charsets.html">HTML 字符集</a>
+<a href="../html.html">HTML 教程</a>
+<a href="../http.html">HTTP 教程</a>
+<a href="../ionic.html">ionic 教程</a>
+<a href="../ios.html">iOS 教程</a>
+<a href="../java.html">Java 教程</a>
+<a href="../jsref.html">JavaScript 参考手册</a>
+<a href="../js.html">Javascript 教程</a>
+<a href="../jeasyui.html">jQuery EasyUI 教程</a>
+<a href="../jquerymobile.html">jQuery Mobile 教程</a>
+<a href="../jqueryui.html">jQuery UI 教程</a>
+<a href="../jquery.html">jQuery 教程</a>
+<a href="../json.html">JSON 教程</a>
+<a href="../jsp.html">JSP 教程</a>
+<a href="../julia.html">Julia 教程</a>
+<a href="../jupyter-notebook.html">Jupyter Notebook 教程</a>
+<a href="../kotlin.html">Kotlin 教程</a>
+<a href="../langchain.html">LangChain 教程</a>
+<a href="../latex.html">LaTeX 教程</a>
+<a href="../linux.html">Linux 教程</a>
+<a href="../lua.html">Lua 教程</a>
+<a href="../markdown.html">Markdown 教程</a>
+<a href="../matplotlib.html">Matplotlib 教程</a>
+<a href="../maven.html">Maven 教程</a>
+<a href="../memcached.html">Memcached 教程</a>
+<a href="../mongodb.html">MongoDB 教程</a>
+<a href="../mysql.html">MySQL 教程</a>
+<a href="../nextjs.html">Next.js 教程</a>
+<a href="../nlp.html">NLP 教程</a>
+<a href="../nodejs.html">Node.js 教程</a>
+<a href="../numpy.html">NumPy 教程</a>
+<a href="../obsidian.html">Obsidian 教程</a>
+<a href="../ollama.html">Ollama 教程</a>
+<a href="../opencode.html">OpenCode 教程</a>
+<a href="../opencv.html">OpenCV 教程</a>
+<a href="../pandas.html">Pandas 教程</a>
+<a href="../perl.html">Perl 教程</a>
+<a href="../php.html">PHP 教程</a>
+<a href="../pi-agent.html">Pi Agent</a>
+<a href="../pillow.html">Pillow 教程</a>
+<a href="../playwright.html">Playwright 教程</a>
+<a href="../postgresql.html">PostgreSQL 教程</a>
+<a href="../powershell.html">PowerShell</a>
+<a href="../pycharm.html">Pycharm 教程</a>
+<a href="../python3.html">Python 3 教程</a>
+<a href="../python.html">Python 基础教程</a>
+<a href="../python-design-pattern.html">Python 设计模式</a>
+<a href="../python-qt.html">Python 量化交易</a>
+<a href="../pytorch.html">PyTorch 教程</a>
+<a href="../r.html">R 教程</a>
+<a href="../rdf.html">RDF 教程</a>
+<a href="../react.html">React 教程</a>
+<a href="../redis.html">Redis 教程</a>
+<a href="../restfulapi.html">RESTful API</a>
+<a href="../rss.html">RSS 教程</a>
+<a href="../ruby.html">Ruby 教程</a>
+<a href="../rust.html">Rust 教程</a>
+<a href="../sass.html">Sass 教程</a>
+<a href="../scala.html">Scala 教程</a>
+<a href="../scipy.html">SciPy 教程</a>
+<a href="../selenium.html">Selenium 教程</a>
+<a href="../servlet.html">Servlet 教程</a>
+<a href="../skills.html">Skills 教程</a>
+<a href="../sklearn.html">Sklearn 教程</a>
+<a href="../soap.html">SOAP 教程</a>
+<a href="../sql.html">SQL 教程</a>
+<a href="../sqlite.html">SQLite 教程</a>
+<a href="../svg.html">SVG 教程</a>
+<a href="../svn.html">SVN 教程</a>
+<a href="../swagger.html">Swagger 教程</a>
+<a href="../swift.html">Swift 教程</a>
+<a href="../tailwindcss.html">Tailwind CSS 教程</a>
+<a href="../tcpip.html">TCP/IP 教程</a>
+<a href="../tensorflow.html">TensorFlow 教程</a>
+<a href="../typescript.html">TypeScript 教程</a>
+<a href="../uniapp.html">uni-app 教程</a>
+<a href="../vbscript.html">VBScript 教程</a>
+<a href="../vibe-coding.html">Vibe Coding 教程</a>
+<a href="../vscode.html">VSCode 教程</a>
+<a href="../vue2.html">Vue.js 教程</a>
+<a href="../vue3.html">Vue3 教程</a>
+<a href="../w3c.html">W3C 教程</a>
+<a href="../webservices.html">Web Service 教程</a>
+<a href="../wsdl.html">WSDL 教程</a>
+<a href="../xlink.html">XLink 教程</a>
+<a href="../dom.html">XML DOM 教程</a>
+<a href="../schema.html">XML Schema 教程</a>
+<a href="../xml.html">XML 教程</a>
+<a href="../xpath.html">XPath 教程</a>
+<a href="../xquery.html">XQuery 教程</a>
+<a href="../xslfo.html">XSLFO 教程</a>
+<a href="../xsl.html">XSLT 教程</a>
+<a href="../zig.html">Zig 教程</a>
+<a href="../data-structures.html">数据结构</a>
+<a href="../ml.html">机器学习</a>
+<a href="../regexp.html">正则表达式</a>
+<a href="../assembly.html">汇编语言</a>
+<a href="../quiz.html">测验</a>
+<a href="../browsers.html">浏览器</a>
+<a href="../quality.html">网站品质</a>
+<a href="../web.html">网站建设指南</a>
+<a href="../hosting.html">网站服务器教程</a>
+<a href="../np.html">网络协议</a>
+<a href="../computer-organization.html">计算机组成原理</a>
+<a href="../design-pattern.html">设计模式</a>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>

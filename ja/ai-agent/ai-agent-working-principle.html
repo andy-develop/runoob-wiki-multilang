@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AI Agent の動作原理 | 菜鸟教程</title>
+<script>
+window.RUNOOB_CONFIG = {
+  darkCssUrl: "https://www.runoob.com/wp-content/themes/runoob/dark-mode.css?v=1.125"
+};
+
+(function () {
+  var t = localStorage.getItem('runoob-theme') || 'light';
+
+  document.documentElement.setAttribute('data-theme', t);
+
+  if (t === 'dark') {
+    loadDarkCss();
+  }
+
+  function loadDarkCss() {
+    if (document.getElementById('dark-theme-css')) return;
+
+    var link = document.createElement('link');
+    link.id = 'dark-theme-css';
+    link.rel = 'stylesheet';
+    link.href = window.RUNOOB_CONFIG.darkCssUrl;
+
+    document.head.appendChild(link);
+  }
+})();
+</script>
+<!-- 图标 -->
+<link href="../static.char123.com/images/favicon.ico" rel="shortcut icon"/>
+<link href="../static.char123.com/images/icon/mobile-icon.png" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- 样式 -->
+<link href="../wp-content/themes/runoob/style.css" media="all" rel="stylesheet"/>
+<link href="../static.jyshare.com/assets/font-awesome-4.7.0/css/font-awesome.min.css" media="all" rel="stylesheet"/>
+<!-- jQuery（IE 条件注释已无意义，现代浏览器直接加载） -->
+<script src="../static.char123.com/assets/libs/jquery.min.js"></script>
+<link href="../manifest.webmanifest.html" rel="manifest"/>
+<meta content="#10151c" name="theme-color"/>
+<link href="../pwa/icon-192.png.html" rel="apple-touch-icon"/>
+<meta content="菜鸟教程" name="application-name"/>
+<meta content="菜鸟教程" name="apple-mobile-web-app-title"/>
+<!-- WordPress head 钩子，必须紧贴 </head> 前 -->
+<meta content="max-image-preview:large" name="robots"/>
+<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<link href="../ai-agent/ai-agent-working-principle.html" rel="canonical"/>
+<meta content="AI Agent 工作原理" name="keywords"/>
+<meta content="AI Agent 工作原理 在开始深入了解 AI Agent 之前，我们先来回答一个根本问题：既然有 LLM，为什么还需要 Agent？  想象一下，你有一位非常博学的朋友——他读过海量的书，能回答几乎所有问题，但他在 2024 年不再接触新信息，也没有手机、不能上网、不能帮你订外卖、不能查今天的天气。这就是大型语言模型（LLM）——知识丰富，但知识截止于训练数据，无法主动获取实时信息，也无法执行具体的操作。  而 AI Agent 就.." name="description"/>
+</head>
+<body>
+<!-- 头部 -->
+<div class="container logo-search">
+<div class="col search row-search-mobile">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" name="q" placeholder="搜索……"/>
+</form>
+</div>
+<div class="row">
+<div class="col right-list">
+<button class="btn btn-responsive-nav btn-inverse" id="pull">
+<i class="fa fa-navicon"></i>
+</button>
+</div>
+<div class="col search search-desktop last">
+<div class="search-input">
+<form action="../search.html" method="get">
+<input autocomplete="off" class="placeholder" id="s" name="s" placeholder="搜索……" style="height:44px;"/>
+</form>
+</div>
+</div>
+</div>
+</div>
+<!-- 导航栏 -->
+<style>
+/* 主题切换按钮 */
+/* ===== 主题变量（核心）===== */
+:root {
+  --theme-bg: #ffffff;
+  --theme-border: #e5e7eb;
+  --theme-icon: #333;
+  --theme-hover: #f3f4f6;
+}
+
+.dark {
+  --theme-bg: #1f2937;
+  --theme-border: #374151;
+  --theme-icon: #e5e7eb;
+  --theme-hover: #374151;
+}
+
+/* ===== 按钮容器 ===== */
+.nav-theme-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== 按钮本体 ===== */
+.nav-theme-toggle button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  border-radius: 6px;
+  border: 1px solid var(--theme-border);
+
+  background: var(--theme-bg);
+  color: var(--theme-icon);
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* ===== 图标大小 ===== */
+.nav-theme-toggle i {
+  font-size: 14px;
+}
+
+/* ===== hover 效果 ===== */
+.nav-theme-toggle button:hover {
+  background: var(--theme-hover);
+  transform: translateY(-1px);
+}
+
+/* ===== 点击反馈 ===== */
+.nav-theme-toggle button:active {
+  transform: scale(0.95);
+}
+
+/* ===== 当前激活态（可选）===== */
+.nav-theme-toggle button.active {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+</style>
+<!-- 导航栏 -->
+<nav aria-label="主导航" class="container navigation">
+<div class="row">
+<div class="col nav">
+<!-- PC 导航 -->
+<ul class="pc-nav" id="runoob-detail-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../js/js-tutorial.html">JavaScript</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a data-id="vue" href="#">Vue</a></li>
+<li><a href="../react/react-tutorial.html">React</a></li>
+<li><a href="../python3/python3-tutorial.html">Python3</a></li>
+<li><a href="../java/java-tutorial.html">Java</a></li>
+<li><a href="../cprogramming/c-tutorial.html">C</a></li>
+<li><a href="../cplusplus/cpp-tutorial.html">C++</a></li>
+<li><a href="../csharp/csharp-tutorial.html">C#</a></li>
+<li><a data-id="aiNav" href="#">AI</a></li>
+<li><a href="../go/go-tutorial.html">Go</a></li>
+<li><a href="../sql/sql-tutorial.html">SQL</a></li>
+<li><a href="../linux/linux-tutorial.html">Linux</a></li>
+<li><a href="../vscode/vscode-tutorial.html">VS Code</a></li>
+<li><a data-id="bootstrap" href="#">Bootstrap</a></li>
+<li><a href="../git/git-tutorial.html">Git</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<!-- 主题切换按钮，固定在最右侧 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+<!-- 移动端导航 -->
+<ul class="mobile-nav">
+<li><a href="../index.html">首页</a></li>
+<li><a href="../html/html-tutorial.html">HTML</a></li>
+<li><a href="../css/css-tutorial.html">CSS</a></li>
+<li><a href="../js/js-tutorial.html">JS</a></li>
+<li><a href="../browser-history.html">本地书签</a></li>
+<li><a class="search-reveal" href="#">搜索</a></li>
+<!-- 移动端主题切换 -->
+<li class="nav-theme-toggle">
+<button aria-label="切换暗色模式" id="moon-mobile" style="display:none" title="切换暗色模式">
+<i class="fa fa-moon-o"></i>
+</button>
+<button aria-label="切换亮色模式" id="sun-mobile" style="display:none" title="切换亮色模式">
+<i class="fa fa-sun-o"></i>
+</button>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<!-- 二级导航 -->
+<!--  内容  -->
+<div class="container main">
+<!-- 中间 -->
+<div class="row">
+<div class="runoob-col-md2">
+<div class="left-column">
+<div class="tab" style="overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
+<i aria-hidden="true" class="fa fa-list"></i>
+<span>AI Agent 教程</span>
+</div>
+<div class="sidebar-box gallery-list">
+<div class="design" id="leftcolumn">
+<a data-p="par" href="../ai-agent/ai-agent-tutorial.html" target="_top" title="AI Agent(智能体) 教程">
+			AI Agent(智能体) 教程			</a>
+<a data-p="par" href="../ai-agent/ai-agent-intro.html" target="_top" title="AI Agent 简介">
+			AI Agent 简介			</a>
+<a data-p="par" href="../ai-agent/ai-agent-core.html" target="_top" title="AI Agent  核心组件">
+			AI Agent  核心组件			</a>
+<a href="../ai-agent/ai-terminology.html" target="_top" title="AI Agent 术语">AI Agent 术语</a>
+<a href="../ai-agent/ai-agent-working-principle.html" target="_top" title="AI Agent 工作原理">AI Agent 工作原理</a>
+<a href="../ai-agent/ai-architecture.html" target="_top" title="AI 底层架构">AI 底层架构</a>
+<a href="../ai-agent/ai-agent-llm.html" target="_top" title="大语言模型基础">大语言模型基础</a>
+<a href="../ai-agent/llm-multimodal.html" target="_top" title="大模型多模态">大模型多模态</a>
+<a href="../ai-agent/prompt-engineering.html" target="_top" title="提示词工程">提示词工程</a>
+<a href="../ai-agent/token-intro.html" target="_top" title="Token (词元)">Token (词元)</a>
+<a href="../ai-agent/reasoning-planning.html" target="_top" title="推理与规划">推理与规划</a>
+<a href="../ai-agent/vector-database.html" target="_top" title="向量数据库">向量数据库</a>
+<a href="../ai-agent/retrieval-augmented-generation.html" target="_top" title="RAG 与知识检索">RAG 与知识检索</a>
+<a href="../ai-agent/agent-context-engineering.html" target="_top" title="Agent 上下文工程">Agent 上下文工程</a>
+<a href="../ai-agent/agent-architecture.html" target="_top" title="Agent 架构">Agent 架构</a>
+<br/>
+<h2 class="left"> <span class="left_h2">智能体工具</span></h2> <a data-p="par" href="../ai-agent/first-ai-agent.html" target="_top" title="第一个 AI Agent">
+			第一个 AI Agent			</a>
+<a href="../ai-agent/ai-monkeycode.html" target="_top" title="AI 开发平台"> AI 开发平台</a>
+<a href="../ai-agent/openclaw-clawdbot-tutorial.html" target="_top" title="OpenClaw (Clawdbot) 教程"> OpenClaw (Clawdbot) 教程</a>
+<a href="../ai-agent/openclaw-quickstart.html" target="_top" title="OpenClaw 快速上手"> OpenClaw 快速上手</a>
+<a href="../ai-agent/qoderwork.html" target="_top" title="QoderWork 教程"> QoderWork 教程</a>
+<a href="../ai-agent/qoderwake-usage.html" target="_top" title="QoderWake 教程"> QoderWake 教程</a>
+<a href="../ai-agent/workbuddy-usage.html" target="_top" title="WorkBuddy 入门教程"> WorkBuddy 入门教程</a>
+<a href="../ai-agent/ai-workflow.html" target="_top" title="AI 工作流"> AI 工作流</a>
+<a data-p="par" href="../ai-agent/crewai-agent.html" target="_top" title="CrewAI 构建智能体">
+			CrewAI 构建智能体			</a>
+<a data-p="par" href="../ai-agent/langchain-agent.html" target="_top" title="LangChain 制作智能体">
+			LangChain 制作智能体			</a>
+<a href="../ai-agent/langgraph-quick-start.html" target="_top" title="LangGraph 入门教程">LangGraph 入门教程</a>
+<a href="../ai-agent/deep-agents-usage.html" target="_top" title="Deep Agents 入门教程">Deep Agents 入门教程</a>
+<a href="../ai-agent/graphrag-usage.html" target="_top" title="GraphRAG 入门教程">GraphRAG 入门教程</a>
+<a href="../ai-agent/harness-engineering.html" target="_top" title="Harness Engineering">Harness Engineering</a>
+<a href="../ai-agent/hermes-agent.html" target="_top" title="Hermes Agent">Hermes Agent</a>
+<a href="../ai-agent/loop-engineering.html" target="_top" title="Loop Engineering">Loop Engineering</a>
+<a href="../ai-agent/vibe-coding-start.html" target="_top" title="Vibe Coding 入门教程">Vibe Coding</a>
+<a href="../ai-agent/dify-usage.html" title="Dify 入门教程">Dify 入门教程</a>
+<a href="../ai-agent/n8n-usage.html" title="n8n 入门教程">n8n 入门教程 </a>
+<a href="../ai-agent/pi-coding-agent.html" title="Pi Coding Agent">Pi Coding Agent </a>
+<br/><h2 class="left"> <span class="left_h2">Python 实现智能体</span></h2>
+<a href="../ai-agent/python-ai-agent.html" target="_top" title="Python 实现 AI Agent">Python 实现 AI Agent</a>
+<a href="../ai-agent/ai-agent-function-calling.html" target="_top" title="工具调用">工具调用</a>
+<a href="../ai-agent/ai-agent-memory-system-design.html" target="_top" title="记忆系统">记忆系统</a>
+<a data-p="par" href="../ai-agent/ai-agent-python-setup.html" target="_top" title="Python 智能体环境配置">
+			Python 智能体环境配置			</a>
+<a data-p="par" href="../ai-agent/ai-agent-answer-demo.html" target="_top" title="AI Agent 问答实例">
+			AI Agent 问答实例			</a>
+<a data-p="par" href="../ai-agent/python-reasoning-planning.html" target="_top" title="Python 实现推理与规划">
+			推理与规划			</a>
+<a data-p="par" href="../ai-agent/python-rag.html" target="_top" title="Python 实现 RAG 与知识检索">
+			RAG 与知识检索			</a>
+<a data-p="par" href="../ai-agent/multi-agent-system.html" target="_top" title="多智能体系统（Multi-Agent System）">
+			多智能体系统			</a>
+<a data-p="par" href="../ai-agent/tools-integration.html" target="_top" title="AI Agent 工具与外部集成">
+			工具与外部集成			</a>
+<a data-p="par" href="../ai-agent/multimodal-agent.html" target="_top" title="多模态 Agent">
+			多模态 Agent			</a>
+<a data-p="par" href="../ai-agent/evaluation-safety-alignment.html" target="_top" title="Agent 评估、安全与对齐">
+			评估、安全与对齐			</a>
+<a data-p="par" href="../ai-agent/production-deployment.html" target="_top" title="AI Agent 生产部署与工程化">
+			生产部署与工程化			</a>
+<a data-p="par" href="../ai-agent/vertical-applications.html" target="_top" title="AI Agent 垂直应用场景">
+			垂直应用场景			</a>
+<a data-p="par" href="../ai-agent/hugging-face-transformers.html" target="_top" title="Hugging Face Transformers">
+			Hugging Face Transformers			</a>
+</div>
+</div>
+</div>
+</div> <div class="col middle-column">
+<div class="article">
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../ai-agent/openclaw-cloud.html" rel="prev">OpenClaw ワンクリックデプロイ</a> </div>
+<div class="next-design-link"><a href="../ai-agent/ai-agent-llm.html" rel="next">大規模言語モデルの基礎（LLM）</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="article-body">
+<div class="article-intro" id="content">
+<h1>AI Agent の動作原理</h1>
+<p>AI Agent を深く理解し始める前に、根本的な質問に答えましょう：<strong>LLM があるのに、なぜ Agent が必要なのか？</strong></p>
+<p>想像してみてください。あなたには非常に博学な友人がいるとします。彼は膨大な本を読み、ほとんどすべての質問に答えられますが、2024 年以降は新しい情報に触れておらず、携帯電話もなく、インターネットもできず、出前の注文もしてくれず、今日の天気も調べられません。これが大規模言語モデル（LLM）です。知識は豊富ですが、<strong>知識は学習データで止まっています</strong>能動的にリアルタイム情報を取得できず、具体的な操作も実行できません。</p>
+<p>而 <strong>AI Agent</strong>まるでこの友人に、インターネットに接続できる携帯電話、電卓、カレンダーなどを与えたようなものです。彼は考えるだけでなく、<strong>実際に手を動かして物事を行うことができます。</strong>AI Agent は LLM とツール・記憶を組み合わせることで、この制限を突破し、以下を実現します。<strong>思考と行動の統一</strong>。</p>
+<hr/>
+<h2>AI Agent の三大核心構成</h2>
+<p>典型的な AI Agent は、3 つの重要な部分が連携して動作します。上記の比喩を使って理解を続けましょう。</p>
+<p><strong>1、脳 (The Brain) - 大規模言語モデル (LLM)</strong></p>
+<ul>
+<li><strong>役割</strong>：Agent の意思決定センターおよび推論エンジン。</li>
+<li><strong>機能</strong>：ユーザー入力の<strong>目標</strong>和<strong>コンテキスト</strong>を理解し、現在の状況を分析して、次に何をするべきか（直接質問に答えるか、ツールを呼び出すか）を決定します。複雑なタスクの計画と分解を担当します。</li>
+<li><strong>比喩</strong>：会社の<strong>CEO または指揮官のようなもので、</strong>戦略的思考、タスク計画、指示の伝達を担当します。何をすべきかは分かっていますが、実際に実行するにはツールを借りる必要があります。</li>
+</ul>
+<p><strong>2、ツール (Tools) - 実行可能なアクション</strong></p>
+<ul>
+<li><strong>役割</strong>：Agent の手と足であり、能力の延長です。</li>
+<li><strong>機能</strong>：具体的な関数や API のひとつひとつであり、Agent が外部世界とやり取りできるようにします。例えば：<code>search_web</code>（ウェブ検索）、<code>execute_python_code</code>（コード実行）、<code>read_file</code>（ファイル読み取り）、<code>send_email</code>（メール送信）などです。</li>
+<li><strong>比喩</strong>：従業員の机の上にある<strong>さまざまなオフィスソフトウェアやデバイスのようなものです。</strong>Excel、ブラウザ、電話、プリンターなどです。CEO（脳）が指示を出し、従業員（ツール）が実行を担当します。</li>
+<li><strong>重要な理解</strong>：ツールがなければ LLM は言うだけで、ツールがあって初めて Agent は実際に行うことができます。</li>
+</ul>
+<p><strong>3、記憶 (Memory) - 対話と経験の保存</strong></p>
+<ul>
+<li><strong>役割</strong>：作業プロセスを記録し、タスクの一貫性を保証します。</li>
+<li><strong>機能</strong>：
+<ul>
+<li><strong>短期記憶</strong>：現在の対話履歴を保存し、Agent が以前に何を言ったか、何をしたかを覚えているようにします。友達と話すとき、毎回自己紹介し直す必要がないのと同じです。</li>
+<li><strong>長期記憶</strong>：より永続的な情報（ユーザーの好み、過去のタスク結果など）を保存し、将来のタスクの参考にできます。あなた専用のユーザーファイルを持っているようなものです。</li>
+</ul>
+</li>
+<li><strong>比喩</strong>：従業員の<strong>作業メモやプロジェクトファイルのようなもので、</strong>重複作業を避け、毎回の作業を以前の経験に基づいて前進させることができます。</li>
+</ul>
+<p><img decoding="async" src="../wp-content/uploads/2025/12/ai-agent-core-runoob-3-scaled.png" style="max-height:580px"/></p>
+<p>💡 <strong>一言でまとめると</strong>：脳は思考を担当し、ツールは行動を担当し、記憶は一貫性を保証します。この 3 つはどれも欠かせません。</p>
+<hr/>
+<h2>AI Agent の種類</h2>
+<p>設計目標と複雑さに応じて、AI Agent はさまざまな種類に分類できます：</p>
+<table class="reference">
+<tr>
+<th>Agent の種類</th>
+<th>特徴</th>
+<th>代表的な応用</th>
+</tr>
+<tr>
+<td><strong>反応型 Agent (Reactive Agent)</strong></td>
+<td>現在の知覚に基づいて即座に応答し、内部状態を保持しません。目先のことだけを見て過去を覚えないカスタマーサービスのようなものです。</td>
+<td>簡単な Q&amp;A、ゲーム AI</td>
+</tr>
+<tr>
+<td><strong>目標指向 Agent (Goal-based Agent)</strong></td>
+<td>特定の目標を中心に行動を計画し、目標が達成されたかどうかを評価できます。KPI を持つ従業員のように、何の目標を達成するために何をしているのかを把握しています。</td>
+<td>タスクアシスタント、自動化ワークフロー</td>
+</tr>
+<tr>
+<td><strong>実用型 Agent (Utility-based Agent)</strong></td>
+<td>「効用関数」を使って複数の可能な行動にスコアを付け、最適な選択肢を選びます。利害を天秤にかけ、最適解を追求する意思決定者のようなものです。</td>
+<td>リソース最適化、経路計画</td>
+</tr>
+<tr>
+<td><strong>学習型 Agent (Learning Agent)</strong></td>
+<td>経験から学習し、意思決定戦略を継続的に最適化できます。使うほど賢くなり、振り返りを怠らない従業員のようなものです。</td>
+<td>レコメンドシステム、パーソナライズアシスタント</td>
+</tr>
+<tr>
+<td><strong>マルチエージェントシステム (Multi-Agent)</strong></td>
+<td>複数の Agent が協力して役割を分担し、それぞれが自分の責務を果たします。役割分担が明確なチームのように、各自が一部分を担当します。</td>
+<td>複雑なタスク分解、チーム協力</td>
+</tr>
+</table>
+<p>初心者はまず最初の 2 つを習得するだけで十分です。それらは最も一般的な基本的な形態です。</p>
+<hr/>
+<h2>ワークフロー：ReAct ループ</h2>
+<p>Agent の構成を理解したところで、次の質問は、それが<strong>どのように動き出すのか</strong>ということです。</p>
+<p>AI Agent は通常、<strong>ReAct = Reasoning（推論）+ Acting（行動）</strong>という古典的な思考パラダイムに従います。名前の通り、<strong>考えてから行動し、また考えてから行動する</strong>……このループをタスクが完了するまで繰り返します。</p>
+<p>これは、責任感の強い新入社員がタスクを受け取ったときの仕事のやり方に例えられます：<em>「どうやるかを考えて → 資料を調べに行って → 何が分かったかを見て → 次のステップを考えて → また行動する……」</em>と、思い付きで適当にやるのではありません。</p>
+SVG 可視化：ReAct ループのフローチャート
+<svg style="background:#fafafa;border-radius:8px;margin:20px 0;" viewbox="0 0 800 320" width="100%" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<marker id="arrowhead" markerheight="7" markerwidth="10" orient="auto" refx="9" refy="3.5">
+<polygon fill="#3498db" points="0 0, 10 3.5, 0 7"></polygon>
+</marker>
+<filter height="140%" id="shadow" width="140%" x="-20%" y="-20%">
+<fedropshadow dx="2" dy="2" flood-opacity="0.2" stddeviation="3"></fedropshadow>
+</filter>
+</defs>
+外側のループ
+<ellipse cx="400" cy="160" fill="none" rx="340" ry="130" stroke="#e0e0e0" stroke-dasharray="8,4" stroke-width="2"></ellipse>
+中心：ユーザー
+<circle cx="400" cy="160" fill="#2c3e50" filter="url(#shadow)" r="40"></circle>
+<text fill="white" font-size="11" font-weight="bold" text-anchor="middle" x="400" y="155">ユーザー</text>
+<text fill="white" font-size="10" text-anchor="middle" x="400" y="170">User</text>
+ノード 1：思考
+<circle cx="90" cy="130" fill="#3498db" filter="url(#shadow)" r="45"></circle>
+<text fill="white" font-size="13" font-weight="bold" text-anchor="middle" x="90" y="125">思考</text>
+<text fill="white" font-size="10" text-anchor="middle" x="90" y="142">Reason</text>
+<text fill="#aed6f1" font-size="9" text-anchor="middle" x="90" y="157">LLM 推論</text>
+ノード 2：行動
+<circle cx="280" cy="55" fill="#27ae60" filter="url(#shadow)" r="45"></circle>
+<text fill="white" font-size="13" font-weight="bold" text-anchor="middle" x="280" y="50">行動</text>
+<text fill="white" font-size="10" text-anchor="middle" x="280" y="67">Action</text>
+<text fill="#a9dfbf" font-size="9" text-anchor="middle" x="280" y="82">ツール呼び出し</text>
+ノード 3：観察
+<circle cx="520" cy="55" fill="#e67e22" filter="url(#shadow)" r="45"></circle>
+<text fill="white" font-size="13" font-weight="bold" text-anchor="middle" x="520" y="50">観察</text>
+<text fill="white" font-size="10" text-anchor="middle" x="520" y="67">Observe</text>
+<text fill="#f5cba7" font-size="9" text-anchor="middle" x="520" y="82">結果の取得</text>
+ノード 4：記憶
+<circle cx="710" cy="130" fill="#9b59b6" filter="url(#shadow)" r="45"></circle>
+<text fill="white" font-size="13" font-weight="bold" text-anchor="middle" x="710" y="125">記憶</text>
+<text fill="white" font-size="10" text-anchor="middle" x="710" y="142">Memory</text>
+<text fill="#d2b4de" font-size="9" text-anchor="middle" x="710" y="157">コンテキストの保存</text>
+矢印
+<path d="M 135 130 Q 180 90 235 55" fill="none" marker-end="url(#arrowhead)" stroke="#3498db" stroke-width="2"></path>
+<path d="M 325 55 Q 380 40 475 55" fill="none" marker-end="url(#arrowhead)" stroke="#27ae60" stroke-width="2"></path>
+<path d="M 565 55 Q 620 90 665 130" fill="none" marker-end="url(#arrowhead)" stroke="#e67e22" stroke-width="2"></path>
+<path d="M 710 175 L 710 240 Q 600 290 400 290 Q 200 290 135 200 Q 100 170 90 175" fill="none" marker-end="url(#arrowhead)" stroke="#9b59b6" stroke-width="2"></path>
+ラベル
+<text fill="#555" font-size="10" x="170" y="95">1. 計画を生成</text>
+<text fill="#555" font-size="10" x="380" y="40">2. アクションを実行</text>
+<text fill="#555" font-size="10" x="600" y="95">3. フィードバックを受信</text>
+<text fill="#555" font-size="10" text-anchor="middle" x="400" y="305">4. 記憶を更新し、推論を続行</text>
+</svg>
+<h3>完全な例を使ってこのループを追跡する</h3>
+<p>ユーザーが Agent に指令を出します：<strong>「北京で評価が 4.5 以上のイタリアンレストランを探して、その住所と名物料理を教えてください。」</strong></p>
+<p>それでは、Agent の「思考」に一歩ずつ従ってみましょう：</p>
+<p><strong>ステップ 1：思考 (Think/Reason)</strong></p>
+<ul>
+<li><strong>脳が目標を分析する</strong>：Agent の脳（LLM）はこのタスクを受け取ると、まず頭の中で整理します：<em>「これは情報検索タスクで、2 種類の情報が必要です。① 条件に合うレストランを見つける、② 住所と名物料理を取得する。私は今何も知らないので、まず検索すべきだ。」</em></li>
+<li><strong>行動指示を生成する</strong>：脳が決定します：<em>「<code>search_web</code>ツールを呼び出して、キーワードを「北京 イタリアンレストラン 評価 4.5 以上」に設定します。」</em></li>
+</ul>
+<p>💡 <strong>注意</strong>：このステップでは、Agent はまだ「何もしていません」。ただ「考えている」だけです。LLM の価値はまさにここにあります。意図を理解し、タスクを分解し、計画を立てることができるのです。</p>
+<p><strong>ステップ2: 行動 (Act)</strong></p>
+<ul>
+<li><strong>ツールを呼び出す</strong>：Agent は前のステップの決定に基づいて、実際にツールを<code>search_web</code>呼び出し、キーワードを渡します。</li>
+<li><strong>ツールの実行</strong>：検索ツールはインターネット上で検索を実行し、生の検索結果（Webページのタイトル、概要、リンクなど）を返します。</li>
+</ul>
+<p>💡 <strong>注意</strong>：ツール自体は「考え」ません。ツールは忠実に実行するだけです。考えるのは脳の仕事であり、実行するのはツールの仕事です。役割分担が明確です。</p>
+<p><strong>ステップ3: 観察 (Observe)</strong></p>
+<ul>
+<li><strong>フィードバックを受け取る</strong>：Agent はツールが返した検索結果を取得し、結果を<strong>メモリ</strong>に保存し、次の推論ラウンドで使用できるようにします。</li>
+<li>検索結果にはいくつかのレストランが含まれているとします：Bottega 意库（評価 4.7）、Da Vittorio、Le Marche など。</li>
+</ul>
+<p><strong>ステップ4: 再思考 (Think Again)</strong></p>
+<ul>
+<li><strong>脳の再分析</strong>：検索結果を見た後、脳はさらに推論を続けます：<em>「よし、候補のレストランをいくつか見つけた。しかしユーザーが求めているのは住所と看板メニューで、これらは検索サマリーにはない。Bottega 意库の詳細情報をさらに調べる必要がある。」</em></li>
+<li><strong>新しい指示を生成する</strong>：<em>「ツールを<code>get_restaurant_details</code>呼び出して、『Bottega 意库』の詳細情報を照会します。」</em></li>
+</ul>
+<p><strong>ステップ5: 再行動 → 再観察（ループ継続）</strong></p>
+<ul>
+<li>この<span class="marked">思考 → 行動 → 観察</span>というループは繰り返され、毎回 Agent を目標に一歩ずつ近づけます。脳が「ユーザーに答えるための十分な情報が得られた」と判断するまで続きます。</li>
+</ul>
+<p><strong>ステップ6: 最終回答の出力 (Final Answer)</strong></p>
+<ul>
+<li>脳がタスク完了を確認すると、収集したすべての情報（メモリに保存されている）を統合し、構造化された人間らしい応答を生成します：</li>
+<li><em>「条件に合うレストランを見つけました：<strong>Bottega 意库</strong>（評価 4.7）。住所：北京市朝陽区三里屯路 XX 号。看板メニュー：黒トリュフピザ、手作りティラミス。」</em></li>
+</ul>
+<p>この<strong><span class="marked">思考 → 行動 → 観察 → 再思考…</span></strong>というループこそ、AI Agent が複雑なタスクを自律的に完了するための中核となる駆動メカニズムです。一度に答えを出すのではなく、人間のように<strong>段階的に進め、やりながら考える</strong>。</p>
+<hr/>
+<h2>Python で AI Agent を実装する</h2>
+<p>理論は説明し終えたので、次にコードを見てみましょう。AI Agent システムは通常、いくつかのコアモジュールが協調して動作します。このアーキテクチャを理解することで、Agent がどのように考え行動するのかを把握できます。</p>
+<p><img decoding="async" src="../wp-content/uploads/2026/02/68040279-910a-4bf9-8f0b-8b7bd88138c2.webp"/></p>
+<p>各モジュールを分解して、簡単な Python コードでその役割を示します。初心者はすべてのコード行を深く追う必要はありません。重要なのは<strong>各モジュールが何をしているかを理解することです。</strong>。</p>
+<h3>1. 感知モジュール —— Agent の「目と耳」</h3>
+<p>知覚モジュールは<strong>環境</strong>から情報を取得します。つまり「どのような入力を受け取ったか」です。環境には次のものがあります：</p>
+<ul>
+<li><strong>デジタル世界</strong>：テキスト、Webページ、データベースのレコード、API が返すデータ。</li>
+<li><strong>物理世界</strong>（ハードウェア経由）：カメラ画像、マイク音声、センサーデータ。</li>
+</ul>
+<p>最も一般的なテキスト型 Agent の場合、知覚とは「ユーザーが入力した一文を受け取る」ことです。</p>
+<div class="example">
+<h2 class="example">サンプル</h2>
+<div class="example_code">
+<span style="color: #a50"># 知覚モジュール：外部情報の「受信」を担当</span><br/>
+<span style="color: Green;font-weight:bold;">def</span> perceive_from_environment<span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""<br/>環境から情報を知覚します。<br/>この例では、環境とはコマンドラインでユーザーが入力したテキストです。<br/>
+    """</span><br/>
+    user_input <span style="color: Gray;">=</span> <span style="color: Teal;">input</span><span style="color: Olive;">(</span><span style="color: #a11;">"指示または質問を入力してください："</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"[知覚モジュール] 情報を受信しました：'{user_input}'"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> user_input  <span style="color: #a50"># 知覚した内容を次のモジュール（意思決定モジュール）に渡す</span><br/>
+<br/>
+<span style="color: #a50"># 知覚情報を取得する</span><br/>
+current_observation <span style="color: Gray;">=</span> perceive_from_environment<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<h3>2. 決定モジュール（脳）—— Agent の「指揮官」</h3>
+<p>これは Agent の核心であり、通常は<strong>AI モデル（大規模言語モデル LLM など）</strong>によって駆動されます。知覚モジュールから渡された情報を受け取り、次の3つのことを行います：</p>
+<ul>
+<li><strong>理解</strong>：この情報はどういう意味か？ ユーザーは何を求めているか？</li>
+<li><strong>推論</strong>：現在の状況で、どう行動すべきか？</li>
+<li><strong>計画</strong>：次のステップ（または今後数ステップ）でどのツールを呼び出し、どの操作を行うべきか？</li>
+</ul>
+<p>以下のコードは、最も簡単な「キーワードマッチング」で意思決定プロセスをシミュレートしています。実際の Agent では、このステップは LLM によって行われ、はるかに複雑な意味理解を処理できます。</p>
+<div class="example">
+<h2 class="example">サンプル</h2>
+<div class="example_code">
+<span style="color: #a50"># 意思決定モジュール：「思考」と「計画」を担当</span><br/>
+<span style="color: Green;font-weight:bold;">def</span> make_decision<span style="color: Olive;">(</span>observation<span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""<br/>知覚情報に基づいて簡単な意思決定を行います。<br/>ここではキーワードマッチングでシミュレートしていますが、実際には LLM がより複雑な推論を行います。<br/>
+    """</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"[意思決定モジュール] 情報を分析中：'{observation}'"</span><span style="color: Olive;">)</span><br/>
+    <br/>
+    <span style="color: #a50"># ユーザー入力のキーワードに基づいて、どのツールを呼び出すべきか判断する</span><br/>
+    <span style="color: Green;font-weight:bold;">if</span> <span style="color: #a11;">"天気"</span> <span style="color: Green;font-weight:bold;">in</span> observation:<br/>
+        decision <span style="color: Gray;">=</span> <span style="color: #a11;">"天気検索ツールを呼び出します"</span><br/>
+    <span style="color: Green;font-weight:bold;">elif</span> <span style="color: #a11;">"計算"</span> <span style="color: Green;font-weight:bold;">in</span> observation:<br/>
+        decision <span style="color: Gray;">=</span> <span style="color: #a11;">"計算機ツールを呼び出します"</span><br/>
+    <span style="color: Green;font-weight:bold;">elif</span> <span style="color: #a11;">"終了"</span> <span style="color: Green;font-weight:bold;">in</span> observation:<br/>
+        decision <span style="color: Gray;">=</span> <span style="color: #a11;">"終了アクションを実行します"</span><br/>
+    <span style="color: Green;font-weight:bold;">else</span>:<br/>
+        decision <span style="color: Gray;">=</span> <span style="color: #a11;">"一般的な対話応答を行います"</span>  <span style="color: #a50"># ツールにマッチしなければ、直接対話する</span><br/>
+    <br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"[意思決定モジュール] 意思決定結果：{decision}"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> decision  <span style="color: #a50"># 意思決定結果を行動モジュールに渡す</span><br/>
+<br/>
+<span style="color: #a50"># 知覚に基づいて意思決定する</span><br/>
+current_decision <span style="color: Gray;">=</span> make_decision<span style="color: Olive;">(</span>current_observation<span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<h3>3. 行動モジュール —— Agent の「実行者」</h3>
+<p>意思決定モジュールが出力するのは「考え」（何をするか）であり、行動モジュールはその考えを「現実」（実際に行うこと）に変える役割を担います。具体的な操作を実行して外部環境に影響を与えます。一般的な行動には次のものがあります：</p>
+<ul>
+<li><strong>デジタル行動</strong>：画面上に回答を出力する、関数を呼び出す、API リクエストを送信する、ファイルに書き込む。</li>
+<li><strong>物理行動</strong>（ハードウェアの制御による）：ロボットアームの動きを制御する、スピーカーで音声を再生する。</li>
+</ul>
+<div class="example">
+<h2 class="example">サンプル</h2>
+<div class="example_code">
+<span style="color: #a50"># 行動モジュール：意思決定モジュールから与えられた指示の「実行」を担当</span><br/>
+<span style="color: Green;font-weight:bold;">def</span> execute_action<span style="color: Olive;">(</span>decision<span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""<br/>意思決定モジュールから与えられた指示を実行し、実行結果を返します。<br/>実行結果はメモリに保存され、次の推論ラウンドで使用されます。<br/>
+    """</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"[行動モジュール] 実行中：{decision}"</span><span style="color: Olive;">)</span><br/>
+    <br/>
+    <span style="color: Green;font-weight:bold;">if</span> decision <span style="color: Gray;">==</span> <span style="color: #a11;">"天気検索ツールを呼び出します"</span>:<br/>
+        <span style="color: #a50"># ここは実際の天気 API 呼び出しに置き換えることができます</span><br/>
+        result <span style="color: Gray;">=</span> <span style="color: #a11;">"北京：晴れ、25℃。"</span><br/>
+    <span style="color: Green;font-weight:bold;">elif</span> decision <span style="color: Gray;">==</span> <span style="color: #a11;">"計算機ツールを呼び出します"</span>:<br/>
+        result <span style="color: Gray;">=</span> <span style="color: #a11;">"1+1=2"</span><br/>
+    <span style="color: Green;font-weight:bold;">elif</span> decision <span style="color: Gray;">==</span> <span style="color: #a11;">"終了アクションを実行します"</span>:<br/>
+        result <span style="color: Gray;">=</span> <span style="color: #a11;">"タスク終了。"</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>result<span style="color: Olive;">)</span><br/>
+        exit<span style="color: Olive;">(</span><span style="color: Olive;">)</span>  <span style="color: #a50"># プログラム全体を終了する</span><br/>
+    <span style="color: Green;font-weight:bold;">else</span>:<br/>
+        result <span style="color: Gray;">=</span> f<span style="color: #a11;">"ご意図を理解しました：'{decision}'"</span><br/>
+    <br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"[行動モジュール] 行動結果：{result}"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> result  <span style="color: #a50"># 結果を返し、「観察」フェーズに入る</span><br/>
+<br/>
+<span style="color: #a50"># 決定を実行して、結果を得る</span><br/>
+action_result <span style="color: Gray;">=</span> execute_action<span style="color: Olive;">(</span>current_decision<span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<h3>4. 記憶モジュール —— Agent の「仕事のメモ」</h3>
+<p>メモリがなければ、Agent は毎回「記憶喪失」状態で応答します——あなたが以前に何を言ったかも、自分が何をしたかも忘れてしまいます。メモリモジュールはこの問題を解決します。メモリには2種類あります：</p>
+<ul>
+<li><strong>短期メモリ / 会話履歴</strong>：今回の会話で話した内容を記録し、Agent がマルチターン会話で一貫性を保つようにします。友人と話すとき、毎文の背景を説明し直す必要がないのと同じです。</li>
+<li><strong>長期メモリ / 知識ベース</strong>：ベクトルデータベースなどの技術を通じて保存された専用知識（例：社内文書、ユーザーの好み）であり、モデルの能力を強化するために使用されます。初心者はひとまずこの部分を無視して、まず短期メモリを理解すれば十分です。</li>
+</ul>
+<p>以下の完全な例では、Python のリストを使って短期メモリをシミュレートします。</p>
+<h3>5. ツールモジュール —— Agent の「スイスアーミーナイフ」</h3>
+<p>モデル自体の能力には限界があります（例：リアルタイムの天気を知らない、複雑な計算ができない、ファイルを操作できない）。ツールモジュールは Agent に「外部スキル」のセットを提供し、能力の範囲を大幅に拡張します。ツールは Python 関数、サードパーティ API、または完全な外部ソフトウェアの場合があります。</p>
+<p>以下は最も簡単なツールの例です：</p>
+<div class="example">
+<h2 class="example">サンプル</h2>
+<div class="example_code">
+<span style="color: #a50"># ツールモジュールの例：簡単な計算機ツール</span><br/>
+<span style="color: Green;font-weight:bold;">def</span> calculator_tool<span style="color: Olive;">(</span>expression<span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""<br/>数式の文字列を受け取り、計算結果を返します。<br/>これが「ツール」です——Agent の脳が必要に応じて呼び出すのを待っています。<br/>
+    """</span><br/>
+    <span style="color: Green;font-weight:bold;">try</span>:<br/>
+        <span style="color: #a50"># 注意：eval() は本番環境ではセキュリティリスクがあります。ここではデモのみを目的としています。</span><br/>
+        result <span style="color: Gray;">=</span> <span style="color: Teal;">eval</span><span style="color: Olive;">(</span>expression<span style="color: Olive;">)</span><br/>
+        <span style="color: Green;font-weight:bold;">return</span> f<span style="color: #a11;">"計算結果：{expression} = {result}"</span><br/>
+    <span style="color: Green;font-weight:bold;">except</span> <span style="color: Teal;">Exception</span> <span style="color: Green;font-weight:bold;">as</span> e:<br/>
+        <span style="color: Green;font-weight:bold;">return</span> f<span style="color: #a11;">"計算エラー：{e}"</span><br/>
+<br/>
+<span style="color: #a50"># シミュレーション：脳が決定した後、このツールを呼び出す</span><br/>
+tool_result <span style="color: Gray;">=</span> calculator_tool<span style="color: Olive;">(</span><span style="color: #a11;">"3 + 5 * 2"</span><span style="color: Olive;">)</span><br/>
+<span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>tool_result<span style="color: Olive;">)</span>  <span style="color: #a50"># 出力：計算結果：3 + 5 * 2 = 13</span><br/>
+<span style="color: #a50"># 注意：Python は乗算と除算を加算と減算より先に計算するため、3 + 10 = 13 となり、8 * 2 = 16 にはなりません。</span><br/>
+</div>
+</div>
+<hr/>
+<h2>実践演習：シンプルなコマンドライン AI Agent を構築する</h2>
+<p>上記では各モジュールを個別に紹介しました。ここで、それらを<strong>組み合わせ</strong>て、継続的な対話とツール呼び出しができる完全なミニエージェントを作成しましょう。</p>
+<p>実行する前に、まずこの構造を頭の中で確認してください：</p>
+<ul>
+<li>ユーザー入力 →<strong>知覚</strong> → <strong>意思決定</strong>（キーワードマッチング）→<strong>行動</strong>（ツール呼び出しまたは対話）→ 出力結果 →<strong>記憶</strong>（履歴に保存）→ 次の入力待ち</li>
+</ul>
+<div class="example">
+<h2 class="example">サンプル</h2>
+<div class="example_code">
+<span style="color: #a50"># 完全なミニ AI エージェントの例</span><br/>
+<span style="color: Green;font-weight:bold;">import</span> <span style="color: #05a;">random</span><br/>
+<br/>
+<span style="color: #a50"># ==================== ツール定義 ====================</span><br/>
+<span style="color: Green;font-weight:bold;">def</span> get_weather<span style="color: Olive;">(</span>city<span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""ツール1：天気照会のシミュレーション（実際には実際の天気APIに置き換え可能）"""</span><br/>
+    weather_options <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: #a11;">"晴れ"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"曇り"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"小雨"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"強風"</span><span style="color: Olive;">]</span><br/>
+    temperature <span style="color: Gray;">=</span> <span style="color: #05a;">random</span>.<span style="color: #05a;">randint</span><span style="color: Olive;">(</span><span style="color: Maroon;">15</span><span style="color: Gray;">,</span> <span style="color: Maroon;">35</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">return</span> f<span style="color: #a11;">"{city}の天気は{random.choice(weather_options)}、気温{temperature}℃です。"</span><br/>
+<br/>
+<span style="color: Green;font-weight:bold;">def</span> simple_calculator<span style="color: Olive;">(</span>a<span style="color: Gray;">,</span> b<span style="color: Gray;">,</span> <span style="color: #05a;">operator</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: #a11;">"""ツール2：簡易計算機"""</span><br/>
+    <span style="color: Green;font-weight:bold;">if</span> <span style="color: #05a;">operator</span> <span style="color: Gray;">==</span> <span style="color: #a11;">'+'</span>:<br/>
+        <span style="color: Green;font-weight:bold;">return</span> f<span style="color: #a11;">"{a} + {b} = {a + b}"</span><br/>
+    <span style="color: Green;font-weight:bold;">elif</span> <span style="color: #05a;">operator</span> <span style="color: Gray;">==</span> <span style="color: #a11;">'-'</span>:<br/>
+        <span style="color: Green;font-weight:bold;">return</span> f<span style="color: #a11;">"{a} - {b} = {a - b}"</span><br/>
+    <span style="color: Green;font-weight:bold;">else</span>:<br/>
+        <span style="color: Green;font-weight:bold;">return</span> <span style="color: #a11;">"この演算は現在サポートされていません。"</span><br/>
+<br/>
+<span style="color: #a50"># ==================== 記憶（短期）====================</span><br/>
+<span style="color: #a50"># リストで対話履歴をシミュレートし、各項目は文字列</span><br/>
+conversation_history <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><span style="color: Olive;">]</span><br/>
+<br/>
+<span style="color: #a50"># ==================== Agent メインループ ====================</span><br/>
+<span style="color: Green;font-weight:bold;">def</span> run_simple_agent<span style="color: Olive;">(</span><span style="color: Olive;">)</span>:<br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"【シンプルAIエージェント起動】'終了'と入力すると対話を終了します。"</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"ヒント：天気を尋ねる（例：「北京の天気」）か、計算を行う（例：「計算1+1」）ことができます。<span style="color: #000099; font-weight: bold;">\n</span>"</span><span style="color: Olive;">)</span><br/>
+    <br/>
+    <span style="color: Green;font-weight:bold;">while</span> <span style="color: Teal;">True</span>:<br/>
+        <span style="color: #a50"># ---- 知覚フェーズ：ユーザー入力を取得 ----</span><br/>
+        user_input <span style="color: Gray;">=</span> <span style="color: Teal;">input</span><span style="color: Olive;">(</span><span style="color: #a11;">"あなた："</span><span style="color: Olive;">)</span><br/>
+        conversation_history.<span style="color: #05a;">append</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"ユーザー：{user_input}"</span><span style="color: Olive;">)</span><br/>
+        <br/>
+        <span style="color: #a50"># 特別な指示：終了</span><br/>
+        <span style="color: Green;font-weight:bold;">if</span> user_input.<span style="color: #05a;">lower</span><span style="color: Olive;">(</span><span style="color: Olive;">)</span> <span style="color: Green;font-weight:bold;">in</span> <span style="color: Olive;">[</span><span style="color: #a11;">"終了"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"exit"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"quit"</span><span style="color: Olive;">]</span>:<br/>
+            <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"Agent：さようなら！"</span><span style="color: Olive;">)</span><br/>
+            <span style="color: Green;font-weight:bold;">break</span><br/>
+        <br/>
+        <span style="color: #a50"># ---- 意思決定 + 行動フェーズ：入力に基づいてツールまたは対話を選択 ----</span><br/>
+        response <span style="color: Gray;">=</span> <span style="color: #a11;">""</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">if</span> <span style="color: #a11;">"天気"</span> <span style="color: Green;font-weight:bold;">in</span> user_input:<br/>
+            <span style="color: #a50"># 入力から都市名の識別を試み、デフォルトは北京</span><br/>
+            city <span style="color: Gray;">=</span> <span style="color: #a11;">"北京"</span><br/>
+            <span style="color: Green;font-weight:bold;">for</span> c <span style="color: Green;font-weight:bold;">in</span> <span style="color: Olive;">[</span><span style="color: #a11;">"北京"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"上海"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"広州"</span><span style="color: Gray;">,</span> <span style="color: #a11;">"深セン"</span><span style="color: Olive;">]</span>:<br/>
+                <span style="color: Green;font-weight:bold;">if</span> c <span style="color: Green;font-weight:bold;">in</span> user_input:<br/>
+                    city <span style="color: Gray;">=</span> c<br/>
+                    <span style="color: Green;font-weight:bold;">break</span><br/>
+            <span style="color: #a50"># 天気ツールを呼び出す</span><br/>
+            response <span style="color: Gray;">=</span> get_weather<span style="color: Olive;">(</span>city<span style="color: Olive;">)</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">elif</span> <span style="color: #a11;">"計算"</span> <span style="color: Green;font-weight:bold;">in</span> user_input <span style="color: Green;font-weight:bold;">or</span> <span style="color: #a11;">"+"</span> <span style="color: Green;font-weight:bold;">in</span> user_input <span style="color: Green;font-weight:bold;">or</span> <span style="color: #a11;">"-"</span> <span style="color: Green;font-weight:bold;">in</span> user_input:<br/>
+            <span style="color: #a50"># 単純なパターンマッチングで、いくつかの固定された計算式を認識</span><br/>
+            <span style="color: Green;font-weight:bold;">if</span> <span style="color: #a11;">"1+1"</span> <span style="color: Green;font-weight:bold;">in</span> user_input:<br/>
+                response <span style="color: Gray;">=</span> simple_calculator<span style="color: Olive;">(</span><span style="color: Maroon;">1</span><span style="color: Gray;">,</span> <span style="color: Maroon;">1</span><span style="color: Gray;">,</span> <span style="color: #a11;">'+'</span><span style="color: Olive;">)</span><br/>
+            <span style="color: Green;font-weight:bold;">elif</span> <span style="color: #a11;">"10-5"</span> <span style="color: Green;font-weight:bold;">in</span> user_input:<br/>
+                response <span style="color: Gray;">=</span> simple_calculator<span style="color: Olive;">(</span><span style="color: Maroon;">10</span><span style="color: Gray;">,</span> <span style="color: Maroon;">5</span><span style="color: Gray;">,</span> <span style="color: #a11;">'-'</span><span style="color: Olive;">)</span><br/>
+            <span style="color: Green;font-weight:bold;">else</span>:<br/>
+                response <span style="color: Gray;">=</span> <span style="color: #a11;">"「計算1+1」または「計算10-5」と入力してみてください。"</span><br/>
+<br/>
+        <span style="color: Green;font-weight:bold;">else</span>:<br/>
+            <span style="color: #a50"># ツールにマッチしない場合は、通常の対話にフォールバック</span><br/>
+            default_responses <span style="color: Gray;">=</span> <span style="color: Olive;">[</span><br/>
+                <span style="color: #a11;">"おっしゃる意味を理解しました。"</span><span style="color: Gray;">,</span><br/>
+                <span style="color: #a11;">"これは面白い話題ですね！"</span><span style="color: Gray;">,</span><br/>
+                <span style="color: #a11;">"私の現在のスキルは限られています。天気や簡単な計算を試してみてください。"</span><span style="color: Gray;">,</span><br/>
+                <span style="color: #a11;">"うん、続けてください。"</span><br/>
+            <span style="color: Olive;">]</span><br/>
+            response <span style="color: Gray;">=</span> <span style="color: #05a;">random</span>.<span style="color: #05a;">choice</span><span style="color: Olive;">(</span>default_responses<span style="color: Olive;">)</span><br/>
+        <br/>
+        <span style="color: #a50"># ---- 出力 + 記憶フェーズ：返信を表示し、履歴に保存 ----</span><br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Agent：{response}"</span><span style="color: Olive;">)</span><br/>
+        conversation_history.<span style="color: #05a;">append</span><span style="color: Olive;">(</span>f<span style="color: #a11;">"Agent：{response}"</span><span style="color: Olive;">)</span><br/>
+    <br/>
+    <span style="color: #a50"># 対話終了後、完全な対話履歴を表示（短期記憶の内容をシミュレート）</span><br/>
+    <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span><span style="color: #a11;">"<span style="color: #000099; font-weight: bold;">\n</span>=== 今回の対話履歴（短期記憶の内容） ==="</span><span style="color: Olive;">)</span><br/>
+    <span style="color: Green;font-weight:bold;">for</span> line <span style="color: Green;font-weight:bold;">in</span> conversation_history:<br/>
+        <span style="color: Green;font-weight:bold;">print</span><span style="color: Olive;">(</span>line<span style="color: Olive;">)</span><br/>
+<br/>
+<span style="color: #a50"># Agent を起動</span><br/>
+<span style="color: Green;font-weight:bold;">if</span> __name__ <span style="color: Gray;">==</span> <span style="color: #a11;">"__main__"</span>:<br/>
+    run_simple_agent<span style="color: Olive;">(</span><span style="color: Olive;">)</span><br/>
+</div>
+</div>
+<p><strong>このプログラムを実行すると、次のようなことを体験できます：</strong></p>
+<ul>
+<li>継続的に<strong>多輪対話ができる</strong>ループ（知覚モジュールが絶えず動作します）。</li>
+<li>入力キーワード（例：「天気」「計算」）に基づいて<strong>さまざまなツールが自動的に起動される</strong>（行動モジュール）。</li>
+<li>対話終了後、完全な<strong>対話履歴を確認できる</strong>（記憶モジュール）。</li>
+</ul>
+<p>💡 <strong>考えてみてください</strong>：このエージェントをさらに強力にしたい場合は、次のことを試せます：① ツールを追加する（例：為替レートの確認、翻訳）；② 意思決定モジュールのキーワードマッチングを実際のLLM API呼び出しに置き換えると、エージェントは自然言語を理解できるようになります！</p>
+<hr/>
+<h2>まとめと展望</h2>
+<p>この記事を通じて、AIエージェントの基本概念をすでに習得できているはずです：</p>
+<ul>
+<li>それは<strong>知覚、意思決定（脳）、行動、記憶、ツール</strong>などのモジュールから構成されるインテリジェントなプログラムです；</li>
+<li>それは<strong>ReActループ</strong>（思考 → 行動 → 観察 → 再思考）を通じて自律的に目標を追求します；</li>
+<li>LLMはその頭脳であり、ツールは手足、記憶は一貫性を保ちます。</li>
+</ul>
+<p>核心を一言で覚える：<strong>LLMは「話す」だけで、Agentは「実行できる」。</strong></p>
+<h3>次のステップの学習アドバイス</h3>
+<ul>
+<li><strong>大規模言語モデル（LLM）APIを深く学ぶ</strong>：OpenAI GPT、DeepSeek、通义千问などのモデルのAPI呼び出し方法を学び、それらをエージェントの真の頭脳として使って、サンプル内の簡素なキーワードマッチングを置き換えましょう。</li>
+<li><strong>Agent開発フレームワークを学ぶ</strong>：探索する<strong>LangChain</strong>、<strong>LlamaIndex</strong> 或 <strong>AutoGen</strong>などの成熟したフレームワーク。これらは記憶、ツールチェーン、タスクオーケストレーションなどのモジュールをすべてカプセル化しているため、これらを使えば労力は半分で効果は2倍になり、車輪の再発明を避けられます。</li>
+<li><strong>実際のツールを統合する</strong>：エージェントをデータベース、メールシステム、天気サービスなどの実際のAPIに接続して、現実の問題を解決してみましょう。このステップにより、「ツール」の概念を新たに体感できるはずです。</li>
+<li><strong>プロンプトエンジニアリング（Prompt Engineering）を学ぶ</strong>：LLMに高品質な「指示」を書く方法は、エージェントの頭脳の発揮レベルを直接決定します。これは効率的なAgentを開発する上で無視できない重要なスキルです。</li>
+</ul>
+<p>AIエージェントの世界は広大で可能性に満ちています。自動化されたパーソナルアシスタントからエンタープライズ向けインテリジェントソリューションまで、人とコンピュータの相互作用の新しいパラダイムになりつつあります。この記事を出発点に、自分自身のインテリジェントエージェントの構築を始めてください。</p> その他の拡張
+</div>
+</div>
+<div class="archive-list" style="display:none;font-size: 14px;line-height: 1.8;margin-top: 20px;padding: 10px;">
+<div class="archive-list-item">
+<div class="post-intro" id="ai-info" style="width: 100%;">AI思考中...</div>
+</div>
+</div>
+<div class="previous-next-links">
+<div class="previous-design-link"><i aria-hidden="true" class="fa fa-arrow-left" style="font-size:16px;"></i> <a href="../ai-agent/openclaw-cloud.html" rel="prev">OpenClaw ワンクリックデプロイ</a> </div>
+<div class="next-design-link"><a href="../ai-agent/ai-agent-llm.html" rel="next">大規模言語モデル基礎（LLM）</a> <i aria-hidden="true" class="fa fa-arrow-right" style="font-size:16px;"></i></div>
+</div>
+<div class="sidebar-box">
+</div>
+ノート一覧
+<style>
+.wrapper {
+  /*text-transform: uppercase; */
+  background: #ececec;
+  color: #555;
+  cursor: pointer;
+  font-family: "Gill Sans", Impact, sans-serif;
+  font-size: 20px;
+  position: relative;
+  text-align: center;
+  width: 200px;
+  -webkit-transform: translateZ(0); /* webkit flicker fix */
+  -webkit-font-smoothing: antialiased; /* webkit text rendering fix */
+}
+
+.wrapper .tooltip {
+  white-space: nowrap;
+  font-size: 14px;
+  text-align: left;
+  background: #96b97d;
+  bottom: 100%;
+  color: #fff;
+  display: block;
+  left: -25px;
+  margin-bottom: 15px;
+  opacity: 0;
+  padding: 14px;
+  pointer-events: none;
+  position: absolute;
+  
+  -webkit-transform: translateY(10px);
+     -moz-transform: translateY(10px);
+      -ms-transform: translateY(10px);
+       -o-transform: translateY(10px);
+          transform: translateY(10px);
+  -webkit-transition: all .25s ease-out;
+     -moz-transition: all .25s ease-out;
+      -ms-transition: all .25s ease-out;
+       -o-transition: all .25s ease-out;
+          transition: all .25s ease-out;
+  -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+     -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+      -ms-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+       -o-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+          box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.28);
+}
+.tooltip a {
+	color:#fff;
+}
+/* This bridges the gap so you can mouse into the tooltip without it disappearing */
+.wrapper .tooltip:before {
+  bottom: -20px;
+  content: " ";
+  display: block;
+  height: 20px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}  
+
+/* CSS Triangles - see Trevor's post */
+.wrapper .tooltip:after {
+  border-left: solid transparent 10px;
+  border-right: solid transparent 10px;
+  border-top: solid #96b97d 10px;
+  bottom: -10px;
+  content: " ";
+  height: 0;
+  left: 20%;
+  margin-left: -13px;
+  position: absolute;
+  width: 0;
+}
+.wrapper .tooltip1 {
+	margin-left: 50px;
+	padding-top: 0px;
+}
+/*
+.wrapper:hover .tooltip {
+  opacity: 1;
+  pointer-events: auto;
+  -webkit-transform: translateY(0px);
+     -moz-transform: translateY(0px);
+      -ms-transform: translateY(0px);
+       -o-transform: translateY(0px);
+          transform: translateY(0px);
+}
+*/
+/* IE can just show/hide with no transition */
+.lte8 .wrapper .tooltip {
+  display: none;
+}
+
+.lte8 .wrapper:hover .tooltip {
+  display: block;
+}
+
+</style>
+<link href="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.css" rel="stylesheet"/>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.vanilla.js"></script>
+<script src="../static.char123.com/assets/upvotejs/dist/upvotejs/upvotejs.jquery.js"></script>
+<div class="no_webshot" id="respond">
+<div class="comment-signarea" style=" padding: 20px 20px;">
+<h3 class="text-muted" id="share_code" style="color: #799961;"><i aria-hidden="true" class="fa fa-pencil-square-o"></i>クリックしてノートを共有</h3>
+&lt;p style="font-size:14px;"&gt;ノートはこの記事の内容の拡張である必要があります！&lt;/p&gt;&lt;br&gt;
+	&lt;p style="font-size:12px;"&gt;&lt;a href="../tougao.html" target="_blank"&gt;記事の投稿はこちらをクリックできます&lt;/a&gt;&lt;/p&gt;
+	&lt;p style="font-size:14px;"&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+		&lt;h3 class="text-muted"&gt;&lt;i class="fa fa-info-circle" aria-hidden="true"&gt;&lt;/i&gt; ノートを共有する前に&lt;a href=";.html" class="runoob-pop"&gt;ログイン&lt;/a&gt;が必要です！&lt;/h3&gt;
+		&lt;p&gt;&lt;a href="../w3cnote/runoob-user-test-intro.html" target="_blank"&gt;登録招待コードの取得方法&lt;/a&gt;&lt;/p&gt;
+</div>
+<form action="../wp-content/themes/runoob/option/addnote.php" id="commentform" method="post" style="display:none;">
+<div class="comt">
+<div class="comt-title">
+<i aria-hidden="true" class="fa fa-user-circle" style="font-size:36px;"></i> <p><a href=";.html" id="cancel-comment-reply-link">キャンセル</a></p>
+</div>
+<div class="comt-box">
+<div id="mded"></div>
+<div class="comt-ctrl">
+<div class="comt-tips"><input id="comment_post_ID" name="comment_post_ID" type="hidden" value="29420"/>
+<input id="comment_parent" name="comment_parent" type="hidden" value="0"/>
+</div>
+<button id="submit" name="submit" tabindex="5" type="submit"><i aria-hidden="true" class="fa fa-pencil"></i>ノートを共有</button>
+</div>
+</div>
+<div class="comt-comterinfo">
+<ul id="comment-author-info">
+<li class="form-inline"><label class="hide" for="author">ニックネーム</label><input class="ipt" id="author" name="author" placeholder="昵称" tabindex="2" type="text" value=""/><span class="text-muted">ニックネーム (必須)</span></li>
+<li class="form-inline"><label class="hide" for="email">メールアドレス</label><input class="ipt" id="email" name="email" placeholder="邮箱" tabindex="3" type="text" value=""/><span class="text-muted">メールアドレス (必須)</span></li>
+<li class="form-inline"><label class="hide" for="url">引用アドレス</label><input class="ipt" id="url" name="url" placeholder="引用地址" tabindex="4" type="text" value=""/><span class="text-muted">引用アドレス</span></li>
+</ul>
+</div>
+</div>
+</form>
+</div>
+<script type="text/javascript">
+$(function() {
+	//初始化编辑器
+	
+	var editor = new Simditor({
+	  textarea: $('#mded'),
+	  placeholder: '写笔记...',
+	  upload:false,
+	 // upload: {url:'/api/comment_upload_file.php',params: null,fileKey: 'upload_file',connectionCount: 1,leaveConfirm: '文件正在上传，您确定离开?'},
+	  defaultImage: 'https://www.runoob.com/images/logo.png',
+	  codeLanguages: '',
+	  autosave: 'editor-content',
+	  toolbar: [  'bold','code','ul','ol','image' ]
+	});
+	editor.on('selectionchanged', function() {
+		$(".code-popover").hide();
+	});
+
+	// 提交数据
+	$("#share_code").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		
+	});
+	$("#user_add_note").click(function() {
+		$(".comment-signarea").hide();
+		$("#commentform").show();
+		$('html, body').animate({
+       	    scrollTop: $("#respond").offset().top
+    	}, 200);
+	});
+
+	// 提交笔记
+	var commentform=$('#commentform');
+	commentform.prepend('<div id="comment-status" style="display:none;" ></div>');
+	var statusdiv=$('#comment-status');
+	
+	commentform.submit(function(e){
+		e.preventDefault();
+		var noteContent = editor.getValue();
+		// console.log(noteContent);
+		noteContent = noteContent.replace(/<pre><code>/g,"<pre>");
+		noteContent = noteContent.replace(/<\/code><\/pre>/g,"</pre>");
+		
+		// 系列化表单数据
+		var comment_parent = 0;
+		var is_user_logged_in = $("#is_user_logged_in").val();
+		var comment_post_ID =  29420;
+		var _wp_unfiltered_html_comment = $("#_wp_unfiltered_html_comment").val();
+		var comment = noteContent;
+		var author = $("#author").val();
+		var url = $("#url").val();
+		var email = $("#email").val();
+		if(isBlank(author) && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入昵称！</p>').show();
+		} else if(isBlank(email)  && is_user_logged_in==0) {
+			statusdiv.html('<p  class="ajax-error">请输入邮箱！</p>').show();
+		} else {
+			// var formdata=commentform.serialize() + "&comment=" + noteContent ;
+			// 添加状态信息
+			statusdiv.html('<p>Processing...</p>').show();
+			// 获取表单提交地址
+			var formurl=commentform.attr('action');
+			
+			// 异步提交
+			$.ajax({
+					type: 'post',
+					url: formurl,
+					dataType:'json',
+					data: {"comment_parent":comment_parent,"comment_post_ID":comment_post_ID, "_wp_unfiltered_html_comment":_wp_unfiltered_html_comment,"comment":comment,"url":url, "email":email,"author":author},
+					error: function(XMLHttpRequest, textStatus, errorThrown){
+					statusdiv.html('<p class="ajax-error" >数据不完整或表单提交太快了！</p>').show();
+				},
+				success: function(data, textStatus){
+					if(data.errorno=="0") {
+						$("#submit").prop('disabled', true);
+						statusdiv.html('<p class="ajax-success" >笔记已提交审核，感谢分享笔记！</p>').show();
+						alert('笔记已提交审核，感谢分享笔记！');
+					}else{
+						statusdiv.html('<p class="ajax-error" >'+data.msg+'</p>').show();
+					}
+					commentform.find('textarea[name=comment]').val('');
+				}
+			});
+			setTimeout(function(){
+		        $("#submit").prop('disabled', false);
+		    }, 10*1000);
+		}
+		return false;
+
+	});
+	$(".comt-author").click(function() {
+		href = $(this).children("a").attr("href");
+		if(href.indexOf("/note/")!=-1) {
+			var win = window.open(href, '_blank');
+  			win.focus();
+		}
+	});
+	$(".comt-meta span").hover(function(){
+		$(this).children(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).children(".tooltip").removeAttr("style");
+	});
+	/*
+	$(".wrapper i").hover(function(){
+		$(this).siblings(".tooltip").css({ "opacity": 1, "pointer-events": "auto"});
+	},function(){
+		$(this).siblings(".tooltip").css({ "opacity": 0, "pointer-events": "auto"});
+	});
+	*/
+	//Upvote.create('runoobvote-id', {callback: vote_callback});
+	var ajaxurl = 'https://www.runoob.com/wp-admin/admin-ajax.php';
+	var callback = function(data) {
+		//console.log($('#runoobvote-id').upvote('upvoted'));
+		//console.log($('#runoobvote-id').upvote('downvoted'));
+		//console.log(data);
+		_vote_action = data.action;
+		id_arr = data.id.split('-');
+		um_id= id_arr[2];
+		//console.log(um_id);
+		
+		var re = /^[1-9]+/;
+		if (re.test(um_id)) { 
+			var ajax_data = {
+				_vote_action: _vote_action,
+				action: "pinglun_zan",
+				um_id: um_id,
+				um_action: "ding"
+			};
+			//console.log(ajax_data);
+			$.post(ajaxurl,ajax_data,function(status){
+				//if(status.vote_num>999) {
+				//	_voteHtml = '<span style="display: block; text-align: center;font-size: 20px; color: #6a737c; margin: 8px 0;">'+kFormatter(status.vote_num) +'</span>';
+				//	$("#runoobvote-id-" + um_id + " .count").hide().after(_voteHtml);
+				//}
+				
+			});
+		}
+	};
+	if($('#comments').length && $('.upvotejs').length){
+		$('.upvotejs').upvote({id: 29420, callback: callback});
+	
+		$.post(ajaxurl,{"action":"pinglun_zan","postid":29420},function(data){  
+			$(data).each(function(key,value) {
+				$("#runoobvote-id-" + value.commid + " .upvote").addClass(value.upvotejs_class);
+				$("#runoobvote-id-" + value.commid + " .downvote").addClass(value.downvote_class);
+				$("#runoobvote-id-" + value.commid + " .count").text(value.upvote_count);
+			})
+		},'json');
+		
+	}
+	
+	
+});
+function isBlank(str) {
+    return (!str || /^\s*$/.test(str));
+}
+function kFormatter(num) {
+	// return num;
+    return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
+}
+
+</script>
+<link href="../wp-content/themes/runoob/assets/css/qa.css" rel="stylesheet"/>
+<link href="../static.char123.com/assets/simditor/2.3.6/styles/simditor.min.css" rel="stylesheet" type="text/css"/>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/module.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/hotkeys.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/uploader.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor.min.js" type="text/javascript"></script>
+<script src="../static.char123.com/assets/simditor/2.3.6/scripts/simditor-autosave.js" type="text/javascript"></script>
+</div>
+</div>
+<!-- 右边栏 -->
+<div class="fivecol last right-column">
+<style>
+.sidebar-tree .double-li {
+    width:300px;
+}
+.sidebar-tree .double-li li {
+    width: 44%;
+    line-height: 1.5em;
+    border-bottom: 1px solid #ccc;
+    float: left;
+    display: inline;
+}
+</style>
+<div class="sidebar-box re-box re-box-large">
+<div class="sidebar-box recommend-here" style="margin: 0 auto;">
+<a href="#" style="font-size: 16px; color:#64854c;font-weight:bold;"> <i aria-hidden="true" class="fa fa-list"></i> 分类导航</a>
+</div>
+<div class="sidebar-box sidebar-cate">
+<div class="sidebar-tree">
+<ul><li style="margin: 0;"><a class="tit" href="#"> Python / 数据科学</a><ul class="double-li"><li><a href="../python3/python3-tutorial.html" title="Python 教程">Python 教程</a></li><li><a href="../python/python-tutorial.html" title="Python2.x 教程">Python2.x 教程</a></li><li><a href="../fastapi/fastapi-tutorial.html" title="FastAPI 教程">FastAPI 教程</a></li><li><a href="../flask/flask-tutorial.html" title="Flask 教程">Flask 教程</a></li><li><a href="../django/django-tutorial.html" title="Django 教程">Django 教程</a></li><li><a href="../numpy/numpy-tutorial.html" title="NumPy 教程">NumPy 教程</a></li><li><a href="../pandas/pandas-tutorial.html" title="Pandas 教程">Pandas 教程</a></li><li><a href="../scipy/scipy-tutorial.html" title="SciPy 教程">SciPy 教程</a></li><li><a href="../matplotlib/matplotlib-tutorial.html" title="Matplotlib 教程">Matplotlib 教程</a></li><li><a href="../dash/dash-tutorial.html" title="Dash 教程">Dash 教程</a></li><li><a href="../jupyter-notebook/jupyter-notebook-tutorial.html" title="Jupyter Notebook 教程">Jupyter Notebook 教程</a></li><li><a href="../pillow/pillow-tutorial.html" title="Pillow 教程">Pillow 教程</a></li><li><a href="../qt/qt-tutorial.html" title="量化交易">量化交易</a></li><li><a href="../r/r-tutorial.html" title="R 教程">R 教程</a></li><li><a href="../julia/julia-tutorial.html" title="Julia 教程">Julia 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> AI / 智能开发</a><ul class="double-li"><li><a href="../ai-agent/ai-agent-tutorial.html" title="AI Agent（智能体）">AI Agent（智能体）</a></li><li><a href="../ai/ai-tutorial.html" title="AI（人工智能）">AI（人工智能）</a></li><li><a href="../codex/codex-tutorial.html" title="Codex 教程">Codex 教程</a></li><li><a href="../vibe-coding/vibe-coding-tutorial.html" title="Vibe Coding 教程">Vibe Coding 教程</a></li><li><a href="../claude-code/claude-code-tutorial.html" title="Claude Code">Claude Code</a></li><li><a href="../opencode/opencode-tutorial.html" title="OpenCode">OpenCode</a></li><li><a href="../skills/skills-tutorial.html" title="Skills（技能）">Skills（技能）</a></li><li><a href="../ollama/ollama-tutorial.html" title="Ollama 教程">Ollama 教程</a></li><li><a href="../hermes-agent/hermes-agent-tutorial.html" title="Hermes Agent">Hermes Agent</a></li><li><a href="../deepseek-harness/deepseek-harness-tutorial.html" title="DeepSeek Harness">DeepSeek Harness</a></li><li><a href="../pi-agent/pi-agent-tutorial.html" title="Pi Agent">Pi Agent</a></li><li><a href="../ai-math/ai-math-tutorial.html" title="AI 数学基础">AI 数学基础</a></li><li><a href="../tensorflow/tensorflow-tutorial.html" title="TensorFlow 教程">TensorFlow 教程</a></li><li><a href="../pytorch/pytorch-tutorial.html" title="PyTorch 教程">PyTorch 教程</a></li><li><a href="../sklearn/sklearn-tutorial.html" title="Scikit-learn 教程">Scikit-learn 教程</a></li><li><a href="../ml/ml-tutorial.html" title="机器 教程">机器 教程</a></li><li><a href="../langchain/langchain-tutorial.html" title="LangChain">LangChain</a></li><li><a href="../nlp/nlp-tutorial.html" title="自然语言处理 NLP">自然语言处理 NLP</a></li><li><a href="../opencv/opencv-tutorial.html" title="OpenCV 教程">OpenCV 教程</a></li><li><a href="../selenium/selenium-tutorial.html" title="Selenium 教程">Selenium 教程</a></li><li><a href="../playwright/playwright-tutorial.html" title="Playwright 教程">Playwright 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 前端开发</a><ul class="double-li"><li><a href="../html/html-tutorial.html" title="HTML 教程">HTML 教程</a></li><li><a href="../html/html5-intro.html" title="HTML5 教程">HTML5 教程</a></li><li><a href="../css/css-tutorial.html" title="CSS 教程">CSS 教程</a></li><li><a href="../css3/css3-tutorial.html" title="CSS3 教程">CSS3 教程</a></li><li><a href="../js/js-tutorial.html" title="JavaScript 教程">JavaScript 教程</a></li><li><a href="../htmldom/htmldom-tutorial.html" title="HTML DOM 教程">HTML DOM 教程</a></li><li><a href="../typescript/ts-tutorial.html" title="TypeScript 教程">TypeScript 教程</a></li><li><a href="../ajax/ajax-tutorial.html" title="AJAX 教程">AJAX 教程</a></li><li><a href="../json/json-tutorial.html" title="JSON 教程">JSON 教程</a></li><li><a href="../tailwindcss/tailwindcss-tutorial.html" title="Tailwind CSS 教程">Tailwind CSS 教程</a></li><li><a href="../bootstrap4/bootstrap4-tutorial.html" title="Bootstrap4 教程">Bootstrap4 教程</a></li><li><a href="../bootstrap5/bootstrap5-tutorial.html" title="Bootstrap5 教程">Bootstrap5 教程</a></li><li><a href="../foundation/foundation-tutorial.html" title="Foundation 教程">Foundation 教程</a></li><li><a href="../vue2/vue-tutorial.html" title="Vue.js 教程">Vue.js 教程</a></li><li><a href="../vue3/vue3-tutorial.html" title="Vue3 教程">Vue3 教程</a></li><li><a href="../react/react-tutorial.html" title="React 教程">React 教程</a></li><li><a href="../nextjs/nextjs-tutorial.html" title="Next.js 教程">Next.js 教程</a></li><li><a href="../angularjs/angularjs-tutorial.html" title="AngularJS 教程">AngularJS 教程</a></li><li><a href="../angularjs2/angularjs2-tutorial.html" title="Angular 教程">Angular 教程</a></li><li><a href="../jquery/jquery-tutorial.html" title="jQuery 教程">jQuery 教程</a></li><li><a href="../jqueryui/jqueryui-tutorial.html" title="jQuery UI 教程">jQuery UI 教程</a></li><li><a href="../jeasyui/jqueryeasyui-tutorial.html" title="jQuery EasyUI 教程">jQuery EasyUI 教程</a></li><li><a href="../echarts/echarts-tutorial.html" title="ECharts 教程">ECharts 教程</a></li><li><a href="../chartjs/chartjs-tutorial.html" title="Chart.js 教程">Chart.js 教程</a></li><li><a href="../highcharts/highcharts-tutorial.html" title="Highcharts 教程">Highcharts 教程</a></li><li><a href="../googleapi/google-maps-basic.html" title="Google 地图 教程">Google 地图 教程</a></li><li><a href="../svg/svg-tutorial.html" title="SVG 教程">SVG 教程</a></li><li><a href="../font-awesome/fontawesome-tutorial.html" title="Font Awesome 教程">Font Awesome 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 后端开发</a><ul class="double-li"><li><a href="../nodejs/nodejs-tutorial.html" title="Node.js 教程">Node.js 教程</a></li><li><a href="../electron/electron-tutorial.html" title="Electron 教程">Electron 教程</a></li><li><a href="../php/php-tutorial.html" title="PHP 教程">PHP 教程</a></li><li><a href="../java/java-tutorial.html" title="Java 教程">Java 教程</a></li><li><a href="../go/go-tutorial.html" title="Go 教程">Go 教程</a></li><li><a href="../rust/rust-tutorial.html" title="Rust 教程">Rust 教程</a></li><li><a href="../csharp/csharp-tutorial.html" title="C# 教程">C# 教程</a></li><li><a href="../servlet/servlet-tutorial.html" title="Servlet 教程">Servlet 教程</a></li><li><a href="../jsp/jsp-tutorial.html" title="JSP 教程">JSP 教程</a></li><li><a href="../asp/asp-tutorial.html" title="ASP 教程">ASP 教程</a></li><li><a href="../appml/appml-tutorial.html" title="AppML 教程">AppML 教程</a></li><li><a href="../vbscript/vbscript-tutorial.html" title="VBScript 教程">VBScript 教程</a></li><li><a href="../swagger/swagger-tutorial.html" title="Swagger 教程">Swagger 教程</a></li><li><a href="../restfulapi/restful-api-tutorial.html" title="RESTful API 教程">RESTful API 教程</a></li><li><a href="../docker/docker-tutorial.html" title="Docker 教程">Docker 教程</a></li><li><a href="../linux/linux-tutorial.html" title="Linux 教程">Linux 教程</a></li><li><a href="../w3cnote/zookeeper-tutorial.html" title="ZooKeeper 教程">ZooKeeper 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 数据库</a><ul class="double-li"><li><a href="../sql/sql-tutorial.html" title="SQL 教程">SQL 教程</a></li><li><a href="../mysql/mysql-tutorial.html" title="MySQL 教程">MySQL 教程</a></li><li><a href="../postgresql/postgresql-tutorial.html" title="PostgreSQL 教程">PostgreSQL 教程</a></li><li><a href="../sqlite/sqlite-tutorial.html" title="SQLite 教程">SQLite 教程</a></li><li><a href="../mongodb/mongodb-tutorial.html" title="MongoDB 教程">MongoDB 教程</a></li><li><a href="../redis/redis-tutorial.html" title="Redis 教程">Redis 教程</a></li><li><a href="../memcached/memcached-tutorial.html" title="Memcached 教程">Memcached 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 移动开发</a><ul class="double-li"><li><a href="../w3cnote/android-tutorial-intro.html" title="Android 教程">Android 教程</a></li><li><a href="../flutter/flutter-tutorial.html" title="Flutter 教程">Flutter 教程</a></li><li><a href="../ionic/ionic-tutorial.html" title="Ionic 教程">Ionic 教程</a></li><li><a href="../jquerymobile/jquerymobile-tutorial.html" title="jQuery Mobile 教程">jQuery Mobile 教程</a></li><li><a href="../swift/swift-tutorial.html" title="Swift 教程">Swift 教程</a></li><li><a href="../kotlin/kotlin-tutorial.html" title="Kotlin 教程">Kotlin 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> DevOps / 工程化</a><ul class="double-li"><li><a href="../git/git-tutorial.html" title="Git 教程">Git 教程</a></li><li><a href="../svn/svn-tutorial.html" title="SVN 教程">SVN 教程</a></li><li><a href="../cmake/cmake-tutorial.html" title="CMake 教程">CMake 教程</a></li><li><a href="../maven/maven-tutorial.html" title="Maven 教程">Maven 教程</a></li><li><a href="../vscode/vscode-tutorial.html" title="VS Code 教程">VS Code 教程</a></li><li><a href="../obsidian/obsidian-tutorial.html" title="Obsidian 教程">Obsidian 教程</a></li><li><a href="../pycharm/pycharm-tutorial.html" title="PyCharm 教程">PyCharm 教程</a></li><li><a href="../eclipse/eclipse-tutorial.html" title="Eclipse 教程">Eclipse 教程</a></li><li><a href="../markdown/md-tutorial.html" title="Markdown 教程">Markdown 教程</a></li><li><a href="../latex/latex-tutorial.html" title="LaTeX 教程">LaTeX 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 编程语言</a><ul class="double-li"><li><a href="../c/c-tutorial.html" title="C 教程">C 教程</a></li><li><a href="../cplusplus/cpp-tutorial.html" title="C++ 教程">C++ 教程</a></li><li><a href="../zig/zig-tutorial.html" title="Zig 教程">Zig 教程</a></li><li><a href="../scala/scala-tutorial.html" title="Scala 教程">Scala 教程</a></li><li><a href="../ruby/ruby-tutorial.html" title="Ruby 教程">Ruby 教程</a></li><li><a href="../perl/perl-tutorial.html" title="Perl 教程">Perl 教程</a></li><li><a href="../lua/lua-tutorial.html" title="Lua 教程">Lua 教程</a></li><li><a href="../dart/dart-tutorial.html" title="Dart 教程">Dart 教程</a></li><li><a href="../assembly/assembly-tutorial.html" title="汇编语言 教程">汇编语言 教程</a></li><li><a href="../w3cnote/verilog-tutorial.html" title="Verilog 教程">Verilog 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 计算机基础</a><ul class="double-li"><li><a href="../computer-organization/computer-organization-tutorial.html" title="计算机组成原理">计算机组成原理</a></li><li><a href="../data-structures/data-structures-tutorial.html" title="数据结构与算法">数据结构与算法</a></li><li><a href="../c-dsa/c-dsa-tutorial.html" title="C 语言数据结构与算法">C 语言数据结构与算法</a></li><li><a href="../design-pattern/design-pattern-tutorial.html" title="设计模式">设计模式</a></li><li><a href="../python-design-pattern/python-design-pattern-tutorial.html" title="Python 设计模式">Python 设计模式</a></li><li><a href="../regexp/regexp-tutorial.html" title="正则表达式">正则表达式</a></li><li><a href="../http/http-tutorial.html" title="HTTP 教程">HTTP 教程</a></li><li><a href="../tcpip/tcpip-tutorial.html" title="TCP/IP 教程">TCP/IP 教程</a></li><li><a href="../np/np-tutorial.html" title="网络协议">网络协议</a></li><li><a href="../w3c/w3c-tutorial.html" title="W3C 教程">W3C 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> XML / Web Service</a><ul class="double-li"><li><a href="../xml/xml-tutorial.html" title="XML 教程">XML 教程</a></li><li><a href="../dtd/dtd-tutorial.html" title="DTD 教程">DTD 教程</a></li><li><a href="../dom/dom-tutorial.html" title="XML DOM 教程">XML DOM 教程</a></li><li><a href="../xsl/xsl-tutorial.html" title="XSLT 教程">XSLT 教程</a></li><li><a href="../xpath/xpath-tutorial.html" title="XPath 教程">XPath 教程</a></li><li><a href="../xquery/xquery-tutorial.html" title="XQuery 教程">XQuery 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XLink 教程">XLink 教程</a></li><li><a href="../xlink/xlink-tutorial.html" title="XPointer 教程">XPointer 教程</a></li><li><a href="../schema/schema-tutorial.html" title="XML Schema 教程">XML Schema 教程</a></li><li><a href="../xslfo/xslfo-tutorial.html" title="XSL-FO 教程">XSL-FO 教程</a></li><li><a href="../webservices/webservices-tutorial.html" title="Web Service 教程">Web Service 教程</a></li><li><a href="../wsdl/wsdl-tutorial.html" title="WSDL 教程">WSDL 教程</a></li><li><a href="../soap/soap-tutorial.html" title="SOAP 教程">SOAP 教程</a></li><li><a href="../rss/rss-tutorial.html" title="RSS 教程">RSS 教程</a></li><li><a href="../rdf/rdf-tutorial.html" title="RDF 教程">RDF 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> .NET</a><ul class="double-li"><li><a href="../aspnet/aspnet-tutorial.html" title="ASP.NET 教程">ASP.NET 教程</a></li><li><a href="../aspnet/mvc-intro.html" title="MVC 教程">MVC 教程</a></li><li><a href="../aspnet/razor-intro.html" title="Razor 教程">Razor 教程</a></li><li><a href="../aspnet/aspnet-intro.html" title="Web Forms 教程">Web Forms 教程</a></li><li><a href="../aspnet/webpages-intro.html" title="Web Pages 教程">Web Pages 教程</a></li><li><a href="../powershell/powershell-tutorial.html" title="PowerShell 教程">PowerShell 教程</a></li></ul></li><li style="margin: 0;"><a class="tit" href="#"> 网站建设</a><ul class="double-li"><li><a href="../web/web-buildingprimer.html" title="网站建设指南">网站建设指南</a></li><li><a href="../browsers/browser-information.html" title="浏览器信息">浏览器信息</a></li><li><a href="../hosting/hosting-tutorial.html" title="网站主机教程">网站主机教程</a></li><li><a href="../quality/quality-tutorial.html" title="网站品质">网站品质</a></li></ul></li></ul> </div>
+</div>
+</div>
+<br/>
+<div class="sidebar-box re-box re-box-large">
+</div>
+</div></div>
+</div>
+<script>
+var aid = 29420;
+function coll() {
+	$.post( '/wp-content/themes/runoob/option/user/userinfo.php', {aid:aid, action:"collarticle", opt:'add'},function( data ) {
+		if(data.error==0) {
+			$("#content").find("h1:first").find("a").attr("href","javascript:void(0);");
+			$("#content").find("h1:first").find("img").attr("src","http://www.runoob.com/wp-content/themes/runoob/assets/img/coll2.png").css({width:32+"px",height:32+"px"});
+		}
+		alert(data.msg);
+	},'json');
+}
+
+(function () {
+    // 1. 仅 HTML 页面
+    if (!document.contentType || !document.contentType.includes('text/html')) return;
+
+    // 2. 容器判断
+    var container = document.querySelector('.article-intro');
+    if (!container) return;
+
+    var h1 = container.querySelector('h1');
+    if (!h1) return;
+
+    // 3. URL 判断
+    var url = window.location.href.toLowerCase();
+    var version = null;
+
+    if (url.includes('/python3/')) {
+        version = 'Python3.x';
+    } else if (url.includes('/python/')) {
+        version = 'Python2.x';
+    }
+
+    if (!version) return;
+
+    // 4. 防重复
+    if (h1.querySelector('.py-version-badge')) return;
+
+    // 5. 创建标签
+    var badge = document.createElement('span');
+    badge.className = 'py-version-badge';
+    badge.innerText = version;
+
+    // 6. 样式（核心：float 实现右上角）
+    badge.style.float = 'right';
+    badge.style.fontSize = '12px';
+    badge.style.padding = '2px 8px';
+    badge.style.borderRadius = '999px';
+
+   // 自适应亮/暗色 + 渐变背景（增强版）
+	badge.style.color = 'inherit';
+
+	// 渐变背景（低透明度，不影响暗黑模式）
+	if (version.includes('3')) {
+		badge.style.background = 'linear-gradient(90deg, rgba(79,172,254,0.15), rgba(0,242,254,0.15))';
+	} else {
+		badge.style.background = 'linear-gradient(90deg, rgba(161,140,209,0.15), rgba(251,194,235,0.15))';
+	}
+
+	// 边框弱化（更精致）
+	badge.style.border = '1px solid rgba(127,127,127,0.3)';
+
+	// 提升可读性
+	badge.style.opacity = '0.95';
+
+    // 微调位置（更贴近“右上角”）
+    badge.style.marginTop = '4px';
+    badge.style.marginLeft = '10px';
+
+    // 7. 插入到 h1 最前面（让 float 生效更稳定）
+    h1.insertBefore(badge, h1.firstChild);
+
+})();
+</script>
+<!-- 反馈对话框开始 -->
+<script src="../wp-content/themes/runoob/assets/js/runoob-article-dir.min.js"></script>
+<div class="fixed-btn">
+<a class="go-top" href="#" title="返回顶部">
+<i class="fa fa-chevron-up"></i>
+</a>
+<a class="bm-opener" href="#" title="收藏与历史">
+<i class="fa fa-history"></i>
+</a>
+<a class="writer" href="#" style="display:none" title="标记/收藏">
+<i class="fa fa-bookmark-o"></i>
+<span class="bm-badge"></span>
+</a>
+</div>
+<div style="display:none;">
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-84264393-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-84264393-2');
+</script>
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?3eec0b7da6548cf07db3bc477ea905ee";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>
+<script>
+window.jsui={
+    www: 'https://www.runoob.com',
+    uri: 'https://www.runoob.com/wp-content/themes/runoob'
+};
+</script>
+<script src="../static.char123.com/assets/libs/clipboard.min.js"></script>
+<script src="../static.char123.com/assets/libs/hl/run_prettify.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/main.min.js"></script>
+<script src="../wp-content/themes/runoob/assets/js/bookmark.js"></script>
+<script src="../static.char123.com/assets/libs/marked.umd.js"></script>
+<script src="../../lang-switcher.js"></script>
+</body>
+</html>
